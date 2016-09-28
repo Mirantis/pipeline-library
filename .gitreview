@@ -1,0 +1,4 @@
+[gerrit]
+host=review.fuel-infra.org
+port=29418
+project=mcp-ci/pipeline-library.git
