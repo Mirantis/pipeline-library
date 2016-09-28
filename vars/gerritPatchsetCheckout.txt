@@ -1,0 +1,6 @@
+// Usage example
+node {
+  gerritPatchsetCheckout{
+    credentialsId = "credentials-id-string"
+  }
+}
