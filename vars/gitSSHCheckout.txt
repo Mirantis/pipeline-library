@@ -1,0 +1,27 @@
+// Default parameters
+
+  target_dir = "./"
+  port = "29418"
+
+// Usage example
+node {
+  gitSSHCheckout {
+    credentialsId = "mcp-ci-gerrit"
+    branch = "mcp-0.1"
+    host = "ci.mcp-ci.local"
+    project = "projectcalico/calico-containers"
+  }
+}
+
+// or
+
+node {
+  gitSSHCheckout {
+    credentialsId = "mcp-ci-gerrit"
+    branch = "mcp-0.1"
+    host = "ci.mcp-ci.local"
+    project = "projectcalico/calico-containers"
+    target_dir = "some_directory"
+  }
+}
+
