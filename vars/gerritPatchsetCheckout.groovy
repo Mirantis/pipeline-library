@@ -23,19 +23,17 @@ def call(body) {
     scmExtensions.add([$class: 'WipeWorkspace'])
   }
 
-  stage("Gerrit Patchset Checkout") {
-    checkout(
-      scm: [
-        $class: 'GitSCM',
-        branches: [[name: "${GERRIT_BRANCH}"]],
-        extensions: scmExtensions,
-        userRemoteConfigs: [[
-          credentialsId: "${config.credentialsId}",
-          name: 'gerrit',
-          url: "ssh://${GERRIT_NAME}@${GERRIT_HOST}:${GERRIT_PORT}/${GERRIT_PROJECT}.git",
-          refspec: "${GERRIT_REFSPEC}"
-        ]]
-      ]
-    )
-  }
+  checkout(
+    scm: [
+      $class: 'GitSCM',
+      branches: [[name: "${GERRIT_BRANCH}"]],
+      extensions: scmExtensions,
+      userRemoteConfigs: [[
+        credentialsId: "${config.credentialsId}",
+        name: 'gerrit',
+        url: "ssh://${GERRIT_NAME}@${GERRIT_HOST}:${GERRIT_PORT}/${GERRIT_PROJECT}.git",
+        refspec: "${GERRIT_REFSPEC}"
+      ]]
+    ]
+  )
 }
