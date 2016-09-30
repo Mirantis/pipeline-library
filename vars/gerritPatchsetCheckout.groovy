@@ -5,15 +5,30 @@ def call(body) {
   body.delegate = config
   body()
 
+
+  def merge = config.withMerge ?: false
+  def wipe = config.withWipeOut ?: false
+
+  // default parameters
+  def scmExtensions = [
+    [$class: 'CleanCheckout'],
+    [$class: 'BuildChooserSetting', buildChooser: [$class: 'GerritTriggerBuildChooser']]
+  ]
+  // if we need to "merge" code from patchset to GERRIT_BRANCH branch
+  if (merge) {
+    scmExtensions.add([$class: 'LocalBranch', localBranch: "${GERRIT_BRANCH}"])
+  }
+  // we need wipe workspace before checkout
+  if (wipe) {
+    scmExtensions.add([$class: 'WipeWorkspace'])
+  }
+
   stage("Gerrit Patchset Checkout") {
     checkout(
       scm: [
         $class: 'GitSCM',
         branches: [[name: "${GERRIT_BRANCH}"]],
-        extensions: [
-          [$class: 'CleanCheckout'],
-          [$class: 'BuildChooserSetting', buildChooser: [$class: 'GerritTriggerBuildChooser']]
-        ],
+        extensions: scmExtensions,
         userRemoteConfigs: [[
           credentialsId: "${config.credentialsId}",
           name: 'gerrit',
