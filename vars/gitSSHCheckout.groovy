@@ -5,7 +5,7 @@ def call(body) {
   body.delegate = config
   body()
 
-  def target_dir = config.target_dir ?: "./"
+  def targetDir = config.targetDir ?: "./"
   def port = config.port ?: "29418"
 
   stage("Git Checkout"){
@@ -15,7 +15,7 @@ def call(body) {
         branches: [[name: "${config.branch}"]],
         extensions: [
           [$class: 'CleanCheckout'],
-          [$class: 'RelativeTargetDirectory', relativeTargetDir: "${target_dir}"]
+          [$class: 'RelativeTargetDirectory', relativeTargetDir: "${targetDir}"]
         ],
         userRemoteConfigs: [[
           credentialsId: "${config.credentialsId}",

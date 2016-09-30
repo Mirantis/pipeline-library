@@ -1,6 +1,6 @@
 // Default parameters
 
-  target_dir = "./"
+  targetDir = "./"
   port = "29418"
 
 // Usage example
@@ -21,7 +21,7 @@ node {
     branch = "mcp-0.1"
     host = "ci.mcp-ci.local"
     project = "projectcalico/calico-containers"
-    target_dir = "some_directory"
+    targetDir = "some_directory"
   }
 }
 
