@@ -1,0 +1,34 @@
+// Usage example
+// List of parameters with the default values
+  def server = Artifactory.server(config.artifactoryServerId ?: "mcp-ci")
+  def dockerRepo = config.dockerRepo ?: "artifactory.mcp.mirantis.net:5001"
+  def artifactoryURL = config.artifactoryURL ?: "https://artifactory.mcp.mirantis.net/artifactory/projectcalico"
+  def nodeImage = config.nodeImage ?: "calico/node"
+  def nodeImageTag = config.nodeImageTag ?: "v0.20.0"
+  def ctlImage = config.ctlImage ?: "calico/ctl"
+  def ctlImageTag = config.ctlImageTag ?: "v0.20.0"
+  def buildImage = config.buildImage ?: "${artifactoryURL}/mcp/libcalico/lastbuild".toURL().text.trim()
+  def felixImage = config.felixImage ?: "${artifactoryURL}/mcp/felix/lastbuild".toURL().text.trim()
+  def confdBuildId = config.confdBuildId ?: "${artifactoryURL}/mcp/confd/lastbuild".toURL().text.trim()
+  def confdUrl = config.confdUrl ?: "${artifactoryURL}/mcp/confd/confd-${confdBuildId}"
+  def birdBuildId = config.birdBuildId ?: "${artifactoryURL}/mcp/calico-bird/lastbuild".toURL().text.trim()
+  def birdUrl = config.birdUrl ?: "${artifactoryURL}/mcp/calico-bird/bird-${birdBuildId}"
+  def bird6Url = config.bird6Url ?: "${artifactoryURL}/mcp/calico-bird/bird6-${birdBuildId}"
+  def birdclUrl = config.birdclUrl ?: "${artifactoryURL}/mcp/calico-bird/birdcl-${birdBuildId}"
+  def build = "${config.containersBuildId}-${gitCommit}"
+  def credentialsId = config.credentialsId
+
+// *** Examples 1:
+// we still use old schema and want to publish to GERRIT_CHANGE_NUMBER
+def buildId = ${GERRIT_CHANGE_NUMBER}
+// we want to store in artifacts from gate then
+def buildId = "mcp"
+node {
+    buildCalicoContainers {
+      dockerRepo = "artifactory.mcp.mirantis.net:5004"
+      artifactoryURL = "https://artifactory.mcp.mirantis.net/artifactory/sandbox"
+      containersBuildId = buildId
+      credentialsId = "artifactory-sandbox"
+      artifactoryServerId = "mcp-ci-sandbox"
+    }
+}
