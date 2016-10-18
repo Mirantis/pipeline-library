@@ -43,3 +43,158 @@ namespace com.mirantis, e.g:
         }"""
     server.upload(uploadSpec, buildInfo)
     server.publishBuildInfo buildInfo
+
+
+uriByProperties
+---------------
+
+1. uriByProperties() should be used to get URL for some artifact
+with specified properties, like:
+
+    "gerritChangeId=${env.GERRIT_CHANGE_ID}",
+    "gerritPatchsetNumber=${env.GERRIT_PATCHSET_NUMBER}"
+
+2. Also can be used custom user' properties.
+
+3. The resulting value will be the string in URL format, e.g:
+
+    "https://ci.mcp-ci.local/artifactory/mcp-k8s-ci/images-info/conformance_image_v1.4.1-5_1476965708283.yaml"
+
+4. How to use:
+
+    def tools = new ci.mcp.Tools()
+    ...
+    def properties = ['com.mirantis.changeid': "${env.GERRIT_CHANGE_ID}",
+                      'com.mirantis.patchset_number': "${env.GERRIT_PATCHSET_NUMBER}" ]
+    def artifact_uri = tools.uriByProperties(properties)
+
+5. Important notes:
+
+    - if specified properties are set for few artifacts will be taken last.
+
+
+setProperties
+-------------
+
+1. setProperties() should be used to set some properties to specified artifact in repo, like:
+
+    "gerritChangeId=${env.GERRIT_CHANGE_ID}",
+    "gerritPatchsetNumber=${env.GERRIT_PATCHSET_NUMBER}"
+
+2. How to use:
+
+    def tools = new ci.mcp.Tools()
+    ...
+    def artifact_url = "${env.ARTIFACTORY_URL}/api/storage/${repository}/${tag}/${version}"
+    // for example: https://ci.mcp-ci.local/artifactory/api/storage/mcp-k8s-local/hyperkube-amd64/v1.4.1-5
+    def properties = ['com.mirantis.build_name':"${env.JOB_NAME}",
+                      'com.mirantis.build_id': "${env.BUILD_NUMBER}",
+                      'com.mirantis.changeid': "${env.GERRIT_CHANGE_ID}",
+                      'com.mirantis.patchset_number': "${env.GERRIT_PATCHSET_NUMBER}"]
+
+    tools.setProperties(artifact_url, properties)
+
+3. As result provided artifact in repo will be tagged by specified properties.
+
+
+getPropertiesForArtifact
+------------------------
+
+1. getPropertiesForArtifact() should be used to get properties for specified artifact in repo, like:
+
+    "https://ci.mcp-ci.local:443/artifactory/api/storage/mcp-k8s-ci/hyperkube-amd64/v1.4.1-5"
+
+2. As a result will be returned LinkedHashMap of properties for specified artifact URL.
+
+3. How to use:
+
+    def tools = new ci.mcp.Tools()
+    ...
+    //
+    def artifact_url = "${env.ARTIFACTORY_URL}/api/storage/${repository}/${tag}"
+    def properties = tools.getPropertiesForArtifact(artifact_url)
+
+4. Important notes:
+
+    - will be returned LinkedHashMap of properties key-value pairs. Each value is an Array by default,
+      because each key can have few values.
+    - each key is available by get() method.
+
+
+uploadImageToArtifactory
+------------------------
+
+1. uploadImageToArtifactory() should be used to upload Docker image to Artifactory.
+
+2. How to use:
+
+    def tools = new ci.mcp.Tools()
+    ...
+    // Docker registry for binaries and images
+    def docker_registry = 'ci.mcp-ci.local:5001'
+    def docker_image_name = 'hyperkube-amd64'
+    def docker_image_version = 'some_version'
+    def docker_repo = 'mcp-ci-local'
+    ...
+    <docker build steps>
+    ...
+    tools.uploadImageToArtifactory(docker_registry, docker_image_name, docker_image_version, docker_repo)
+
+3. As a result specified image will be pushed to artifactory docker repo.
+
+
+uploadBinariesToArtifactory
+---------------------------
+
+1. uploadBinariesToArtifactory() should be used to upload binaries to Artifactory, like:
+
+    - some executive binaries, which were built during job execution;
+    - *.yml files, etc.
+
+2. How to use:
+
+    def tools = new ci.mcp.Tools()
+    ...
+    def server = Artifactory.server('mcp-ci')
+    def buildInfo = Artifactory.BuildInfo()
+    ...
+    def uploadSpec = """{
+        "files": [
+            {
+                "pattern": "hyperkube*.yaml",
+                "target": "${artifactory_dev_repo}/images-info/"
+            },
+            {
+                "pattern": "artifacts/hyperkube**",
+                "target": "${artifactory_dev_repo}/hyperkube-binaries/"
+            }
+        ]
+    }"""
+    tools.uploadBinariesToArtifactory(server, buildInfo, uploadSpec)
+
+
+promoteDockerArtifact
+---------------------
+
+1. promoteDockerArtifact() should be used to promote docker image to production repo,
+because native promotion mechanism is not allow to do it due to Artifactory bug.
+
+2. How to use:
+
+    def tools = new ci.mcp.Tools()
+    ...
+    def artifactory_dev_repo = 'docker-local'
+    def artifactory_prod_repo = 'docker-prod'
+    def docker_repo = 'hyperkube-amd64'
+    ...
+    // functions above shall be used
+    <getting all tag's and artifact's information>
+    ...
+    def artifactImageTag = 'v1.4.0-XXXX'
+    def targetArtifactImageTag = 'v1.4.0'
+    ...
+    tools.promoteDockerArtifact(artifactory_dev_repo,
+                                artifactory_prod_repo,
+                                docker_repo,
+                                artifactImageTag,
+                                targetArtifactImageTag)
