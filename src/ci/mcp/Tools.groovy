@@ -41,7 +41,7 @@ def getBinaryBuildProperties(ArrayList customProperties) {
     "gerritChangeNumber=${env.GERRIT_CHANGE_NUMBER}",
     "gerritPatchsetNumber=${env.GERRIT_PATCHSET_NUMBER}",
     "gerritChangeId=${env.GERRIT_CHANGE_ID}",
-    "gitSha=${env.GERRIT_PATCHSET_REVISION}"
+    "gerritPatchsetRevision=${env.GERRIT_PATCHSET_REVISION}"
   ]
 
   if (customProperties){
