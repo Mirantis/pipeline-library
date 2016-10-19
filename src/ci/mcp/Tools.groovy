@@ -50,3 +50,14 @@ def getBinaryBuildProperties(ArrayList customProperties) {
 
   return constructString(properties, namespace, ";")
 }
+
+/**
+ * Parse HEAD of current directory and return commit hash
+ */
+def getGitCommit() {
+    git_commit = sh (
+        script: 'git rev-parse HEAD',
+        returnStdout: true
+    ).trim()
+    return git_commit
+}
