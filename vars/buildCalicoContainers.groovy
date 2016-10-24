@@ -30,7 +30,7 @@ def call(body) {
   def bird6Url = config.bird6Url ?: "${artifactoryUrl}/mcp/calico-bird/bird6-${birdBuildId}"
   def birdclUrl = config.birdclUrl ?: "${artifactoryUrl}/mcp/calico-bird/birdcl-${birdBuildId}"
 
-  def gitCommit = sh(returnStdout: true, script: "git -C ${WORKSPACE} rev-parse --short HEAD").trim()
+  def gitCommit = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
 
   def build = "${config.containersBuildId}-${gitCommit}"
 
