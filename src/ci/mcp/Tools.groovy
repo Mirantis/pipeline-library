@@ -63,6 +63,16 @@ def getGitCommit() {
 }
 
 /**
+ * Generate current timestamp
+ *
+ * @param format    Defaults to yyyyMMddHHmmss
+ */
+def getDatetime(format="yyyyMMddHHmmss") {
+    def now = new Date();
+    return now.format(format, TimeZone.getTimeZone('UTC'));
+}
+
+/**
 * Get URL to artifact by properties
 * Returns String with URL to found artifact or null if nothing
 *
