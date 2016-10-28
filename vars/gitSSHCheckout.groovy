@@ -5,17 +5,26 @@ def call(body) {
   body.delegate = config
   body()
 
+  def merge = config.withMerge ?: false
   def targetDir = config.targetDir ?: "./"
   def port = config.port ?: "29418"
+
+  // default parameters
+  def scmExtensions = [
+    [$class: 'CleanCheckout'],
+    [$class: 'RelativeTargetDirectory', relativeTargetDir: "${targetDir}"]
+  ]
+
+  // https://issues.jenkins-ci.org/browse/JENKINS-6856
+  if (merge) {
+    scmExtensions.add([$class: 'LocalBranch', localBranch: "${config.branch}"])
+  }
 
   checkout(
     scm: [
       $class: 'GitSCM',
       branches: [[name: "${config.branch}"]],
-      extensions: [
-        [$class: 'CleanCheckout'],
-        [$class: 'RelativeTargetDirectory', relativeTargetDir: "${targetDir}"]
-      ],
+      extensions: scmExtensions,
       userRemoteConfigs: [[
         credentialsId: "${config.credentialsId}",
         name: 'origin',
