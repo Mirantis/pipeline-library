@@ -52,11 +52,15 @@ def call(body) {
     """
   }
 
-
+  // libcalico project should be already checkouted to
+  // calico_node/node_share/libcalico
   stage('Build calico/node'){
     sh """
       make node_image \
         NODE_CONTAINER_NAME=${nodeContainerName} \
+        NODE_CONTAINER_BUILD_ARGS='\
+          --build-arg LIBCALICO_REPO=file:///tmp/node_share/libcalico \
+          --build-arg LIBCALICO_VER=mcp' \
         BUILD_CONTAINER_NAME=${buildImage} \
         FELIX_CONTAINER_NAME=${felixImage} \
         CONFD_URL=${confdUrl} \
