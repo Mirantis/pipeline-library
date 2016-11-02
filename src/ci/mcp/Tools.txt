@@ -45,6 +45,24 @@ namespace com.mirantis, e.g:
     server.publishBuildInfo buildInfo
 
 
+setDockerfileLabels
+-------------------
+// simple usage, which adds mandatory properties to Dockerfile which is
+// located in current directory
+tools.setDockerfileLabels()
+
+// extended usage
+// add Labels to calico ctl and node images
+  def properties = [
+    "CALICO_NODE_IMAGE_REPO=${calicoNodeImageRepo}",
+    "CALICOCTL_IMAGE_REPO=${calicoCtlImageRepo}",
+    "CALICO_VERSION=${calicoVersion}"
+  ]
+  tools.setDockerfileLabels("./calicoctl/Dockerfile", properties)
+  tools.setDockerfileLabels("./calico_node/Dockerfile", properties)
+
+
+
 uriByProperties
 ---------------
 
