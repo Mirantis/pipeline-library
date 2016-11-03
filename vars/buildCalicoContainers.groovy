@@ -54,9 +54,13 @@ def call(body) {
 
   // libcalico project should be already checkouted to
   // calico_node/node_share/libcalico
+
+  // (skulanov): Fix when upstream will be merged
+  // https://github.com/projectcalico/calico-containers/pull/1250
+  // but for now let's use `make calico_node/.calico_node.created`
   stage('Build calico/node'){
     sh """
-      make node_image \
+      make calico_node/.calico_node.created \
         NODE_CONTAINER_NAME=${nodeContainerName} \
         NODE_CONTAINER_BUILD_ARGS='\
           --build-arg LIBCALICO_REPO=file:///tmp/node_share/libcalico \
