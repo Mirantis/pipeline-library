@@ -45,7 +45,7 @@ def call(body) {
 
   stage ('Build calico/ctl image'){
     sh """
-      make ctl_image \
+      make calico/ctl \
         CTL_CONTAINER_NAME=${ctlContainerName} \
         BUILD_CONTAINER_NAME=${buildImage} \
         BIRDCL_URL=${birdclUrl}
@@ -54,13 +54,9 @@ def call(body) {
 
   // libcalico project should be already checkouted to
   // calico_node/node_share/libcalico
-
-  // (skulanov): Fix when upstream will be merged
-  // https://github.com/projectcalico/calico-containers/pull/1250
-  // but for now let's use `make calico_node/.calico_node.created`
   stage('Build calico/node'){
     sh """
-      make calico_node/.calico_node.created \
+      make calico/node \
         NODE_CONTAINER_NAME=${nodeContainerName} \
         NODE_CONTAINER_BUILD_ARGS='\
           --build-arg LIBCALICO_REPO=file:///tmp/node_share/libcalico \
