@@ -3,9 +3,9 @@
   def dockerRepo = config.dockerRepo ?: "artifactory.mcp.mirantis.net:5001"
   def artifactoryUrl = config.artifactoryURL ?: "https://artifactory.mcp.mirantis.net/artifactory/projectcalico"
   def nodeImage = config.nodeImage ?: "calico/node"
-  def nodeImageTag = config.nodeImageTag ?: "v0.20.0"
+  def nodeImageTag = config.nodeImageTag ?: "v1.0.0-beta"
   def ctlImage = config.ctlImage ?: "calico/ctl"
-  def ctlImageTag = config.ctlImageTag ?: "v0.20.0"
+  def ctlImageTag = config.ctlImageTag ?: "v1.0.0-beta"
   def buildImage = config.buildImage ?: "${artifactoryURL}/mcp/libcalico/lastbuild".toURL().text.trim()
   def felixImage = config.felixImage ?: "${artifactoryURL}/mcp/felix/lastbuild".toURL().text.trim()
   def confdBuildId = config.confdBuildId ?: "${artifactoryURL}/mcp/confd/lastbuild".toURL().text.trim()

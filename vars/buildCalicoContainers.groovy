@@ -10,11 +10,11 @@ def call(body) {
   def artifactoryUrl = config.artifactoryURL ?: "https://artifactory.mcp.mirantis.net/artifactory/projectcalico"
 
   def nodeImage = config.nodeImage ?: "calico/node"
-  def nodeImageTag = config.nodeImageTag ?: "v0.20.0"
+  def nodeImageTag = config.nodeImageTag ?: "v1.0.0-beta"
   def nodeName = "${dockerRepo}/${nodeImage}:${nodeImageTag}"
 
   def ctlImage = config.ctlImage ?: "calico/ctl"
-  def ctlImageTag = config.ctlImageTag ?: "v0.20.0"
+  def ctlImageTag = config.ctlImageTag ?: "v1.0.0-beta"
   def ctlName = "${dockerRepo}/${ctlImage}:${ctlImageTag}"
 
   // calico/build goes from {artifactoryUrl}/mcp/libcalico/
