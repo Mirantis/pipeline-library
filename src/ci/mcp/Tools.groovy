@@ -140,6 +140,29 @@ def uriByProperties(String artifactoryURL, LinkedHashMap properties) {
 }
 
 /**
+* Get URL to artifact by properties
+* Returns String with URL to found artifact or null if nothing
+*
+* @param artifactoryURL String, an URL to Artifactory
+* @param properties String, URI in format prop1=val1&prop2=val2&prop3val3
+*        which should determine artifact in Artifactory
+*/
+def uriByProperties(String artifactoryURL, String properties) {
+
+  def search_url = "${artifactoryURL}/api/search/prop?${properties}"
+
+  def result = sh(script: "bash -c \"curl -X GET \'${search_url}\'\"",
+          returnStdout: true).trim()
+  def content = new groovy.json.JsonSlurperClassic().parseText(result)
+  def uri = content.get("results")
+  if ( uri ) {
+      return uri.last().get("uri")
+  } else {
+      return null
+  }
+}
+
+/**
 * Set properties for artifact in Artifactory repo
 *
 * @param artifactUrl String, an URL to artifact in Artifactory repo
