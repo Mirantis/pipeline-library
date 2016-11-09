@@ -100,6 +100,17 @@ def getGitCommit() {
 }
 
 /**
+ * Describe a commit using the most recent tag reachable from it
+ */
+def getGitDescribe() {
+    git_commit = sh (
+        script: 'git describe --tags',
+        returnStdout: true
+    ).trim()
+    return git_commit
+}
+
+/**
  * Generate current timestamp
  *
  * @param format    Defaults to yyyyMMddHHmmss
