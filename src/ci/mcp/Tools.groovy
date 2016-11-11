@@ -1,6 +1,11 @@
 package ci.mcp
 
 /**
+* Please do not add new functions to this file. Add them to corresponding
+* files in com/mirantis/mcp instead.
+**/
+
+/**
  * https://issues.jenkins-ci.org/browse/JENKINS-26481
  * fix groovy List.collect()
 **/
