@@ -146,9 +146,11 @@ def getPropertiesForArtifact(String artifactUrl) {
  * @param version String, Docker image version
  * @param repository String, The name of Artifactory Docker repository
  */
-def uploadImageToArtifactory(registry, image, version, repository) {
-    def server = Artifactory.server('mcp-ci')
-    def artDocker
+def uploadImageToArtifactory (String artifactoryURL, String registry, String image,
+                              String version, String repository) {
+    // TODO Switch to Artifactoy image' pushing mechanism once we will
+    // prepare automatical way for enabling artifactory build-proxy
+    //def artDocker
     withCredentials([
             [$class: 'UsernamePasswordMultiBinding',
              credentialsId: 'artifactory',
@@ -156,12 +158,13 @@ def uploadImageToArtifactory(registry, image, version, repository) {
              usernameVariable: 'ARTIFACTORY_LOGIN']
     ]) {
         sh ("docker login -u ${ARTIFACTORY_LOGIN} -p ${ARTIFACTORY_PASSWORD} ${registry}")
-        sh ("docker push ${registry}/${image}:${version}")
         //artDocker = Artifactory.docker("${env.ARTIFACTORY_LOGIN}", "${env.ARTIFACTORY_PASSWORD}")
     }
 
+    sh ("docker push ${registry}/${image}:${version}")
     //artDocker.push("${registry}/${image}:${version}", "${repository}")
-    def image_url = "${env.ARTIFACTORY_URL}/api/storage/${repository}/${image}/${version}"
+    def image_url = "${artifactoryURL}/api/storage/${repository}/${image}/${version}"
+
     def properties = ['com.mirantis.build_name':"${env.JOB_NAME}",
                       'com.mirantis.build_id': "${env.BUILD_NUMBER}",
                       'com.mirantis.changeid': "${env.GERRIT_CHANGE_ID}",
