@@ -1,5 +1,8 @@
 package com.mirantis.mcp
 
+import org.jfrog.hudson.pipeline.types.ArtifactoryServer
+import org.jfrog.hudson.pipeline.types.buildInfo.BuildInfo
+
 /**
  * Return string of mandatory build properties for binaries
  * User can also add some custom properties.
@@ -177,8 +180,8 @@ def uploadImageToArtifactory(registry, image, version, repository) {
  *        uploaded or downloaded and the target path
  * @param publishInfo Boolean, whether publish a build-info object to Artifactory
  */
-def uploadBinariesToArtifactory(uploadSpec, buildInfo, publishInfo=false) {
-    def server = Artifactory.server('mcp-ci')
+def uploadBinariesToArtifactory (ArtifactoryServer server, BuildInfo buildInfo, String uploadSpec,
+                                 Boolean publishInfo = false) {
     buildInfo.append(server.upload(uploadSpec))
 
     if ( publishInfo ) {
@@ -187,7 +190,6 @@ def uploadBinariesToArtifactory(uploadSpec, buildInfo, publishInfo=false) {
         buildInfo.env.filter.addExclude("*PASSWORD*")
         buildInfo.env.filter.addExclude("*password*")
         buildInfo.env.collect()
-
         server.publishBuildInfo(buildInfo)
     }
 }
