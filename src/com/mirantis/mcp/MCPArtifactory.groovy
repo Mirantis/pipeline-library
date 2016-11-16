@@ -13,6 +13,8 @@ import org.jfrog.hudson.pipeline.types.buildInfo.BuildInfo
 def getBinaryBuildProperties(ArrayList customProperties) {
     def namespace = "com.mirantis."
     def properties = [
+            "buildName=${env.JOB_NAME}",
+            "buildNumber=${env.BUILD_NUMBER}",
             "gerritProject=${env.GERRIT_PROJECT}",
             "gerritChangeNumber=${env.GERRIT_CHANGE_NUMBER}",
             "gerritPatchsetNumber=${env.GERRIT_PATCHSET_NUMBER}",
@@ -57,28 +59,6 @@ def uriByProperties(String artifactoryURL, LinkedHashMap properties) {
     } else {
         return null
     }
-}
-
-/**
-* Get URL to artifact by properties
-* Returns String with URL to found artifact or null if nothing
-*
-* @param artifactoryURL String, an URL to Artifactory
-* @param properties String, URI in format prop1=val1&prop2=val2&prop3val3
-*        which should determine artifact in Artifactory
-*/
-def uriByProperties(String artifactoryURL, String properties) {
-  def search_url = "${artifactoryURL}/api/search/prop?${properties}"
-
-  def result = sh(script: "bash -c \"curl -X GET \'${search_url}\'\"",
-          returnStdout: true).trim()
-  def content = new groovy.json.JsonSlurperClassic().parseText(result)
-  def uri = content.get("results")
-  if ( uri ) {
-      return uri.last().get("uri")
-  } else {
-      return null
-  }
 }
 
 /**
@@ -165,11 +145,16 @@ def uploadImageToArtifactory (String artifactoryURL, String registry, String ima
     //artDocker.push("${registry}/${image}:${version}", "${repository}")
     def image_url = "${artifactoryURL}/api/storage/${repository}/${image}/${version}"
 
-    def properties = ['com.mirantis.build_name':"${env.JOB_NAME}",
-                      'com.mirantis.build_id': "${env.BUILD_NUMBER}",
-                      'com.mirantis.changeid': "${env.GERRIT_CHANGE_ID}",
-                      'com.mirantis.patchset_number': "${env.GERRIT_PATCHSET_NUMBER}",
-                      'com.mirantis.target_tag': "${version}"]
+    def properties = [
+            'com.mirantis.buildName':"${env.JOB_NAME}",
+            'com.mirantis.buildNumber': "${env.BUILD_NUMBER}",
+            'com.mirantis.gerritProject': "${env.GERRIT_PROJECT}",
+            'com.mirantis.gerritChangeNumber': "${env.GERRIT_CHANGE_NUMBER}",
+            'com.mirantis.gerritPatchsetNumber': "${env.GERRIT_PATCHSET_NUMBER}",
+            'com.mirantis.gerritChangeId': "${env.GERRIT_CHANGE_ID}",
+            'com.mirantis.gerritPatchsetRevision': "${env.GERRIT_PATCHSET_REVISION}",
+            'com.mirantis.targetTag': "${version}"
+    ]
 
     setProperties(image_url, properties)
 }
