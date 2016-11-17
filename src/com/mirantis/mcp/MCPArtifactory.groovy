@@ -120,14 +120,17 @@ def getPropertiesForArtifact(String artifactUrl) {
 /**
  * Upload docker image to Artifactory
  *
- * @param artifactoryURL String, an URL to Artifactory
+ * @param server ArtifactoryServer, the instance of Artifactory server
  * @param registry String, the name of Docker registry
  * @param image String, Docker image name
  * @param version String, Docker image version
  * @param repository String, The name of Artifactory Docker repository
+ * @param buildInfo BuildInfo, the instance of a build-info object which can be published,
+ *                              if defined, then we publish BuildInfo
  */
-def uploadImageToArtifactory (String artifactoryURL, String registry, String image,
-                              String version, String repository) {
+def uploadImageToArtifactory (ArtifactoryServer server, String registry, String image,
+                              String version, String repository,
+                              BuildInfo buildInfo = null) {
     // TODO Switch to Artifactoy image' pushing mechanism once we will
     // prepare automatical way for enabling artifactory build-proxy
     //def artDocker
@@ -143,7 +146,7 @@ def uploadImageToArtifactory (String artifactoryURL, String registry, String ima
 
     sh ("docker push ${registry}/${image}:${version}")
     //artDocker.push("${registry}/${image}:${version}", "${repository}")
-    def image_url = "${artifactoryURL}/api/storage/${repository}/${image}/${version}"
+    def image_url = server.getUrl() + "/api/storage/${repository}/${image}/${version}"
 
     def properties = [
             'com.mirantis.buildName':"${env.JOB_NAME}",
@@ -157,6 +160,15 @@ def uploadImageToArtifactory (String artifactoryURL, String registry, String ima
     ]
 
     setProperties(image_url, properties)
+
+    if ( buildInfo != null ) {
+        buildInfo.env.capture = true
+        buildInfo.env.filter.addInclude("*")
+        buildInfo.env.filter.addExclude("*PASSWORD*")
+        buildInfo.env.filter.addExclude("*password*")
+        buildInfo.env.collect()
+        server.publishBuildInfo(buildInfo)
+    }
 }
 
 /**
