@@ -47,7 +47,7 @@ def call(body) {
     sh """
       make calico/ctl \
         CTL_CONTAINER_NAME=${ctlContainerName} \
-        BUILD_CONTAINER_NAME=${buildImage} \
+        PYTHON_BUILD_CONTAINER_NAME=${buildImage} \
         BIRDCL_URL=${birdclUrl}
     """
   }
@@ -57,7 +57,7 @@ def call(body) {
     sh """
       make calico/node \
         NODE_CONTAINER_NAME=${nodeContainerName} \
-        BUILD_CONTAINER_NAME=${buildImage} \
+        PYTHON_BUILD_CONTAINER_NAME=${buildImage} \
         FELIX_CONTAINER_NAME=${felixImage} \
         CONFD_URL=${confdUrl} \
         BIRD_URL=${birdUrl} \
