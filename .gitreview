@@ -1,4 +1,4 @@
 [gerrit]
-host=review.fuel-infra.org
+host=gerrit.mcp.mirantis.net
 port=29418
 project=mcp-ci/pipeline-library.git
