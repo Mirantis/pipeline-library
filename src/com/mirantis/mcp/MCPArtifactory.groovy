@@ -156,6 +156,7 @@ def uploadImageToArtifactory (ArtifactoryServer server, String registry, String 
             'com.mirantis.gerritPatchsetNumber': "${env.GERRIT_PATCHSET_NUMBER}",
             'com.mirantis.gerritChangeId': "${env.GERRIT_CHANGE_ID}",
             'com.mirantis.gerritPatchsetRevision': "${env.GERRIT_PATCHSET_REVISION}",
+            'com.mirantis.targetImg': "${image}",
             'com.mirantis.targetTag': "${version}"
     ]
 
