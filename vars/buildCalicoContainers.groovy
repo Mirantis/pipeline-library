@@ -6,8 +6,8 @@ def call(body) {
   body()
 
 
-  def dockerRepo = config.dockerRepo ?: "artifactory.mcp.mirantis.net:5001"
-  def artifactoryUrl = config.artifactoryURL ?: "https://artifactory.mcp.mirantis.net/artifactory/projectcalico"
+  def dockerRepo = config.dockerRepo ?: "mcp-k8s-ci.docker.mirantis.net"
+  def artifactoryUrl = config.artifactoryURL ?: "https://artifactory.mcp.mirantis.net/projectcalico"
 
   def nodeImage = config.nodeImage ?: "calico/node"
   def nodeImageTag = config.nodeImageTag ?: "v1.0.0-beta"
