@@ -89,8 +89,8 @@ def call(body) {
   return [
     CTL_CONTAINER_NAME:"${ctlName}",
     NODE_CONTAINER_NAME:"${nodeName}",
-    CALICO_NODE_IMAGE:"${projectNamespace}/${nodeImage}",
-    CALICO_CTL_IMAGE:"${projectNamespace}/${ctlImage}",
+    CALICO_NODE_IMAGE_REPO:"${nodeImage}",
+    CALICOCTL_IMAGE_REPO:"${ctlImage}",
     CALICO_VERSION: "${imgTag}"
   ]
 
