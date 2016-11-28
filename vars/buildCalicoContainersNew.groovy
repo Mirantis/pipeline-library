@@ -6,7 +6,7 @@ def call(body) {
   body()
 
 
-  def dockerRepo = config.dockerRepo ?: "artifactory.mcp.mirantis.net:5001"
+  def dockerRepo = config.dockerRepo ?: "artifactory.mcp.mirantis.net:5007"
   def projectNamespace = "mirantis/projectcalico"
 
   def git = new com.mirantis.mcp.Git()
