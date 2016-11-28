@@ -7,7 +7,7 @@ def call(body) {
 
 
   // FIXME(skulanov): remove this after complete migration of calico jobs
-  // def dockerRepo = config.dockerRepo ?: "mcp-k8s-ci.docker.mirantis.net"
+  // def dockerRepo = config.dockerRepo ?: "mcp-k8s.docker.mirantis.net"
   // def artifactoryUrl = config.artifactoryURL ?: "https://artifactory.mcp.mirantis.net/projectcalico"
   def dockerRepo = config.dockerRepo ?: "artifactory.mcp.mirantis.net:5001"
   def artifactoryUrl = config.artifactoryURL ?: "https://artifactory.mcp.mirantis.net/artifactory/projectcalico"
