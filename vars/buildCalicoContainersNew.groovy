@@ -40,10 +40,12 @@ def call(body) {
   def confdBuildId = config.confdBuildId ?: "${artifactoryUrl}/mcp/confd/lastbuild".toURL().text.trim()
   def confdUrl = config.confdUrl ?: "${artifactoryUrl}/mcp/confd/confd-${confdBuildId}"
 
-  def birdBuildId = config.birdBuildId ?: "${artifactoryUrl}/mcp/calico-bird/lastbuild".toURL().text.trim()
-  def birdUrl = config.birdUrl ?: "${artifactoryUrl}/mcp/calico-bird/bird-${birdBuildId}"
-  def bird6Url = config.bird6Url ?: "${artifactoryUrl}/mcp/calico-bird/bird6-${birdBuildId}"
-  def birdclUrl = config.birdclUrl ?: "${artifactoryUrl}/mcp/calico-bird/birdcl-${birdBuildId}"
+  def artifactoryBirdUrl = "https://artifactory.mcp.mirantis.net/artifactory/binary-prod-local"
+
+  def birdBuildId = config.birdBuildId ?: "${artifactoryBirdUrl}/${projectNamespace}/bird/latest".toURL().text.trim()
+  def birdUrl = config.birdUrl ?: "${artifactoryBirdUrl}/${projectNamespace}/bird/bird-${birdBuildId}"
+  def bird6Url = config.bird6Url ?: "${artifactoryBirdUrl}/${projectNamespace}/bird/bird6-${birdBuildId}"
+  def birdclUrl = config.birdclUrl ?: "${artifactoryBirdUrl}/${projectNamespace}/bird/birdcl-${birdBuildId}"
 
   // add LABELs to dockerfiles
   def docker = new com.mirantis.mcp.Docker()
