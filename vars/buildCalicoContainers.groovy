@@ -25,10 +25,10 @@ def call(body) {
   // calico/felix goes from {artifactoryUrl}/mcp/felix/
   def felixImage = config.felixImage ?: "${artifactoryUrl}/mcp/felix/lastbuild".toURL().text.trim()
 
-  def confdBuildId = config.confdBuildId ?: "${artifactoryUrl}/mcp/confd/lastbuild".toURL().text.trim()
-  def confdUrl = config.confdUrl ?: "${artifactoryUrl}/mcp/confd/confd-${confdBuildId}"
-
   def artifactoryBirdUrl = "https://artifactory.mcp.mirantis.net/artifactory/binary-prod-local"
+
+  def confdBuildId = config.confdBuildId ?: "${artifactoryBirdUrl}/${projectNamespace}/confd/latest".toURL().text.trim()
+  def confdUrl = config.confdUrl ?: "${artifactoryBirdUrl}/${projectNamespace}/confd/confd-${confdBuildId}"
 
   def birdBuildId = config.birdBuildId ?: "${artifactoryBirdUrl}/${projectNamespace}/bird/latest".toURL().text.trim()
   def birdUrl = config.birdUrl ?: "${artifactoryBirdUrl}/${projectNamespace}/bird/bird-${birdBuildId}"
