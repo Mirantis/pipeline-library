@@ -34,7 +34,7 @@ def call(body) {
   // def birdclUrl = config.birdclUrl ?: "${artifactoryUrl}/${projectNamespace}/bird/birdcl-${birdBuildId}"
   def artifactoryUrl = config.artifactoryURL ?: "https://artifactory.mcp.mirantis.net/artifactory/projectcalico"
 
-  def buildImage = config.buildImage ?: "${artifactoryUrl}/mcp/libcalico/lastbuild".toURL().text.trim()
+  def buildImage = config.buildImage ?: "${dockerRepo}/mirantis/projectcalico/calico/build:latest"
   def felixImage = config.felixImage ?: "${artifactoryUrl}/mcp/felix/lastbuild".toURL().text.trim()
 
   def artifactoryBirdUrl = "https://artifactory.mcp.mirantis.net/artifactory/binary-prod-local"
