@@ -6,52 +6,54 @@ def call(body) {
   body()
 
 
-  // FIXME(skulanov): remove this after complete migration of calico jobs
-  // def dockerRepo = config.dockerRepo ?: "mcp-k8s.docker.mirantis.net"
-  // def artifactoryUrl = config.artifactoryURL ?: "https://artifactory.mcp.mirantis.net/projectcalico"
-  def dockerRepo = config.dockerRepo ?: "artifactory.mcp.mirantis.net:5001"
-  def artifactoryUrl = config.artifactoryURL ?: "https://artifactory.mcp.mirantis.net/artifactory/projectcalico"
+  def dockerRepo = config.dockerRepo ?: "artifactory.mcp.mirantis.net:5007"
+  def projectNamespace = "mirantis/projectcalico"
+  def artifactoryUrl = config.artifactoryURL ?: "https://artifactory.mcp.mirantis.net/artifactory/binary-prod-virtual"
 
-  def nodeImage = config.nodeImage ?: "calico/node"
-  def nodeImageTag = config.nodeImageTag ?: "v1.0.0-beta"
-  def nodeName = "${dockerRepo}/${nodeImage}:${nodeImageTag}"
+  def git = new com.mirantis.mcp.Git()
+  def common = new com.mirantis.mcp.Common()
+  def imgTag = config.imageTag ?: git.getGitDescribe(true) + "-" + common.getDatetime()
 
-  def ctlImage = config.ctlImage ?: "calico/ctl"
-  def ctlImageTag = config.ctlImageTag ?: "v1.0.0-beta"
-  def ctlName = "${dockerRepo}/${ctlImage}:${ctlImageTag}"
+  def nodeImage = config.nodeImage ?: "${dockerRepo}/${projectNamespace}/calico/node"
+  def nodeName = "${nodeImage}:${imgTag}"
 
-  // calico/build goes from {artifactoryUrl}/mcp/libcalico/
-  def buildImage = config.buildImage ?: "${artifactoryUrl}/mcp/libcalico/lastbuild".toURL().text.trim()
-  // calico/felix goes from {artifactoryUrl}/mcp/felix/
-  def felixImage = config.felixImage ?: "${artifactoryUrl}/mcp/felix/lastbuild".toURL().text.trim()
+  def ctlImage = config.ctlImage ?: "${dockerRepo}/${projectNamespace}/calico/ctl"
+  def ctlName = "${ctlImage}:${imgTag}"
 
-  def artifactoryBirdUrl = "https://artifactory.mcp.mirantis.net/artifactory/binary-prod-local"
+   // calico/build goes from libcalico
+  def buildImage = config.buildImage ?: "${dockerRepo}/${projectNamespace}/calico/build:latest"
+  // calico/felix goes from felix
+  def felixImage = config.felixImage ?: "${dockerRepo}/${projectNamespace}/calico/felix:latest"
 
-  def confdBuildId = config.confdBuildId ?: "${artifactoryBirdUrl}/${projectNamespace}/confd/latest".toURL().text.trim()
-  def confdUrl = config.confdUrl ?: "${artifactoryBirdUrl}/${projectNamespace}/confd/confd-${confdBuildId}"
+  def confdBuildId = config.confdBuildId ?: "${artifactoryUrl}/${projectNamespace}/confd/latest".toURL().text.trim()
+  def confdUrl = config.confdUrl ?: "${artifactoryUrl}/${projectNamespace}/confd/confd-${confdBuildId}"
 
-  def birdBuildId = config.birdBuildId ?: "${artifactoryBirdUrl}/${projectNamespace}/bird/latest".toURL().text.trim()
-  def birdUrl = config.birdUrl ?: "${artifactoryBirdUrl}/${projectNamespace}/bird/bird-${birdBuildId}"
-  def bird6Url = config.bird6Url ?: "${artifactoryBirdUrl}/${projectNamespace}/bird/bird6-${birdBuildId}"
-  def birdclUrl = config.birdclUrl ?: "${artifactoryBirdUrl}/${projectNamespace}/bird/birdcl-${birdBuildId}"
+  def birdBuildId = config.birdBuildId ?: "${artifactoryUrl}/${projectNamespace}/bird/latest".toURL().text.trim()
+  def birdUrl = config.birdUrl ?: "${artifactoryUrl}/${projectNamespace}/bird/bird-${birdBuildId}"
+  def bird6Url = config.bird6Url ?: "${artifactoryUrl}/${projectNamespace}/bird/bird6-${birdBuildId}"
+  def birdclUrl = config.birdclUrl ?: "${artifactoryUrl}/${projectNamespace}/bird/birdcl-${birdBuildId}"
 
-  def gitCommit = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
+  // add LABELs to dockerfiles
+  def docker = new com.mirantis.mcp.Docker()
+  docker.setDockerfileLabels("./calicoctl/Dockerfile.calicoctl",
+                            ["docker.imgTag=${imgTag}",
+                             "calico.buildImage=${buildImage}",
+                             "calico.birdclUrl=${birdclUrl}"])
 
-  def build = "${config.containersBuildId}-${gitCommit}"
-
-  // return values
-  def calicoNodeImageRepo = "${dockerRepo}/${nodeImage}"
-  def calicoCtlImageRepo = "${dockerRepo}/${ctlImage}"
-  def calicoVersion = "${nodeImageTag}-${build}"
-  def ctlContainerName = "${ctlName}-${build}"
-  def nodeContainerName = "${nodeName}-${build}"
+  docker.setDockerfileLabels("./calico_node/Dockerfile",
+                            ["docker.imgTag=${imgTag}",
+                             "calico.buildImage=${buildImage}",
+                             "calico.felixImage=${felixImage}",
+                             "calico.confdUrl=${confdUrl}",
+                             "calico.birdUrl=${birdUrl}",
+                             "calico.bird6Url=${bird6Url}",
+                             "calico.birdclUrl=${birdclUrl}"])
 
   // Start build section
-
   stage ('Build calico/ctl image'){
     sh """
       make calico/ctl \
-        CTL_CONTAINER_NAME=${ctlContainerName} \
+        CTL_CONTAINER_NAME=${ctlName} \
         PYTHON_BUILD_CONTAINER_NAME=${buildImage} \
         BIRDCL_URL=${birdclUrl}
     """
@@ -61,7 +63,7 @@ def call(body) {
   stage('Build calico/node'){
     sh """
       make calico/node \
-        NODE_CONTAINER_NAME=${nodeContainerName} \
+        NODE_CONTAINER_NAME=${nodeName} \
         PYTHON_BUILD_CONTAINER_NAME=${buildImage} \
         FELIX_CONTAINER_NAME=${felixImage} \
         CONFD_URL=${confdUrl} \
@@ -72,24 +74,12 @@ def call(body) {
   }
 
 
-  dir("artifacts"){
-    // Save the last build ID
-    writeFile file: "lastbuild", text: "${build}"
-    // Create config yaml for Kargo
-    writeFile file: "calico-containers-${build}.yaml",
-              text: """\
-                calico_node_image_repo: ${calicoNodeImageRepo}
-                calicoctl_image_repo: ${calicoCtlImageRepo}
-                calico_version: ${calicoVersion}
-              """.stripIndent()
-  } // dir artifacts
-
   return [
-    CTL_CONTAINER_NAME:"${ctlContainerName}",
-    NODE_CONTAINER_NAME:"${nodeContainerName}",
-    CALICO_NODE_IMAGE_REPO:"${calicoNodeImageRepo}",
-    CALICOCTL_IMAGE_REPO:"${calicoCtlImageRepo}",
-    CALICO_VERSION: "${calicoVersion}"
+    CTL_CONTAINER_NAME:"${ctlName}",
+    NODE_CONTAINER_NAME:"${nodeName}",
+    CALICO_NODE_IMAGE_REPO:"${nodeImage}",
+    CALICOCTL_IMAGE_REPO:"${ctlImage}",
+    CALICO_VERSION: "${imgTag}"
   ]
 
 }
