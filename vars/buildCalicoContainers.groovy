@@ -6,7 +6,7 @@ def call(body) {
   body()
 
 
-  def dockerRepo = config.dockerRepo ?: "artifactory.mcp.mirantis.net:5007"
+  def dockerRepo = config.dockerRepo ?: "artifactory.mcp.mirantis.net:5008"
   def projectNamespace = "mirantis/projectcalico"
   def artifactoryUrl = config.artifactoryURL ?: "https://artifactory.mcp.mirantis.net/artifactory/binary-prod-virtual"
 
