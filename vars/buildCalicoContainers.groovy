@@ -8,7 +8,7 @@ def call(body) {
 
   def dockerRepo = config.dockerRepo ?: "artifactory.mcp.mirantis.net:5008"
   def projectNamespace = "mirantis/projectcalico"
-  def artifactoryUrl = config.artifactoryURL ?: "https://artifactory.mcp.mirantis.net/artifactory/binary-prod-virtual"
+  def artifactoryUrl = config.artifactoryURL ?: "https://artifactory.mcp.mirantis.net/binary-prod-virtual"
 
   def git = new com.mirantis.mcp.Git()
   def common = new com.mirantis.mcp.Common()
