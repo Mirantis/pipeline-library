@@ -18,3 +18,15 @@ def getDatetime(format = "yyyyMMddHHmmss") {
     def now = new Date();
     return now.format(format, TimeZone.getTimeZone('UTC'));
 }
+
+/**
+ * Run tox with or without specified environment
+ * @param env String, name of environment
+ */
+def runTox(String env = null) {
+  if (env) {
+    sh "tox -v -e ${env}"
+  } else {
+    sh "tox -v"
+  }
+}
