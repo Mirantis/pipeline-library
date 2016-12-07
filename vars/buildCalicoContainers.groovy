@@ -6,9 +6,17 @@ def call(body) {
   body()
 
 
-  def dockerRepo = config.dockerRepo ?: "artifactory.mcp.mirantis.net:5008"
+  def dockerRepo = config.dockerRepo
   def projectNamespace = "mirantis/projectcalico"
-  def artifactoryUrl = config.artifactoryURL ?: "https://artifactory.mcp.mirantis.net/binary-prod-virtual"
+  def artifactoryUrl = config.artifactoryURL
+
+  if (! dockerRepo ) {
+      error('dockerRepo parameter have to be set.')
+  }
+
+  if (! artifactoryUrl ) {
+      error('artifactoryUrl parameter have to be set.')
+  }
 
   def git = new com.mirantis.mcp.Git()
   def common = new com.mirantis.mcp.Common()
