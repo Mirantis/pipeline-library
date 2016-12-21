@@ -1,0 +1,70 @@
+// Default parameters
+
+  targetDir = "./"
+  port = "29418"
+
+// Usage example
+node {
+  gitSSHCheckout {
+    credentialsId = "mcp-ci-gerrit"
+    branch = "mcp-0.1"
+    host = "ci.mcp-ci.local"
+    project = "projectcalico/calico-containers"
+  }
+}
+
+// or
+
+node {
+  gitSSHCheckout {
+    credentialsId = "mcp-ci-gerrit"
+    branch = "mcp-0.1"
+    host = "ci.mcp-ci.local"
+    project = "projectcalico/calico-containers"
+    targetDir = "some_directory"
+  }
+}
+
+// by default if you checkout even to branch you will be in detached mode
+// but some tools (e.g. pip) requires "merged" code
+// https://issues.jenkins-ci.org/browse/JENKINS-6856
+// so you need to use withMerge = true
+
+node {
+  gitSSHCheckout {
+    credentialsId = "mcp-ci-gerrit"
+    branch = "mcp"
+    host = "ci.mcp-ci.local"
+    project = "projectcalico/calico-containers"
+    targetDir = "some_directory"
+    withMerge = true
+  }
+}
+
+Please see example below:
+1. withMerge = false (default)
+  $ git status
+  HEAD detached at 25fd9c2
+  nothing to commit, working directory clean
+  $ git branch -av
+  * (HEAD detached at 25fd9c2)       25fd9c2 Fix .gitreview
+    remotes/origin/HEAD              7e2b36e Merge pull request #160 from tomdee/tiny-build-image-size-tweaks
+    remotes/origin/develop           013614f Merge pull request #144 from djosborne/comment-etcd-pin
+    remotes/origin/feature/utreports 3c52c2a disable usage reports while running unit tests
+    remotes/origin/go                350e251 Merge pull request #128 from caseydavenport/ipam-code-review
+    remotes/origin/master            7e2b36e Merge pull request #160 from tomdee/tiny-build-image-size-tweaks
+    remotes/origin/mcp               25fd9c2 Fix .gitreview
+
+
+2. withMerge = true
+  $ git status
+  On branch mcp
+  nothing to commit, working directory clean
+  $ git branch -av
+  * mcp                              25fd9c2 Fix .gitreview
+    remotes/origin/HEAD              7e2b36e Merge pull request #160 from tomdee/tiny-build-image-size-tweaks
+    remotes/origin/develop           013614f Merge pull request #144 from djosborne/comment-etcd-pin
+    remotes/origin/feature/utreports 3c52c2a disable usage reports while running unit tests
+    remotes/origin/go                350e251 Merge pull request #128 from caseydavenport/ipam-code-review
+    remotes/origin/master            7e2b36e Merge pull request #160 from tomdee/tiny-build-image-size-tweaks
+    remotes/origin/mcp               25fd9c2 Fix .gitreview
