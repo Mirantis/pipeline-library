@@ -38,36 +38,31 @@ def getGitDescribe(Boolean useShort = false) {
  * Execute git clone+checkout stage for some project,
  * through SSH
  *
- * @param body Closure
- *        body includes next parameters:
+ * @param config LinkedHashMap
+ *        config includes next parameters:
  *          - credentialsId, id of user which should make checkout
  *          - branch, branch of project
  *          - host, gerrit-ci hostname
  *          - project, name of project
  *          - targetDir, target directory of cloned repo
  *          - withMerge, prevent detached mode in repo
+ *          - withWipeOut, wipe repository and force clone
  *
  * Usage example:
  *
  * def gitFunc = new com.mirantis.mcp.Git()
- * gitFunc.gitSSHCheckout {
- *   credentialsId = 'mcp-ci-gerrit'
- *   branch = 'mcp-0.1'
- *   host = 'ci.mcp-ci.local'
- *   project = 'project'
- * }
+ * gitFunc.gitSSHCheckout ([
+ *   credentialsId : 'mcp-ci-gerrit'
+ *   branch : 'mcp-0.1'
+ *   host : 'ci.mcp-ci.local'
+ *   project : 'project'
+ * ])
  */
-def gitSSHCheckout = { body ->
-  // evaluate the body block, and collect configuration into the object
-  def config = [:]
-  body.resolveStrategy = Closure.DELEGATE_FIRST
-  body.delegate = config
-  body()
-
-  def merge = config.withMerge ?: false
-  def wipe = config.withWipeOut ?: false
-  def targetDir = config.targetDir ?: "./"
-  def port = config.port ?: "29418"
+def gitSSHCheckout(LinkedHashMap config) {
+  def merge = config.get('withMerge', false)
+  def wipe = config.get('withWipeOut', false)
+  def targetDir = config.get('targetDir', "./")
+  def port = config.get('port', "29418")
 
   // default parameters
   def scmExtensions = [
@@ -102,8 +97,8 @@ def gitSSHCheckout = { body ->
 /**
  * Execute git clone and checkout stage from gerrit review
  *
- * @param body Closure
- *        body includes next parameters:
+ * @param config LinkedHashMap
+ *        config includes next parameters:
  *          - credentialsId, id of user which should make checkout
  *          - withMerge, prevent detached mode in repo
  *          - withWipeOut, wipe repository and force clone
@@ -111,21 +106,14 @@ def gitSSHCheckout = { body ->
  * Usage example:
  *
  * def gitFunc = new com.mirantis.mcp.Git()
- * gitFunc.gerritPatchsetCheckout {
- *   credentialsId = 'mcp-ci-gerrit'
- *   withMerge = true
- * }
+ * gitFunc.gerritPatchsetCheckout([
+ *   credentialsId : 'mcp-ci-gerrit'
+ *   withMerge : true
+ * ])
  */
-def gerritPatchsetCheckout = { body ->
-  // evaluate the body block, and collect configuration into the object
-  def config = [:]
-  body.resolveStrategy = Closure.DELEGATE_FIRST
-  body.delegate = config
-  body()
-
-
-  def merge = config.withMerge ?: false
-  def wipe = config.withWipeOut ?: false
+def gerritPatchsetCheckout(LinkedHashMap config) {
+  def merge = config.get('withMerge', false)
+  def wipe = config.get('withWipeOut', false)
 
   // default parameters
   def scmExtensions = [
