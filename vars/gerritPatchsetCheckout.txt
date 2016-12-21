@@ -1,0 +1,22 @@
+// Usage example
+node {
+  gerritPatchsetCheckout{
+    credentialsId = "credentials-id-string"
+  }
+}
+
+// Usage example with merging to checkouted branch
+node {
+  gerritPatchsetCheckout{
+    credentialsId = "credentials-id-string"
+    withMerge = true
+  }
+}
+
+// wipe our repository and force clone
+node {
+  gerritPatchsetCheckout{
+    credentialsId = "credentials-id-string"
+    withWipeOut = true
+  }
+}
