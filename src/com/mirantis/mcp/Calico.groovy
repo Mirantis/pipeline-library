@@ -72,19 +72,20 @@ def buildCalicoContainers = { body ->
   def birdclUrl = config.birdclUrl ?: "${artifactoryUrl}/${projectNamespace}/bird/birdcl-${birdBuildId}"
 
   // add LABELs to dockerfiles
-  setDockerfileLabels("./calicoctl/Dockerfile.calicoctl",
-                     ["docker.imgTag=${imgTag}",
-                      "calico.buildImage=${buildImage}",
-                      "calico.birdclUrl=${birdclUrl}"])
+  def docker = new com.mirantis.mcp.Docker()
+  docker.setDockerfileLabels("./calicoctl/Dockerfile.calicoctl",
+                             ["docker.imgTag=${imgTag}",
+                              "calico.buildImage=${buildImage}",
+                              "calico.birdclUrl=${birdclUrl}"])
 
-  setDockerfileLabels("./calico_node/Dockerfile",
-                     ["docker.imgTag=${imgTag}",
-                      "calico.buildImage=${buildImage}",
-                      "calico.felixImage=${felixImage}",
-                      "calico.confdUrl=${confdUrl}",
-                      "calico.birdUrl=${birdUrl}",
-                      "calico.bird6Url=${bird6Url}",
-                      "calico.birdclUrl=${birdclUrl}"])
+  docker.setDockerfileLabels("./calico_node/Dockerfile",
+                             ["docker.imgTag=${imgTag}",
+                              "calico.buildImage=${buildImage}",
+                              "calico.felixImage=${felixImage}",
+                              "calico.confdUrl=${confdUrl}",
+                              "calico.birdUrl=${birdUrl}",
+                              "calico.bird6Url=${bird6Url}",
+                              "calico.birdclUrl=${birdclUrl}"])
 
   // Start build section
   stage ('Build calico/ctl image'){
