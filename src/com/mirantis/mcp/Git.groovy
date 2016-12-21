@@ -65,6 +65,7 @@ def gitSSHCheckout = { body ->
   body()
 
   def merge = config.withMerge ?: false
+  def wipe = config.withWipeOut ?: false
   def targetDir = config.targetDir ?: "./"
   def port = config.port ?: "29418"
 
@@ -77,6 +78,11 @@ def gitSSHCheckout = { body ->
   // https://issues.jenkins-ci.org/browse/JENKINS-6856
   if (merge) {
     scmExtensions.add([$class: 'LocalBranch', localBranch: "${config.branch}"])
+  }
+
+  // we need wipe workspace before checkout
+  if (wipe) {
+    scmExtensions.add([$class: 'WipeWorkspace'])
   }
 
   checkout(
