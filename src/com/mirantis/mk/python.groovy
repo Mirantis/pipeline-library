@@ -158,7 +158,7 @@ def parse_list_table(raw_data):
 
 def read_table_file(file):
     table_file = open(file, 'r')
-    raw_data = table_file.read().split('\n')
+    raw_data = table_file.read().split('\\n')
     table_file.close()
     return raw_data
 

@@ -312,6 +312,28 @@ def getSaltProcess(saltProcess) {
             [tgt: 'I@etcd:server', fun: 'state.sls', arg: ['etcd.server.service']],
             [tgt: 'I@etcd:server', fun: 'cmd.run', arg: ['etcdctl cluster-health']],
         ],
+        'install_openstack_mcp_control': [
+            // Pull Calico image
+            [tgt: 'I@kubernetes:pool', fun: 'dockerng.pull', arg: ['calico/node:latest']],
+            // Install Kubernetes and Calico
+            [tgt: 'I@kubernetes:master', fun: 'state.sls', arg: ['kubernetes.master.service,kubernetes.master.kube-addons']],
+            [tgt: 'I@kubernetes:pool', fun: 'state.sls', arg: ['kubernetes.pool']],
+            [tgt: 'I@kubernetes:pool', fun: 'cmd.run', arg: ['calicoctl status']],
+            // Setup NAT for Calico
+            [tgt: 'I@kubernetes:master', fun: 'state.sls', arg: ['etcd.server.setup']],
+            // Run whole k8s controller
+            [tgt: 'I@kubernetes:master', fun: 'state.sls', arg: ['kubernetes.controller']],
+            // Run whole k8s controller
+            [tgt: 'I@kubernetes:master', fun: 'state.sls', arg: ['kubernetes'], batch: 1],
+            // Revert comment nameserver
+            [tgt: 'I@kubernetes:master', fun: 'cmd.run', arg: ["sed -i 's/nameserver 10.254.0.10/#nameserver 10.254.0.10/g' /etc/resolv.conf"]],
+        ],
+        'install_openstack_mcp_compute': [
+            // Install opencontrail
+            [tgt: 'I@opencontrail:compute', fun: 'state.sls', arg: ['opencontrail']],
+            // Reboot compute nodes
+            [tgt: 'I@opencontrail:compute', fun: 'system.reboot'],
+        ],
         'install_stacklight_control': [
             [tgt: 'I@elasticsearch:server', fun: 'state.sls', arg: ['elasticsearch.server'], batch:1],
             [tgt: 'I@influxdb:server', fun: 'state.sls', arg: ['influxdb'], batch:1],
