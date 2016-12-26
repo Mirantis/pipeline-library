@@ -42,6 +42,20 @@ def runVirtualenvCommand(path, cmd) {
     return output
 }
 
+
+/**
+ * Install docutils in isolated environment
+ *
+ * @param path        Path where virtualenv is created
+ */
+def setupDocutilsVirtualenv(path) {
+    requirements = [
+      'docutils',
+    ]
+    setupVirtualenv(path, 'python2', requirements)
+}
+
+
 @NonCPS
 def loadJson(rawData) {
     return new groovy.json.JsonSlurperClassic().parseText(rawData)
@@ -54,7 +68,7 @@ def loadJson(rawData) {
  * @param mode       Either list (1st row are keys) or item (key, value rows)
  * @param format     Format of the table
  */
-def parseTextTable(tableStr, type = 'item', format = 'rest') {
+def parseTextTable(tableStr, type = 'item', format = 'rest', path = none) {
     parserFile = "${env.WORKSPACE}/textTableParser.py"
     parserScript = """import json
 import argparse
@@ -179,10 +193,17 @@ print json.dumps(final_data)
     writeFile file: parserFile, text: parserScript
     tableFile = "${env.WORKSPACE}/prettytable.txt"
     writeFile file: tableFile, text: tableStr
-    rawData = sh (
-        script: "python ${parserFile} --file '${tableFile}' --type ${type}",
-        returnStdout: true
-    ).trim()
+
+    cmd = "python ${parserFile} --file '${tableFile}' --type ${type}"
+    if (path) {
+        rawData = python.runVirtualenvCommand(path, cmd)
+    }
+    else {
+        rawData = sh (
+            script: cmd,
+            returnStdout: true
+        ).trim()
+    }
     data = loadJson(rawData)
     echo("[Parsed table] ${data}")
     return data
