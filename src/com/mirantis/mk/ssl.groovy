@@ -33,7 +33,8 @@ def runSshAgentCommand(cmd) {
  * @param credentialsId Jenkins credentials name to lookup private key
  */
 def prepareSshAgentKey(credentialsId) {
-    c = getSshCredentials(credentialsId)
+    def common = new com.mirantis.mk.common()
+    c = common.getSshCredentials(credentialsId)
     sh("test -d ~/.ssh || mkdir -m 700 ~/.ssh")
     sh('pgrep -l -u $USER -f | grep -e ssh-agent\$ >/dev/null || ssh-agent|grep -v "Agent pid" > ~/.ssh/ssh-agent.sh')
     sh("echo '${c.getPrivateKey()}' > ~/.ssh/id_rsa_${credentialsId} && chmod 600 ~/.ssh/id_rsa_${credentialsId}")
