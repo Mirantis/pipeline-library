@@ -196,7 +196,7 @@ print json.dumps(final_data)
 
     cmd = "python ${parserFile} --file '${tableFile}' --type ${type}"
     if (path) {
-        rawData = python.runVirtualenvCommand(path, cmd)
+        rawData = runVirtualenvCommand(path, cmd)
     }
     else {
         rawData = sh (
