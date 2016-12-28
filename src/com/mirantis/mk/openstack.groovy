@@ -102,7 +102,7 @@ def getKeystoneToken(client, path = null) {
     def python = new com.mirantis.mk.python()
     cmd = "keystone token-get"
     outputTable = runOpenstackCommand(cmd, client, path)
-    output = python.parseTextTable(outputTable, 'item', 'prettytable', 'openstack', path)
+    output = python.parseTextTable(outputTable, 'item', 'prettytable', path)
     return output
 }
 
@@ -150,7 +150,7 @@ def createHeatStack(client, name, template, params = [], environment = null, pat
     dir("${env.WORKSPACE}/template/template") {
         outputTable = runOpenstackCommand(cmd, client, path)
     }
-    output = python.parseTextTable(outputTable, 'item', 'prettytable', 'openstack', path)
+    output = python.parseTextTable(outputTable, 'item', 'prettytable', path)
 
     i = 1
     while (true) {
@@ -194,7 +194,7 @@ def getHeatStackInfo(env, name, path = null) {
     def python = new com.mirantis.mk.python()
     cmd = "heat stack-show ${name}"
     outputTable = runOpenstackCommand(cmd, env, path)
-    output = python.parseTextTable(outputTable, 'item', 'prettytable', 'openstack', path)
+    output = python.parseTextTable(outputTable, 'item', 'prettytable', path)
     return output
 }
 
@@ -223,7 +223,7 @@ def getHeatStackResources(env, name, path = null) {
     def python = new com.mirantis.mk.python()
     cmd = "heat resource-list ${name}"
     outputTable = runOpenstackCommand(cmd, env, path)
-    output = python.parseTextTable(outputTable, 'list', 'prettytable', 'openstack', path)
+    output = python.parseTextTable(outputTable, 'list', 'prettytable', path)
     return output
 }
 
@@ -238,7 +238,7 @@ def getHeatStackResourceInfo(env, name, resource, path = null) {
     def python = new com.mirantis.mk.python()
     cmd = "heat resource-show ${name} ${resource}"
     outputTable = runOpenstackCommand(cmd, env, path)
-    output = python.parseTextTable(outputTable, 'item', 'prettytable', 'openstack', path)
+    output = python.parseTextTable(outputTable, 'item', 'prettytable', path)
     return output
 }
 
@@ -253,7 +253,7 @@ def updateHeatStack(env, name, path = null) {
     def python = new com.mirantis.mk.python()
     cmd = "heat stack-update ${name}"
     outputTable = runOpenstackCommand(cmd, env, path)
-    output = python.parseTextTable(outputTable, 'item', 'prettytable', 'openstack', path)
+    output = python.parseTextTable(outputTable, 'item', 'prettytable', path)
     return output
 }
 
