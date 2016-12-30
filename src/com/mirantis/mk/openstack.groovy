@@ -153,14 +153,16 @@ def createHeatStack(client, name, template, params = [], environment = null, pat
     output = python.parseTextTable(outputTable, 'item', 'prettytable', path)
 
     i = 1
+
     while (true) {
         status = getHeatStackStatus(client, name, path)
         echo("[Heat Stack] Status: ${status}, Check: ${i}")
-        if (status == 'CREATE_FAILED') {
+
+        if (status.indexOf('CREATE_FAILED') != -1) {
             info = getHeatStackInfo(client, name, path)
             throw new Exception(info.stack_status_reason)
         }
-        else if (status == 'CREATE_COMPLETE') {
+        else if (status.indexOf('CREATE_COMPLETE') != -1) {
             info = getHeatStackInfo(client, name, path)
             echo(info.stack_status_reason)
             break
