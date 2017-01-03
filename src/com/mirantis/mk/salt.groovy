@@ -54,6 +54,8 @@ def createSaltConnection(url, credentialsId) {
  * @param kwargs   Additional key-value arguments to function
  */
 def runSaltCommand(master, client, target, function, args = null, kwargs = null) {
+    def http = new com.mirantis.mk.http()
+
     data = [
         'tgt': target.expression,
         'fun': function,
