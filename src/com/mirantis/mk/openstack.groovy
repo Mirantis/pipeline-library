@@ -212,7 +212,7 @@ def getHeatStackOutputParam(env, name, outputParam, path = null) {
     cmd = "heat output-show ${name} ${outputParam}"
     output = runOpenstackCommand(cmd, env, path)
     echo("${cmd}: ${output}")
-    return output.substring(1, output.length()-1)
+    return "${output}".substring(1, output.length()-1)
 }
 
 /**
