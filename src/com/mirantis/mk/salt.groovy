@@ -361,7 +361,7 @@ def runSaltProcess(master, process) {
 
     for (i = 0; i <tasks.size(); i++) {
         task = tasks[i]
-        infoMsg("[Salt master ${master.url}] Task ${task}")
+        echo("[Salt master ${master.url}] Task ${task}")
         if (task.containsKey('arg')) {
             result = runSaltCommand(master, 'local', ['expression': task.tgt, 'type': 'compound'], task.fun, task.arg)
         }
