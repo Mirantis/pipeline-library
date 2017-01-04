@@ -54,7 +54,7 @@ def createSaltConnection(url, credentialsId) {
  * @param kwargs   Additional key-value arguments to function
  */
 @NonCPS
-def runSaltCommand(master, client, target, function, args = null, kwargs = null) {
+def runSaltCommand(master, client, target, function, batch = null, args = null, kwargs = null) {
     def http = new com.mirantis.mk.http()
 
     data = [
@@ -64,9 +64,14 @@ def runSaltCommand(master, client, target, function, args = null, kwargs = null)
         'expr_form': target.type,
     ]
 
+    if (batch) {
+        data['batch'] = batch
+    }
+
     if (args) {
         data['arg'] = args
     }
+
     if (kwargs) {
         data['kwarg'] = kwargs
     }
@@ -91,7 +96,7 @@ def enforceSaltState(master, target, state, output = false) {
         run_states = state.join(',')
     }
 
-    def out = runSaltCommand(master, 'local', target, 'state.sls', [run_states])
+    def out = runSaltCommand(master, 'local', target, 'state.sls', null, [run_states])
     try {
         checkSaltResult(out)
     } finally {
@@ -103,7 +108,7 @@ def enforceSaltState(master, target, state, output = false) {
 }
 
 def runSaltCmd(master, target, cmd) {
-    return runSaltCommand(master, 'local', target, 'cmd.run', [cmd])
+    return runSaltCommand(master, 'local', target, 'cmd.run', null, [cmd])
 }
 
 def syncSaltAll(master, target) {
@@ -125,17 +130,17 @@ def enforceSaltApply(master, target, output = false) {
 def generateSaltNodeKey(master, target, host, keysize = 4096) {
     args = [host]
     kwargs = ['keysize': keysize]
-    return runSaltCommand(master, 'wheel', target, 'key.gen_accept', args, kwargs)
+    return runSaltCommand(master, 'wheel', target, 'key.gen_accept', null, args, kwargs)
 }
 
 def generateSaltNodeMetadata(master, target, host, classes, parameters) {
     args = [host, '_generated']
     kwargs = ['classes': classes, 'parameters': parameters]
-    return runSaltCommand(master, 'local', target, 'reclass.node_create', args, kwargs)
+    return runSaltCommand(master, 'local', target, 'reclass.node_create', null, args, kwargs)
 }
 
 def orchestrateSaltSystem(master, target, orchestrate) {
-    return runSaltCommand(master, 'runner', target, 'state.orchestrate', [orchestrate])
+    return runSaltCommand(master, 'runner', target, 'state.orchestrate', null, [orchestrate])
 }
 
 /**
@@ -195,189 +200,181 @@ def printSaltResult(result, onlyChanges = true, raw = false) {
     }
 }
 
-@NonCPS
-def getSaltProcess(saltProcess) {
 
-    def process_def = [
-        'validate_foundation_infra': [
-            [tgt: 'I@salt:master', fun: 'cmd.run', arg: ['salt-key']],
-            [tgt: 'I@salt:minion', fun: 'test.version'],
-            [tgt: 'I@salt:master', fun: 'cmd.run', arg: ['reclass-salt --top']],
-            [tgt: 'I@reclass:storage', fun: 'reclass.inventory'],
-            [tgt: 'I@salt:minion', fun: 'state.show_top'],
-        ],
-        'install_foundation_infra': [
-            [tgt: 'I@salt:master', fun: 'state.sls', arg: ['salt.master,reclass']],
-            [tgt: 'I@linux:system', fun: 'saltutil.refresh_pillar'],
-            [tgt: 'I@linux:system', fun: 'saltutil.sync_all'],
-            [tgt: 'I@linux:system', fun: 'state.sls', arg: ['linux,openssh,salt.minion,ntp']],
-        ],
-        'install_openstack_mk_infra': [
-            // Install keepaliveds
-            [tgt: 'I@keepalived:cluster', fun: 'state.sls', arg: ['keepalived'], batch:1],
-            // Check the keepalived VIPs
-            [tgt: 'I@keepalived:cluster', fun: 'cmd.run', arg: ['ip a | grep 172.16.10.2']],
-            // Install glusterfs
-            [tgt: 'I@glusterfs:server', fun: 'state.sls', arg: ['glusterfs.server.service']],
-            [tgt: 'I@glusterfs:server', fun: 'state.sls', arg: ['glusterfs.server.setup'], batch:1],
-            [tgt: 'I@glusterfs:server', fun: 'cmd.run', arg: ['gluster peer status']],
-            [tgt: 'I@glusterfs:server', fun: 'cmd.run', arg: ['gluster volume status']],
-            // Install rabbitmq
-            [tgt: 'I@rabbitmq:server', fun: 'state.sls', arg: ['rabbitmq']],
-            // Check the rabbitmq status
-            [tgt: 'I@rabbitmq:server', fun: 'cmd.run', arg: ['rabbitmqctl cluster_status']],
-            // Install galera
-            [tgt: 'I@galera:master', fun: 'state.sls', arg: ['galera']],
-            [tgt: 'I@galera:slave', fun: 'state.sls', arg: ['galera']],
-            // Check galera status
-            [tgt: 'I@galera:master', fun: 'mysql.status'],
-            [tgt: 'I@galera:slave', fun: 'mysql.status'],
-            // Install haproxy
-            [tgt: 'I@haproxy:proxy', fun: 'state.sls', arg: ['haproxy']],
-            [tgt: 'I@haproxy:proxy', fun: 'service.status', arg: ['haproxy']],
-            [tgt: 'I@haproxy:proxy', fun: 'service.restart', arg: ['rsyslog']],
-            // Install memcached
-            [tgt: 'I@memcached:server', fun: 'state.sls', arg: ['memcached']],
-        ],
-        'install_openstack_mk_control': [
-            // setup keystone service
-            [tgt: 'I@keystone:server', fun: 'state.sls', arg: ['keystone.server'], batch:1],
-            // populate keystone services/tenants/roles/users
-            [tgt: 'I@keystone:client', fun: 'state.sls', arg: ['keystone.client']],
-            [tgt: 'I@keystone:server', fun: 'cmd.run', arg: ['. /root/keystonerc; keystone service-list']],
-            // Install glance and ensure glusterfs clusters
-            [tgt: 'I@glance:server', fun: 'state.sls', arg: ['glance.server'], batch:1],
-            [tgt: 'I@glance:server', fun: 'state.sls', arg: ['glusterfs.client']],
-            // Update fernet tokens before doing request on keystone server
-            [tgt: 'I@keystone:server', fun: 'state.sls', arg: ['keystone.server']],
-            // Check glance service
-            [tgt: 'I@keystone:server', fun: 'cmd.run', arg: ['. /root/keystonerc; glance image-list']],
-            // Install and check nova service
-            [tgt: 'I@nova:controller', fun: 'state.sls', arg: ['nova'], batch:1],
-            [tgt: 'I@keystone:server', fun: 'cmd.run', arg: ['. /root/keystonerc; nova service-list']],
-            // Install and check cinder service
-            [tgt: 'I@cinder:controller', fun: 'state.sls', arg: ['cinder'], batch:1],
-            [tgt: 'I@keystone:server', fun: 'cmd.run', arg: ['. /root/keystonerc; cinder list']],
-            // Install neutron service
-            [tgt: 'I@neutron:server', fun: 'state.sls', arg: ['neutron'], batch:1],
-            [tgt: 'I@keystone:server', fun: 'cmd.run', arg: ['. /root/keystonerc; neutron agent-list']],
-            // Install heat service
-            [tgt: 'I@heat:server', fun: 'state.sls', arg: ['heat'], batch:1],
-            [tgt: 'I@keystone:server', fun: 'cmd.run', arg: ['. /root/keystonerc; heat resource-type-list']],
-            // Install horizon dashboard
-            [tgt: 'I@horizon:server', fun: 'state.sls', arg: ['horizon']],
-            [tgt: 'I@nginx:server', fun: 'state.sls', arg: ['nginx']],
-        ],
-        'install_openstack_mk_network': [
-            // Install opencontrail database services
-            [tgt: 'I@opencontrail:database', fun: 'state.sls', arg: ['opencontrail.database'], batch:1],
-            // Install opencontrail control services
-            [tgt: 'I@opencontrail:control', fun: 'state.sls', arg: ['opencontrail'], batch:1],
-            // Provision opencontrail control services
-            [tgt: 'I@opencontrail:control:id:1', fun: 'cmd.run', arg: ['/usr/share/contrail-utils/provision_control.py --api_server_ip 172.16.10.254 --api_server_port 8082 --host_name ctl01 --host_ip 172.16.10.101 --router_asn 64512 --admin_password workshop --admin_user admin --admin_tenant_name admin --oper add']],
-            [tgt: 'I@opencontrail:control:id:1', fun: 'cmd.run', arg: ['/usr/share/contrail-utils/provision_control.py --api_server_ip 172.16.10.254 --api_server_port 8082 --host_name ctl02 --host_ip 172.16.10.102 --router_asn 64512 --admin_password workshop --admin_user admin --admin_tenant_name admin --oper add']],
-            [tgt: 'I@opencontrail:control:id:1', fun: 'cmd.run', arg: ['/usr/share/contrail-utils/provision_control.py --api_server_ip 172.16.10.254 --api_server_port 8082 --host_name ctl03 --host_ip 172.16.10.103 --router_asn 64512 --admin_password workshop --admin_user admin --admin_tenant_name admin --oper add']],
-            // Test opencontrail
-            [tgt: 'I@opencontrail:control', fun: 'cmd.run', arg: ['contrail-status']],
-            [tgt: 'I@keystone:server', fun: 'cmd.run', arg: ['. /root/keystonerc; neutron net-list']],
-            [tgt: 'I@keystone:server', fun: 'cmd.run', arg: ['. /root/keystonerc; nova net-list']],
-        ],
-        'install_openstack_mk_compute': [
-            // Configure compute nodes
-            [tgt: 'I@nova:compute', fun: 'state.apply'],
-            [tgt: 'I@nova:compute', fun: 'state.apply'],
-            // Provision opencontrail virtual routers
-            [tgt: 'I@opencontrail:control:id:1', fun: 'cmd.run', arg: ['/usr/share/contrail-utils/provision_vrouter.py --host_name cmp01 --host_ip 172.16.10.105 --api_server_ip 172.16.10.254 --oper add --admin_user admin --admin_password workshop --admin_tenant_name admin']],
-            [tgt: 'I@nova:compute', fun: 'system.reboot'],
-        ],
-        'install_openstack_mcp_infra': [
-            // Comment nameserver
-            [tgt: 'I@kubernetes:master', fun: 'cmd.run', arg: ["sed -i 's/nameserver 10.254.0.10/#nameserver 10.254.0.10/g' /etc/resolv.conf"]],
-            // Install glusterfs
-            [tgt: 'I@glusterfs:server', fun: 'state.sls', arg: ['glusterfs.server.service']],
-            // Install keepalived
-            [tgt: 'I@keepalived:cluster', fun: 'state.sls', arg: ['keepalived'], batch:1],
-            // Check the keepalived VIPs
-            [tgt: 'I@keepalived:cluster', fun: 'cmd.run', arg: ['ip a | grep 172.16.10.2']],
-            // Setup glusterfs
-            [tgt: 'I@glusterfs:server', fun: 'state.sls', arg: ['glusterfs.server.setup'], batch:1],
-            [tgt: 'I@glusterfs:server', fun: 'cmd.run', arg: ['gluster peer status']],
-            [tgt: 'I@glusterfs:server', fun: 'cmd.run', arg: ['gluster volume status']],
-            // Install haproxy
-            [tgt: 'I@haproxy:proxy', fun: 'state.sls', arg: ['haproxy']],
-            [tgt: 'I@haproxy:proxy', fun: 'service.status', arg: ['haproxy']],
-            // Install docker
-            [tgt: 'I@docker:host', fun: 'state.sls', arg: ['docker.host']],
-            [tgt: 'I@docker:host', fun: 'cmd.run', arg: ['docker ps']],
-            // Install bird
-            [tgt: 'I@bird:server', fun: 'state.sls', arg: ['bird']],
-            // Install etcd
-            [tgt: 'I@etcd:server', fun: 'state.sls', arg: ['etcd.server.service']],
-            [tgt: 'I@etcd:server', fun: 'cmd.run', arg: ['etcdctl cluster-health']],
-        ],
-        'install_openstack_mcp_control': [
-            // Pull Calico image
-            [tgt: 'I@kubernetes:pool', fun: 'dockerng.pull', arg: ['calico/node:latest']],
-            // Install Kubernetes and Calico
-            [tgt: 'I@kubernetes:master', fun: 'state.sls', arg: ['kubernetes.master.service,kubernetes.master.kube-addons']],
-            [tgt: 'I@kubernetes:pool', fun: 'state.sls', arg: ['kubernetes.pool']],
-            [tgt: 'I@kubernetes:pool', fun: 'cmd.run', arg: ['calicoctl status']],
-            // Setup NAT for Calico
-            [tgt: 'I@kubernetes:master', fun: 'state.sls', arg: ['etcd.server.setup']],
-            // Run whole k8s controller
-            [tgt: 'I@kubernetes:master', fun: 'state.sls', arg: ['kubernetes.controller']],
-            // Run whole k8s controller
-            [tgt: 'I@kubernetes:master', fun: 'state.sls', arg: ['kubernetes'], batch: 1],
-            // Revert comment nameserver
-            [tgt: 'I@kubernetes:master', fun: 'cmd.run', arg: ["sed -i 's/nameserver 10.254.0.10/#nameserver 10.254.0.10/g' /etc/resolv.conf"]],
-        ],
-        'install_openstack_mcp_compute': [
-            // Install opencontrail
-            [tgt: 'I@opencontrail:compute', fun: 'state.sls', arg: ['opencontrail']],
-            // Reboot compute nodes
-            [tgt: 'I@opencontrail:compute', fun: 'system.reboot'],
-        ],
-        'install_stacklight_control': [
-            [tgt: 'I@elasticsearch:server', fun: 'state.sls', arg: ['elasticsearch.server'], batch:1],
-            [tgt: 'I@influxdb:server', fun: 'state.sls', arg: ['influxdb'], batch:1],
-            [tgt: 'I@kibana:server', fun: 'state.sls', arg: ['kibana.server'], batch:1],
-            [tgt: 'I@grafana:server', fun: 'state.sls', arg: ['grafana'], batch:1],
-            [tgt: 'I@nagios:server', fun: 'state.sls', arg: ['nagios'], batch:1],
-            [tgt: 'I@elasticsearch:client', fun: 'state.sls', arg: ['elasticsearch.client'], batch:1],
-            [tgt: 'I@kibana:client', fun: 'state.sls', arg: ['kibana.client'], batch:1],
-        ],
-        'install_stacklight_client': [
-        ]
-    ]
-    return process_def[saltProcess]
+def runSaltProcessStep(master, tgt, fun, arg = [], batch = null) {
+    if (batch) {
+        result = runSaltCommand(master, 'local_batch', ['expression': tgt, 'type': 'compound'], fun, String.valueOf(batch), arg)
+    }
+    else {
+        result = runSaltCommand(master, 'local', ['expression': tgt, 'type': 'compound'], fun, batch, arg)
+    }
+    echo("${result}")
 }
 
-/**
- * Run predefined salt process
- *
- * @param master      Salt connection object
- * @param process     Process name to be run
- */
-def runSaltProcess(master, process) {
 
-    tasks = getSaltProcess(process)
+def validateFoundationInfra(master) {
+    runSaltProcessStep(master, 'I@salt:master', 'cmd.run', ['salt-key'])
+    runSaltProcessStep(master, 'I@salt:minion', 'test.version')
+    runSaltProcessStep(master, 'I@salt:master', 'cmd.run', ['reclass-salt --top'])
+    runSaltProcessStep(master, 'I@reclass:storage', 'reclass.inventory')
+    runSaltProcessStep(master, 'I@salt:minion', 'state.show_top')
+}
 
-    for (i = 0; i <tasks.size(); i++) {
-        task = tasks[i]
-        echo("[Salt master ${master.url}] Task ${task}")
-        if (task.containsKey('arg')) {
-            result = runSaltCommand(master, 'local', ['expression': task.tgt, 'type': 'compound'], task.fun, task.arg)
-        }
-        else {
-            result = runSaltCommand(master, 'local', ['expression': task.tgt, 'type': 'compound'], task.fun)
-        }
-        if (task.fun == 'state.sls') {
-            printSaltResult(result, false)
-        }
-        else {
-            echo("${result}")
-        }
-    }
+
+def installFoundationInfra(master) {
+    runSaltProcessStep(master, 'I@salt:master', 'state.sls', ['salt.master,reclass'])
+    runSaltProcessStep(master, 'I@linux:system', 'saltutil.refresh_pillar')
+    runSaltProcessStep(master, 'I@linux:system', 'saltutil.sync_all')
+    runSaltProcessStep(master, 'I@linux:system', 'state.sls', ['linux,openssh,salt.minion,ntp'])
+}
+
+def installOpenstackInfra(master) {
+    // Install keepaliveds
+    runSaltProcessStep(master, 'I@keepalived:cluster', 'state.sls', ['keepalived'], 1)
+    // Check the keepalived VIPs
+    runSaltProcessStep(master, 'I@keepalived:cluster', 'cmd.run', ['ip a | grep 172.16.10.2'])
+    // Install glusterfs
+    runSaltProcessStep(master, 'I@glusterfs:server', 'state.sls', ['glusterfs.server.service'])
+    runSaltProcessStep(master, 'I@glusterfs:server', 'state.sls', ['glusterfs.server.setup'], 1)
+    runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster peer status'])
+    runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster volume status'])
+    // Install rabbitmq
+    runSaltProcessStep(master, 'I@rabbitmq:server', 'state.sls', ['rabbitmq'])
+    // Check the rabbitmq status
+    runSaltProcessStep(master, 'I@rabbitmq:server', 'cmd.run', ['rabbitmqctl cluster_status'])
+    // Install galera
+    runSaltProcessStep(master, 'I@galera:master', 'state.sls', ['galera'])
+    runSaltProcessStep(master, 'I@galera:slave', 'state.sls', ['galera'])
+    // Check galera status
+    runSaltProcessStep(master, 'I@galera:master', 'mysql.status')
+    runSaltProcessStep(master, 'I@galera:slave', 'mysql.status')
+    // Install haproxy
+    runSaltProcessStep(master, 'I@haproxy:proxy', 'state.sls', ['haproxy'])
+    runSaltProcessStep(master, 'I@haproxy:proxy', 'service.status', ['haproxy'])
+    runSaltProcessStep(master, 'I@haproxy:proxy', 'service.restart', ['rsyslog'])
+    // Install memcached
+    runSaltProcessStep(master, 'I@memcached:server', 'state.sls', ['memcached'])
+}
+
+
+def installOpenstackMkControl(master) {
+    // setup keystone service
+    runSaltProcessStep(master, 'I@keystone:server', 'state.sls', ['keystone.server'], 1)
+    // populate keystone services/tenants/roles/users
+    runSaltProcessStep(master, 'I@keystone:client', 'state.sls', ['keystone.client'])
+    runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; keystone service-list'])
+    // Install glance and ensure glusterfs clusters
+    runSaltProcessStep(master, 'I@glance:server', 'state.sls', ['glance.server'], 1)
+    runSaltProcessStep(master, 'I@glance:server', 'state.sls', ['glusterfs.client'])
+    // Update fernet tokens before doing request on keystone server
+    runSaltProcessStep(master, 'I@keystone:server', 'state.sls', ['keystone.server'])
+    // Check glance service
+    runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; glance image-list'])
+    // Install and check nova service
+    runSaltProcessStep(master, 'I@nova:controller', 'state.sls', ['nova'], 1)
+    runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; nova service-list'])
+    // Install and check cinder service
+    runSaltProcessStep(master, 'I@cinder:controller', 'state.sls', ['cinder'], 1)
+    runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; cinder list'])
+    // Install neutron service
+    runSaltProcessStep(master, 'I@neutron:server', 'state.sls', ['neutron'], 1)
+    runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; neutron agent-list'])
+    // Install heat service
+    runSaltProcessStep(master, 'I@heat:server', 'state.sls', ['heat'], 1)
+    runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; heat resource-type-list'])
+    // Install horizon dashboard
+    runSaltProcessStep(master, 'I@horizon:server', 'state.sls', ['horizon'])
+    runSaltProcessStep(master, 'I@nginx:server', 'state.sls', ['nginx'])
+}
+
+
+def installOpenstackMkNetwork(master) {
+    // Install opencontrail database services
+    runSaltProcessStep(master, 'I@opencontrail:database', 'state.sls', ['opencontrail.database'], 1)
+    // Install opencontrail control services
+    runSaltProcessStep(master, 'I@opencontrail:control', 'state.sls', ['opencontrail'], 1)
+    // Provision opencontrail control services
+    runSaltProcessStep(master, 'I@opencontrail:control:id:1', 'cmd.run', ['/usr/share/contrail-utils/provision_control.py --api_server_ip 172.16.10.254 --api_server_port 8082 --host_name ctl01 --host_ip 172.16.10.101 --router_asn 64512 --admin_password workshop --admin_user admin --admin_tenant_name admin --oper add'])
+    runSaltProcessStep(master, 'I@opencontrail:control:id:1', 'cmd.run', ['/usr/share/contrail-utils/provision_control.py --api_server_ip 172.16.10.254 --api_server_port 8082 --host_name ctl02 --host_ip 172.16.10.102 --router_asn 64512 --admin_password workshop --admin_user admin --admin_tenant_name admin --oper add'])
+    runSaltProcessStep(master, 'I@opencontrail:control:id:1', 'cmd.run', ['/usr/share/contrail-utils/provision_control.py --api_server_ip 172.16.10.254 --api_server_port 8082 --host_name ctl03 --host_ip 172.16.10.103 --router_asn 64512 --admin_password workshop --admin_user admin --admin_tenant_name admin --oper add'])
+    // Test opencontrail
+    runSaltProcessStep(master, 'I@opencontrail:control', 'cmd.run', ['contrail-status'])
+    runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; neutron net-list'])
+    runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; nova net-list'])
+}
+
+
+def installOpenstackMkCompute(master) {
+    // Configure compute nodes
+    runSaltProcessStep(master, 'I@nova:compute', 'state.apply')
+    runSaltProcessStep(master, 'I@nova:compute', 'state.apply')
+    // Provision opencontrail virtual routers
+    runSaltProcessStep(master, 'I@opencontrail:control:id:1', 'cmd.run', ['/usr/share/contrail-utils/provision_vrouter.py --host_name cmp01 --host_ip 172.16.10.105 --api_server_ip 172.16.10.254 --oper add --admin_user admin --admin_password workshop --admin_tenant_name admin'])
+    runSaltProcessStep(master, 'I@nova:compute', 'system.reboot')
+}
+
+
+def installOpenstackMcpInfra(master) {
+    // Comment nameserver
+    runSaltProcessStep(master, 'I@kubernetes:master', 'cmd.run', ["sed -i 's/nameserver 10.254.0.10/#nameserver 10.254.0.10/g' /etc/resolv.conf"])
+    // Install glusterfs
+    runSaltProcessStep(master, 'I@glusterfs:server', 'state.sls', ['glusterfs.server.service'])
+    // Install keepalived
+    runSaltProcessStep(master, 'I@keepalived:cluster', 'state.sls', ['keepalived'], 1)
+    // Check the keepalived VIPs
+    runSaltProcessStep(master, 'I@keepalived:cluster', 'cmd.run', ['ip a | grep 172.16.10.2'])
+    // Setup glusterfs
+    runSaltProcessStep(master, 'I@glusterfs:server', 'state.sls', ['glusterfs.server.setup'], 1)
+    runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster peer status'])
+    runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster volume status'])
+    // Install haproxy
+    runSaltProcessStep(master, 'I@haproxy:proxy', 'state.sls', ['haproxy'])
+    runSaltProcessStep(master, 'I@haproxy:proxy', 'service.status', ['haproxy'])
+    // Install docker
+    runSaltProcessStep(master, 'I@docker:host', 'state.sls', ['docker.host'])
+    runSaltProcessStep(master, 'I@docker:host', 'cmd.run', ['docker ps'])
+    // Install bird
+    runSaltProcessStep(master, 'I@bird:server', 'state.sls', ['bird'])
+    // Install etcd
+    runSaltProcessStep(master, 'I@etcd:server', 'state.sls', ['etcd.server.service'])
+    runSaltProcessStep(master, 'I@etcd:server', 'cmd.run', ['etcdctl cluster-health'])
+}
+
+
+def installOpenstackMcpControl(master) {
+    // Pull Calico image
+    runSaltProcessStep(master, 'I@kubernetes:pool', 'dockerng.pull', ['calico/node:latest'])
+    // Install Kubernetes and Calico
+    runSaltProcessStep(master, 'I@kubernetes:master', 'state.sls', ['kubernetes.master.service,kubernetes.master.kube-addons'])
+    runSaltProcessStep(master, 'I@kubernetes:pool', 'state.sls', ['kubernetes.pool'])
+    runSaltProcessStep(master, 'I@kubernetes:pool', 'cmd.run', ['calicoctl status'])
+    // Setup NAT for Calico
+    runSaltProcessStep(master, 'I@kubernetes:master', 'state.sls', ['etcd.server.setup'])
+    // Run whole k8s controller
+    runSaltProcessStep(master, 'I@kubernetes:master', 'state.sls', ['kubernetes.controller'])
+    // Run whole k8s controller
+    runSaltProcessStep(master, 'I@kubernetes:master', 'state.sls', ['kubernetes'], 1)
+    // Revert comment nameserver
+    runSaltProcessStep(master, 'I@kubernetes:master', 'cmd.run', ["sed -i 's/nameserver 10.254.0.10/#nameserver 10.254.0.10/g' /etc/resolv.conf"])
+}
+
+
+def installOpenstackMcpCompute(master) {
+    // Install opencontrail
+    runSaltProcessStep(master, 'I@opencontrail:compute', 'state.sls', ['opencontrail'])
+    // Reboot compute nodes
+    runSaltProcessStep(master, 'I@opencontrail:compute', 'system.reboot')
+}
+
+
+def installStacklightControl(master) {
+    runSaltProcessStep(master, 'I@elasticsearch:server', 'state.sls', ['elasticsearch.server'], 1)
+    runSaltProcessStep(master, 'I@influxdb:server', 'state.sls', ['influxdb'], 1)
+    runSaltProcessStep(master, 'I@kibana:server', 'state.sls', ['kibana.server'], 1)
+    runSaltProcessStep(master, 'I@grafana:server', 'state.sls', ['grafana'], 1)
+    runSaltProcessStep(master, 'I@nagios:server', 'state.sls', ['nagios'], 1)
+    runSaltProcessStep(master, 'I@elasticsearch:client', 'state.sls', ['elasticsearch.client'], 1)
+    runSaltProcessStep(master, 'I@kibana:client', 'state.sls', ['kibana.client'], 1)
 }
 
 /**
