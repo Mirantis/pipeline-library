@@ -228,14 +228,20 @@ def installFoundationInfra(master) {
     runSaltProcessStep(master, 'I@linux:system', 'state.sls', ['linux,openssh,salt.minion,ntp'])
 }
 
-def installOpenstackInfra(master) {
+
+def installOpenstackMkInfra(master) {
     // Install keepaliveds
-    runSaltProcessStep(master, 'I@keepalived:cluster', 'state.sls', ['keepalived'], 1)
+    //runSaltProcessStep(master, 'I@keepalived:cluster', 'state.sls', ['keepalived'], 1)
+    runSaltProcessStep(master, 'ctl01*', 'state.sls', ['keepalived'])
+    runSaltProcessStep(master, 'I@keepalived:cluster', 'state.sls', ['keepalived'])
     // Check the keepalived VIPs
     runSaltProcessStep(master, 'I@keepalived:cluster', 'cmd.run', ['ip a | grep 172.16.10.2'])
     // Install glusterfs
     runSaltProcessStep(master, 'I@glusterfs:server', 'state.sls', ['glusterfs.server.service'])
-    runSaltProcessStep(master, 'I@glusterfs:server', 'state.sls', ['glusterfs.server.setup'], 1)
+    //runSaltProcessStep(master, 'I@glusterfs:server', 'state.sls', ['glusterfs.server.setup'], 1)
+    runSaltProcessStep(master, 'ctl01*', 'state.sls', ['glusterfs.server.setup'])
+    runSaltProcessStep(master, 'ctl02*', 'state.sls', ['glusterfs.server.setup'])
+    runSaltProcessStep(master, 'ctl03*', 'state.sls', ['glusterfs.server.setup'])
     runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster peer status'])
     runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster volume status'])
     // Install rabbitmq
@@ -259,28 +265,40 @@ def installOpenstackInfra(master) {
 
 def installOpenstackMkControl(master) {
     // setup keystone service
-    runSaltProcessStep(master, 'I@keystone:server', 'state.sls', ['keystone.server'], 1)
+    //runSaltProcessStep(master, 'I@keystone:server', 'state.sls', ['keystone.server'], 1)
+    runSaltProcessStep(master, 'ctl01*', 'state.sls', ['keystone.server'])
+    runSaltProcessStep(master, 'I@keystone:server', 'state.sls', ['keystone.server'])
     // populate keystone services/tenants/roles/users
     runSaltProcessStep(master, 'I@keystone:client', 'state.sls', ['keystone.client'])
     runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; keystone service-list'])
     // Install glance and ensure glusterfs clusters
-    runSaltProcessStep(master, 'I@glance:server', 'state.sls', ['glance.server'], 1)
+    //runSaltProcessStep(master, 'I@glance:server', 'state.sls', ['glance.server'], 1)
+    runSaltProcessStep(master, 'ctl01*', 'state.sls', ['glance.server'])
+    runSaltProcessStep(master, 'I@glance:server', 'state.sls', ['glance.server'])
     runSaltProcessStep(master, 'I@glance:server', 'state.sls', ['glusterfs.client'])
     // Update fernet tokens before doing request on keystone server
     runSaltProcessStep(master, 'I@keystone:server', 'state.sls', ['keystone.server'])
     // Check glance service
     runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; glance image-list'])
     // Install and check nova service
-    runSaltProcessStep(master, 'I@nova:controller', 'state.sls', ['nova'], 1)
+    //runSaltProcessStep(master, 'I@nova:controller', 'state.sls', ['nova'], 1)
+    runSaltProcessStep(master, 'ctl01*', 'state.sls', ['nova'])
+    runSaltProcessStep(master, 'I@nova:controller', 'state.sls', ['nova'])
     runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; nova service-list'])
     // Install and check cinder service
-    runSaltProcessStep(master, 'I@cinder:controller', 'state.sls', ['cinder'], 1)
+    //runSaltProcessStep(master, 'I@cinder:controller', 'state.sls', ['cinder'], 1)
+    runSaltProcessStep(master, 'ctl01*', 'state.sls', ['cinder'])
+    runSaltProcessStep(master, 'I@cinder:controller', 'state.sls', ['cinder'])
     runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; cinder list'])
     // Install neutron service
-    runSaltProcessStep(master, 'I@neutron:server', 'state.sls', ['neutron'], 1)
+    //runSaltProcessStep(master, 'I@neutron:server', 'state.sls', ['neutron'], 1)
+    runSaltProcessStep(master, 'ctl01*', 'state.sls', ['neutron'])
+    runSaltProcessStep(master, 'I@neutron:server', 'state.sls', ['neutron'])
     runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; neutron agent-list'])
     // Install heat service
-    runSaltProcessStep(master, 'I@heat:server', 'state.sls', ['heat'], 1)
+    //runSaltProcessStep(master, 'I@heat:server', 'state.sls', ['heat'], 1)
+    runSaltProcessStep(master, 'ctl01*', 'state.sls', ['heat'])
+    runSaltProcessStep(master, 'I@heat:server', 'state.sls', ['heat'])
     runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; heat resource-type-list'])
     // Install horizon dashboard
     runSaltProcessStep(master, 'I@horizon:server', 'state.sls', ['horizon'])
@@ -290,9 +308,13 @@ def installOpenstackMkControl(master) {
 
 def installOpenstackMkNetwork(master) {
     // Install opencontrail database services
-    runSaltProcessStep(master, 'I@opencontrail:database', 'state.sls', ['opencontrail.database'], 1)
+    //runSaltProcessStep(master, 'I@opencontrail:database', 'state.sls', ['opencontrail.database'], 1)
+    runSaltProcessStep(master, 'ntw01*', 'state.sls', ['opencontrail.database'])
+    runSaltProcessStep(master, 'I@opencontrail:database', 'state.sls', ['opencontrail.database'])
     // Install opencontrail control services
-    runSaltProcessStep(master, 'I@opencontrail:control', 'state.sls', ['opencontrail'], 1)
+    //runSaltProcessStep(master, 'I@opencontrail:control', 'state.sls', ['opencontrail'], 1)
+    runSaltProcessStep(master, 'ntw01*', 'state.sls', ['opencontrail'])
+    runSaltProcessStep(master, 'I@opencontrail:control', 'state.sls', ['opencontrail'])
     // Provision opencontrail control services
     runSaltProcessStep(master, 'I@opencontrail:control:id:1', 'cmd.run', ['/usr/share/contrail-utils/provision_control.py --api_server_ip 172.16.10.254 --api_server_port 8082 --host_name ctl01 --host_ip 172.16.10.101 --router_asn 64512 --admin_password workshop --admin_user admin --admin_tenant_name admin --oper add'])
     runSaltProcessStep(master, 'I@opencontrail:control:id:1', 'cmd.run', ['/usr/share/contrail-utils/provision_control.py --api_server_ip 172.16.10.254 --api_server_port 8082 --host_name ctl02 --host_ip 172.16.10.102 --router_asn 64512 --admin_password workshop --admin_user admin --admin_tenant_name admin --oper add'])
@@ -320,11 +342,14 @@ def installOpenstackMcpInfra(master) {
     // Install glusterfs
     runSaltProcessStep(master, 'I@glusterfs:server', 'state.sls', ['glusterfs.server.service'])
     // Install keepalived
-    runSaltProcessStep(master, 'I@keepalived:cluster', 'state.sls', ['keepalived'], 1)
+    runSaltProcessStep(master, 'ctl01*', 'state.sls', ['keepalived'])
+    runSaltProcessStep(master, 'I@keepalived:cluster', 'state.sls', ['keepalived'])
     // Check the keepalived VIPs
     runSaltProcessStep(master, 'I@keepalived:cluster', 'cmd.run', ['ip a | grep 172.16.10.2'])
     // Setup glusterfs
-    runSaltProcessStep(master, 'I@glusterfs:server', 'state.sls', ['glusterfs.server.setup'], 1)
+    runSaltProcessStep(master, 'ctl01*', 'state.sls', ['glusterfs.server.setup'])
+    runSaltProcessStep(master, 'ctl02*', 'state.sls', ['glusterfs.server.setup'])
+    runSaltProcessStep(master, 'ctl03*', 'state.sls', ['glusterfs.server.setup'])
     runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster peer status'])
     runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster volume status'])
     // Install haproxy
@@ -353,7 +378,8 @@ def installOpenstackMcpControl(master) {
     // Run whole k8s controller
     runSaltProcessStep(master, 'I@kubernetes:master', 'state.sls', ['kubernetes.controller'])
     // Run whole k8s controller
-    runSaltProcessStep(master, 'I@kubernetes:master', 'state.sls', ['kubernetes'], 1)
+    runSaltProcessStep(master, 'ctl01*', 'state.sls', ['kubernetes'])
+    runSaltProcessStep(master, 'I@kubernetes:master', 'state.sls', ['kubernetes'])
     // Revert comment nameserver
     runSaltProcessStep(master, 'I@kubernetes:master', 'cmd.run', ["sed -i 's/nameserver 10.254.0.10/#nameserver 10.254.0.10/g' /etc/resolv.conf"])
 }
@@ -368,14 +394,15 @@ def installOpenstackMcpCompute(master) {
 
 
 def installStacklightControl(master) {
-    runSaltProcessStep(master, 'I@elasticsearch:server', 'state.sls', ['elasticsearch.server'], 1)
-    runSaltProcessStep(master, 'I@influxdb:server', 'state.sls', ['influxdb'], 1)
-    runSaltProcessStep(master, 'I@kibana:server', 'state.sls', ['kibana.server'], 1)
-    runSaltProcessStep(master, 'I@grafana:server', 'state.sls', ['grafana'], 1)
-    runSaltProcessStep(master, 'I@nagios:server', 'state.sls', ['nagios'], 1)
-    runSaltProcessStep(master, 'I@elasticsearch:client', 'state.sls', ['elasticsearch.client'], 1)
-    runSaltProcessStep(master, 'I@kibana:client', 'state.sls', ['kibana.client'], 1)
+    runSaltProcessStep(master, 'I@elasticsearch:server', 'state.sls', ['elasticsearch.server'])
+    runSaltProcessStep(master, 'I@influxdb:server', 'state.sls', ['influxdb'])
+    runSaltProcessStep(master, 'I@kibana:server', 'state.sls', ['kibana.server'])
+    runSaltProcessStep(master, 'I@grafana:server', 'state.sls', ['grafana'])
+    runSaltProcessStep(master, 'I@nagios:server', 'state.sls', ['nagios'])
+    runSaltProcessStep(master, 'I@elasticsearch:client', 'state.sls', ['elasticsearch.client'])
+    runSaltProcessStep(master, 'I@kibana:client', 'state.sls', ['kibana.client'])
 }
+
 
 /**
  * Print Salt state run results in human-friendly form
