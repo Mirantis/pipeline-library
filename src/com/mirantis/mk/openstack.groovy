@@ -59,11 +59,13 @@ def createOpenstackEnv(url, credentialsId, project) {
     def common = new com.mirantis.mk.common()
     rcFile = "${env.WORKSPACE}/keystonerc"
     creds = common.getPasswordCredentials(credentialsId)
-    rc = """export OS_USERNAME=${creds.username}
+    rc = """set +x
+export OS_USERNAME=${creds.username}
 export OS_PASSWORD=${creds.password.toString()}
 export OS_TENANT_NAME=${project}
 export OS_AUTH_URL=${url}
 export OS_AUTH_STRATEGY=keystone
+set -x
 """
     writeFile file: rcFile, text: rc
     return rcFile
