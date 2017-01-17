@@ -1,0 +1,25 @@
+apply plugin: 'groovy'
+apply plugin: 'codenarc'
+
+def jcenterRepo = System.getenv('ARTIFACTORY_URL') ?: 'https://artifactory.mcp.mirantis.net/jcenter'
+
+sourceSets {
+  main {
+    groovy {
+      srcDirs = ['src', 'vars']
+    }
+  }
+}
+
+compileGroovy.enabled = false
+
+repositories {
+  maven {
+    url jcenterRepo
+  }
+}
+
+codenarc {
+  configFile = new File('codenarcRules.groovy')
+  reportFormat = 'text'
+}
