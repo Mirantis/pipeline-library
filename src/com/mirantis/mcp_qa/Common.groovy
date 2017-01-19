@@ -1,4 +1,4 @@
-package com.mirantis.mcp-qa
+package com.mirantis.mcp_qa
 
 /**
  * Get latest artifacts

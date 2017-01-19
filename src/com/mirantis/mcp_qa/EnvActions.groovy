@@ -1,4 +1,4 @@
-package com.mirantis.mcp-qa
+package com.mirantis.mcp_qa
 
 /**
  * Activate virtual environment and check k8s deployer is specified

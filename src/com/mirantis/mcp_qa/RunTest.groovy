@@ -1,4 +1,4 @@
-package com.mirantis.mcp-qa
+package com.mirantis.mcp_qa
 
 /**
  * Run mcp-qa test by specified group
