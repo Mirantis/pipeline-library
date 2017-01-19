@@ -367,21 +367,28 @@ def installOpenstackMcpInfra(master) {
 
 
 def installOpenstackMcpControl(master) {
-    // Pull Calico image
-    runSaltProcessStep(master, 'I@kubernetes:pool', 'dockerng.pull', ['calico/node:latest'])
-    // Install Kubernetes and Calico
-    runSaltProcessStep(master, 'I@kubernetes:master', 'state.sls', ['kubernetes.master.service,kubernetes.master.kube-addons'])
+
+    // Install Kubernetes pool and Calico
     runSaltProcessStep(master, 'I@kubernetes:pool', 'state.sls', ['kubernetes.pool'])
-    runSaltProcessStep(master, 'I@kubernetes:pool', 'cmd.run', ['calicoctl status'])
-    // Setup NAT for Calico
+    runSaltProcessStep(master, 'I@kubernetes:pool', 'cmd.run', ['calicoctl node status'])
+
+    // Setup etcd server
     runSaltProcessStep(master, 'I@kubernetes:master', 'state.sls', ['etcd.server.setup'])
-    // Run whole k8s controller
-    runSaltProcessStep(master, 'I@kubernetes:master', 'state.sls', ['kubernetes.controller'])
-    // Run whole k8s controller
-    runSaltProcessStep(master, 'ctl01*', 'state.sls', ['kubernetes'])
-    runSaltProcessStep(master, 'I@kubernetes:master', 'state.sls', ['kubernetes'])
+
+    // Run k8s without master.setup
+    runSaltProcessStep(master, 'I@kubernetes:master', 'state.sls', ['kubernetes', 'exclude=kubernetes.master.setup'])
+
+    // Run k8s master setup
+    runSaltProcessStep(master, 'I@kubernetes:master', 'state.sls', ['kubernetes.master.setup'], 1)
+
     // Revert comment nameserver
     runSaltProcessStep(master, 'I@kubernetes:master', 'cmd.run', ["sed -i 's/nameserver 10.254.0.10/#nameserver 10.254.0.10/g' /etc/resolv.conf"])
+
+    // Set route
+    runSaltProcessStep(master, 'I@kubernetes:pool', 'cmd.run', ['ip r a 10.254.0.0/16 dev ens4'])
+
+    // Restart kubelet
+    runSaltProcessStep(master, 'I@kubernetes:pool', 'service.restart', ['kubelet'])
 }
 
 
