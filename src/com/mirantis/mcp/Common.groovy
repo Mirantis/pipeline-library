@@ -110,7 +110,7 @@ def runOnKubernetes(LinkedHashMap config) {
       ) {
       node(lbl){
         container('k8s-slave') {
-          toRun()
+          return toRun()
         }
       }
     }
