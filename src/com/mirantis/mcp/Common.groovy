@@ -64,7 +64,7 @@ def runOnKubernetes(LinkedHashMap config) {
   def lbl = config.get('label', "buildpod.${env.JOB_NAME}.${env.BUILD_NUMBER}".replace('-', '_').replace('/', '_'))
   def toRun = config.get('function', 'none')
 
-  id (jnlpSlaveImg == 'none') {
+  if (jnlpSlaveImg == 'none') {
     error('jnlp Slave image MUST be defined')
   }
 
