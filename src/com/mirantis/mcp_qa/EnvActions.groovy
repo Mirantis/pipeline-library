@@ -32,3 +32,14 @@ def destroyEnv() {
         '''
     }
 }
+
+/**
+ * Erase running environment
+ */
+def eraseEnv() {
+        sh '''
+            . ${VENV_PATH}/bin/activate
+            dos.py erase ${ENV_NAME} || true
+        '''
+}
+

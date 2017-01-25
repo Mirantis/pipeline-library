@@ -19,12 +19,6 @@ def runTest(testGroup, jobSetParameters) {
             if ! py.test ${TEST_ARGS}; then
             exit_code=1
             fi
-            # erase environment if test passed and KEEP_AFTER isn't set to 'yes' or 'true'
-            if [ ${exit_code} -eq 0 ]; then
-            if ! [[ "${KEEP_AFTER}" == "yes" || "${KEEP_AFTER}" == "true" ]]; then
-            dos.py erase "${ENV_NAME}" || true
-            fi
-            fi
             if [ ${exit_code} -gt 0 ]; then
             echo "Tests failed!"
             exit 1
