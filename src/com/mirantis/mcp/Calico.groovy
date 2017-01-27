@@ -46,7 +46,7 @@ def checkoutCalico(LinkedHashMap config) {
   def projectNamespace = config.get('projectNamespace', 'projectcalico')
   def commit = config.get('commit')
   def host = config.get('host')
-  def credentialsId = config.get('credentialsId', 'gerrit')
+  def credentialsId = config.get('credentialsId', 'mcp-ci-gerrit')
 
   if (!project_name) {
     throw new RuntimeException("Parameter 'project_name' must be set for checkoutCalico() !")
@@ -367,7 +367,7 @@ def switchCalicoToDownstreamLibcalicoGo(String libCalicoGoCommit, String host, S
     def libcalicogo_path = "${env.WORKSPACE}/tmp_libcalico-go"
 
     git.gitSSHCheckout([
-      credentialsId : "apanchenko",
+      credentialsId : "mcp-ci-gerrit",
       branch : libCalicoGoCommit,
       host : host,
       project : "projectcalico/libcalico-go",
