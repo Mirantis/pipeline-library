@@ -88,7 +88,7 @@ def gitSSHCheckout(LinkedHashMap config) {
       userRemoteConfigs: [[
         credentialsId: "${config.credentialsId}",
         name: 'origin',
-        url: "ssh://${config.credentialsId}@${config.host}:${port}/${config.project}.git"
+        url: "ssh://${config.host}:${port}/${config.project}.git"
       ]]
     ]
   )
@@ -136,7 +136,7 @@ def gerritPatchsetCheckout(LinkedHashMap config) {
     scmUserRemoteConfigs.put('url',"https://${GERRIT_HOST}/${GERRIT_PROJECT}")
   } else {
     // else use ssh checkout
-    scmUserRemoteConfigs.put('url',"ssh://${GERRIT_NAME}@${GERRIT_HOST}:${GERRIT_PORT}/${GERRIT_PROJECT}.git")
+    scmUserRemoteConfigs.put('url',"ssh://${GERRIT_HOST}:${GERRIT_PORT}/${GERRIT_PROJECT}.git")
     scmUserRemoteConfigs.put('credentialsId',credentials)
   }
 
