@@ -1,5 +1,8 @@
 package com.mirantis.mcp
 
+@Grab(group='org.yaml', module='snakeyaml', version='1.17')
+import org.yaml.snakeyaml.Yaml
+
 /**
  * https://issues.jenkins-ci.org/browse/JENKINS-26481
  * fix groovy List.collect()
@@ -29,6 +32,26 @@ def runTox(String env = null) {
   } else {
     sh "tox -v"
   }
+}
+
+/**
+ * Convert YAML document to Map object
+ * @param data YAML string
+ */
+@NonCPS
+def loadYAML(String data) {
+  def yaml = new Yaml()
+  return yaml.load(data)
+}
+
+/**
+ * Convert Map object to YAML string
+ * @param map Map object
+ */
+@NonCPS
+def dumpYAML(Map map) {
+  def yaml = new Yaml()
+  return yaml.dump(map)
 }
 
 /**

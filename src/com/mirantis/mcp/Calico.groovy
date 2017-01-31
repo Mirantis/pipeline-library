@@ -1,21 +1,5 @@
 package com.mirantis.mcp
 
-@Grab(group='org.yaml', module='snakeyaml', version='1.17')
-import org.yaml.snakeyaml.Yaml
-
-
-@NonCPS
-def loadYaml(String rawYaml) {
-  def yaml = new Yaml()
-  return yaml.load(rawYaml)
-}
-
-@NonCPS
-def dumpYaml(Map yamlMap) {
-  def yaml = new Yaml()
-  return yaml.dump(yamlMap)
-}
-
 
 /**
  * Checkout Calico repository stage
@@ -361,6 +345,7 @@ def buildLibcalico(LinkedHashMap config) {
  *
  */
 def switchCalicoToDownstreamLibcalicoGo(String libCalicoGoCommit, String host, String glideLockFilePath) {
+  def common = new com.mirantis.mcp.Common()
   def git = new com.mirantis.mcp.Git()
 
   stage ('Switch to downstream libcalico-go') {
@@ -377,7 +362,7 @@ def switchCalicoToDownstreamLibcalicoGo(String libCalicoGoCommit, String host, S
 
     sh "cp ${glideLockFilePath} ${glideLockFilePath}.bak"
     def glideLockFileContent = readFile file: glideLockFilePath
-    def glideMap = loadYaml(glideLockFileContent)
+    def glideMap = common.loadYAML(glideLockFileContent)
 
     for (goImport in glideMap['imports']) {
       if (goImport['name'].contains('libcalico-go')) {
@@ -386,7 +371,7 @@ def switchCalicoToDownstreamLibcalicoGo(String libCalicoGoCommit, String host, S
       }
     }
 
-    writeFile file: glideLockFilePath, text: dumpYaml(glideMap)
+    writeFile file: glideLockFilePath, text: common.dumpYAML(glideMap)
 
     sh "LIBCALICOGO_PATH=${libcalicogo_path} make vendor"
   }
