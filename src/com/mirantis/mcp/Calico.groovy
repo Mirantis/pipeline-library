@@ -374,6 +374,9 @@ def switchCalicoToDownstreamLibcalicoGo(String libCalicoGoCommit, String host, S
     writeFile file: glideLockFilePath, text: common.dumpYAML(glideMap)
 
     sh "LIBCALICOGO_PATH=${libcalicogo_path} make vendor"
+    // need this to reset glide.lock changes (vendor dir is already compiled)
+    // otherwise binaries will be versioned with '-dirty' suffix
+    sh "git checkout ."
   }
 }
 
