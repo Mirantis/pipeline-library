@@ -665,7 +665,7 @@ def buildCniPlugin(LinkedHashMap config) {
  *        config includes next parameters:
  *          - artifactoryServerName String, artifactory server name
  *          - dockerRegistry String, Docker registry host to push image to
- *          - dockerRepo String, repository (artifactory) for docker images
+ *          - dockerRepo String, repository (artifactory) for docker images, must not be Virtual
  *          - imageName String, Docker image name
  *          - imageTag String, Docker image tag
  *          - projectNamespace String, artifactory server namespace (optional)
@@ -683,7 +683,7 @@ def buildCniPlugin(LinkedHashMap config) {
  * ])
  *
  */
-def publishCalicoImage(config) {
+def publishCalicoImage(LinkedHashMap config) {
   def artifactory = new com.mirantis.mcp.MCPArtifactory()
 
   def artifactoryServerName = config.get('artifactoryServerName')
@@ -701,13 +701,7 @@ def publishCalicoImage(config) {
     throw new RuntimeException("Parameter 'dockerRegistry' must be set for publishCalicoImage() !")
   }
   if (!dockerRepo) {
-    if (dockerRegistry) {
-      //Try to extract dockerRepo from dockerRegistry host/domain name
-      dockerRepo = dockerRegistry.split('\\.')[0]
-    }
-    else {
-      throw new RuntimeException("Parameter 'dockerRepo' must be set for publishCalicoImage() !")
-    }
+    throw new RuntimeException("Parameter 'dockerRepo' must be set for publishCalicoImage() !")
   }
   if (!imageName) {
     throw new RuntimeException("Parameter 'imageName' must be set for publishCalicoImage() !")
