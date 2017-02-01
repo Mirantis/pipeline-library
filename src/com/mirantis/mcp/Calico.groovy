@@ -360,6 +360,9 @@ def switchCalicoToDownstreamLibcalicoGo(String libCalicoGoCommit, String host, S
       withWipeOut : true,
     ])
 
+    //FIXME(skulanov) we need to clean local cache for libcalico-go
+    sh "rm -rf ~/.glide/cache/src/file-*"
+
     sh "cp ${glideLockFilePath} ${glideLockFilePath}.bak"
     def glideLockFileContent = readFile file: glideLockFilePath
     def glideMap = common.loadYAML(glideLockFileContent)
