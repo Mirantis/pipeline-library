@@ -66,6 +66,6 @@ def destroyProxy(String confDir, String localPort) {
     def proxyPid = sh(script: "cat ${confDir}/nginx-${localPort}.pid",
                       returnStdout: true).trim()
     if ( proxyPid ) {
-        sh "kill ${proxyPid}"
+        sh "kill -SIGQUIT ${proxyPid}"
     }
 }
