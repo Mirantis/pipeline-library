@@ -379,7 +379,7 @@ def installOpenstackMcpControl(master) {
     runSaltProcessStep(master, 'I@kubernetes:master', 'state.sls', ['kubernetes', 'exclude=kubernetes.master.setup'])
 
     // Run k8s master setup
-    runSaltProcessStep(master, 'I@kubernetes:master', 'state.sls', ['kubernetes.master.setup'], 1)
+    runSaltProcessStep(master, 'ctl01*', 'state.sls', ['kubernetes.master.setup'])
 
     // Revert comment nameserver
     runSaltProcessStep(master, 'I@kubernetes:master', 'cmd.run', ["sed -i 's/nameserver 10.254.0.10/#nameserver 10.254.0.10/g' /etc/resolv.conf"])
