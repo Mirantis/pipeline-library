@@ -55,6 +55,66 @@ def dumpYAML(Map map) {
 }
 
 /**
+ * Render jinja template
+ * @param templateVars String, A dict, a dict subclass, json or some keyword arguments
+ * @param templateFile String, jinja template file path
+ * @param resultFile String, result/generate file path
+ *
+ * Usage example:
+ *
+ * def common = new com.mirantis.mcp.Common()
+ * common.renderJinjaTemplate(
+ *     "${NODE_JSON}",
+ *     "${WORKSPACE}/inventory/inventory.cfg",
+ *     "${WORKSPACE}/inventory/inventory.cfg")
+ * where NODE_JSON= data in json format
+ */
+def renderJinjaTemplate(String templateVars, String templateFile, String resultFile) {
+
+  sh """
+    python -c "
+import sys
+import jinja2
+from jinja2 import Template
+
+# Useful for very coarse version differentiation.
+PY2 = sys.version_info[0] == 2
+PY3 = sys.version_info[0] == 3
+PY34 = sys.version_info[0:2] >= (3, 4)
+
+if PY3:
+    string_types = str,
+else:
+    string_types = basestring
+
+
+def to_bool(a):
+    ''' return a bool for the arg '''
+    if a is None or type(a) == bool:
+        return a
+    if isinstance(a, string_types):
+        a = a.lower()
+    if a in ['yes', 'on', '1', 'true', 1]:
+        return True
+    else:
+        return False
+
+
+def generate(templateVars, templateFile, resultFile):
+    templateLoader = jinja2.FileSystemLoader(searchpath='/')
+    templateEnv = jinja2.Environment(loader=templateLoader)
+    templateEnv.filters['bool'] = to_bool
+    template = templateEnv.get_template(templateFile)
+    outputText = template.render(templateVars)
+    Template(outputText).stream().dump(resultFile)
+
+generate(${templateVars}, '${templateFile}', '${resultFile}')
+"
+  cat ${resultFile}
+  """
+}
+
+/**
  * Run function on k8s cluster
  *
  * @param config LinkedHashMap
