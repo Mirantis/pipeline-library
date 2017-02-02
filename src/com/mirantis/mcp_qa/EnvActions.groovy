@@ -18,6 +18,11 @@ def prepareEnv() {
             "\"${WORKSPACE}/fuel-ccp-installer/\"!"
         fi
     '''
+
+    sh '''
+        . ${VENV_PATH}/bin/activate
+        pip install --upgrade --upgrade-strategy=only-if-needed -r fuel_ccp_tests/requirements.txt
+    '''
 }
 
 /**
