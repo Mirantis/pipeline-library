@@ -40,29 +40,45 @@ def getGitDescribe(Boolean useShort = false) {
  *
  * @param config LinkedHashMap
  *        config includes next parameters:
- *          - credentialsId, id of user which should make checkout
+ *          - credentialsId, id of user which should make checkout(Jenkins Credential)
  *          - branch, branch of project
- *          - host, gerrit-ci hostname
+ *          - host, gerrit-ci hostname(Also, could be in format username@host)
  *          - project, name of project
  *          - targetDir, target directory of cloned repo
  *          - withMerge, prevent detached mode in repo
  *          - withWipeOut, wipe repository and force clone
+ *          - protocol, protocol for git connection(http\https\ssh\file\etc)
+ *          - refspec, A refspec controls the remote refs to be retrieved and how they map to local refs.
+ *          If left blank, it will default to the normal behaviour of git fetch, which retrieves all the branch heads
+ *          as remotes/REPOSITORYNAME/BRANCHNAME. This default behaviour is OK for most cases.
  *
  * Usage example:
  *
  * def gitFunc = new com.mirantis.mcp.Git()
  * gitFunc.gitSSHCheckout ([
- *   credentialsId : 'mcp-ci-gerrit'
- *   branch : 'mcp-0.1'
- *   host : 'ci.mcp-ci.local'
- *   project : 'project'
+ *   credentialsId : 'mcp-ci-gerrit',
+ *   branch : 'mcp-0.1',
+ *   host : 'user@ci.mcp-ci.local',
+ *   project : 'project',
  * ])
+ *
+ * Example for Anon http:
+ * def gitFunc = new com.mirantis.mcp.Git()
+ * gitFunc.gitHTTPCheckout ([
+ *   branch : 'master',
+ *   host : 'ci.mcp-ci.local',
+ *   project : 'project',
+ * ])
+ *
  */
-def gitSSHCheckout(LinkedHashMap config) {
+def gitCheckout(LinkedHashMap config) {
   def merge = config.get('withMerge', false)
   def wipe = config.get('withWipeOut', false)
   def targetDir = config.get('targetDir', "./")
   def port = config.get('port', "29418")
+  def credentialsId = config.get('credentialsId', '')
+  def protocol = config.get('protocol', 'ssh')
+  def refspec = config.get('refspec', null)
 
   // default parameters
   def scmExtensions = [
@@ -86,12 +102,25 @@ def gitSSHCheckout(LinkedHashMap config) {
       branches: [[name: "${config.branch}"]],
       extensions: scmExtensions,
       userRemoteConfigs: [[
-        credentialsId: "${config.credentialsId}",
+        credentialsId: credentialsId,
+        refspec: refspec,
         name: 'origin',
-        url: "ssh://${config.host}:${port}/${config.project}.git"
+        url: "${protocol}://${config.host}:${port}/${config.project}.git"
       ]]
     ]
   )
+}
+
+def gitSSHCheckout(LinkedHashMap config) {
+  config['protocol'] = config.get('protocol', 'ssh')
+  config['port'] = config.get('port', 29418)
+  gitCheckout(config)
+}
+
+def gitHTTPCheckout(LinkedHashMap config) {
+  config['protocol'] = config.get('protocol', 'http')
+  config['port'] = config.get('port', 80)
+  gitCheckout(config)
 }
 
 /**
