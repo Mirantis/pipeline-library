@@ -97,3 +97,87 @@ def set_downstream_k8s_artifacts(jobSetParameters) {
     }
     return jobSetParameters
 }
+
+/**
+ * Upload tests results to TestRail
+ *
+ * @param config LinkedHashMap
+ *        config includes next parameters:
+ *          - junitXml String, path to XML file with tests results
+ *          - testPlanName String, name of test plan in TestRail
+ *          - testSuiteName String, name of test suite in TestRail
+ *          - testrailMilestone String, milestone name in TestRail
+ *          - tesPlanDesc String, description of test plan in TestRail (optional)
+ *          - jobURL String, URL of job build with tests (optional)
+ *          - testrailURL String, TestRail URL (optional)
+ *          - testrailProject String, project name in TestRail (optional)
+ *
+ *
+ * Usage example:
+ *
+ * uploadResultsTestRail([
+ *   junitXml: './nosetests.xml',
+ *   testPlanName: 'MCP test plan #1',
+ *   testSuiteName: 'Calico component tests',
+ *   jobURL: 'jenkins.example.com/job/tests.mcp/1',
+ * ])
+ *
+ */
+def uploadResultsTestRail(config) {
+  def venvPath = 'testrail-venv'
+  // TODO: install 'testrail_reporter' pypi when new version with eee508d commit is released
+  def testrailReporterPackage = 'git+git://github.com/gdyuldin/testrail_reporter.git'
+  def testrailReporterVersion = 'eee508d'
+
+  def requiredArgs = ['junitXml', 'testPlanName', 'testSuiteName', 'testrailMilestone']
+  def missingArgs = []
+  for (i in requiredArgs) { if (!config.containsKey(i)) { missingArgs << i }}
+  if (missingArgs) { println "Required arguments are missing for '${funcName}': ${missingArgs.join(', ')}" }
+
+  def junitXml = config.get('junitXml')
+  def testPlanName = config.get('testPlanName')
+  def testSuiteName = config.get('testSuiteName')
+  def testrailMilestone = config.get('testrailMilestone')
+  def testrailURL = config.get('testrailURL', 'https://mirantis.testrail.com')
+  def testrailProject = config.get('testrailProject', 'Mirantis Cloud Platform')
+  def tesPlanDesc = config.get('tesPlanDesc')
+  def jobURL = config.get('jobURL')
+
+  def reporterOptions = [
+    "--verbose",
+    "--testrail-run-update",
+    "--testrail-url '${testrailURL}'",
+    "--testrail-user \"\${TESTRAIL_USER}\"",
+    "--testrail-password \"\${TESTRAIL_PASSWORD}\"",
+    "--testrail-project '${testrailProject}'",
+    "--testrail-plan-name '${testPlanName}'",
+    "--testrail-milestone '${testrailMilestone}'",
+    "--testrail-suite '${testSuiteName}'",
+    "--xunit-name-template '{methodname}'",
+    "--testrail-name-template '{custom_test_group}'",
+  ]
+
+  if (tesPlanDesc) { reporterOptions << "--env-description '${tesPlanDesc}'" }
+  if (jobURL) { reporterOptions << "--test-results-link '${jobURL}'" }
+
+  // Install testrail reporter
+  sh """
+    virtualenv ${venvPath}
+    . ${venvPath}/bin/activate
+    pip install --upgrade ${testrailReporterPackage}@${testrailReporterVersion}
+  """
+
+  def script = """
+    . ${venvPath}/bin/activate
+    report ${reporterOptions.join(' ')} ${junitXml}
+  """
+
+  withCredentials([
+             [$class          : 'UsernamePasswordMultiBinding',
+             credentialsId   : 'testrail',
+             passwordVariable: 'TESTRAIL_PASSWORD',
+             usernameVariable: 'TESTRAIL_USER']
+  ]) {
+    return sh(script: script, returnStdout: true).trim().split().last()
+  }
+}

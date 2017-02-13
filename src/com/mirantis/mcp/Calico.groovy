@@ -7,10 +7,11 @@ package com.mirantis.mcp
  * @param config LinkedHashMap
  *        config includes next parameters:
  *          - project_name String, Calico project to clone
- *          - projectNamespace String, gerrit namespace (optional)
- *          - commit String, Git commit to checkout
- *          - credentialsId String, gerrit credentials ID (optional)
  *          - host String, gerrit host
+ *          - projectNamespace String, gerrit namespace (optional)
+ *          - commit String, Git commit to checkout (optional)
+ *          - credentialsId String, gerrit credentials ID (optional)
+ *          - refspec String, remote refs to be retrieved (optional)
  *
  * Usage example:
  *
@@ -28,15 +29,16 @@ def checkoutCalico(LinkedHashMap config) {
 
   def project_name = config.get('project_name')
   def projectNamespace = config.get('projectNamespace', 'projectcalico')
-  def commit = config.get('commit')
+  def commit = config.get('commit', '*')
   def host = config.get('host')
   def credentialsId = config.get('credentialsId', 'mcp-ci-gerrit')
+  def refspec = config.get('refspec')
 
   if (!project_name) {
     throw new RuntimeException("Parameter 'project_name' must be set for checkoutCalico() !")
   }
-  if (!commit) {
-    throw new RuntimeException("Parameter 'commit' must be set for checkoutCalico() !")
+  if (!host) {
+    throw new RuntimeException("Parameter 'host' must be set for checkoutCalico() !")
   }
 
   stage ("Checkout ${project_name}"){
@@ -46,6 +48,7 @@ def checkoutCalico(LinkedHashMap config) {
       host : host,
       project : "${projectNamespace}/${project_name}",
       withWipeOut : true,
+      refspec : refspec,
     ])
   }
 }
@@ -457,6 +460,60 @@ def buildFelix(LinkedHashMap config) {
 def testCalicoctl() {
   stage ('Run calicoctl unittests'){
     sh "make test-containerized"
+  }
+}
+
+
+/**
+ * Run Calico system tests stage
+ *
+ * @param nodeImage String, docker image for calico/node container
+ * @param ctlImage String, docker image with calicoctl binary
+ * @param failOnErrors Boolean, raise exception if some tests fail (default true)
+ *
+ * Usage example:
+ *
+ * def calico = new com.mirantis.mcp.Calico()
+ * calico.systestCalico('calico/node:latest', 'calico/ctl:latest')
+ *
+ */
+def systestCalico(nodeImage, ctlImage, failOnErrors = true) {
+  stage ('Run Calico system tests'){
+    try {
+      // create fake targets to avoid execution of unneeded operations
+      sh """
+        mkdir -p vendor
+      """
+      // pull calico/ctl image and extract calicoctl binary from it
+      sh """
+        mkdir -p dist
+        docker run --rm -u \$(id -u):\$(id -g) --entrypoint /bin/cp -v \$(pwd)/dist:/dist ${ctlImage} /calicoctl /dist/calicoctl
+        touch dist/calicoctl dist/calicoctl-linux-amd64
+      """
+      // pull calico/node image and extract required binaries
+      sh """
+        mkdir -p calico_node/filesystem/bin
+        for calico_binary in startup allocate-ipip-addr calico-felix bird calico-bgp-daemon confd libnetwork-plugin; do
+          docker run --rm -u \$(id -u):\$(id -g) --entrypoint /bin/cp -v \$(pwd)/calico_node/filesystem/bin:/calicobin ${nodeImage} /bin/\${calico_binary} /calicobin/
+        done
+        cp calico_node/filesystem/bin/startup dist/
+        cp calico_node/filesystem/bin/allocate-ipip-addr dist/
+        touch calico_node/filesystem/bin/*
+        touch calico_node/.calico_node.created
+      """
+      sh "NODE_CONTAINER_NAME=${nodeImage} make st"
+    } catch (Exception e) {
+      sh "make stop-etcd"
+      // FIXME: cleaning has to be done by make stop/clean targets
+      sh """
+        for dc in calico-felix cali-st-ext-nginx cali-st-host cali-st-gw host1 host2 host3; do
+          docker rm -f "\${dc}" || :
+        done
+      """
+      if (failOnErrors) {
+        throw e
+      }
+    }
   }
 }
 
