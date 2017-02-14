@@ -118,6 +118,50 @@ def getPropertiesForArtifact(String artifactUrl) {
 }
 
 /**
+ * Find docker images by tag
+ * Returns Array of image' hashes with names as full path in @repo
+ *
+ * Example:
+ *
+ *   [ {
+ *       "path" : "mirantis/ccp/ci-cd/gerrit-manage/test"
+ *     },
+ *     {
+ *       "path" : "mirantis/ccp/ci-cd/gerrit/test"
+ *     }
+ *   ]
+ *
+ * @param artifactoryURL String, an URL to Artifactory
+ * @param repo String, a name of repo where should be executed search
+ * @param tag String, tag of searched image
+ */
+def getImagesByTag(String artifactoryURL, String repo, String tag) {
+    def url = "${artifactoryURL}/api/search/aql"
+    def result
+    writeFile file: "query",
+            text: """\
+                   items.find(
+                     {
+                       \"repo\": \"${repo}\",
+                       \"@docker.manifest\": { \"\$match\" : \"${tag}*\" }
+                     }
+                   ).
+                   include(\"path\")
+            """.stripIndent()
+    withCredentials([
+        [$class: 'UsernamePasswordMultiBinding',
+         credentialsId: 'artifactory',
+         passwordVariable: 'ARTIFACTORY_PASSWORD',
+         usernameVariable: 'ARTIFACTORY_LOGIN']
+    ]) {
+       result = sh(script: "bash -c \"curl -X POST -u ${ARTIFACTORY_LOGIN}:${ARTIFACTORY_PASSWORD} -d @query  \'${url}\'\"",
+                   returnStdout: true).trim()
+    }
+    def images = new groovy.json.JsonSlurperClassic().parseText(result)
+    return images.get("results")
+}
+
+/**
  * Upload docker image to Artifactory
  *
  * @param server ArtifactoryServer, the instance of Artifactory server
