@@ -100,3 +100,75 @@ def sendHttpPutRequest(url, data = null, headers = [:]) {
 def sendHttpDeleteRequest(url, data = null, headers = [:]) {
     return sendHttpRequest(url, 'DELETE', data, headers)
 }
+
+/**
+ * Make generic call using Salt REST API and return parsed JSON
+ *
+ * @param master   Salt connection object
+ * @param uri   URI which will be appended to Salt server base URL
+ * @param method    HTTP method to use (default GET)
+ * @param data      JSON data to POST or PUT
+ * @param headers   Map of additional request headers
+ */
+def restCall(master, uri, method = 'GET', data = null, headers = [:]) {
+    def connection = new URL("${master.url}${uri}").openConnection()
+    if (method != 'GET') {
+        connection.setRequestMethod(method)
+    }
+
+    connection.setRequestProperty('User-Agent', 'jenkins-groovy')
+    connection.setRequestProperty('Accept', 'application/json')
+    if (master.authToken) {
+        // XXX: removeme
+        connection.setRequestProperty('X-Auth-Token', master.authToken)
+    }
+
+    for (header in headers) {
+        connection.setRequestProperty(header.key, header.value)
+    }
+
+    if (data) {
+        connection.setDoOutput(true)
+        if (data instanceof String) {
+            dataStr = data
+        } else {
+            connection.setRequestProperty('Content-Type', 'application/json')
+            dataStr = new groovy.json.JsonBuilder(data).toString()
+        }
+        def out = new OutputStreamWriter(connection.outputStream)
+        out.write(dataStr)
+        out.close()
+    }
+
+    if ( connection.responseCode >= 200 && connection.responseCode < 300 ) {
+        res = connection.inputStream.text
+        try {
+            return new groovy.json.JsonSlurperClassic().parseText(res)
+        } catch (Exception e) {
+            return res
+        }
+    } else {
+        throw new Exception(connection.responseCode + ": " + connection.inputStream.text)
+    }
+}
+
+/**
+ * Make GET request using Salt REST API and return parsed JSON
+ *
+ * @param master   Salt connection object
+ * @param uri   URI which will be appended to Salt server base URL
+ */
+def restGet(master, uri, data = null) {
+    return restCall(master, uri, 'GET', data)
+}
+
+/**
+ * Make POST request using Salt REST API and return parsed JSON
+ *
+ * @param master   Salt connection object
+ * @param uri   URI which will be appended to Docker server base URL
+ * @param data  JSON Data to PUT
+ */
+def restPost(master, uri, data = null) {
+    return restCall(master, uri, 'POST', data, ['Accept': '*/*'])
+}
