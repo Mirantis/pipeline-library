@@ -200,11 +200,12 @@ public class ccpCICD implements Serializable {
       }
     }
 
-    /* override parameters from URI (if present) */
+    /*
+    //TODO(sryabin) properly parse return from getUserInfo()
     if (kubernetesURL.getUserInfo()) {
-        //TODO(sryabin) properly parse return from getUserInfo()
         this.@ciConfig['kubernetes']['username'] = kubernetesURL.getUserInfo()
     }
+    */
 
     this.@ciConfig['kubernetes']['server'] = kubernetesURL.toString()
   }
