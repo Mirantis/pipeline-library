@@ -30,12 +30,13 @@ def connection(url, credentialsId = "salt") {
  * @param master   Salt connection object
  */
 def saltLogin(master) {
+    def http = new com.mirantis.mk.Http()
     data = [
         'username': master.creds.username,
         'password': master.creds.password.toString(),
         'eauth': 'pam'
     ]
-    authToken = restGet(master, '/login', data)['return'][0]['token']
+    authToken = http.restGet(master, '/login', data)['return'][0]['token']
     return authToken
 }
 
