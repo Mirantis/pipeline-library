@@ -53,7 +53,7 @@ def saltLogin(master) {
  */
 @NonCPS
 def runSaltCommand(master, client, target, function, batch = null, args = null, kwargs = null) {
-    def http = new com.mirantis.mk.http()
+    def http = new com.mirantis.mk.Http()
 
     data = [
         'tgt': target.expression,

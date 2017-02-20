@@ -66,7 +66,7 @@ def checkoutGitParallel(path, url, branch, credentialsId = null, poll = true, cl
  * Mirror git repository
  */
 def mirrorReporitory(sourceUrl, targetUrl, credentialsId, branches, followTags = false, gitEmail = 'jenkins@localhost', gitUsername = 'Jenkins') {
-    def ssl = new com.mirantis.mk.ssl()
+    def ssl = new com.mirantis.mk.Ssl()
     if (branches instanceof String) {
         branches = branches.tokenize(',')
     }

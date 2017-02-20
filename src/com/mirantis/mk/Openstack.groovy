@@ -14,7 +14,7 @@ package com.mirantis.mk
  */
 
 def setupOpenstackVirtualenv(path, version = 'kilo'){
-    def python = new com.mirantis.mk.python()
+    def python = new com.mirantis.mk.Python()
 
     def openstack_kilo_packages = [
         'python-cinderclient>=1.3.1,<1.4.0',
@@ -56,7 +56,7 @@ def setupOpenstackVirtualenv(path, version = 'kilo'){
  * @param project         OpenStack project to connect to
  */
 def createOpenstackEnv(url, credentialsId, project) {
-    def common = new com.mirantis.mk.common()
+    def common = new com.mirantis.mk.Common()
     rcFile = "${env.WORKSPACE}/keystonerc"
     creds = common.getPasswordCredentials(credentialsId)
     rc = """set +x
@@ -79,7 +79,7 @@ set -x
  * @param path   Optional path to virtualenv with specific clients
  */
 def runOpenstackCommand(cmd, venv, path = null) {
-    def python = new com.mirantis.mk.python()
+    def python = new com.mirantis.mk.Python()
     openstackCmd = ". ${venv}; ${cmd}"
     if (path) {
         output = python.runVirtualenvCommand(path, openstackCmd)
@@ -101,7 +101,7 @@ def runOpenstackCommand(cmd, venv, path = null) {
  * @param path         Optional path to the custom virtualenv
  */
 def getKeystoneToken(client, path = null) {
-    def python = new com.mirantis.mk.python()
+    def python = new com.mirantis.mk.Python()
     cmd = "keystone token-get"
     outputTable = runOpenstackCommand(cmd, client, path)
     output = python.parseTextTable(outputTable, 'item', 'prettytable', path)
@@ -137,7 +137,7 @@ def createHeatEnv(file, environment = [], original_file = null) {
  * @param path         Optional path to the custom virtualenv
  */
 def createHeatStack(client, name, template, params = [], environment = null, path = null) {
-    def python = new com.mirantis.mk.python()
+    def python = new com.mirantis.mk.Python()
     templateFile = "${env.WORKSPACE}/template/template/${template}.hot"
     if (environment) {
         envFile = "${env.WORKSPACE}/template/env/${template}/${name}.env"
@@ -195,7 +195,7 @@ def getHeatStackStatus(client, name, path = null) {
  * @param path         Optional path to the custom virtualenv
  */
 def getHeatStackInfo(env, name, path = null) {
-    def python = new com.mirantis.mk.python()
+    def python = new com.mirantis.mk.Python()
     cmd = "heat stack-show ${name}"
     outputTable = runOpenstackCommand(cmd, env, path)
     output = python.parseTextTable(outputTable, 'item', 'prettytable', path)
@@ -225,7 +225,7 @@ def getHeatStackOutputParam(env, name, outputParam, path = null) {
  * @param path         Optional path to the custom virtualenv
  */
 def getHeatStackResources(env, name, path = null) {
-    def python = new com.mirantis.mk.python()
+    def python = new com.mirantis.mk.Python()
     cmd = "heat resource-list ${name}"
     outputTable = runOpenstackCommand(cmd, env, path)
     output = python.parseTextTable(outputTable, 'list', 'prettytable', path)
@@ -240,7 +240,7 @@ def getHeatStackResources(env, name, path = null) {
  * @param path         Optional path to the custom virtualenv
  */
 def getHeatStackResourceInfo(env, name, resource, path = null) {
-    def python = new com.mirantis.mk.python()
+    def python = new com.mirantis.mk.Python()
     cmd = "heat resource-show ${name} ${resource}"
     outputTable = runOpenstackCommand(cmd, env, path)
     output = python.parseTextTable(outputTable, 'item', 'prettytable', path)
@@ -255,7 +255,7 @@ def getHeatStackResourceInfo(env, name, resource, path = null) {
  * @param path         Optional path to the custom virtualenv
  */
 def updateHeatStack(env, name, path = null) {
-    def python = new com.mirantis.mk.python()
+    def python = new com.mirantis.mk.Python()
     cmd = "heat stack-update ${name}"
     outputTable = runOpenstackCommand(cmd, env, path)
     output = python.parseTextTable(outputTable, 'item', 'prettytable', path)

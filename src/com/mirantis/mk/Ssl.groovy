@@ -46,7 +46,7 @@ def runSshAgentCommand(cmd) {
  * @param credentialsId Jenkins credentials name to lookup private key
  */
 def prepareSshAgentKey(credentialsId) {
-    def common = new com.mirantis.mk.common()
+    def common = new com.mirantis.mk.Common()
     c = common.getSshCredentials(credentialsId)
     // create ~/.ssh and delete file ssh-agent.sh which can be stale
     sh('mkdir -p -m 700 ~/.ssh && rm -f ~/.ssh/ssh-agent.sh')
