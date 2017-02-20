@@ -128,7 +128,7 @@ def mirrorReporitory(sourceUrl, targetUrl, credentialsId, branches, followTags =
     ssl.prepareSshAgentKey(credentialsId)
     ssl.ensureKnownHosts(targetUrl)
 
-    sh "git remote | grep target || git remote add target ${TARGET_URL}"
+    sh "git remote | grep target || git remote add target ${targetUrl}"
     agentSh "git remote update --prune"
     for (i=0; i < branches.size; i++) {
         branch = branches[i]
