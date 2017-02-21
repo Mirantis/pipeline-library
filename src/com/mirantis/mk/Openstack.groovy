@@ -117,13 +117,14 @@ def getKeystoneToken(client, path = null) {
 def createHeatEnv(file, environment = [], original_file = null) {
     if (original_file) {
         envString = readFile file: original_file
-    }
-    else {
+    } else {
         envString = "parameters:\n"
     }
-    for ( int i = 0; i < environment.size; i++ ) {
-        envString = "${envString}  ${environment.get(i).get(0)}: ${environment.get(i).get(1)}\n"
+
+    for (item in environment) {
+        envString = "${envString}  ${item.key}: ${item.value}\n"
     }
+
     echo("writing to env file:\n${envString}")
     writeFile file: file, text: envString
 }
