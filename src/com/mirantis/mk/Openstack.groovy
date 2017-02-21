@@ -124,6 +124,7 @@ def createHeatEnv(file, environment = [], original_file = null) {
     for ( int i = 0; i < environment.size; i++ ) {
         envString = "${envString}  ${environment.get(i).get(0)}: ${environment.get(i).get(1)}\n"
     }
+    echo("writing to env file:\n${envString}")
     writeFile file: file, text: envString
 }
 
