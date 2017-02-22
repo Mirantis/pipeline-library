@@ -121,8 +121,9 @@ def createHeatEnv(file, environment = [], original_file = null) {
         envString = "parameters:\n"
     }
 
-    for (item in environment) {
-        envString = "${envString}  ${item.key}: ${item.value}\n"
+    def p = environment.collect {k, v -> [k, v]}
+    for (int i = 0; i < p.size(); i++) {
+        envString = "${envString}  ${p.get(i)[0]}: ${p.get(i)[1]}\n"
     }
 
     echo("writing to env file:\n${envString}")
