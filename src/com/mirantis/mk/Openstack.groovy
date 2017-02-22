@@ -7,6 +7,15 @@ package com.mirantis.mk
  */
 
 /**
+ * Convert maps
+ *
+ */
+
+@NonCPS def entries(m) {
+    return m.collect {k, v -> [k, v]}
+}
+
+/**
  * Install OpenStack service clients in isolated environment
  *
  * @param path        Path where virtualenv is created
@@ -121,7 +130,7 @@ def createHeatEnv(file, environment = [], original_file = null) {
         envString = "parameters:\n"
     }
 
-    def p = environment.collect {k, v -> [k, v]}
+    p = entries(environment)
     for (int i = 0; i < p.size(); i++) {
         envString = "${envString}  ${p.get(i)[0]}: ${p.get(i)[1]}\n"
     }
