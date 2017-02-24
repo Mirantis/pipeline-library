@@ -40,6 +40,61 @@ def getGitCommit() {
 }
 
 /**
+ * Change actual working branch of repo
+ *
+ * @param path            Path to the git repository
+ * @param branch          Branch desired to switch to
+ */
+def changeGitBranch(path, branch) {
+    dir(path) {
+        git_cmd = sh (
+            script: "git checkout -b ${branch}",
+            returnStdout: true
+        ).trim()
+    }
+    return git_cmd
+}
+
+/**
+ * Commit changes to the git repo
+ *
+ * @param path            Path to the git repository
+ * @param message         A commit message
+ */
+def commitGitChanges(path, message) {
+    dir(path) {
+        sh(
+            script: 'git add -A',
+            returnStdout: true
+        ).trim()
+        git_cmd = sh(
+            script: "git commit -m '${message}'",
+            returnStdout: true
+        ).trim()
+    }
+    return git_cmd
+}
+
+
+/**
+ * Push git changes to remote repo
+ *
+ * @param path            Path to the git repository
+ * @param branch          Branch on the remote git repository
+ * @param remote          Name of the remote repository
+ */
+def pushGitChanges(path, branch = 'master', remote = 'origin') {
+    dir(path) {
+        git_cmd = sh(
+            script: "git push ${remote} ${branch}",
+            returnStdout: true
+        ).trim()
+    }
+    return git_cmd
+}
+
+
+/**
  * Checkout git repositories in parallel
  *
  * @param path            Directory to checkout to
