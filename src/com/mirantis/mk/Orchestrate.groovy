@@ -97,8 +97,8 @@ def installOpenstackMkControl(master) {
     salt.runSaltProcessStep(master, 'I@heat:server', 'state.sls', ['heat'])
     salt.runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; heat resource-type-list'])
     // Install horizon dashboard
-    runSaltProcessStep(master, 'I@horizon:server', 'state.sls', ['horizon'])
-    runSaltProcessStep(master, 'I@nginx:server', 'state.sls', ['nginx'])
+    salt.runSaltProcessStep(master, 'I@horizon:server', 'state.sls', ['horizon'])
+    salt.runSaltProcessStep(master, 'I@nginx:server', 'state.sls', ['nginx'])
 }
 
 
