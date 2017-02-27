@@ -83,7 +83,7 @@ def runSaltCommand(master, client, target, function, batch = null, args = null, 
 }
 
 def pillarGet(master, target, pillar) {
-    def out = runSaltCommand(master, 'local', target, 'pillar.get', null, [pillar.replace('.', ':')])
+    def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'pillar.get', null, [pillar.replace('.', ':')])
     return out
 }
 
@@ -95,7 +95,7 @@ def enforceState(master, target, state, output = false) {
         run_states = state.join(',')
     }
 
-    def out = runSaltCommand(master, 'local', target, 'state.sls', null, [run_states])
+    def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', null, [run_states])
     try {
         checkResult(out)
     } finally {
@@ -107,16 +107,16 @@ def enforceState(master, target, state, output = false) {
 }
 
 def cmdRun(master, target, cmd) {
-    def out = runSaltCommand(master, 'local', target, 'cmd.run', null, [cmd])
+    def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.run', null, [cmd])
     return out
 }
 
 def syncAll(master, target) {
-    return runSaltCommand(master, 'local', target, 'saltutil.sync_all')
+    return runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'saltutil.sync_all')
 }
 
 def enforceHighstate(master, target, output = false) {
-    def out = runSaltCommand(master, 'local', target, 'state.highstate')
+    def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.highstate')
     try {
         checkResult(out)
     } finally {
