@@ -100,7 +100,7 @@ def enforceState(master, target, state, output = false) {
         checkResult(out)
     } finally {
         if (output == true) {
-            printResult(out)
+            printSaltStateResult(out)
         }
     }
     return out
@@ -121,7 +121,7 @@ def enforceHighstate(master, target, output = false) {
         checkResult(out)
     } finally {
         if (output == true) {
-            printResult(out)
+            printSaltStateResult(out)
         }
     }
     return out
@@ -209,10 +209,8 @@ def printSaltStateResult(result, onlyChanges = true) {
  * Print Salt state run results in human-friendly form
  *
  * @param result        Parsed response of Salt API
- * @param onlyChanges   If true (default), print only changed resources
- *                      parsing
  */
-def printSaltCommandResult(result, onlyChanges = true) {
+def printSaltCommandResult(result) {
     def out = [:]
     for (entry in result['return']) {
         for (node in entry) {
