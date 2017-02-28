@@ -22,6 +22,15 @@ def installFoundationInfra(master) {
     salt.runSaltProcessStep(master, 'I@linux:system', 'state.sls', ['linux,openssh,salt.minion,ntp'])
 }
 
+def installInfraKvm(master) {
+    def salt = new com.mirantis.mk.Salt()
+    salt.runSaltProcessStep(master, 'I@linux:system', 'saltutil.refresh_pillar')
+    salt.runSaltProcessStep(master, 'I@linux:system', 'saltutil.sync_all')
+
+    salt.runSaltProcessStep(master, 'I@salt:control', 'state.sls', ['salt.minion,linux.system,linux.network,ntp'])
+    salt.runSaltProcessStep(master, 'I@salt:control', 'state.sls', ['libvirt'])
+    salt.runSaltProcessStep(master, 'I@salt:control', 'state.sls', ['salt.control'])
+}
 
 def installOpenstackMkInfra(master) {
     def salt = new com.mirantis.mk.Salt()
