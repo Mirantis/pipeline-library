@@ -39,21 +39,21 @@ def gerritPatchsetCheckout(LinkedHashMap config) {
     ]
     def scmUserRemoteConfigs = [
         name: 'gerrit',
-        refspec: config.get('gerritRefSpec','')
+        refspec: "${GERRIT_REFSPEC}"
     ]
 
     if (credentials == '') {
         // then try to checkout in anonymous mode
-        scmUserRemoteConfigs.put('url', config.get('gerritUrl',''))
+        scmUserRemoteConfigs.put('url',"https://${GERRIT_HOST}/${GERRIT_PROJECT}")
     } else {
         // else use ssh checkout
-        scmUserRemoteConfigs.put('url',config.get('gerritUrl',''))
+        scmUserRemoteConfigs.put('url',"ssh://${GERRIT_NAME}@${GERRIT_HOST}:${GERRIT_PORT}/${GERRIT_PROJECT}.git")
         scmUserRemoteConfigs.put('credentialsId',credentials)
     }
 
     // if we need to "merge" code from patchset to GERRIT_BRANCH branch
     if (merge) {
-        scmExtensions.add([$class: 'LocalBranch', localBranch: config.get('gerritBranch','master')])
+        scmExtensions.add([$class: 'LocalBranch', localBranch: "${GERRIT_BRANCH}"])
     }
     // we need wipe workspace before checkout
     if (wipe) {
@@ -63,7 +63,7 @@ def gerritPatchsetCheckout(LinkedHashMap config) {
     checkout(
         scm: [
             $class: 'GitSCM',
-            branches: [[name: config.get('gerritBranch','master')]],
+            branches: [[name: "${GERRIT_BRANCH}"]],
             extensions: scmExtensions,
             userRemoteConfigs: [scmUserRemoteConfigs]
         ]
