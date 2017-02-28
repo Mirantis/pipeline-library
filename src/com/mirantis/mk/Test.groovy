@@ -14,5 +14,16 @@ package com.mirantis.mk
  */
 def runConformanceTests(master, k8s_api, image) {
     def salt = new com.mirantis.mk.Salt()
-    salt = runSaltProcessStep(master, 'ctl01*', 'cmd.run', ["docker run --rm --net=host -e API_SERVER=${k8s_api} ${image} >> e2e-conformance.log"])
+    salt.runSaltProcessStep(master, 'ctl01*', 'cmd.run', ["docker run --rm --net=host -e API_SERVER=${k8s_api} ${image} >> ${image}.output"])
 }
+
+/**
+ * Copy test output to cfg node
+ *
+ * @param image      Docker image with tests
+ */
+def copyTestsOutput(master, image) {
+    def salt = new com.mirantis.mk.Salt()
+    salt.runSaltProcessStep(master, 'cfg01*', 'cmd.run', ["scp ctl01:/root/${image}.output /home/ubuntu/"])
+}
+
