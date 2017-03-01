@@ -150,7 +150,7 @@ def runSaltProcessStep(master, tgt, fun, arg = [], batch = null) {
     else {
         result = runSaltCommand(master, 'local', ['expression': tgt, 'type': 'compound'], fun, batch, arg)
     }
-    echo("${result}")
+    print(result)
 }
 
 /**
