@@ -31,11 +31,11 @@ def installInfraKvm(master) {
     salt.runSaltProcessStep(master, 'I@salt:control', 'state.sls', ['libvirt'])
     salt.runSaltProcessStep(master, 'I@salt:control', 'state.sls', ['salt.control'])
 
-    sleep(60)
+    sleep(300)
 
-    salt.runSaltProcessStep(master, 'I@linux:system', 'saltutil.refresh_pillar')
-    salt.runSaltProcessStep(master, 'I@linux:system', 'saltutil.sync_all')
-    salt.runSaltProcessStep(master, 'I@linux:system', 'state.sls', ['linux,openssh,salt.minion,ntp'])
+    salt.runSaltProcessStep(master, '* and not kvm*', 'saltutil.refresh_pillar')
+    salt.runSaltProcessStep(master, '* and not kvm*', 'saltutil.sync_all')
+    salt.runSaltProcessStep(master, '* and not kvm*', 'state.sls', ['linux,openssh,salt.minion,ntp'])
 
 }
 
