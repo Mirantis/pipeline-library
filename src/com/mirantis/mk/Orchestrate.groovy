@@ -30,9 +30,16 @@ def installInfraKvm(master) {
     salt.runSaltProcessStep(master, 'I@salt:control', 'state.sls', ['salt.minion,linux.system,linux.network,ntp'])
     salt.runSaltProcessStep(master, 'I@salt:control', 'state.sls', ['libvirt'])
     salt.runSaltProcessStep(master, 'I@salt:control', 'state.sls', ['salt.control'])
+
+    sleep(60)
+
+    salt.runSaltProcessStep(master, 'I@linux:system', 'saltutil.refresh_pillar')
+    salt.runSaltProcessStep(master, 'I@linux:system', 'saltutil.sync_all')
+    salt.runSaltProcessStep(master, 'I@linux:system', 'state.sls', ['linux,openssh,salt.minion,ntp'])
+
 }
 
-def installOpenstackMkInfra(master) {
+def installOpenstackMkInfra(master, physical = "false") {
     def salt = new com.mirantis.mk.Salt()
     // Install keepaliveds
     //runSaltProcessStep(master, 'I@keepalived:cluster', 'state.sls', ['keepalived'], 1)
@@ -42,12 +49,20 @@ def installOpenstackMkInfra(master) {
     salt.runSaltProcessStep(master, 'I@keepalived:cluster', 'cmd.run', ['ip a | grep 172.16.10.2'])
     // Install glusterfs
     salt.runSaltProcessStep(master, 'I@glusterfs:server', 'state.sls', ['glusterfs.server.service'])
+
     //runSaltProcessStep(master, 'I@glusterfs:server', 'state.sls', ['glusterfs.server.setup'], 1)
-    salt.runSaltProcessStep(master, 'ctl01*', 'state.sls', ['glusterfs.server.setup'])
-    salt.runSaltProcessStep(master, 'ctl02*', 'state.sls', ['glusterfs.server.setup'])
-    salt.runSaltProcessStep(master, 'ctl03*', 'state.sls', ['glusterfs.server.setup'])
+    if (physical.equals("false")) {
+        salt.runSaltProcessStep(master, 'ctl01*', 'state.sls', ['glusterfs.server.setup'])
+        salt.runSaltProcessStep(master, 'ctl02*', 'state.sls', ['glusterfs.server.setup'])
+        salt.runSaltProcessStep(master, 'ctl03*', 'state.sls', ['glusterfs.server.setup'])
+    } else {
+        salt.runSaltProcessStep(master, 'kvm01*', 'state.sls', ['glusterfs.server.setup'])
+        salt.runSaltProcessStep(master, 'kvm02*', 'state.sls', ['glusterfs.server.setup'])
+        salt.runSaltProcessStep(master, 'kvm03*', 'state.sls', ['glusterfs.server.setup'])
+    }
     salt.runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster peer status'])
     salt.runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster volume status'])
+
     // Install rabbitmq
     salt.runSaltProcessStep(master, 'I@rabbitmq:server', 'state.sls', ['rabbitmq'])
     // Check the rabbitmq status
@@ -111,7 +126,7 @@ def installOpenstackMkControl(master) {
 }
 
 
-def installOpenstackMkNetwork(master) {
+def installOpenstackMkNetwork(master, physical = "false") {
     def salt = new com.mirantis.mk.Salt()
     // Install opencontrail database services
     //runSaltProcessStep(master, 'I@opencontrail:database', 'state.sls', ['opencontrail.database'], 1)
@@ -121,10 +136,14 @@ def installOpenstackMkNetwork(master) {
     //runSaltProcessStep(master, 'I@opencontrail:control', 'state.sls', ['opencontrail'], 1)
     salt.runSaltProcessStep(master, 'ntw01*', 'state.sls', ['opencontrail'])
     salt.runSaltProcessStep(master, 'I@opencontrail:control', 'state.sls', ['opencontrail'])
+
     // Provision opencontrail control services
-    salt.runSaltProcessStep(master, 'I@opencontrail:control:id:1', 'cmd.run', ['/usr/share/contrail-utils/provision_control.py --api_server_ip 172.16.10.254 --api_server_port 8082 --host_name ctl01 --host_ip 172.16.10.101 --router_asn 64512 --admin_password workshop --admin_user admin --admin_tenant_name admin --oper add'])
-    salt.runSaltProcessStep(master, 'I@opencontrail:control:id:1', 'cmd.run', ['/usr/share/contrail-utils/provision_control.py --api_server_ip 172.16.10.254 --api_server_port 8082 --host_name ctl02 --host_ip 172.16.10.102 --router_asn 64512 --admin_password workshop --admin_user admin --admin_tenant_name admin --oper add'])
-    salt.runSaltProcessStep(master, 'I@opencontrail:control:id:1', 'cmd.run', ['/usr/share/contrail-utils/provision_control.py --api_server_ip 172.16.10.254 --api_server_port 8082 --host_name ctl03 --host_ip 172.16.10.103 --router_asn 64512 --admin_password workshop --admin_user admin --admin_tenant_name admin --oper add'])
+    if (physical.equals("false")) {
+        salt.runSaltProcessStep(master, 'I@opencontrail:control:id:1', 'cmd.run', ['/usr/share/contrail-utils/provision_control.py --api_server_ip 172.16.10.254 --api_server_port 8082 --host_name ctl01 --host_ip 172.16.10.101 --router_asn 64512 --admin_password workshop --admin_user admin --admin_tenant_name admin --oper add'])
+        salt.runSaltProcessStep(master, 'I@opencontrail:control:id:1', 'cmd.run', ['/usr/share/contrail-utils/provision_control.py --api_server_ip 172.16.10.254 --api_server_port 8082 --host_name ctl02 --host_ip 172.16.10.102 --router_asn 64512 --admin_password workshop --admin_user admin --admin_tenant_name admin --oper add'])
+        salt.runSaltProcessStep(master, 'I@opencontrail:control:id:1', 'cmd.run', ['/usr/share/contrail-utils/provision_control.py --api_server_ip 172.16.10.254 --api_server_port 8082 --host_name ctl03 --host_ip 172.16.10.103 --router_asn 64512 --admin_password workshop --admin_user admin --admin_tenant_name admin --oper add'])
+    }
+
     // Test opencontrail
     salt.runSaltProcessStep(master, 'I@opencontrail:control', 'cmd.run', ['contrail-status'])
     salt.runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; neutron net-list'])
@@ -132,13 +151,17 @@ def installOpenstackMkNetwork(master) {
 }
 
 
-def installOpenstackMkCompute(master) {
+def installOpenstackMkCompute(master, physical = "false") {
      def salt = new com.mirantis.mk.Salt()
     // Configure compute nodes
     salt.runSaltProcessStep(master, 'I@nova:compute', 'state.apply')
     salt.runSaltProcessStep(master, 'I@nova:compute', 'state.apply')
+
     // Provision opencontrail virtual routers
-    salt.runSaltProcessStep(master, 'I@opencontrail:control:id:1', 'cmd.run', ['/usr/share/contrail-utils/provision_vrouter.py --host_name cmp01 --host_ip 172.16.10.105 --api_server_ip 172.16.10.254 --oper add --admin_user admin --admin_password workshop --admin_tenant_name admin'])
+    if (physical.equals("false")) {
+        salt.runSaltProcessStep(master, 'I@opencontrail:control:id:1', 'cmd.run', ['/usr/share/contrail-utils/provision_vrouter.py --host_name cmp01 --host_ip 172.16.10.105 --api_server_ip 172.16.10.254 --oper add --admin_user admin --admin_password workshop --admin_tenant_name admin'])
+    }
+
     salt.runSaltProcessStep(master, 'I@nova:compute', 'system.reboot')
 }
 
