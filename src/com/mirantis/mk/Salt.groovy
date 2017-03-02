@@ -96,6 +96,7 @@ def enforceState(master, target, state, output = false) {
     }
 
     def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', null, [run_states])
+
     try {
         checkResult(out)
     } finally {
@@ -143,14 +144,22 @@ def orchestrateSystem(master, target, orchestrate) {
     return runSaltCommand(master, 'runner', target, 'state.orchestrate', [orchestrate])
 }
 
-def runSaltProcessStep(master, tgt, fun, arg = [], batch = null) {
+def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = true) {
+    def out
+
     if (batch) {
-        result = runSaltCommand(master, 'local_batch', ['expression': tgt, 'type': 'compound'], fun, String.valueOf(batch), arg)
+        out = runSaltCommand(master, 'local_batch', ['expression': tgt, 'type': 'compound'], fun, String.valueOf(batch), arg)
+    } else {
+        out = runSaltCommand(master, 'local', ['expression': tgt, 'type': 'compound'], fun, batch, arg)
     }
-    else {
-        result = runSaltCommand(master, 'local', ['expression': tgt, 'type': 'compound'], fun, batch, arg)
+
+    try {
+        checkResult(out)
+    } finally {
+        if (output == true) {
+            printSaltCommandResult(out)
+        }
     }
-    print(result)
 }
 
 /**
