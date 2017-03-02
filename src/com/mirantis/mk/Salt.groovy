@@ -156,7 +156,8 @@ def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false)
     def common = new com.mirantis.mk.Common()
     def out
 
-    common.infoMsg("Running step ${fun} on ${tgt}")
+    arg_string = arg.join(',')
+    common.infoMsg("Running step ${fun} on ${tgt} with args ${arg_string}")
 
     if (batch == true) {
         out = runSaltCommand(master, 'local_batch', ['expression': tgt, 'type': 'compound'], fun, String.valueOf(batch), arg)
