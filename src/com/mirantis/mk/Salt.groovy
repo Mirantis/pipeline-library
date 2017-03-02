@@ -48,7 +48,7 @@ def saltLogin(master) {
  * @param target   Target specification, eg. for compound matches by Pillar
  *                 data: ['expression': 'I@openssh:server', 'type': 'compound'])
  * @param function Function to execute (eg. "state.sls")
- * @param batch 
+ * @param batch
  * @param args     Additional arguments to function
  * @param kwargs   Additional key-value arguments to function
  */
@@ -63,8 +63,8 @@ def runSaltCommand(master, client, target, function, batch = null, args = null, 
         'expr_form': target.type,
     ]
 
-    if (batch) {
-        data['batch'] = batch
+    if (batch == true) {
+        data['batch'] = "local_batch"
     }
 
     if (args) {
@@ -158,7 +158,7 @@ def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false)
 
     common.infoMsg("Running step ${fun} on ${tgt}")
 
-    if (batch) {
+    if (batch == true) {
         out = runSaltCommand(master, 'local_batch', ['expression': tgt, 'type': 'compound'], fun, String.valueOf(batch), arg)
     } else {
         out = runSaltCommand(master, 'local', ['expression': tgt, 'type': 'compound'], fun, batch, arg)
