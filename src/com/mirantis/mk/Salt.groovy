@@ -152,7 +152,7 @@ def orchestrateSystem(master, target, orchestrate) {
     return runSaltCommand(master, 'runner', target, 'state.orchestrate', [orchestrate])
 }
 
-def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = true) {
+def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false) {
     def common = new com.mirantis.mk.Common()
     def out
 
@@ -164,12 +164,8 @@ def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = true) 
         out = runSaltCommand(master, 'local', ['expression': tgt, 'type': 'compound'], fun, batch, arg)
     }
 
-    try {
-        checkResult(out)
-    } finally {
-        if (output == true) {
+    if (output == true) {
             printSaltCommandResult(out)
-        }
     }
 }
 
