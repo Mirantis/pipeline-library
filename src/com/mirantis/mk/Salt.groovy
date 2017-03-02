@@ -97,7 +97,7 @@ def enforceState(master, target, state, output = false) {
         run_states = state.join(',')
     }
 
-    common.infoMsg('Enforcing state ${run_states} on ${target}')
+    common.infoMsg("Enforcing state ${run_states} on ${target}")
 
     def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', null, [run_states])
 
@@ -114,7 +114,7 @@ def enforceState(master, target, state, output = false) {
 def cmdRun(master, target, cmd) {
     def common = new com.mirantis.mk.Common()
 
-    common.infoMsg('Running command ${cmd} on ${target}')
+    common.infoMsg("Running command ${cmd} on ${target}")
 
     def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.run', null, [cmd])
     return out
@@ -156,7 +156,7 @@ def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = true) 
     def common = new com.mirantis.mk.Common()
     def out
 
-    common.infoMsg('Running step ${fun} on ${tgt}')
+    common.infoMsg("Running step ${fun} on ${tgt}")
 
     if (batch) {
         out = runSaltCommand(master, 'local_batch', ['expression': tgt, 'type': 'compound'], fun, String.valueOf(batch), arg)
