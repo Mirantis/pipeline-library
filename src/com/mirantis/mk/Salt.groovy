@@ -187,7 +187,7 @@ def checkResult(result) {
             for (resource in node.value) {
                 print(resource.getClass().getName())
                 print(resource)
-                if (resource instanceof String || resource.value.result.toString().toBoolean() != true) {
+                if (resource instanceof String || (resource instanceof Boolean && resource == false) || (resource instanceof HashMap && resource.value.result.toString().toBoolean() != true)) {
                     throw new Exception("Salt state on node ${node.key} failed: ${node.value}")
                 }
             }
