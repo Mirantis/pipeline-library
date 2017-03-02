@@ -35,8 +35,11 @@ def installInfraKvm(master) {
 
     salt.runSaltProcessStep(master, '* and not kvm*', 'saltutil.refresh_pillar')
     salt.runSaltProcessStep(master, '* and not kvm*', 'saltutil.sync_all')
-    salt.runSaltProcessStep(master, '* and not kvm*', 'state.sls', ['linux,openssh,salt.minion,ntp'])
 
+    // workaround - install apt-transport-https
+    salt.runSaltProcessStep(master, '* and not kvm*', 'pkg.install', ['apt-transport-https'])
+
+    salt.runSaltProcessStep(master, '* and not kvm*', 'state.sls', ['linux,openssh,salt.minion,ntp'])
 }
 
 def installOpenstackMkInfra(master, physical = "false") {
@@ -89,7 +92,10 @@ def installOpenstackMkControl(master) {
     salt.enforceState(master, 'ctl01*', 'keystone.server', true)
     salt.enforceState(master, 'I@keystone:server', 'keystone.server', true)
     // populate keystone services/tenants/roles/users
-    salt.enforceState(master, 'I@keystone:client', 'keystone.client', true)
+
+    // keystone:client must be called locally
+    salt.runSaltProcessStep(master, 'I@keystone:client', 'cmd.run', ['salt-call state.sls keystone.client'])
+
     salt.runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; keystone service-list'])
     // Install glance and ensure glusterfs clusters
     //runSaltProcessStep(master, 'I@glance:server', 'state.sls', ['glance.server'], 1)
