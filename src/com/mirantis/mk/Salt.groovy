@@ -214,7 +214,7 @@ def printSaltStateResult(result, onlyChanges = true) {
     for (node in out) {
         if (node.value) {
             println "Node ${node.key} changes:"
-            print new groovy.json.JsonBuilder(node.value).toPrettyString().replaceAll('\\n', '<br>\\n')
+            print new groovy.json.JsonBuilder(node.value).toPrettyString().replace('\\n', System.getProperty('line.separator'))
         } else {
             println "No changes for node ${node.key}"
         }
