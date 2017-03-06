@@ -42,12 +42,12 @@ def getGitCommit() {
 /**
  * Get remote URL
  *
- * @param name  Name of remote (default origin)
+ * @param name  Name of remote (default any)
  * @param type  Type (fetch or push, default fetch)
  */
-def getGitRemote(name = 'origin', type = 'fetch') {
+def getGitRemote(name = '', type = 'fetch') {
     gitRemote = sh (
-        script: "git remote | grep ${name} | grep ${type} | awk '{print \$2}'",
+        script: "git remote -v | grep '${name}' | grep ${type} | awk '{print \$2}' | head -1",
         returnStdout: true
     ).trim()
     return gitRemote
