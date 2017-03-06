@@ -171,7 +171,7 @@ def mirrorGit(sourceUrl, targetUrl, credentialsId, branches, followTags = false,
 
         if (pushSource == true) {
             followTagsArg = followTags && pushSourceTags ? "--follow-tags" : ""
-            agentSh "git push ${followTagsArg} origin HEAD:${branch}"
+            ssh.agentSh "git push ${followTagsArg} origin HEAD:${branch}"
         }
     }
 
