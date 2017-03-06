@@ -17,20 +17,20 @@ package com.mirantis.mk
  * @param timeout         Set checkout timeout (default 10)
  */
 def checkoutGitRepository(path, url, branch, credentialsId = null, poll = true, timeout = 10){
-    checkout(
-        changelog:true,
-        poll: poll,
-        scm: [
-            $class: 'GitSCM',
-            branches: [[name: "*/${branch}"]],
-        doGenerateSubmoduleConfigurations: false,
-        extensions: [
-            [$class: 'RelativeTargetDirectory', relativeTargetDir: path],
-            [$class: 'CloneOption', depth: 0, noTags: false, reference: '', shallow: false, timeout: timeout]],
-        submoduleCfg: [],
-        userRemoteConfigs: [[url: url, credentialsId: credentialsId]]]
-    )
     dir(path) {
+        checkout(
+            changelog:true,
+            poll: poll,
+            scm: [
+                $class: 'GitSCM',
+                branches: [[name: "*/${branch}"]],
+            doGenerateSubmoduleConfigurations: false,
+            extensions: [
+                [$class: 'RelativeTargetDirectory', relativeTargetDir: path],
+                [$class: 'CloneOption', depth: 0, noTags: false, reference: '', shallow: false, timeout: timeout]],
+            submoduleCfg: [],
+            userRemoteConfigs: [[url: url, credentialsId: credentialsId]]]
+        )
         sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
     }
 }
