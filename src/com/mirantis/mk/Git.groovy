@@ -13,16 +13,23 @@ package com.mirantis.mk
  * @param url             Source Git repository URL
  * @param branch          Source Git repository branch
  * @param credentialsId   Credentials ID to use for source Git
+ * @param poll            Enable git polling (default true)
+ * @param timeout         Set checkout timeout (default 10)
  */
-def checkoutGitRepository(path, url, branch, credentialsId = null){
-    checkout([
-        $class: 'GitSCM',
-        branches: [[name: "*/${branch}"]],
+def checkoutGitRepository(path, url, branch, credentialsId = null, poll = true, timeout = 10){
+    checkout(
+        changelog:true,
+        poll: poll,
+        scm: [
+            $class: 'GitSCM',
+            branches: [[name: "*/${branch}"]],
         doGenerateSubmoduleConfigurations: false,
-        extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: path]],
+        extensions: [
+            [$class: 'RelativeTargetDirectory', relativeTargetDir: path],
+            [$class: 'CloneOption', depth: 0, noTags: false, reference: '', shallow: false, timeout: timeout]],
         submoduleCfg: [],
-        userRemoteConfigs: [[url: url, credentialsId: credentialsId]]
-    ])
+        userRemoteConfigs: [[url: url, credentialsId: credentialsId]]]
+    )
     dir(path) {
         sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
     }
