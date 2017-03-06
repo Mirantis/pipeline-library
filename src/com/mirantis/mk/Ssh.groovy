@@ -2,7 +2,7 @@ package com.mirantis.mk
 
 /**
  *
- * SSL functions
+ * SSH functions
  *
  */
 
@@ -12,10 +12,25 @@ package com.mirantis.mk
  * @param url   url of remote host
  */
 def ensureKnownHosts(url) {
-    uri = new URI(url)
-    port = uri.port ?: 22
+    def hostArray = getKnownHost(url)
+    sh "test -f ~/.ssh/known_hosts && grep ${hostArray[0]} ~/.ssh/known_hosts || ssh-keyscan -p ${hostArray[1]} ${hostArray[0]} >> ~/.ssh/known_hosts"
+}
 
-    sh "test -f ~/.ssh/known_hosts && grep ${uri.host} ~/.ssh/known_hosts || ssh-keyscan -p ${port} ${uri.host} >> ~/.ssh/known_hosts"
+@NonCPS
+def getKnownHost(url){
+     // test for git@github.com:organization/repository like URLs
+    def p = ~/.+@(.+\..+)\:{1}.*/
+    def result = p.matcher(url)
+    def host = ""
+    if (result.matches()) {
+        host = result.group(1)
+        port = 22
+    } else {
+        parsed = new URI(url)
+        host = parsed.host
+        port = parsed.port && parsed.port > 0 ? parsed.port: 22
+    }
+    return [host,port]
 }
 
 /**
@@ -38,6 +53,15 @@ def runSshAgentCommand(cmd) {
         ${cmd}
         """
     }
+}
+
+/**
+ * Execute command with ssh-agent (shortcut for runSshAgentCommand)
+ *
+ * @param cmd   Command to execute
+ */
+def agentSh(cmd) {
+    runSshAgentCommand(cmd)
 }
 
 /**

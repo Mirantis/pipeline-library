@@ -17,17 +17,6 @@ def getDatetime(format="yyyyMMddHHmmss") {
 }
 
 /**
- * Parse HEAD of current directory and return commit hash
- */
-def getGitCommit() {
-    git_commit = sh (
-        script: 'git rev-parse HEAD',
-        returnStdout: true
-    ).trim()
-    return git_commit
-}
-
-/**
  * Return workspace.
  * Currently implemented by calling pwd so it won't return relevant result in
  * dir context
@@ -217,106 +206,6 @@ def getSshCredentials(id) {
     }
 
     throw new Exception("Could not find credentials for ID ${id}")
-}
-/**
- * Setup ssh agent and add private key
- *
- * @param credentialsId Jenkins credentials name to lookup private key
- */
-def prepareSshAgentKey(credentialsId) {
-    c = getSshCredentials(credentialsId)
-    sh("test -d ~/.ssh || mkdir -m 700 ~/.ssh")
-    sh('pgrep -l -u $USER -f | grep -e ssh-agent\$ >/dev/null || ssh-agent|grep -v "Agent pid" > ~/.ssh/ssh-agent.sh')
-    sh("set +x; echo '${c.getPrivateKey()}' > ~/.ssh/id_rsa_${credentialsId} && chmod 600 ~/.ssh/id_rsa_${credentialsId}; set -x")
-    agentSh("ssh-add ~/.ssh/id_rsa_${credentialsId}")
-}
-
-/**
- * Execute command with ssh-agent
- *
- * @param cmd   Command to execute
- */
-def agentSh(cmd) {
-    sh(". ~/.ssh/ssh-agent.sh && ${cmd}")
-}
-
-/**
- * Ensure entry in SSH known hosts
- *
- * @param url   url of remote host
- */
-def ensureKnownHosts(url) {
-    def hostArray = getKnownHost(url)
-    sh "test -f ~/.ssh/known_hosts && grep ${hostArray[0]} ~/.ssh/known_hosts || ssh-keyscan -p ${hostArray[1]} ${hostArray[0]} >> ~/.ssh/known_hosts"
-}
-
-@NonCPS
-def getKnownHost(url){
-     // test for git@github.com:organization/repository like URLs
-    def p = ~/.+@(.+\..+)\:{1}.*/
-    def result = p.matcher(url)
-    def host = ""
-    if (result.matches()) {
-        host = result.group(1)
-        port = 22
-    } else {
-        parsed = new URI(url)
-        host = parsed.host
-        port = parsed.port && parsed.port > 0 ? parsed.port: 22
-    }
-    return [host,port]
-}
-
-/**
- * Mirror git repository, merge target changes (downstream) on top of source
- * (upstream) and push target or both if pushSource is true
- *
- * @param sourceUrl      Source git repository
- * @param targetUrl      Target git repository
- * @param credentialsId  Credentials id to use for accessing source/target
- *                       repositories
- * @param branches       List or comma-separated string of branches to sync
- * @param followTags     Mirror tags
- * @param pushSource     Push back into source branch, resulting in 2-way sync
- * @param pushSourceTags Push target tags into source or skip pushing tags
- * @param gitEmail       Email for creation of merge commits
- * @param gitName        Name for creation of merge commits
- */
-def mirrorGit(sourceUrl, targetUrl, credentialsId, branches, followTags = false, pushSource = false, pushSourceTags = false, gitEmail = 'jenkins@localhost', gitName = 'Jenkins') {
-    if (branches instanceof String) {
-        branches = branches.tokenize(',')
-    }
-
-    prepareSshAgentKey(credentialsId)
-    ensureKnownHosts(targetUrl)
-    sh "git config user.email '${gitEmail}'"
-    sh "git config user.name '${gitName}'"
-
-    sh "git remote | grep target || git remote add target ${TARGET_URL}"
-    agentSh "git remote update --prune"
-
-    for (i=0; i < branches.size; i++) {
-        branch = branches[i]
-        sh "git branch | grep ${branch} || git checkout -b ${branch} origin/${branch}"
-        sh "git branch | grep ${branch} && git checkout ${branch} && git reset --hard origin/${branch}"
-
-        sh "git ls-tree target/${branch} && git merge --no-edit --ff target/${branch} || echo 'Target repository is empty, skipping merge'"
-        followTagsArg = followTags ? "--follow-tags" : ""
-        agentSh "git push ${followTagsArg} target HEAD:${branch}"
-
-        if (pushSource == true) {
-            followTagsArg = followTags && pushSourceTags ? "--follow-tags" : ""
-            agentSh "git push ${followTagsArg} origin HEAD:${branch}"
-        }
-    }
-
-    if (followTags == true) {
-        agentSh "git push target --tags"
-
-        if (pushSourceTags == true) {
-            agentSh "git push origin --tags"
-        }
-    }
 }
 
 /**

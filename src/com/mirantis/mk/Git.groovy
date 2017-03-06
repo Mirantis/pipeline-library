@@ -40,6 +40,20 @@ def getGitCommit() {
 }
 
 /**
+ * Get remote URL
+ *
+ * @param name  Name of remote (default origin)
+ * @param type  Type (fetch or push, default fetch)
+ */
+def getGitRemote(name = 'origin', type = 'fetch') {
+    gitRemote = sh (
+        script: "git remote | grep ${name} | grep ${type} | awk '{print \$2}'",
+        returnStdout: true
+    ).trim()
+    return gitRemote
+}
+
+/**
  * Change actual working branch of repo
  *
  * @param path            Path to the git repository
@@ -118,27 +132,54 @@ def checkoutGitParallel(path, url, branch, credentialsId = null, poll = true, cl
 }
 
 /**
- * Mirror git repository
+ * Mirror git repository, merge target changes (downstream) on top of source
+ * (upstream) and push target or both if pushSource is true
+ *
+ * @param sourceUrl      Source git repository
+ * @param targetUrl      Target git repository
+ * @param credentialsId  Credentials id to use for accessing source/target
+ *                       repositories
+ * @param branches       List or comma-separated string of branches to sync
+ * @param followTags     Mirror tags
+ * @param pushSource     Push back into source branch, resulting in 2-way sync
+ * @param pushSourceTags Push target tags into source or skip pushing tags
+ * @param gitEmail       Email for creation of merge commits
+ * @param gitName        Name for creation of merge commits
  */
-def mirrorReporitory(sourceUrl, targetUrl, credentialsId, branches, followTags = false, gitEmail = 'jenkins@localhost', gitUsername = 'Jenkins') {
-    def ssl = new com.mirantis.mk.Ssl()
+def mirrorGit(sourceUrl, targetUrl, credentialsId, branches, followTags = false, pushSource = false, pushSourceTags = false, gitEmail = 'jenkins@localhost', gitName = 'Jenkins') {
     if (branches instanceof String) {
         branches = branches.tokenize(',')
     }
-    ssl.prepareSshAgentKey(credentialsId)
-    ssl.ensureKnownHosts(targetUrl)
 
-    sh "git remote | grep target || git remote add target ${targetUrl}"
-    agentSh "git remote update --prune"
+    def ssh = new com.mirantis.mk.Ssh()
+    ssh.prepareSshAgentKey(credentialsId)
+    ssh.ensureKnownHosts(targetUrl)
+    sh "git config user.email '${gitEmail}'"
+    sh "git config user.name '${gitName}'"
+
+    sh "git remote | grep target || git remote add target ${TARGET_URL}"
+    ssh.agentSh "git remote update --prune"
+
     for (i=0; i < branches.size; i++) {
         branch = branches[i]
         sh "git branch | grep ${branch} || git checkout -b ${branch} origin/${branch}"
         sh "git branch | grep ${branch} && git checkout ${branch} && git reset --hard origin/${branch}"
 
-        sh "git config --global user.email '${gitEmail}'"
-        sh "git config --global user.name '${gitUsername}'"
         sh "git ls-tree target/${branch} && git merge --no-edit --ff target/${branch} || echo 'Target repository is empty, skipping merge'"
         followTagsArg = followTags ? "--follow-tags" : ""
-        agentSh "git push ${followTagsArg} target HEAD:${branch}"
+        ssh.agentSh "git push ${followTagsArg} target HEAD:${branch}"
+
+        if (pushSource == true) {
+            followTagsArg = followTags && pushSourceTags ? "--follow-tags" : ""
+            agentSh "git push ${followTagsArg} origin HEAD:${branch}"
+        }
+    }
+
+    if (followTags == true) {
+        ssh.agentSh "git push target --tags"
+
+        if (pushSourceTags == true) {
+            ssh.agentSh "git push origin --tags"
+        }
     }
 }
