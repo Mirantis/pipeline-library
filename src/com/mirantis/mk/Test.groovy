@@ -52,7 +52,11 @@ def copyTempestResults(master) {
 }
 
 
-/**
- * Upload results to testrail
+/** Store tests results on host
  *
+ * @param image      Docker image name
  */
+def catTestsOutput(master, image) {
+    def salt = new com.mirantis.mk.Salt()
+    salt.runSaltProcessStep(master, 'cfg01*', 'cmd.run', ["cat /home/ubuntu/${image}.output"])
+}
