@@ -26,7 +26,6 @@ def checkoutGitRepository(path, url, branch, credentialsId = null, poll = true, 
                 branches: [[name: "*/${branch}"]],
             doGenerateSubmoduleConfigurations: false,
             extensions: [
-                [$class: 'RelativeTargetDirectory', relativeTargetDir: path],
                 [$class: 'CloneOption', depth: 0, noTags: false, reference: '', shallow: false, timeout: timeout]],
             submoduleCfg: [],
             userRemoteConfigs: [[url: url, credentialsId: credentialsId]]]
