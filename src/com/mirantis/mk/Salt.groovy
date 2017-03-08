@@ -104,7 +104,7 @@ def getGrain(master, target, grain = null) {
 }
 
 
-def enforceState(master, target, state, output = false) {
+def enforceState(master, target, state, output = true) {
     def common = new com.mirantis.mk.Common()
     def run_states
 
