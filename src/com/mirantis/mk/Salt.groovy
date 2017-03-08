@@ -82,10 +82,27 @@ def runSaltCommand(master, client, target, function, batch = null, args = null, 
     return http.sendHttpPostRequest("${master.url}/", data, headers)
 }
 
-def pillarGet(master, target, pillar) {
-    def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'pillar.get', null, [pillar.replace('.', ':')])
+def getPillar(master, target, pillar = null) {
+    if(pillar != null) {
+        def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'pillar.get', null, [pillar.replace('.', ':')])
+    }
+    else {
+        def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'pillar.data')
+    }
     return out
 }
+
+
+def getGrain(master, target, grain = null) {
+    if(grain != null) {
+        def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'grain.item', null, [grain])
+    }
+    else {
+        def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'grain.items')
+    }
+    return out
+}
+
 
 def enforceState(master, target, state, output = false) {
     def common = new com.mirantis.mk.Common()
