@@ -214,6 +214,7 @@ def checkResult(result) {
  *                      parsing
  */
 def printSaltStateResult(result, onlyChanges = true) {
+    def common = new com.mirantis.mk.Common()
     def out = [:]
     for (entry in result['return']) {
         for (node in entry) {
@@ -223,6 +224,10 @@ def printSaltStateResult(result, onlyChanges = true) {
                     out[node.key] = node.value
                 } else if (resource.value.result.toString().toBoolean() == false || resource.value.changes || onlyChanges == false) {
                     out[node.key][resource.key] = resource.value
+
+                    if (resource.value.result.toString().toBoolean() == false) {
+                        common.warningMsg("Resource ${resource.key} failed on node ${node.key}!")
+                    }
                 }
             }
         }
