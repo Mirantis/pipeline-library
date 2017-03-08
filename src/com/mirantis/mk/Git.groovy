@@ -15,8 +15,9 @@ package com.mirantis.mk
  * @param credentialsId   Credentials ID to use for source Git
  * @param poll            Enable git polling (default true)
  * @param timeout         Set checkout timeout (default 10)
+ * @param depth           Git depth param (default 0 means no depth)
  */
-def checkoutGitRepository(path, url, branch, credentialsId = null, poll = true, timeout = 10){
+def checkoutGitRepository(path, url, branch, credentialsId = null, poll = true, timeout = 10, depth = 0){
     dir(path) {
         checkout(
             changelog:true,
@@ -26,7 +27,8 @@ def checkoutGitRepository(path, url, branch, credentialsId = null, poll = true, 
                 branches: [[name: "*/${branch}"]],
             doGenerateSubmoduleConfigurations: false,
             extensions: [
-                [$class: 'CloneOption', depth: 0, noTags: false, reference: '', shallow: false, timeout: timeout]],
+                [$class: 'CheckoutOption', timeout: timeout],
+                [$class: 'CloneOption', depth: depth, noTags: false, reference: '', shallow: false, timeout: timeout]],
             submoduleCfg: [],
             userRemoteConfigs: [[url: url, credentialsId: credentialsId]]]
         )
@@ -111,30 +113,6 @@ def pushGitChanges(path, branch = 'master', remote = 'origin') {
         ).trim()
     }
     return git_cmd
-}
-
-
-/**
- * Checkout git repositories in parallel
- *
- * @param path            Directory to checkout to
- * @param url             Git repository url
- * @param branch          Git repository branch
- * @param credentialsId   Credentials ID to use
- * @param poll            Poll automatically
- * @param clean           Clean status
- */
-def checkoutGitParallel(path, url, branch, credentialsId = null, poll = true, clean = true) {
-    return {
-        print "Checking out ${url}, branch ${branch} into ${path}"
-        dir(path) {
-            git url: url,
-                branch: branch,
-                credentialsId: credentialsId,
-                poll: poll,
-                clean: clean
-        }
-    }
 }
 
 /**
