@@ -225,9 +225,9 @@ def printSaltStateResult(result, onlyChanges = true) {
                 } else if (resource.value.result.toString().toBoolean() == false || resource.value.changes || onlyChanges == false) {
                     out[node.key][resource.key] = resource.value
 
-                    if (resource.value.result.toString().toBoolean() == false && resource.key instanceof String && node.key instanceof String) {
-                        common.warningMsg("Resource ${resource.key} failed on node ${node.key}!")
-                    }
+                    //if (resource.value.result.toString().toBoolean() == false && resource.key instanceof String && node.key instanceof String) {
+                    //    common.warningMsg("Resource ${resource.key} failed on node ${node.key}!")
+                    //}
                 }
             }
         }
