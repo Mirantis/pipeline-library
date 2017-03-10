@@ -83,12 +83,14 @@ def runSaltCommand(master, client, target, function, batch = null, args = null, 
 }
 
 def getPillar(master, target, pillar = null) {
-    if(pillar != null) {
-        def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'pillar.get', null, [pillar.replace('.', ':')])
+    def out
+
+    if (pillar != null) {
+        out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'pillar.get', null, [pillar.replace('.', ':')])
+    } else {
+        out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'pillar.data')
     }
-    else {
-        def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'pillar.data')
-    }
+
     return out
 }
 
