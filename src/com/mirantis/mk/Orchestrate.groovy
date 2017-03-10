@@ -198,7 +198,7 @@ def installOpenstackMcpInfra(master) {
     // Install bird
     salt.runSaltProcessStep(master, 'I@bird:server', 'state.sls', ['bird'])
     // Install etcd
-    salt.runSaltProcessStep(master, 'I@etcd:server', 'state.sls', ['etcd.server.service'])
+    salt.runSaltProcessStep(master, 'I@etcd:server', 'state.sls', ['salt.minion.cert,etcd.server.service'])
     salt.runSaltProcessStep(master, 'I@etcd:server', 'cmd.run', ['etcdctl cluster-health'])
 }
 
