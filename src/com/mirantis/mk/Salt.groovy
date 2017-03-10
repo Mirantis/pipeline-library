@@ -82,31 +82,45 @@ def runSaltCommand(master, client, target, function, batch = null, args = null, 
     return http.sendHttpPostRequest("${master.url}/", data, headers)
 }
 
+/**
+ * Return pillar for given master and target
+ * @param master Salt connection object
+ * @param target Get pillar target
+ * @param pillar pillar name (optional)
+ * @return output of salt command
+ */
 def getPillar(master, target, pillar = null) {
-    def out
-
     if (pillar != null) {
-        out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'pillar.get', null, [pillar.replace('.', ':')])
+        return runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'pillar.get', null, [pillar.replace('.', ':')])
     } else {
-        out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'pillar.data')
-    }
-
-    return out
+        return runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'pillar.data')
 }
 
-
+/**
+ * Return grain for given master and target
+ * @param master Salt connection object
+ * @param target Get grain target
+ * @param grain grain name (optional)
+ * @return output of salt command
+ */
 def getGrain(master, target, grain = null) {
     if(grain != null) {
-        def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'grain.item', null, [grain])
+        return runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'grain.item', null, [grain])
+    } else {
+        return runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'grain.items')
     }
-    else {
-        def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'grain.items')
-    }
-    return out
 }
 
-
-def enforceState(master, target, state, output = true) {
+/**
+ * Enforces state on given master and target
+ * @param master Salt connection object
+ * @param target State enforcing target
+ * @param state Salt state
+ * @param output print output (optional, default true)
+ * @param failOnError throw exception on salt state result:false (optional, default true)
+ * @return output of salt command
+ */
+def enforceState(master, target, state, output = true, failOnError = true) {
     def common = new com.mirantis.mk.Common()
     def run_states
 
@@ -121,7 +135,7 @@ def enforceState(master, target, state, output = true) {
     def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', null, [run_states])
 
     try {
-        checkResult(out)
+        checkResult(out, failOnError)
     } finally {
         if (output == true) {
             printSaltStateResult(out)
@@ -130,23 +144,43 @@ def enforceState(master, target, state, output = true) {
     return out
 }
 
+/**
+ * Run command on salt minion (salt cmd.run wrapper)
+ * @param master Salt connection object
+ * @param target Get pillar target
+ * @param cmd command
+ * @return output of salt command
+ */
 def cmdRun(master, target, cmd) {
     def common = new com.mirantis.mk.Common()
 
     common.infoMsg("Running command ${cmd} on ${target}")
 
-    def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.run', null, [cmd])
-    return out
+    return runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.run', null, [cmd])
 }
 
+/**
+ * Perform complete salt sync between master and target
+ * @param master Salt connection object
+ * @param target Get pillar target
+ * @return output of salt command
+ */
 def syncAll(master, target) {
     return runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'saltutil.sync_all')
 }
 
-def enforceHighstate(master, target, output = false) {
+/**
+ * Enforce highstate on given targets
+ * @param master Salt connection object
+ * @param target Highstate enforcing target
+ * @param output print output (optional, default true)
+ * @param failOnError throw exception on salt state result:false (optional, default true)
+ * @return output of salt command
+ */
+def enforceHighstate(master, target, output = false, failOnError = true) {
     def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.highstate')
     try {
-        checkResult(out)
+        checkResult(out, failOnError)
     } finally {
         if (output == true) {
             printSaltStateResult(out)
@@ -155,22 +189,52 @@ def enforceHighstate(master, target, output = false) {
     return out
 }
 
+/**
+ * Generates node key using key.gen_accept call
+ * @param master Salt connection object
+ * @param target Key generating target
+ * @param host Key generating host
+ * @param keysize generated key size (optional, default 4096)
+ * @return output of salt command
+ */
 def generateNodeKey(master, target, host, keysize = 4096) {
-    args = [host]
-    kwargs = ['keysize': keysize]
-    return runSaltCommand(master, 'wheel', target, 'key.gen_accept', args, kwargs)
+    return runSaltCommand(master, 'wheel', target, 'key.gen_accept', [host], ['keysize': keysize])
 }
 
+/**
+ * Generates node reclass metadata 
+ * @param master Salt connection object
+ * @param target Metadata generating target
+ * @param host Metadata generating host
+ * @param classes Reclass classes
+ * @param parameters Reclass parameters
+ * @return output of salt command
+ */
 def generateNodeMetadata(master, target, host, classes, parameters) {
-    args = [host, '_generated']
-    kwargs = ['classes': classes, 'parameters': parameters]
-    return runSaltCommand(master, 'local', target, 'reclass.node_create', args, kwargs)
+    return runSaltCommand(master, 'local', target, 'reclass.node_create', [host, '_generated'], ['classes': classes, 'parameters': parameters])
 }
 
+/**
+ * Run salt orchestrate on given targets
+ * @param master Salt connection object
+ * @param target Orchestration target
+ * @param orchestrate Salt orchestrate params
+ * @return output of salt command
+ */
 def orchestrateSystem(master, target, orchestrate) {
     return runSaltCommand(master, 'runner', target, 'state.orchestrate', [orchestrate])
 }
 
+/**
+ * Run salt process step
+ * @param master Salt connection object
+ * @param tgt Salt process step target
+ * @param fun Salt process step function
+ * @param arg process step arguments (optional, default [])
+ * @param batch using batch (optional, default false)
+ * @param output print output (optional, default false)
+ * @return output of salt command
+ */
 def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false) {
     def common = new com.mirantis.mk.Common()
     def out
@@ -184,7 +248,7 @@ def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false)
     }
 
     if (output == true) {
-            printSaltCommandResult(out)
+        printSaltCommandResult(out)
     }
 }
 
@@ -192,16 +256,26 @@ def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false)
  * Check result for errors and throw exception if any found
  *
  * @param result    Parsed response of Salt API
+ * @param failOnError Do you want to throw exception if salt-call fails
  */
-def checkResult(result) {
+def checkResult(result, failOnError = true) {
+    def common = new com.mirantis.mk.Common()
     for (entry in result['return']) {
         if (!entry) {
-            throw new Exception("Salt API returned empty response: ${result}")
+            if (failOnError) {
+                throw new Exception("Salt API returned empty response: ${result}")
+            } else {
+                common.errorMsg("Salt API returned empty response: ${result}")
+            }
         }
         for (node in entry) {
             for (resource in node.value) {
-                if (resource instanceof String || (resource instanceof Boolean && resource == false) || resource.value.result.toString().toBoolean() != true) {
-                    throw new Exception("Salt state on node ${node.key} failed: ${node.value}")
+                if( resource[value] && resource[value][result] && resource[value][result] != true)
+                    if (failOnError) {
+                        throw new Exception("Salt state on node ${node.key} failed: ${node.value}")
+                    } else {
+                        common.errorMsg("Salt state on node ${node.key} failed: ${node.value}")
+                    }
                 }
             }
         }
