@@ -192,8 +192,6 @@ def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false)
  * @param result    Parsed response of Salt API
  */
 def checkResult(result) {
-    def common = new com.mirantis.mk.Common()
-
     for (entry in result['return']) {
         if (!entry) {
             throw new Exception("Salt API returned empty response: ${result}")
@@ -201,7 +199,7 @@ def checkResult(result) {
         for (node in entry) {
             for (resource in node.value) {
                 if (resource instanceof String || (resource instanceof Boolean && resource == false) || resource.value.result.toString().toBoolean() != true) {
-                    common.warningMsg("Salt state on node ${node.key} failed: ${node.value}")
+                    throw new Exception("Salt state on node ${node.key} failed: ${node.value}")
                 }
             }
         }
