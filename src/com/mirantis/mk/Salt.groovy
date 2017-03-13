@@ -273,14 +273,14 @@ def checkResult(result, failOnError = true) {
             for (resource in node.value) {
                 println(String.format("resource = '%s'", resource))
                 def res = resource
-                if(resource instanceof HashMap.Node){
+                if(resource instanceof Map.Entry){
                     res = resource.value
                 }
-                if(!res["result"] || res["result"] != "true") {
+                if(!res["result"] || (res["result"] instanceof String && res["result"] != "true")){
                     if (failOnError) {
-                        throw new Exception("Salt state on node ${node.key} failed: ${node.value}")
+                        throw new Exception("Salt state on node ${node.key} failed: ${res}")
                     } else {
-                        common.errorMsg("Salt state on node ${node.key} failed: ${node.value}")
+                        common.errorMsg("Salt state on node ${node.key} failed: ${res}")
                     }
                 }
             }
