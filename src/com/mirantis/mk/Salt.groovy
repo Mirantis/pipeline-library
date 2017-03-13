@@ -271,16 +271,15 @@ def checkResult(result, failOnError = true) {
         }
         for (node in entry) {
             for (resource in node.value) {
-                println(String.format("resource = '%s'", resource))
                 def res = resource
                 if(resource instanceof Map.Entry){
                     res = resource.value
                 }
                 if(!res["result"] || (res["result"] instanceof String && res["result"] != "true")){
                     if (failOnError) {
-                        throw new Exception("Salt state on node ${node.key} failed: ${res}")
+                        throw new Exception("Salt state on node ${node.key} failed: ${res}. State output: ${node.value}")
                     } else {
-                        common.errorMsg("Salt state on node ${node.key} failed: ${res}")
+                        common.errorMsg("Salt state on node ${node.key} failed: ${res}. State output: ${node.value}")
                     }
                 }
             }
