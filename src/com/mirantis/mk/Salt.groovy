@@ -272,7 +272,11 @@ def checkResult(result, failOnError = true) {
         for (node in entry) {
             for (resource in node.value) {
                 println(String.format("resource = '%s'", resource))
-                if(!resource["result"] || resource["result"] != "true") {
+                def res = resource
+                if(!resource.containsKey("result") && resource.size() == 1 ){
+                    res = resource[resource.keySet()[0]]
+                }
+                if(!res["result"] || res["result"] != "true") {
                     if (failOnError) {
                         throw new Exception("Salt state on node ${node.key} failed: ${node.value}")
                     } else {
