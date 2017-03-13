@@ -271,7 +271,7 @@ def checkResult(result, failOnError = true) {
         }
         for (node in entry) {
             for (resource in node.value) {
-                if( resource[value] && resource[value][result] && resource[value][result] != true)
+                if( resource[value] && resource[value][result] && resource[value][result] != true) {
                     if (failOnError) {
                         throw new Exception("Salt state on node ${node.key} failed: ${node.value}")
                     } else {
