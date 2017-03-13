@@ -94,6 +94,7 @@ def getPillar(master, target, pillar = null) {
         return runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'pillar.get', null, [pillar.replace('.', ':')])
     } else {
         return runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'pillar.data')
+    }
 }
 
 /**
