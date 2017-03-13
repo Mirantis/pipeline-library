@@ -273,8 +273,8 @@ def checkResult(result, failOnError = true) {
             for (resource in node.value) {
                 println(String.format("resource = '%s'", resource))
                 def res = resource
-                if(!resource.containsKey("result") && resource.size() == 1 ){
-                    res = resource[resource.keySet()[0]]
+                if(resource instanceof HashMap.Node){
+                    res = resource.value
                 }
                 if(!res["result"] || res["result"] != "true") {
                     if (failOnError) {
