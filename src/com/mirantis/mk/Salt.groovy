@@ -261,29 +261,35 @@ def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false)
  */
 def checkResult(result, failOnError = true) {
     def common = new com.mirantis.mk.Common()
-    for (entry in result['return']) {
-        if (!entry) {
-            if (failOnError) {
-                throw new Exception("Salt API returned empty response: ${result}")
-            } else {
-                common.errorMsg("Salt API returned empty response: ${result}")
-            }
-        }
-        for (node in entry) {
-            for (resource in node.value) {
-                def res = resource
-                if(resource instanceof Map.Entry){
-                    res = resource.value
+    if(result['return']){
+        for (int i=0;i<result['return'].size();i++) {
+            def entry = result['return'][i]
+            if (!entry) {
+                if (failOnError) {
+                    throw new Exception("Salt API returned empty response: ${result}")
+                } else {
+                    common.errorMsg("Salt API returned empty response: ${result}")
                 }
-                if(!res["result"] || (res["result"] instanceof String && res["result"] != "true")){
-                    if (failOnError) {
-                        throw new Exception("Salt state on node ${node.key} failed: ${res}. State output: ${node.value}")
-                    } else {
-                        common.errorMsg("Salt state on node ${node.key} failed: ${res}. State output: ${node.value}")
+            }
+            for (int j=0;j<entry.size();j++) {
+                def node=entry[j]
+                for (int k=0;k<node.value.size();k++) {
+                    def res = node.value[k]
+                    if(node.value[k] instanceof Map.Entry){
+                        res = node.value[k].value
+                    }
+                    if(!res["result"] || (res["result"] instanceof String && res["result"] != "true")){
+                        if (failOnError) {
+                            throw new Exception("Salt state on node ${node.key} failed: ${res}. State output: ${node.value}")
+                        } else {
+                            common.errorMsg("Salt state on node ${node.key} failed: ${res}. State output: ${node.value}")
+                        }
                     }
                 }
             }
         }
+    }else{
+        common.errorMsg("Salt result hasn't return attribute! Result: ${result}")
     }
 }
 
@@ -297,30 +303,38 @@ def checkResult(result, failOnError = true) {
 def printSaltStateResult(result, onlyChanges = true) {
     def common = new com.mirantis.mk.Common()
     def out = [:]
-    for (entry in result['return']) {
-        for (node in entry) {
-            out[node.key] = [:]
-            for (resource in node.value) {
-                if (resource instanceof String) {
-                    out[node.key] = node.value
-                } else if (resource.value.result.toString().toBoolean() == false || resource.value.changes || onlyChanges == false) {
-                    out[node.key][resource.key] = resource.value
+    if(result['return']){
+        for (int i=0; i<result['return'].size(); i++) {
+            def entry = result['return'][i]
+            for (int j=0; j<entry.size(); j++) {
+                def node=entry[j]
+                out[node.key] = [:]
+                for (int k=0; k<node.value.size(); k++) {
+                    def resource = node.value[k]
+                    if (resource instanceof String) {
+                        out[node.key] = node.value
+                    } else if (resource.value.result.toString().toBoolean() == false || resource.value.changes || onlyChanges == false) {
+                        out[node.key][resource.key] = resource.value
 
-                    //if (resource.value.result.toString().toBoolean() == false && resource.key instanceof String && node.key instanceof String) {
-                    //    common.warningMsg("Resource ${resource.key} failed on node ${node.key}!")
-                    //}
+                        //if (resource.value.result.toString().toBoolean() == false && resource.key instanceof String && node.key instanceof String) {
+                        //    common.warningMsg("Resource ${resource.key} failed on node ${node.key}!")
+                        //}
+                    }
                 }
             }
         }
-    }
 
-    for (node in out) {
-        if (node.value) {
-            println "Node ${node.key} changes:"
-            print new groovy.json.JsonBuilder(node.value).toPrettyString().replace('\\n', System.getProperty('line.separator'))
-        } else {
-            println "No changes for node ${node.key}"
+        for (int i=0; i<out.size(); i++) {
+            def node=out[i]
+            if (node.value) {
+                println "Node ${node.key} changes:"
+                print new groovy.json.JsonBuilder(node.value).toPrettyString().replace('\\n', System.getProperty('line.separator'))
+            } else {
+                println "No changes for node ${node.key}"
+            }
         }
+    }else{
+        common.errorMsg("Salt result hasn't return attribute! Result: ${result}")
     }
 }
 
@@ -331,21 +345,30 @@ def printSaltStateResult(result, onlyChanges = true) {
  */
 def printSaltCommandResult(result) {
     def out = [:]
-    for (entry in result['return']) {
-        for (node in entry) {
-            out[node.key] = [:]
-            for (resource in node.value) {
-                out[node.key] = node.value
+    if(result['return']){
+        for (int i=0; i<result['return'].size(); i++) {
+            def entry = result['return'][i]
+            for (int j=0; j<entry.size(); j++) {
+                def node=entry[j]
+                out[node.key] = [:]
+                for (int k=0; k<node.value.size(); k++) {
+                    def resource = node.value[k]
+                    //ORIGINAL??out[node.key] = node.value
+                    out[node.key] = resource
+                }
             }
         }
-    }
 
-    for (node in out) {
+    for (int i=0; i<out.size(); i++) {
+        def node=out[i]
         if (node.value) {
             println "Node ${node.key} changes:"
             print new groovy.json.JsonBuilder(node.value).toPrettyString()
         } else {
             println "No changes for node ${node.key}"
         }
+    }
+        }else{
+        common.errorMsg("Salt result hasn't return attribute! Result: ${result}")
     }
 }
