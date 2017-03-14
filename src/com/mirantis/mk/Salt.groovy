@@ -312,14 +312,14 @@ def printSaltStateResult(result, onlyChanges = true) {
                 def nodeKey = entry.keySet()[j]
                 def node=entry[nodeKey]
                 out[nodeKey] = [:]
-                for (int k=0; k<node.value.size(); k++) {
-                    def resKey = node.value.keySet()[k]
-                    def resource = node.value[resKey]
+                for (int k=0; k<node.size(); k++) {
+                    def resKey = node.keySet()[k]
+                    def resource = node[resKey]
                     if (resource instanceof String) {
                         //ORIGINAL??out[node.key] = node.value
                         out[nodeKey] = resource
-                    } else if (resource.value.result.toString().toBoolean() == false || resource.value.changes || onlyChanges == false) {
-                        out[nodeKey][resource.key] = resource.value
+                    } else if (resource.result.toString().toBoolean() == false || resource.changes || onlyChanges == false) {
+                        out[nodeKey][resKey] = resource.value
 
                         //if (resource.value.result.toString().toBoolean() == false && resource.key instanceof String && node.key instanceof String) {
                         //    common.warningMsg("Resource ${resource.key} failed on node ${node.key}!")
