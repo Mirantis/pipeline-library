@@ -283,12 +283,12 @@ def checkResult(result, failOnError = true) {
                         resKey = k
                     }
                     resource = node[resKey]
-                    common.errorMsg("Checking resource: ${res}")
+                    common.errorMsg("Checking resource: ${resource}")
                     if(!resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
                         if (failOnError) {
-                            throw new Exception("Salt state on node ${nodeKey} failed: ${res}. State output: ${node}")
+                            throw new Exception("Salt state on node ${nodeKey} failed: ${resource}. State output: ${node}")
                         } else {
-                            common.errorMsg("Salt state on node ${nodeKey} failed: ${res}. State output: ${node}")
+                            common.errorMsg("Salt state on node ${nodeKey} failed: ${resource}. State output: ${node}")
                         }
                     }
                 }
