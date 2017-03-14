@@ -306,17 +306,21 @@ def printSaltStateResult(result, onlyChanges = true) {
     def out = [:]
     if(result['return']){
         for (int i=0; i<result['return'].size(); i++) {
-            def entry = result['return'][i]
+            def key = result['return'].keySet()[i]
+            def entry = result['return'][key]
             for (int j=0; j<entry.size(); j++) {
                 common.errorMsg("Entry is: ${entry}")
-                def node=entry[j]
-                out[node.key] = [:]
+                def nodeKey = entry.keySet()[j]
+                def node=entry[nodeKey]
+                out[nodeKey] = [:]
                 for (int k=0; k<node.value.size(); k++) {
-                    def resource = node.value[k]
+                    def resKey = node.value.keySet()[k]
+                    def resource = node.value[resKey]
                     if (resource instanceof String) {
-                        out[node.key] = node.value
+                        //ORIGINAL??out[node.key] = node.value
+                        out[nodeKey] = resource
                     } else if (resource.value.result.toString().toBoolean() == false || resource.value.changes || onlyChanges == false) {
-                        out[node.key][resource.key] = resource.value
+                        out[nodeKey][resource.key] = resource.value
 
                         //if (resource.value.result.toString().toBoolean() == false && resource.key instanceof String && node.key instanceof String) {
                         //    common.warningMsg("Resource ${resource.key} failed on node ${node.key}!")
@@ -327,12 +331,13 @@ def printSaltStateResult(result, onlyChanges = true) {
         }
 
         for (int i=0; i<out.size(); i++) {
-            def node=out[i]
-            if (node.value) {
-                println "Node ${node.key} changes:"
-                print new groovy.json.JsonBuilder(node.value).toPrettyString().replace('\\n', System.getProperty('line.separator'))
+            def nodeKey = out.keySet()[i]
+            def node=out[nodeKey]
+            if (node) {
+                println "Node ${nodeKey} changes:"
+                print new groovy.json.JsonBuilder(node).toPrettyString().replace('\\n', System.getProperty('line.separator'))
             } else {
-                println "No changes for node ${node.key}"
+                println "No changes for node ${nodeKey}"
             }
         }
     }else{
@@ -349,25 +354,30 @@ def printSaltCommandResult(result) {
     def out = [:]
     if(result['return']){
         for (int i=0; i<result['return'].size(); i++) {
-            def entry = result['return'][i]
+            def key = result['return'].keySet()[i]
+            def entry = result['return'][key]
             for (int j=0; j<entry.size(); j++) {
-                def node=entry[j]
-                out[node.key] = [:]
-                for (int k=0; k<node.value.size(); k++) {
-                    def resource = node.value[k]
+                common.errorMsg("Entry is: ${entry}")
+                def nodeKey = entry.keySet()[j]
+                def node=entry[nodeKey]
+                out[nodeKey] = [:]
+                for (int k=0; k<node.size(); k++) {
+                    def resKey = node.keySet()[k]
+                    def resource = node[resKey]
                     //ORIGINAL??out[node.key] = node.value
-                    out[node.key] = resource
+                    out[nodeKey] = resource
                 }
             }
         }
 
     for (int i=0; i<out.size(); i++) {
-        def node=out[i]
-        if (node.value) {
-            println "Node ${node.key} changes:"
-            print new groovy.json.JsonBuilder(node.value).toPrettyString()
+        def nodeKey = out.keySet()[i]
+        def node = out[nodeKey]
+        if (node) {
+            println "Node ${nodeKey} changes:"
+            print new groovy.json.JsonBuilder(node).toPrettyString()
         } else {
-            println "No changes for node ${node.key}"
+            println "No changes for node ${nodeKey}"
         }
     }
         }else{
