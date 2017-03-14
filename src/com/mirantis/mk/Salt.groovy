@@ -278,6 +278,7 @@ def checkResult(result, failOnError = true) {
                     if(node.value[k] instanceof Map.Entry){
                         res = node.value[k].value
                     }
+                    common.errorMsg("Checking resource: ${res}")
                     if(!res["result"] || (res["result"] instanceof String && res["result"] != "true")){
                         if (failOnError) {
                             throw new Exception("Salt state on node ${node.key} failed: ${res}. State output: ${node.value}")
