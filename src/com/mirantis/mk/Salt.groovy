@@ -313,12 +313,13 @@ def printSaltStateResult(result, onlyChanges = true) {
                 out[nodeKey] = [:]
                 for (int k=0; k<node.size(); k++) {
                     def resource;
+                    def resKey;
                     if(node instanceof Map){
-                        def resKey = node.keySet()[k]
-                        resource = node[resKey]
+                        resKey = node.keySet()[k]
                     }else if(node instanceof List){
-                        resource = node[k]
+                        resKey=k
                     }
+                    resource = node[resKey]
                     if (resource instanceof String) {
                         //ORIGINAL??out[node.key] = node.value
                         out[nodeKey] = resource
