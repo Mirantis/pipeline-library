@@ -306,8 +306,7 @@ def printSaltStateResult(result, onlyChanges = true) {
     def out = [:]
     if(result['return']){
         for (int i=0; i<result['return'].size(); i++) {
-            def key = result['return'].keySet()[i]
-            def entry = result['return'][key]
+            def entry = result['return'][i]
             for (int j=0; j<entry.size(); j++) {
                 common.errorMsg("Entry is: ${entry}")
                 def nodeKey = entry.keySet()[j]
@@ -354,8 +353,7 @@ def printSaltCommandResult(result) {
     def out = [:]
     if(result['return']){
         for (int i=0; i<result['return'].size(); i++) {
-            def key = result['return'].keySet()[i]
-            def entry = result['return'][key]
+            def entry = result['return'][i]
             for (int j=0; j<entry.size(); j++) {
                 common.errorMsg("Entry is: ${entry}")
                 def nodeKey = entry.keySet()[j]
