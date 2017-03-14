@@ -317,25 +317,25 @@ def printSaltStateResult(result, onlyChanges = true) {
                 def nodeKey = entry.keySet()[j]
                 def node=entry[nodeKey]
                 out[nodeKey] = [:]
-                for (int k=0; k<node.size(); k++) {
-                    def resource;
-                    def resKey;
-                    if(node instanceof Map){
-                        resKey = node.keySet()[k]
-                    }else if(node instanceof List){
-                        resKey=k
+                if(node instanceof Iterable){
+                    for (int k=0; k<node.size(); k++) {
+                        def resource;
+                        def resKey;
+                        if(node instanceof Map){
+                            resKey = node.keySet()[k]
+                        }else if(node instanceof List){
+                            resKey=k
+                        }
+                        resource = node[resKey]
+                        if (resource instanceof String) {
+                            //ORIGINAL??out[node.key] = node.value
+                            out[nodeKey][resKey] = resource
+                        } else if (resource.result.toString().toBoolean() == false || resource.changes || onlyChanges == false) {
+                            out[nodeKey][resKey] = resource.value
+                        }
                     }
-                    resource = node[resKey]
-                    if (resource instanceof String) {
-                        //ORIGINAL??out[node.key] = node.value
-                        out[nodeKey] = resource
-                    } else if (resource.result.toString().toBoolean() == false || resource.changes || onlyChanges == false) {
-                        out[nodeKey][resKey] = resource.value
-
-                        //if (resource.value.result.toString().toBoolean() == false && resource.key instanceof String && node.key instanceof String) {
-                        //    common.warningMsg("Resource ${resource.key} failed on node ${node.key}!")
-                        //}
-                    }
+                } else {
+                    out[nodeKey] = node.toString();
                 }
             }
         }
@@ -371,32 +371,36 @@ def printSaltCommandResult(result) {
                 def nodeKey = entry.keySet()[j]
                 def node=entry[nodeKey]
                 out[nodeKey] = [:]
-                for (int k=0; k<node.size(); k++) {
-                    def resource;
-                    def resKey;
-                    if(node instanceof Map){
-                        resKey = node.keySet()[k]
-                    }else if(node instanceof List){
-                        resKey=k
+                if(node instanceof Iterable){
+                    for (int k=0; k<node.size(); k++) {
+                        def resource;
+                        def resKey;
+                        if(node instanceof Map){
+                            resKey = node.keySet()[k]
+                        }else if(node instanceof List){
+                            resKey=k
+                        }
+                        resource = node[resKey]
+                        //ORIGINAL??out[node.key] = node.value
+                        out[nodeKey][resKey] = resource
                     }
-                    resource = node[resKey]
-                    //ORIGINAL??out[node.key] = node.value
-                    out[nodeKey] = resource
+                } else {
+                    out[nodeKey] = node.toString();
                 }
             }
         }
 
-    for (int i=0; i<out.size(); i++) {
-        def nodeKey = out.keySet()[i]
-        def node = out[nodeKey]
-        if (node) {
-            println "Node ${nodeKey} changes:"
-            print new groovy.json.JsonBuilder(node).toPrettyString()
-        } else {
-            println "No changes for node ${nodeKey}"
+        for (int i=0; i<out.size(); i++) {
+            def nodeKey = out.keySet()[i]
+            def node = out[nodeKey]
+            if (node) {
+                common.infoMsg("Node ${nodeKey} changes:")
+                common.infoMsg(new groovy.json.JsonBuilder(node).toPrettyString())
+            } else {
+                common.infoMsg("No changes for node ${nodeKey}")
+            }
         }
-    }
-        }else{
+    }else{
         common.errorMsg("Salt result hasn't return attribute! Result: ${result}")
     }
 }
