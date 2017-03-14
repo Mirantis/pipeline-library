@@ -105,6 +105,23 @@ def warningMsg(msg, color = true) {
 }
 
 /**
+ * Print debug message, this message will show only if DEBUG global variable is present
+ * @param msg
+ * @param color Colorful output or not
+ */
+def debugMsg(msg, color = true){
+    def debugEnabled
+    try {
+        debugEnabled = DEBUG
+    } catch (MissingPropertyException e) {
+        debugEnabled = false
+    }
+    if(debugEnabled){
+        printMsg(msg, "red")
+    }
+}
+
+/**
  * Print message
  *
  * @param msg        Message to be printed
