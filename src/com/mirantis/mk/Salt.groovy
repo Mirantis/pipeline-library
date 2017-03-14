@@ -308,6 +308,7 @@ def printSaltStateResult(result, onlyChanges = true) {
         for (int i=0; i<result['return'].size(); i++) {
             def entry = result['return'][i]
             for (int j=0; j<entry.size(); j++) {
+                common.errorMsg("Entry is: ${entry}")
                 def node=entry[j]
                 out[node.key] = [:]
                 for (int k=0; k<node.value.size(); k++) {
