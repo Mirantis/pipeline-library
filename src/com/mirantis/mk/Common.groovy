@@ -32,9 +32,15 @@ def getWorkspace() {
  *
  * @param id    Credentials name
  */
-def getCredentials(id) {
+def getCredentials(id, cred_type = "username_password") {
+    def credClass;
+    if(cred_type == "username_password"){
+        credClass = com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials.class
+    }else if(cred_type == "key"){
+        credClass = com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey.class
+    }
     def creds = com.cloudbees.plugins.credentials.CredentialsProvider.lookupCredentials(
-                    com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials.class,
+                    credClass,
                     jenkins.model.Jenkins.instance
                 )
 
