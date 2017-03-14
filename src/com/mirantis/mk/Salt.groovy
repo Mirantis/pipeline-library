@@ -284,7 +284,7 @@ def checkResult(result, failOnError = true) {
                     }
                     resource = node[resKey]
                     common.errorMsg("Checking resource: ${resource}")
-                    if(!resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
+                    if(resource instanceof String || !resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
                         if (failOnError) {
                             throw new Exception("Salt state on node ${nodeKey} failed: ${resource}. State output: ${node}")
                         } else {
@@ -361,6 +361,7 @@ def printSaltStateResult(result, onlyChanges = true) {
  * @param result        Parsed response of Salt API
  */
 def printSaltCommandResult(result) {
+    def common = new com.mirantis.mk.Common()
     def out = [:]
     if(result['return']){
         for (int i=0; i<result['return'].size(); i++) {
@@ -371,8 +372,14 @@ def printSaltCommandResult(result) {
                 def node=entry[nodeKey]
                 out[nodeKey] = [:]
                 for (int k=0; k<node.size(); k++) {
-                    def resKey = node.keySet()[k]
-                    def resource = node[resKey]
+                    def resource;
+                    def resKey;
+                    if(node instanceof Map){
+                        resKey = node.keySet()[k]
+                    }else if(node instanceof List){
+                        resKey=k
+                    }
+                    resource = node[resKey]
                     //ORIGINAL??out[node.key] = node.value
                     out[nodeKey] = resource
                 }
