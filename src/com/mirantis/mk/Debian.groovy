@@ -152,3 +152,59 @@ def runLintian(changes, profile="debian", image="debian:sid") {
             apt-get update && apt-get install -y lintian &&
             lintian -Ii -E --pedantic --profile=${profile} ${changes}'""")
 }
+
+/*
+ * Import gpg key
+ *
+ * @param privateKeyCredId   Public key jenkins credential id
+ */
+def importGpgKey(privateKeyCredId)
+{
+    def common = new com.mirantis.mk.Common()
+    def workspace = common.getWorkspace()
+    def privKey = common.getCredentials(privateKeyCredId, "key")
+    def private_key = privKey.privateKeySource.privateKey
+    writeFile("${workspace}/private.key", private_key)
+    sh(script: "gpg --no-tty --allow-secret-key-import --homedir ${workspace} --import ./private.key")
+}
+
+/*
+ * upload source package to launchpad
+ *
+ * @param ppaRepo   ppa repository on launchpad
+ * @param dirPath repository containing the source packages
+ */
+
+def uploadPpa(ppaRepo, dirPath, privateKeyCredId) {
+
+   def common = new com.mirantis.mk.Common()
+   def workspace = common.getWorkspace()
+   def gpg_key_id = common.getCredentials(privateKeyCredId, "key").username
+
+   dir(dirPath)
+   {
+       def images = findFiles(glob: "*.orig*.tar.gz")
+       for (int i = 0; i < images.size(); ++i) {
+          def name = images[i].getName()
+          def orig_sha1 = common.cutOrDie("sha1sum ${name}", 0)
+          def orig_sha256 = common.cutOrDie("sha256sum ${name}", 0)
+          def orig_md5 = common.cutOrDie("md5sum ${name}", 0)
+          def orig_size = common.cutOrDie("ls -l ${name}", 4)
+
+          def retval = sh(script: "wget --quiet -O orig-tmp https://launchpad.net/ubuntu/", returnStatus: true)
+          if (retval == 0) {
+             sh("mv orig-tmp ${name}")
+             def new_sha1 = common.cutOrDie("sha1sum ${name}", 0)
+             def new_sha256 = common.cutOrDie("sha256sum ${name}", 0)
+             def new_md5 = common.cutOrDie("md5sum ${name}", 0)
+             def new_size = common.cutOrDie("ls -l ${name}", 4)
+
+             sh("sed -i -e s,$orig_sha1,$new_sha1,g -e s,$orig_sha256,$new_sha256,g -e s,$orig_size,$new_size,g -e s,$orig_md5,$new_md5,g *.dsc")
+             sh("sed -i -e s,$orig_sha1,$new_sha1,g -e s,$orig_sha256,$new_sha256,g -e s,$orig_size,$new_size,g -e s,$orig_md5,$new_md5,g *.changes")
+          }
+
+          sh("debsign --re-sign -k ${gpg_key_id} *.changes")
+          sh("dput -f \"ppa:${ppaRepo}\" *.changes")
+        }
+    }
+}

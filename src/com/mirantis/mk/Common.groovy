@@ -305,3 +305,23 @@ def sendNotification(buildStatus, msgText="", enabledNotifications = [], notific
         }
     }
 }
+
+/**
+ * Execute linux command and catch nth element
+ * @param cmd command to execute
+ * @param index index to retrieve
+ * @return index-th element
+ */
+
+def cutOrDie(cmd, index)
+{
+    def common = new com.mirantis.mk.Common()
+    def output
+    try {
+      output = sh(script: cmd, returnStdout: true)
+      def result = output.tokenize(" ")[index]
+      return result;
+    } catch (Exception e) {
+      common.errorMsg("Failed to execute cmd: ${cmd}\n output: ${output}")
+    }
+}
