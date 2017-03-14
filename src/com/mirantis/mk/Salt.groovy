@@ -272,18 +272,17 @@ def checkResult(result, failOnError = true) {
                 }
             }
             for (int j=0;j<entry.size();j++) {
-                def node=entry[j]
-                for (int k=0;k<node.value.size();k++) {
-                    def res = node.value[k]
-                    if(node.value[k] instanceof Map.Entry){
-                        res = node.value[k].value
-                    }
+                def nodeKey = entry.keySet()[j]
+                def node=entry[nodeKey]
+                for (int k=0;k<node.size();k++) {
+                    def resKey = node.keySet()[k]
+                    def res = node[resKey]
                     common.errorMsg("Checking resource: ${res}")
                     if(!res["result"] || (res["result"] instanceof String && res["result"] != "true")){
                         if (failOnError) {
-                            throw new Exception("Salt state on node ${node.key} failed: ${res}. State output: ${node.value}")
+                            throw new Exception("Salt state on node ${nodeKey} failed: ${res}. State output: ${node}")
                         } else {
-                            common.errorMsg("Salt state on node ${node.key} failed: ${res}. State output: ${node.value}")
+                            common.errorMsg("Salt state on node ${nodeKey} failed: ${res}. State output: ${node}")
                         }
                     }
                 }
