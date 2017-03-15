@@ -395,7 +395,7 @@ def printSaltCommandResult(result) {
             def node = out[nodeKey]
             if (node) {
                 common.infoMsg("Node ${nodeKey} changes:")
-                common.infoMsg(new groovy.json.JsonBuilder(node).toPrettyString())
+                print new groovy.json.JsonBuilder(node).toPrettyString()
             } else {
                 common.infoMsg("No changes for node ${nodeKey}")
             }
