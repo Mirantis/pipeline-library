@@ -345,7 +345,7 @@ def printSaltStateResult(result, onlyChanges = true) {
             def node=out[nodeKey]
             if (node) {
                 common.infoMsg("Node ${nodeKey} changes:")
-                common.infoMsg(new groovy.json.JsonBuilder(node).toPrettyString().replace('\\n', System.getProperty('line.separator')))
+                print new groovy.json.JsonBuilder(node).toPrettyString().replace('\\n', System.getProperty('line.separator'))
             } else {
                 common.infoMsg("No changes for node ${nodeKey}")
             }
@@ -356,7 +356,7 @@ def printSaltStateResult(result, onlyChanges = true) {
 }
 
 /**
- * Print Salt state run results in human-friendly form
+ * Print salt command run results in human-friendly form
  *
  * @param result        Parsed response of Salt API
  */
@@ -395,7 +395,7 @@ def printSaltCommandResult(result) {
             def node = out[nodeKey]
             if (node) {
                 common.infoMsg("Node ${nodeKey} changes:")
-                print new groovy.json.JsonBuilder(node).toPrettyString()
+                print new groovy.json.JsonBuilder(node).toPrettyString().replace('\\n', System.getProperty('line.separator'))
             } else {
                 common.infoMsg("No changes for node ${nodeKey}")
             }
