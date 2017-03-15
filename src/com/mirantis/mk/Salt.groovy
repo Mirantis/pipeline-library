@@ -1,7 +1,7 @@
 package com.mirantis.mk
 
-import static groovy.json.JsonOutput.prettyPrint;
-import static groovy.json.JsonOutput.toJson;
+import static groovy.json.JsonOutput.prettyPrint
+import static groovy.json.JsonOutput.toJson
 
 /**
  * Salt functions
@@ -264,41 +264,45 @@ def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false)
  */
 def checkResult(result, failOnError = true) {
     def common = new com.mirantis.mk.Common()
-    if(result['return']){
-        for (int i=0;i<result['return'].size();i++) {
-            def entry = result['return'][i]
-            if (!entry) {
-                if (failOnError) {
-                    throw new Exception("Salt API returned empty response: ${result}")
-                } else {
-                    common.errorMsg("Salt API returned empty response: ${result}")
-                }
-            }
-            for (int j=0;j<entry.size();j++) {
-                def nodeKey = entry.keySet()[j]
-                def node=entry[nodeKey]
-                for (int k=0;k<node.size();k++) {
-                    def resource;
-                    def resKey;
-                    if(node instanceof Map){
-                        resKey = node.keySet()[k]
-                    }else if(node instanceof List){
-                        resKey = k
+    if(result != null){
+        if(result['return']){
+            for (int i=0;i<result['return'].size();i++) {
+                def entry = result['return'][i]
+                if (!entry) {
+                    if (failOnError) {
+                        throw new Exception("Salt API returned empty response: ${result}")
+                    } else {
+                        common.errorMsg("Salt API returned empty response: ${result}")
                     }
-                    resource = node[resKey]
-                    common.debugMsg("checkResult: checking resource: ${resource}")
-                    if(resource instanceof String || !resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
-                        if (failOnError) {
-                            throw new Exception("Salt state on node ${nodeKey} failed: ${resource}. State output: ${node}")
-                        } else {
-                            common.errorMsg("Salt state on node ${nodeKey} failed: ${resource}. State output: ${node}")
+                }
+                for (int j=0;j<entry.size();j++) {
+                    def nodeKey = entry.keySet()[j]
+                    def node=entry[nodeKey]
+                    for (int k=0;k<node.size();k++) {
+                        def resource;
+                        def resKey;
+                        if(node instanceof Map){
+                            resKey = node.keySet()[k]
+                        }else if(node instanceof List){
+                            resKey = k
+                        }
+                        resource = node[resKey]
+                        common.debugMsg("checkResult: checking resource: ${resource}")
+                        if(resource instanceof String || !resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
+                            if (failOnError) {
+                                throw new Exception("Salt state on node ${nodeKey} failed: ${resource}. State output: ${node}")
+                            } else {
+                                common.errorMsg("Salt state on node ${nodeKey} failed: ${resource}. State output: ${node}")
+                            }
                         }
                     }
                 }
             }
+        }else{
+            common.errorMsg("Salt result hasn't return attribute! Result: ${result}")
         }
     }else{
-        common.errorMsg("Salt result hasn't return attribute! Result: ${result}")
+        common.errorMsg("Cannot check salt result, given result is null")
     }
 }
 
@@ -306,23 +310,54 @@ def checkResult(result, failOnError = true) {
  * Print Salt state run results in human-friendly form
  *
  * @param result        Parsed response of Salt API
- * @param onlyChanges   If true (default), print only changed resources
- *                      parsing
+  * @param onlyChanges   If true (default), print only changed resources
  */
 def printSaltStateResult(result, onlyChanges = true) {
     def common = new com.mirantis.mk.Common()
-     if(result['return']){
-        for (int i=0; i<result['return'].size(); i++) {
-            def entry = result['return'][i]
-            for (int j=0; j<entry.size(); j++) {
-                common.debugMsg("printSaltStateResult: printing salt state entry: ${entry}")
-                def nodeKey = entry.keySet()[j]
-                def node=entry[nodeKey]
-                common.infoMsg(String.format("Node %s changes:\n%s",nodeKey,prettyPrint(toJson(node))))
+    if(result != null){
+        if(result['return']){
+            for (int i=0; i<result['return'].size(); i++) {
+                def entry = result['return'][i]
+                for (int j=0; j<entry.size(); j++) {
+                    common.debugMsg("printSaltStateResult: printing salt command entry: ${entry}")
+                    def nodeKey = entry.keySet()[j]
+                    def node=entry[nodeKey]
+                    common.infoMsg("Node ${nodeKey} changes:")
+                    if(node instanceof Map || node instanceof List){
+                        for (int k=0;k<node.size();k++) {
+                            def resource;
+                            def resKey;
+                            if(node instanceof Map){
+                                resKey = node.keySet()[k]
+                            }else if(node instanceof List){
+                                resKey = k
+                            }
+                            resource = node[resKey]
+                            //clean unnesaccary fields
+                            resource.remove("__run_num__")
+                            resource.remove("__id__")
+                            if(resource instanceof Map && resource.keySet().contains("result")){
+                                if(!resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
+                                    common.errorMsg(String.format("Resource: %s\n%s", resKey, prettyPrint(toJson(resource)).replace('\\n', System.getProperty('line.separator'))))
+                                }else{
+                                    if(!onlyChanges || resource.changes.size() > 0){
+                                        common.successMsg(String.format("Resource: %s\n%s", resKey, prettyPrint(toJson(resource)).replace('\\n', System.getProperty('line.separator'))))
+                                    }
+                                }
+                            }else{
+                                common.infoMsg(String.format("Resource: %s\n%s", resKey, prettyPrint(toJson(resource)).replace('\\n', System.getProperty('line.separator'))))
+                            }
+                        }
+                    }else{
+                        common.infoMsg(prettyPrint(toJson(node)))
+                    }
+                }
             }
+        }else{
+            common.errorMsg("Salt result hasn't return attribute! Result: ${result}")
         }
     }else{
-        common.errorMsg("Salt result hasn't return attribute! Result: ${result}")
+        common.errorMsg("Cannot print salt state result, given result is null")
     }
 }
 
@@ -333,17 +368,21 @@ def printSaltStateResult(result, onlyChanges = true) {
  */
 def printSaltCommandResult(result) {
     def common = new com.mirantis.mk.Common()
-    if(result['return']){
-        for (int i=0; i<result['return'].size(); i++) {
-            def entry = result['return'][i]
-            for (int j=0; j<entry.size(); j++) {
-                common.debugMsg("printSaltCommandResult: printing salt command entry: ${entry}")
-                def nodeKey = entry.keySet()[j]
-                def node=entry[nodeKey]
-                common.infoMsg(String.format("Node %s changes:\n%s", nodeKey, prettyPrint(toJson(node))))
+    if(result != null){
+        if(result['return']){
+            for (int i=0; i<result['return'].size(); i++) {
+                def entry = result['return'][i]
+                for (int j=0; j<entry.size(); j++) {
+                    common.debugMsg("printSaltCommandResult: printing salt command entry: ${entry}")
+                    def nodeKey = entry.keySet()[j]
+                    def node=entry[nodeKey]
+                    common.infoMsg(String.format("Node %s changes:\n%s",nodeKey,prettyPrint(toJson(node)).replace('\\n', System.getProperty('line.separator'))))
+                }
             }
+        }else{
+            common.errorMsg("Salt result hasn't return attribute! Result: ${result}")
         }
     }else{
-        common.errorMsg("Salt result hasn't return attribute! Result: ${result}")
+        common.errorMsg("Cannot print salt command result, given result is null")
     }
 }
