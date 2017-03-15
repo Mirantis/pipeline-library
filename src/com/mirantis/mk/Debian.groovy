@@ -165,7 +165,7 @@ def importGpgKey(privateKeyCredId)
     def privKey = common.getCredentials(privateKeyCredId, "key")
     def private_key = privKey.privateKeySource.privateKey
     writeFile file:"${workspace}/private.key", text: private_key
-    sh(script: "gpg --no-tty --allow-secret-key-import --homedir ${workspace} --import ./private.key")
+    sh(script: "gpg --no-tty --allow-secret-key-import --homedir ${workspace}/.gnupg --import ./private.key")
 }
 
 /*
