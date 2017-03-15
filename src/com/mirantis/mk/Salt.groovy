@@ -1,5 +1,8 @@
 package com.mirantis.mk
 
+import static groovy.json.JsonOutput.prettyPrint;
+import static groovy.json.JsonOutput.toJson;
+
 /**
  * Salt functions
  *
@@ -308,46 +311,14 @@ def checkResult(result, failOnError = true) {
  */
 def printSaltStateResult(result, onlyChanges = true) {
     def common = new com.mirantis.mk.Common()
-    def out = [:]
-    if(result['return']){
+     if(result['return']){
         for (int i=0; i<result['return'].size(); i++) {
             def entry = result['return'][i]
             for (int j=0; j<entry.size(); j++) {
                 common.debugMsg("printSaltStateResult: printing salt state entry: ${entry}")
                 def nodeKey = entry.keySet()[j]
                 def node=entry[nodeKey]
-                out[nodeKey] = [:]
-                if(node instanceof Iterable){
-                    for (int k=0; k<node.size(); k++) {
-                        def resource;
-                        def resKey;
-                        if(node instanceof Map){
-                            resKey = node.keySet()[k]
-                        }else if(node instanceof List){
-                            resKey=k
-                        }
-                        resource = node[resKey]
-                        if (resource instanceof String) {
-                            //ORIGINAL??out[node.key] = node.value
-                            out[nodeKey][resKey] = resource
-                        } else if (resource.result.toString().toBoolean() == false || resource.changes || onlyChanges == false) {
-                            out[nodeKey][resKey] = resource.value
-                        }
-                    }
-                } else {
-                    out[nodeKey] = node.toString();
-                }
-            }
-        }
-
-        for (int i=0; i<out.size(); i++) {
-            def nodeKey = out.keySet()[i]
-            def node=out[nodeKey]
-            if (node) {
-                common.infoMsg("Node ${nodeKey} changes:")
-                print new groovy.json.JsonBuilder(node).toPrettyString().replace('\\n', System.getProperty('line.separator'))
-            } else {
-                common.infoMsg("No changes for node ${nodeKey}")
+                common.infoMsg(String.format("Node %s changes:\n%s",nodeKey,prettyPrint(toJson(node))))
             }
         }
     }else{
@@ -362,7 +333,6 @@ def printSaltStateResult(result, onlyChanges = true) {
  */
 def printSaltCommandResult(result) {
     def common = new com.mirantis.mk.Common()
-    def out = [:]
     if(result['return']){
         for (int i=0; i<result['return'].size(); i++) {
             def entry = result['return'][i]
@@ -370,34 +340,7 @@ def printSaltCommandResult(result) {
                 common.debugMsg("printSaltCommandResult: printing salt command entry: ${entry}")
                 def nodeKey = entry.keySet()[j]
                 def node=entry[nodeKey]
-                out[nodeKey] = [:]
-                if(node instanceof Iterable){
-                    for (int k=0; k<node.size(); k++) {
-                        def resource;
-                        def resKey;
-                        if(node instanceof Map){
-                            resKey = node.keySet()[k]
-                        }else if(node instanceof List){
-                            resKey=k
-                        }
-                        resource = node[resKey]
-                        //ORIGINAL??out[node.key] = node.value
-                        out[nodeKey][resKey] = resource
-                    }
-                } else {
-                    out[nodeKey] = node.toString();
-                }
-            }
-        }
-
-        for (int i=0; i<out.size(); i++) {
-            def nodeKey = out.keySet()[i]
-            def node = out[nodeKey]
-            if (node) {
-                common.infoMsg("Node ${nodeKey} changes:")
-                print new groovy.json.JsonBuilder(node).toPrettyString().replace('\\n', System.getProperty('line.separator'))
-            } else {
-                common.infoMsg("No changes for node ${nodeKey}")
+                common.infoMsg(String.format("Node %s changes:\n%s", nodeKey, prettyPrint(toJson(node))))
             }
         }
     }else{
