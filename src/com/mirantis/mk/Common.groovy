@@ -117,7 +117,7 @@ def debugMsg(msg, color = true){
         debugEnabled = false
     }
     if(debugEnabled){
-        printMsg(msg, "red")
+        printMsg("[DEBUG] ${msg}", "red")
     }
 }
 

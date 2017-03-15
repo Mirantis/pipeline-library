@@ -283,7 +283,7 @@ def checkResult(result, failOnError = true) {
                         resKey = k
                     }
                     resource = node[resKey]
-                    common.errorMsg("Checking resource: ${resource}")
+                    common.debugMsg("checkResult: checking resource: ${resource}")
                     if(resource instanceof String || !resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
                         if (failOnError) {
                             throw new Exception("Salt state on node ${nodeKey} failed: ${resource}. State output: ${node}")
@@ -313,7 +313,7 @@ def printSaltStateResult(result, onlyChanges = true) {
         for (int i=0; i<result['return'].size(); i++) {
             def entry = result['return'][i]
             for (int j=0; j<entry.size(); j++) {
-                common.errorMsg("Entry is: ${entry}")
+                common.debugMsg("printSaltStateResult: printing salt state entry: ${entry}")
                 def nodeKey = entry.keySet()[j]
                 def node=entry[nodeKey]
                 out[nodeKey] = [:]
@@ -344,10 +344,10 @@ def printSaltStateResult(result, onlyChanges = true) {
             def nodeKey = out.keySet()[i]
             def node=out[nodeKey]
             if (node) {
-                println "Node ${nodeKey} changes:"
-                print new groovy.json.JsonBuilder(node).toPrettyString().replace('\\n', System.getProperty('line.separator'))
+                common.infoMsg("Node ${nodeKey} changes:")
+                common.infoMsg(new groovy.json.JsonBuilder(node).toPrettyString().replace('\\n', System.getProperty('line.separator')))
             } else {
-                println "No changes for node ${nodeKey}"
+                common.infoMsg("No changes for node ${nodeKey}")
             }
         }
     }else{
@@ -367,7 +367,7 @@ def printSaltCommandResult(result) {
         for (int i=0; i<result['return'].size(); i++) {
             def entry = result['return'][i]
             for (int j=0; j<entry.size(); j++) {
-                common.errorMsg("Entry is: ${entry}")
+                common.debugMsg("printSaltCommandResult: printing salt command entry: ${entry}")
                 def nodeKey = entry.keySet()[j]
                 def node=entry[nodeKey]
                 out[nodeKey] = [:]
