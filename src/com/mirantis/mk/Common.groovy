@@ -101,7 +101,7 @@ def successMsg(msg, color = true) {
  * @param color Colorful output or not
  */
 def warningMsg(msg, color = true) {
-    printMsg(msg, "blue")
+    printMsg(msg, "yellow")
 }
 
 /**

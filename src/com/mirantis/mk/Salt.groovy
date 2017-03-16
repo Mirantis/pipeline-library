@@ -358,7 +358,11 @@ def printSaltStateResult(result, onlyChanges = true) {
                                 }
 
                                 if(!resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
-                                    common.errorMsg(String.format("Resource: %s\n%s", resKey, prettyPrint(toJson(resource)).replace('\\n', System.getProperty('line.separator'))))
+                                    if(resource["result"] != null){
+                                        common.errorMsg(String.format("Resource: %s\n%s", resKey, prettyPrint(toJson(resource)).replace('\\n', System.getProperty('line.separator'))))
+                                    }else{
+                                        common.warningMsg(String.format("Resource: %s\n%s", resKey, prettyPrint(toJson(resource)).replace('\\n', System.getProperty('line.separator'))))
+                                    }
                                 }else{
                                     if(!onlyChanges || resource.changes.size() > 0){
                                         common.successMsg(String.format("Resource: %s\n%s", resKey, prettyPrint(toJson(resource)).replace('\\n', System.getProperty('line.separator'))))
