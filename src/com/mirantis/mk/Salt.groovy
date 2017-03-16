@@ -194,6 +194,18 @@ def enforceHighstate(master, target, output = false, failOnError = true) {
 }
 
 /**
+ * Get running minions IDs according to the target
+ * @param master Salt connection object
+ * @param target Get minions target
+ * @return list of active minions fitin
+ */
+def getMinions(master, target) {
+    def minionsRaw = runSaltCommand(master, 'local', target, 'test.ping')
+    return new ArrayList<String>(minionsRaw['return'][0].keySet())
+}
+
+
+/**
  * Generates node key using key.gen_accept call
  * @param master Salt connection object
  * @param target Key generating target
