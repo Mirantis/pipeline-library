@@ -345,10 +345,18 @@ def printSaltStateResult(result, onlyChanges = true) {
                                 resKey = k
                             }
                             resource = node[resKey]
-                            //clean unnesaccary fields
-                            resource.remove("__run_num__")
-                            resource.remove("__id__")
                             if(resource instanceof Map && resource.keySet().contains("result")){
+                                //clean unnesaccary fields
+                                if(resource.keySet().contains("__run_num__")){
+                                    resource.remove("__run_num__")
+                                }
+                                if(resource.keySet().contains("__id__")){
+                                    resource.remove("__id__")
+                                }
+                                if(resource.keySet().contains("pchanges")){
+                                    resource.remove("pchanges")
+                                }
+
                                 if(!resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
                                     common.errorMsg(String.format("Resource: %s\n%s", resKey, prettyPrint(toJson(resource)).replace('\\n', System.getProperty('line.separator'))))
                                 }else{
