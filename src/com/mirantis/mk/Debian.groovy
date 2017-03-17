@@ -191,7 +191,7 @@ def uploadPpa(ppaRepo, dirPath, privateKeyCredId) {
           def orig_md5 = common.cutOrDie("md5sum ${name}", 0)
           def orig_size = common.cutOrDie("ls -l ${name}", 4)
 
-          def retval = sh(script: "wget --quiet -O orig-tmp https://launchpad.net/ubuntu/", returnStatus: true)
+          def retval = sh(script: "wget --quiet -O orig-tmp https://launchpad.net/ubuntu/+archive/primary/+files/${name}", returnStatus: true)
           if (retval == 0) {
              sh("mv orig-tmp ${name}")
              def new_sha1 = common.cutOrDie("sha1sum ${name}", 0)
