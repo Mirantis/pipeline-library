@@ -172,3 +172,31 @@ def restGet(master, uri, data = null) {
 def restPost(master, uri, data = null) {
     return restCall(master, uri, 'POST', data, ['Accept': '*/*'])
 }
+
+/**
+ * Set HTTP and HTTPS proxy for running JVM
+ * @param host HTTP proxy host
+ * @param port HTTP proxy port
+ * @param nonProxyHosts proxy excluded hosts, optional, default *.local
+ */
+def enableHttpProxy(host, port, nonProxyHosts="*.local"){
+    System.getProperties().put("proxySet", "true")
+    System.getProperties().put("http.proxyHost", host)
+    System.getProperties().put("http.proxyPort", port)
+    System.getProperties().put("https.proxyHost", host)
+    System.getProperties().put("https.proxyPort", port)
+    System.getProperties().put("http.nonProxyHosts", nonProxyHosts)
+    System.getProperties().put("https.nonProxyHosts", nonProxyHosts)
+}
+/**
+ * Disable HTTP and HTTPS proxy for running JVM
+ */
+def disableHttpProxy(){
+    System.getProperties().put("proxySet", "false")
+    System.getProperties().remove("http.proxyHost")
+    System.getProperties().remove("http.proxyPort")
+    System.getProperties().remove("https.proxyHost")
+    System.getProperties().remove("https.proxyPort")
+    System.getProperties().remove("http.nonProxyHosts")
+    System.getProperties().remove("https.nonProxyHosts")
+}
