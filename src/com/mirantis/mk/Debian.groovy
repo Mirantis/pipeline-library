@@ -204,7 +204,7 @@ def uploadPpa(ppaRepo, dirPath, privateKeyCredId) {
           }
 
           sh("export GNUPGHOME=${workspace}/.gnupg; debsign --re-sign -k ${gpg_key_id} *.changes")
-          sh("dput -f \"ppa:${ppaRepo}\" *.changes")
+          sh("export GNUPGHOME=${workspace}/.gnupg; dput -f \"ppa:${ppaRepo}\" *.changes")
         }
     }
 }
