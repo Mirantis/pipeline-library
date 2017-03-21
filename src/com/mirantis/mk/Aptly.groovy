@@ -73,12 +73,12 @@ def diffPublish(server, source, target, components=null, opts='--timeout 600') {
 }
 
 def promotePublish(server, source, target, recreate=false, components=null, packages=null, diff=false, opts='-d --timeout 600') {
-    if (components) {
-        def componentsStr = components.join(' ')
+    if (components && components != "all" && components != "") {
+        def componentsStr = components.replaceAll(",", " ")
         opts = "${opts} --components ${componentsStr}"
     }
-    if (packages) {
-        def packagesStr = packages.join(' ')
+    if (packages && packages != "all" && packages != "") {
+        def packagesStr = packages.replaceAll(",", " ")
         opts = "${opts} --packages ${packagesStr}"
     }
     if (recreate.toBoolean() == true) {
@@ -87,6 +87,7 @@ def promotePublish(server, source, target, recreate=false, components=null, pack
     if (diff.toBoolean() == true) {
         opts = "--dry --diff"
     }
+
     sh("aptly-publisher --url ${server} promote --source ${source} --target ${target} ${opts}")
 }
 
