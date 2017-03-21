@@ -28,6 +28,28 @@ def getWorkspace() {
 }
 
 /**
+ * Get UID of jenkins user.
+ * Must be run from context of node
+ */
+def getJenkinsUid() {
+    return sh (
+        script: 'id -u',
+        returnStdout: true
+    ).trim()
+}
+
+/**
+ * Get GID of jenkins user.
+ * Must be run from context of node
+ */
+def getJenkinsGid() {
+    return sh (
+        script: 'id -g',
+        returnStdout: true
+    ).trim()
+}
+
+/**
  * Get credentials from store
  *
  * @param id    Credentials name

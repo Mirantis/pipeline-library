@@ -22,6 +22,9 @@ def cleanup(image="debian:sid") {
  */
 def buildBinary(file, image="debian:sid", extraRepoUrl=null, extraRepoKeyUrl=null) {
     def common = new com.mirantis.mk.Common()
+    def jenkinsUID = common.getJenkinsUid()
+    def jenkinsGID = common.getJenkinsGid()
+
     def pkg = file.split('/')[-1].split('_')[0]
     def img = docker.image(image)
 
@@ -35,10 +38,12 @@ def buildBinary(file, image="debian:sid", extraRepoUrl=null, extraRepoKeyUrl=nul
                 which curl || (apt-get update && apt-get install -y curl) &&
                 curl --insecure -ss -f "${extraRepoKeyUrl}" | apt-key add -
             ) &&
-            apt-get update && apt-get install -y build-essential devscripts equivs &&
-            dpkg-source -x ${file} build-area/${pkg} && cd build-area/${pkg} &&
+            apt-get update && apt-get install -y build-essential devscripts equivs sudo &&
+            groupadd -g ${jenkinsGID} jenkins &&
+            useradd -s /bin/bash --uid ${jenkinsUID} --gid ${jenkinsGID} -m jenkins &&
+            sudo -H -u jenkins dpkg-source -x ${file} build-area/${pkg} && cd build-area/${pkg} &&
             mk-build-deps -t "apt-get -o Debug::pkgProblemResolver=yes -y" -i debian/control
-            debuild --no-lintian -uc -us -b'""")
+            sudo -H -u jenkins debuild --no-lintian -uc -us -b'""")
 }
 
 /*
@@ -89,14 +94,8 @@ def buildSourceUscan(dir, image="debian:sid") {
  */
 def buildSourceGbp(dir, image="debian:sid", snapshot=false, gitEmail='jenkins@dummy.org', gitName='Jenkins', revisionPostfix="") {
     def common = new com.mirantis.mk.Common()
-    def jenkinsUID = sh (
-        script: 'id -u',
-        returnStdout: true
-    ).trim()
-    def jenkinsGID = sh (
-        script: 'id -g',
-        returnStdout: true
-    ).trim()
+    def jenkinsUID = common.getJenkinsUid()
+    def jenkinsGID = common.getJenkinsGid()
 
     if (! revisionPostfix) {
         revisionPostfix = ""
@@ -134,7 +133,7 @@ def buildSourceGbp(dir, image="debian:sid", snapshot=false, gitEmail='jenkins@du
                 sudo -H -u jenkins git add -u debian/changelog &&
                 sudo -H -u jenkins git commit -m "New snapshot version \$NEW_VERSION"
             ) &&
-            gbp buildpackage -nc --git-force-create --git-notify=false --git-ignore-branch --git-ignore-new --git-verbose --git-export-dir=../build-area -S -uc -us'""")
+            sudo -H -u jenkins gbp buildpackage -nc --git-force-create --git-notify=false --git-ignore-branch --git-ignore-new --git-verbose --git-export-dir=../build-area -S -uc -us""")
 }
 
 /*
