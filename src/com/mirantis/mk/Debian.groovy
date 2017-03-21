@@ -163,8 +163,12 @@ def importGpgKey(privateKeyCredId)
     def workspace = common.getWorkspace()
     def privKey = common.getCredentials(privateKeyCredId, "key")
     def private_key = privKey.privateKeySource.privateKey
-    writeFile file:"${workspace}/private.key", text: private_key
-    sh(script: "gpg --no-tty --allow-secret-key-import --homedir ${workspace}/.gnupg --import ./private.key")
+    def gpg_key_id = common.getCredentials(privateKeyCredId, "key").username
+    def retval = sh(script: "export GNUPGHOME=${workspace}/.gnupg; gpg --list-secret-keys | grep ${gpg_key_id}", returnStatus: true)
+    if (retval) {
+        writeFile file:"${workspace}/private.key", text: private_key
+        sh(script: "gpg --no-tty --allow-secret-key-import --homedir ${workspace}/.gnupg --import ./private.key")
+    }
 }
 
 /*
