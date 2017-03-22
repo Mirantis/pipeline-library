@@ -31,6 +31,12 @@ def gerritPatchsetCheckout(LinkedHashMap config) {
     def merge = config.get('withMerge', false)
     def wipe = config.get('withWipeOut', false)
     def credentials = config.get('credentialsId','')
+    def gerritRefSpec = config.get('gerritRefSpec', GERRIT_REFSPEC)
+    def gerritName = config.get('gerritName', GERRIT_NAME)
+    def gerritHost = config.get('gerritHost', GERRIT_HOST)
+    def gerritPort = config.get('gerritPort', GERRIT_PORT)
+    def gerritProject = config.get('gerritProject', GERRIT_PROJECT)
+    def gerritBranch = config.get('gerritBranch', GERRIT_BRANCH)
 
     // default parameters
     def scmExtensions = [
@@ -39,21 +45,21 @@ def gerritPatchsetCheckout(LinkedHashMap config) {
     ]
     def scmUserRemoteConfigs = [
         name: 'gerrit',
-        refspec: "${GERRIT_REFSPEC}"
+        refspec: gerritRefSpec
     ]
 
     if (credentials == '') {
         // then try to checkout in anonymous mode
-        scmUserRemoteConfigs.put('url',"https://${GERRIT_HOST}/${GERRIT_PROJECT}")
+        scmUserRemoteConfigs.put('url',"https://${gerritHost}/${gerritProject}")
     } else {
         // else use ssh checkout
-        scmUserRemoteConfigs.put('url',"ssh://${GERRIT_NAME}@${GERRIT_HOST}:${GERRIT_PORT}/${GERRIT_PROJECT}.git")
+        scmUserRemoteConfigs.put('url',"ssh://${gerritName}@${gerritHost}:${gerritPort}/${gerritProject}.git")
         scmUserRemoteConfigs.put('credentialsId',credentials)
     }
 
     // if we need to "merge" code from patchset to GERRIT_BRANCH branch
     if (merge) {
-        scmExtensions.add([$class: 'LocalBranch', localBranch: "${GERRIT_BRANCH}"])
+        scmExtensions.add([$class: 'LocalBranch', localBranch: "${gerritBranch}"])
     }
     // we need wipe workspace before checkout
     if (wipe) {
@@ -63,7 +69,7 @@ def gerritPatchsetCheckout(LinkedHashMap config) {
     checkout(
         scm: [
             $class: 'GitSCM',
-            branches: [[name: "${GERRIT_BRANCH}"]],
+            branches: [[name: "${gerritBranch}"]],
             extensions: scmExtensions,
             userRemoteConfigs: [scmUserRemoteConfigs]
         ]
