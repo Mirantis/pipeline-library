@@ -32,7 +32,6 @@ def getKnownHost(url){
         }
         parsed = new URI(url)
         host = parsed.host
-        println(host)
         port = parsed.port && parsed.port > 0 ? parsed.port: 22
     }
     return [host,port]
