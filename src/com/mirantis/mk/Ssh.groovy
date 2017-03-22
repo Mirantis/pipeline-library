@@ -26,8 +26,13 @@ def getKnownHost(url){
         host = result.group(1)
         port = 22
     } else {
+        // test for protocol
+        if(url.indexOf("://") == -1){
+            url="ssh://" + url
+        }
         parsed = new URI(url)
         host = parsed.host
+        println(host)
         port = parsed.port && parsed.port > 0 ? parsed.port: 22
     }
     return [host,port]
