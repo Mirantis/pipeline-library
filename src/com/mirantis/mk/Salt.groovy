@@ -304,7 +304,7 @@ def checkResult(result, failOnError = true) {
                             if(askOnError){
                                 def prettyResource = prettyPrint(toJson(resource)).replace('\\n', System.getProperty('line.separator'));
                                 timeout(time:1, unit:'HOURS') {
-                                   input message: "False result on ${node} found, resource ${prettyResource}. \nDo you want to continue?"
+                                   input message: "False result on ${nodeKey} found, resource ${prettyResource}. \nDo you want to continue?"
                                 }
                             }else{
                                 if (failOnError) {
