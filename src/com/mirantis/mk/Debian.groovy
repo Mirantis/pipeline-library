@@ -203,7 +203,7 @@ def uploadPpa(ppaRepo, dirPath, privateKeyCredId) {
              def new_size = common.cutOrDie("ls -l ${name}", 4)
 
              sh("sed -i -e s,$orig_sha1,$new_sha1,g -e s,$orig_sha256,$new_sha256,g -e s,$orig_size,$new_size,g -e s,$orig_md5,$new_md5,g *.dsc")
-             sh("sed -i -e s,$orig_sha1,$new_sha1,g -e s,$orig_sha256,$new_sha256,g -e s,$orig_size,$new_size,g -e s,$orig_md5,$new_md5,g *.changes")
+             sh("sed -i -e s,$orig_sha1,$new_sha1,g -e s,$orig_sha256,$new_sha256,g -e s,$orig_size,$new_size,g -e s,$orig_md5,$new_md5,g *_source.changes")
           }
         }
         sh("export GNUPGHOME=${workspace}/.gnupg; debsign --re-sign -k ${gpg_key_id} *_source.changes")
