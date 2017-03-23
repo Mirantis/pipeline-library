@@ -303,7 +303,7 @@ def checkResult(result, failOnError = true) {
                         if(resource instanceof String || !resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
                             if(askOnError){
                                 timeout(time:1, unit:'HOURS') {
-                                   input message: "False result found, do you want to continue?"
+                                   input message: "False result on ${node} found, resource ${resource}. \nDo you want to continue?"
                                 }
                             }else{
                                 if (failOnError) {
