@@ -133,7 +133,7 @@ def buildSourceGbp(dir, image="debian:sid", snapshot=false, gitEmail='jenkins@du
                 sudo -H -u jenkins git add -u debian/changelog &&
                 sudo -H -u jenkins git commit -m "New snapshot version \$NEW_VERSION"
             ) &&
-            sudo -H -u jenkins gbp buildpackage -nc --git-force-create --git-notify=false --git-ignore-branch --git-ignore-new --git-verbose --git-export-dir=../build-area -S -uc -us'""")
+            sudo -H -u jenkins gbp buildpackage -nc --git-force-create --git-notify=false --git-ignore-branch --git-ignore-new --git-verbose --git-export-dir=../build-area -sa -S -uc -us '""")
 }
 
 /*
