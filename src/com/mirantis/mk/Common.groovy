@@ -385,10 +385,10 @@ def checkContains(variable, keyword) {
         if (v instanceof String && keyword instanceof String) {
             return v.toLowerCase().contains(keyword.toLowerCase())
         } else {
-            return False
+            return false
         }
 
     } else {
-        return False
+        return false
     }
 }
