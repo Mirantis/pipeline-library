@@ -302,8 +302,9 @@ def checkResult(result, failOnError = true) {
                         common.debugMsg("checkResult: checking resource: ${resource}")
                         if(resource instanceof String || !resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
                             if(askOnError){
+                                def prettyResource = prettyPrint(toJson(resource)).replace('\\n', System.getProperty('line.separator'));
                                 timeout(time:1, unit:'HOURS') {
-                                   input message: "False result on ${node} found, resource ${resource}. \nDo you want to continue?"
+                                   input message: "False result on ${node} found, resource ${prettyResource}. \nDo you want to continue?"
                                 }
                             }else{
                                 if (failOnError) {
