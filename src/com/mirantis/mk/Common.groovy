@@ -370,3 +370,25 @@ def cutOrDie(cmd, index)
       common.errorMsg("Failed to execute cmd: ${cmd}\n output: ${output}")
     }
 }
+
+/**
+ * Check variable contains keyword
+ * @param variable keywork is searched (contains) here
+ * @param keyword string to look for
+ * @return True if variable contains keyword (case insensitive), False if do not contains or any of input isn't a string
+ */
+
+def checkContains(variable, keyword) {
+    if (binding.variables.containsKey(variable)) {
+        v = binding.variables[variable]
+
+        if (v instanceof String && keyword instanceof String) {
+            return v.toLowerCase().contains(keyword.toLowerCase())
+        } else {
+            return False
+        }
+
+    } else {
+        return False
+    }
+}
