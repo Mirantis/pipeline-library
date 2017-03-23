@@ -379,15 +379,8 @@ def cutOrDie(cmd, index)
  */
 
 def checkContains(variable, keyword) {
-    if (binding.variables.containsKey(variable)) {
-        v = binding.variables[variable]
-
-        if (v instanceof String && keyword instanceof String) {
-            return v.toLowerCase().contains(keyword.toLowerCase())
-        } else {
-            return false
-        }
-
+    if(env.getEnvironment().containsKey(variable)){
+        return env[variable] && env[variable].toLowerCase().contains(keyword.toLowerCase())
     } else {
         return false
     }
