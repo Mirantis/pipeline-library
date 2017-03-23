@@ -138,13 +138,10 @@ def enforceState(master, target, state, output = true, failOnError = true) {
 
     def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', null, [run_states])
 
-    try {
-        checkResult(out, failOnError)
-    } finally {
-        if (output == true) {
-            printSaltStateResult(out)
-        }
+    if (output == true) {
+        printSaltStateResult(out)
     }
+    checkResult(out, failOnError)
     return out
 }
 
@@ -183,13 +180,10 @@ def syncAll(master, target) {
  */
 def enforceHighstate(master, target, output = false, failOnError = true) {
     def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.highstate')
-    try {
-        checkResult(out, failOnError)
-    } finally {
-        if (output == true) {
-            printSaltStateResult(out)
-        }
+    if (output == true) {
+        printSaltStateResult(out)
     }
+    checkResult(out, failOnError)
     return out
 }
 
@@ -276,6 +270,12 @@ def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false)
  */
 def checkResult(result, failOnError = true) {
     def common = new com.mirantis.mk.Common()
+    def askOnError = false
+    try {
+      askOnError = env.ASK_ON_ERROR
+    } catch (MissingPropertyException e) {
+      askOnError = false
+    }
     if(result != null){
         if(result['return']){
             for (int i=0;i<result['return'].size();i++) {
@@ -301,10 +301,16 @@ def checkResult(result, failOnError = true) {
                         resource = node[resKey]
                         common.debugMsg("checkResult: checking resource: ${resource}")
                         if(resource instanceof String || !resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
-                            if (failOnError) {
-                                throw new Exception("Salt state on node ${nodeKey} failed: ${resource}. State output: ${node}")
-                            } else {
-                                common.errorMsg("Salt state on node ${nodeKey} failed: ${resource}. State output: ${node}")
+                            if(askOnError){
+                                timeout(time:1, unit:'HOURS') {
+                                   input message: "False result found, do you want to continue?"
+                                }
+                            }else{
+                                if (failOnError) {
+                                    throw new Exception("Salt state on node ${nodeKey} failed: ${resource}. State output: ${node}")
+                                } else {
+                                    common.errorMsg("Salt state on node ${nodeKey} failed: ${resource}. State output: ${node}")
+                                }
                             }
                         }
                     }
