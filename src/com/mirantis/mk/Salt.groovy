@@ -1,8 +1,5 @@
 package com.mirantis.mk
 
-import static groovy.json.JsonOutput.prettyPrint
-import static groovy.json.JsonOutput.toJson
-
 /**
  * Salt functions
  *
@@ -302,7 +299,7 @@ def checkResult(result, failOnError = true) {
                         common.debugMsg("checkResult: checking resource: ${resource}")
                         if(resource instanceof String || !resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
                             if(askOnError){
-                                def prettyResource = prettyPrint(toJson(resource)).replace('\\n', System.getProperty('line.separator'));
+                                def prettyResource = common.prettyPrint(resource)
                                 timeout(time:1, unit:'HOURS') {
                                    input message: "False result on ${nodeKey} found, resource ${prettyResource}. \nDo you want to continue?"
                                 }
@@ -366,21 +363,21 @@ def printSaltStateResult(result, onlyChanges = true) {
 
                                 if(!resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
                                     if(resource["result"] != null){
-                                        common.errorMsg(String.format("Resource: %s\n%s", resKey, prettyPrint(toJson(resource)).replace('\\n', System.getProperty('line.separator'))))
+                                        common.errorMsg(String.format("Resource: %s\n%s", resKey, common.prettyPrint(resource)))
                                     }else{
-                                        common.warningMsg(String.format("Resource: %s\n%s", resKey, prettyPrint(toJson(resource)).replace('\\n', System.getProperty('line.separator'))))
+                                        common.warningMsg(String.format("Resource: %s\n%s", resKey, common.prettyPrint(resource)))
                                     }
                                 }else{
                                     if(!onlyChanges || resource.changes.size() > 0){
-                                        common.successMsg(String.format("Resource: %s\n%s", resKey, prettyPrint(toJson(resource)).replace('\\n', System.getProperty('line.separator'))))
+                                        common.successMsg(String.format("Resource: %s\n%s", resKey, common.prettyPrint(resource)))
                                     }
                                 }
                             }else{
-                                common.infoMsg(String.format("Resource: %s\n%s", resKey, prettyPrint(toJson(resource)).replace('\\n', System.getProperty('line.separator'))))
+                                common.infoMsg(String.format("Resource: %s\n%s", resKey, common.prettyPrint(resource)))
                             }
                         }
                     }else{
-                        common.infoMsg(prettyPrint(toJson(node)))
+                        common.infoMsg(common.prettyPrint(node))
                     }
                 }
             }
@@ -407,7 +404,7 @@ def printSaltCommandResult(result) {
                     common.debugMsg("printSaltCommandResult: printing salt command entry: ${entry}")
                     def nodeKey = entry.keySet()[j]
                     def node=entry[nodeKey]
-                    common.infoMsg(String.format("Node %s changes:\n%s",nodeKey,prettyPrint(toJson(node)).replace('\\n', System.getProperty('line.separator'))))
+                    common.infoMsg(String.format("Node %s changes:\n%s",nodeKey, common.prettyPrint(node)))
                 }
             }
         }else{

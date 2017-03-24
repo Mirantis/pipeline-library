@@ -1,5 +1,7 @@
 package com.mirantis.mk
 
+import static groovy.json.JsonOutput.prettyPrint
+import static groovy.json.JsonOutput.toJson
 /**
  *
  * Common functions
@@ -84,6 +86,15 @@ def abortBuild() {
     sleep(180)
     // just to be sure we will terminate
     throw new InterruptedException()
+}
+
+/**
+ * Return pretty-printed string representation of given item
+ * @param item item to be pretty-printed (list, map, whatever)
+ * @return pretty-printed string
+ */
+def prettyPrint(item){
+    return prettyPrint(toJson(item)).replace('\\n', System.getProperty('line.separator'))
 }
 
 /**
