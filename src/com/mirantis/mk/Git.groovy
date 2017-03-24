@@ -48,20 +48,6 @@ def getGitCommit() {
 }
 
 /**
- * Get remote URL
- *
- * @param name  Name of remote (default any)
- * @param type  Type (fetch or push, default fetch)
- */
-def getGitRemote(name = '', type = 'fetch') {
-    gitRemote = sh (
-        script: "git remote -v | grep '${name}' | grep ${type} | awk '{print \$2}' | head -1",
-        returnStdout: true
-    ).trim()
-    return gitRemote
-}
-
-/**
  * Change actual working branch of repo
  *
  * @param path            Path to the git repository
@@ -78,12 +64,44 @@ def changeGitBranch(path, branch) {
 }
 
 /**
+ * Get remote URL
+ *
+ * @param name  Name of remote (default any)
+ * @param type  Type (fetch or push, default fetch)
+ */
+def getGitRemote(name = '', type = 'fetch') {
+    gitRemote = sh (
+        script: "git remote -v | grep '${name}' | grep ${type} | awk '{print \$2}' | head -1",
+        returnStdout: true
+    ).trim()
+    return gitRemote
+}
+
+/**
+ * Create new working branch for repo
+ *
+ * @param path            Path to the git repository
+ * @param branch          Branch desired to switch to
+ */
+def createGitBranch(path, branch) {
+    def git_cmd
+    dir(path) {
+        git_cmd = sh (
+            script: "git checkout -b ${branch}",
+            returnStdout: true
+        ).trim()
+    }
+    return git_cmd
+}
+
+/**
  * Commit changes to the git repo
  *
  * @param path            Path to the git repository
  * @param message         A commit message
  */
 def commitGitChanges(path, message) {
+    def git_cmd
     dir(path) {
         sh(
             script: 'git add -A',
@@ -101,19 +119,26 @@ def commitGitChanges(path, message) {
 /**
  * Push git changes to remote repo
  *
- * @param path            Path to the git repository
+ * @param path            Path to the local git repository
  * @param branch          Branch on the remote git repository
  * @param remote          Name of the remote repository
+ * @param credentialsId   Credentials with write permissions
  */
-def pushGitChanges(path, branch = 'master', remote = 'origin') {
+def pushGitChanges(path, branch = 'master', remote = 'origin', credentialsId = null) {
+    def ssh = new com.mirantis.mk.Ssh()
+    sh "git config --global user.email 'jenkins@root'"
+    sh "git config --global user.name 'jenkins-slave'"
     dir(path) {
-        git_cmd = sh(
-            script: "git push ${remote} ${branch}",
-            returnStdout: true
-        ).trim()
+        if (credentialsId == null) {
+            sh script: "git push ${remote} ${branch}"
+        }
+        else {
+            ssh.prepareSshAgentKey(credentialsId)
+            ssh.runSshAgentCommand("git push ${remote} ${branch}")
+        }
     }
-    return git_cmd
 }
+
 
 /**
  * Mirror git repository, merge target changes (downstream) on top of source
