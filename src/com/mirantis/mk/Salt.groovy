@@ -267,12 +267,6 @@ def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false)
  */
 def checkResult(result, failOnError = true) {
     def common = new com.mirantis.mk.Common()
-    def askOnError = false
-    try {
-      askOnError = env.ASK_ON_ERROR
-    } catch (MissingPropertyException e) {
-      askOnError = false
-    }
     if(result != null){
         if(result['return']){
             for (int i=0;i<result['return'].size();i++) {
@@ -298,7 +292,7 @@ def checkResult(result, failOnError = true) {
                         resource = node[resKey]
                         common.debugMsg("checkResult: checking resource: ${resource}")
                         if(resource instanceof String || !resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
-                            if(askOnError){
+                            if(env["ASK_ON_ERROR"] && env["ASK_ON_ERROR"] == "true"){
                                 def prettyResource = common.prettyPrint(resource)
                                 timeout(time:1, unit:'HOURS') {
                                    input message: "False result on ${nodeKey} found, resource ${prettyResource}. \nDo you want to continue?"
