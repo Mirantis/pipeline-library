@@ -129,7 +129,7 @@ def buildSourceGbp(dir, image="debian:sid", snapshot=false, gitEmail='jenkins@du
                 else
                     NEW_VERSION=\$VERSION+\$TIMESTAMP.`git rev-parse --short HEAD`$revisionPostfix
                 fi &&
-                sudo -H -u jenkins gbp dch --auto --multimaint-merge --ignore-branch --new-version=\$NEW_VERSION --distribution `lsb_release -c -s` --force-distribution &&
+                sudo -H -u jenkins DEBFULLNAME='${gitName}' DEBEMAIL='${gitEmail}' gbp dch --auto --multimaint-merge --ignore-branch --new-version=\$NEW_VERSION --distribution `lsb_release -c -s` --force-distribution &&
                 sudo -H -u jenkins git add -u debian/changelog &&
                 sudo -H -u jenkins git commit -m "New snapshot version \$NEW_VERSION"
             ) &&
