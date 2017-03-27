@@ -139,7 +139,7 @@ def enforceState(master, target, state, output = true, failOnError = true) {
     if (output == true) {
         printSaltStateResult(out)
     }
-    checkResult(out, failOnError)
+    checkResult(out, failOnError, !output)
     return out
 }
 
@@ -181,7 +181,7 @@ def enforceHighstate(master, target, output = false, failOnError = true) {
     if (output == true) {
         printSaltStateResult(out)
     }
-    checkResult(out, failOnError)
+    checkResult(out, failOnError, !output)
     return out
 }
 
@@ -264,9 +264,10 @@ def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false)
  * Check result for errors and throw exception if any found
  *
  * @param result    Parsed response of Salt API
- * @param failOnError Do you want to throw exception if salt-call fails
+ * @param failOnError Do you want to throw exception if salt-call fails (optional, default true)
+ * @param printStateOnError Do you want to print failed state on error (optional, default true)
  */
-def checkResult(result, failOnError = true) {
+def checkResult(result, failOnError = true, printStateOnError = true) {
     def common = new com.mirantis.mk.Common()
     if(result != null){
         if(result['return']){
@@ -299,10 +300,16 @@ def checkResult(result, failOnError = true) {
                                    input message: "False result on ${nodeKey} found, resource ${prettyResource}. \nDo you want to continue?"
                                 }
                             }else{
+                                def errorMsg
+                                if(printStateOnError){
+                                    errorMsg = "Salt state on node ${nodeKey} failed: ${resource}. State output: ${node}"
+                                }else{
+                                    errorMsg = "Salt state on node ${nodeKey} failed. Look on error upper."
+                                }
                                 if (failOnError) {
-                                    throw new Exception("Salt state on node ${nodeKey} failed: ${resource}. State output: ${node}")
+                                    throw new Exception(errorMsg)
                                 } else {
-                                    common.errorMsg("Salt state on node ${nodeKey} failed: ${resource}. State output: ${node}")
+                                    common.errorMsg(errorMsg)
                                 }
                             }
                         }
@@ -358,17 +365,17 @@ def printSaltStateResult(result, onlyChanges = true) {
                                 }
                                 if(!resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
                                     if(resource["result"] != null){
-                                        outputResources.add(String.format("Resource: %s\n\\u001B[31m%s\\u001B[0m", resKey, common.prettyPrint(resource)))
+                                        outputResources.add(String.format("Resource: %s\n\u001B[31m%s\u001B[0m", resKey, common.prettyPrint(resource)))
                                     }else{
-                                        outputResources.add(String.format("Resource: %s\n\\u001B[33m%s\\u001B[0m", resKey, common.prettyPrint(resource)))
+                                        outputResources.add(String.format("Resource: %s\n\u001B[33m%s\u001B[0m", resKey, common.prettyPrint(resource)))
                                     }
                                 }else{
                                     if(!onlyChanges || resource.changes.size() > 0){
-                                        outputResources.add(String.format("Resource: %s\n\\u001B[32m%s\\u001B[0m", resKey, common.prettyPrint(resource)))
+                                        outputResources.add(String.format("Resource: %s\n\u001B[32m%s\u001B[0m", resKey, common.prettyPrint(resource)))
                                     }
                                 }
                             }else{
-                                outputResources.add(String.format("Resource: %s\n\\u001B[36m%s\\u001B[0m", resKey, common.prettyPrint(resource)))
+                                outputResources.add(String.format("Resource: %s\n\u001B[36m%s\u001B[0m", resKey, common.prettyPrint(resource)))
                             }
                         }
                         wrap([$class: 'AnsiColorBuildWrapper']) {
