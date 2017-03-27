@@ -1,5 +1,6 @@
 package com.mirantis.mk
 
+import java.util.stream.Collectors
 /**
  * Salt functions
  *
@@ -334,6 +335,7 @@ def printSaltStateResult(result, onlyChanges = true) {
                     def node=entry[nodeKey]
                     common.infoMsg("Node ${nodeKey} changes:")
                     if(node instanceof Map || node instanceof List){
+                        def outputResources = []
                         for (int k=0;k<node.size();k++) {
                             def resource;
                             def resKey;
@@ -354,21 +356,23 @@ def printSaltStateResult(result, onlyChanges = true) {
                                 if(resource.keySet().contains("pchanges")){
                                     resource.remove("pchanges")
                                 }
-
                                 if(!resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
                                     if(resource["result"] != null){
-                                        common.errorMsg(String.format("Resource: %s\n%s", resKey, common.prettyPrint(resource)))
+                                        outputResources.add(String.format("Resource: %s\n\\u001B[31m%s\\u001B[0m", resKey, common.prettyPrint(resource)))
                                     }else{
-                                        common.warningMsg(String.format("Resource: %s\n%s", resKey, common.prettyPrint(resource)))
+                                        outputResources.add(String.format("Resource: %s\n\\u001B[33m%s\\u001B[0m", resKey, common.prettyPrint(resource)))
                                     }
                                 }else{
                                     if(!onlyChanges || resource.changes.size() > 0){
-                                        common.successMsg(String.format("Resource: %s\n%s", resKey, common.prettyPrint(resource)))
+                                        outputResources.add(String.format("Resource: %s\n\\u001B[32m%s\\u001B[0m", resKey, common.prettyPrint(resource)))
                                     }
                                 }
                             }else{
-                                common.infoMsg(String.format("Resource: %s\n%s", resKey, common.prettyPrint(resource)))
+                                outputResources.add(String.format("Resource: %s\n\\u001B[36m%s\\u001B[0m", resKey, common.prettyPrint(resource)))
                             }
+                        }
+                        wrap([$class: 'AnsiColorBuildWrapper']) {
+                            print outputResources.stream().collect(Collectors.joining("\n"))
                         }
                     }else{
                         common.infoMsg(common.prettyPrint(node))
