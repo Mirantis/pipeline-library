@@ -227,13 +227,13 @@ def setupCookiecutterVirtualenv(path) {
  * @param path        Path where virtualenv is created
  */
 def buildCookiecutterTemplate(template, context, outputDir = '.', path = none) {
-    contextFile = "default_context.json"
-    contextString = "parameters:\n"
+    configFile = "default_config.yaml"
+    configString = "default_context:\n"
     for (parameter in context) {
-      contextString = "${contextString}  ${parameter.key}: ${parameter.value}\n"
+      configStringString = "${configString}  ${parameter.key}: ${parameter.value}\n"
     }
-    writeFile file: contextFile, text: contextString
-    command = ". ${path}/bin/activate; cookiecutter --config-file ${contextFile} --output-dir ${outputDir} --overwrite-if-exists --verbose --no-input ${template}"
+    writeFile file: configFile, text: configString
+    command = ". ${path}/bin/activate; cookiecutter --config-file ${configFile} --output-dir ${outputDir} --overwrite-if-exists --verbose --no-input ${template}"
     output = sh (returnStdout: true, script: command)
     echo("[Cookiecutter build] Output: ${output}")
 }
