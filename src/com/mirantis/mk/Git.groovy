@@ -103,6 +103,9 @@ def createGitBranch(path, branch) {
 def commitGitChanges(path, message) {
     def git_cmd
     dir(path) {
+        sh "git config --global user.email 'jenkins@localhost'"
+        sh "git config --global user.name 'jenkins-slave'"
+
         sh(
             script: 'git add -A',
             returnStdout: true
@@ -126,8 +129,6 @@ def commitGitChanges(path, message) {
  */
 def pushGitChanges(path, branch = 'master', remote = 'origin', credentialsId = null) {
     def ssh = new com.mirantis.mk.Ssh()
-    sh "git config --global user.email 'jenkins@root'"
-    sh "git config --global user.name 'jenkins-slave'"
     dir(path) {
         if (credentialsId == null) {
             sh script: "git push ${remote} ${branch}"
