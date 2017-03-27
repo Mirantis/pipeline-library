@@ -41,9 +41,9 @@ def buildBinary(file, image="debian:sid", extraRepoUrl=null, extraRepoKeyUrl=nul
             apt-get update && apt-get install -y build-essential devscripts equivs sudo &&
             groupadd -g ${jenkinsGID} jenkins &&
             useradd -s /bin/bash --uid ${jenkinsUID} --gid ${jenkinsGID} -m jenkins &&
-            sudo -H -u jenkins dpkg-source -x ${file} build-area/${pkg} && cd build-area/${pkg} &&
+            sudo -H -E -u jenkins dpkg-source -x ${file} build-area/${pkg} && cd build-area/${pkg} &&
             mk-build-deps -t "apt-get -o Debug::pkgProblemResolver=yes -y" -i debian/control
-            sudo -H -u jenkins debuild --no-lintian -uc -us -b'""")
+            sudo -H -E -u jenkins debuild --no-lintian -uc -us -b'""")
 }
 
 /*
@@ -92,7 +92,7 @@ def buildSourceUscan(dir, image="debian:sid") {
  * @param image Image name to use for build (default debian:sid)
  * @param snapshot Generate snapshot version (default false)
  */
-def buildSourceGbp(dir, image="debian:sid", snapshot=false, gitEmail='jenkins@dummy.org', gitName='Jenkins', revisionPostfix="") {
+def buildSourceGbp(dir, image="debian:sid", snapshot=false, gitName='Jenkins', gitEmail='jenkins@dummy.org', revisionPostfix="") {
     def common = new com.mirantis.mk.Common()
     def jenkinsUID = common.getJenkinsUid()
     def jenkinsGID = common.getJenkinsGid()
@@ -111,8 +111,8 @@ def buildSourceGbp(dir, image="debian:sid", snapshot=false, gitEmail='jenkins@du
             groupadd -g ${jenkinsGID} jenkins &&
             useradd -s /bin/bash --uid ${jenkinsUID} --gid ${jenkinsGID} -m jenkins &&
             cd ${dir} &&
-            sudo -H -u jenkins git config --global user.name "${gitName}" &&
-            sudo -H -u jenkins git config --global user.email "${gitEmail}" &&
+            sudo -H -E -u jenkins git config --global user.name "${gitName}" &&
+            sudo -H -E -u jenkins git config --global user.email "${gitEmail}" &&
             [[ "${snapshot}" == "false" ]] || (
                 VERSION=`dpkg-parsechangelog --count 1 | grep Version: | sed "s,Version: ,,g"` &&
                 UPSTREAM_VERSION=`echo \$VERSION | cut -d "-" -f 1` &&
@@ -124,16 +124,16 @@ def buildSourceGbp(dir, image="debian:sid", snapshot=false, gitEmail='jenkins@du
                     NEW_UPSTREAM_VERSION="\$UPSTREAM_VERSION+\$TIMESTAMP.\$UPSTREAM_REV" &&
                     NEW_VERSION=\$NEW_UPSTREAM_VERSION-\$REVISION$revisionPostfix &&
                     echo "Generating new upstream version \$NEW_UPSTREAM_VERSION" &&
-                    sudo -H -u jenkins git tag \$NEW_UPSTREAM_VERSION origin/\$UPSTREAM_BRANCH &&
-                    sudo -H -u jenkins git merge -X theirs \$NEW_UPSTREAM_VERSION
+                    sudo -H -E -u jenkins git tag \$NEW_UPSTREAM_VERSION origin/\$UPSTREAM_BRANCH &&
+                    sudo -H -E -u jenkins git merge -X theirs \$NEW_UPSTREAM_VERSION
                 else
                     NEW_VERSION=\$VERSION+\$TIMESTAMP.`git rev-parse --short HEAD`$revisionPostfix
                 fi &&
-                sudo -H -u jenkins DEBFULLNAME='${gitName}' DEBEMAIL='${gitEmail}' gbp dch --auto --multimaint-merge --ignore-branch --new-version=\$NEW_VERSION --distribution `lsb_release -c -s` --force-distribution &&
-                sudo -H -u jenkins git add -u debian/changelog &&
-                sudo -H -u jenkins git commit -m "New snapshot version \$NEW_VERSION"
+                sudo -H -E -u jenkins gbp dch --auto --multimaint-merge --ignore-branch --new-version=\$NEW_VERSION --distribution `lsb_release -c -s` --force-distribution &&
+                sudo -H -E -u jenkins git add -u debian/changelog &&
+                sudo -H -E -u jenkins git commit -m "New snapshot version \$NEW_VERSION"
             ) &&
-            sudo -H -u jenkins gbp buildpackage -nc --git-force-create --git-notify=false --git-ignore-branch --git-ignore-new --git-verbose --git-export-dir=../build-area -sa -S -uc -us '""")
+            sudo -H -E -u jenkins gbp buildpackage -nc --git-force-create --git-notify=false --git-ignore-branch --git-ignore-new --git-verbose --git-export-dir=../build-area -sa -S -uc -us '""")
 }
 
 /*
