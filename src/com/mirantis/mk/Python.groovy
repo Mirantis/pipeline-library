@@ -33,7 +33,7 @@ def setupVirtualenv(path, python = 'python2', reqs = []) {
  * @param cmd    Command to be executed
  */
 def runVirtualenvCommand(path, cmd) {
-    virtualenv_cmd = ". ${path}/bin/activate; ${cmd}"
+    virtualenv_cmd = ". ${path}/bin/activate > /dev/null; ${cmd}"
     echo("[Python ${path}] Run command ${cmd}")
     output = sh(
         returnStdout: true,
