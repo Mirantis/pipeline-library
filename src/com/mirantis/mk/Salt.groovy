@@ -49,7 +49,7 @@ def saltLogin(master) {
  * @param target   Target specification, eg. for compound matches by Pillar
  *                 data: ['expression': 'I@openssh:server', 'type': 'compound'])
  * @param function Function to execute (eg. "state.sls")
- * @param batch
+ * @param batch    Batch param to salt (integer or string with percents)
  * @param args     Additional arguments to function
  * @param kwargs   Additional key-value arguments to function
  */
@@ -64,8 +64,9 @@ def runSaltCommand(master, client, target, function, batch = null, args = null, 
         'expr_form': target.type,
     ]
 
-    if (batch == true) {
-        data['batch'] = "local_batch"
+    if(batch != null && (batch > 0 || (batch instanceof String && batch.contains("%")))){
+        data['client']= "local_batch"
+        data['batch'] = batch
     }
 
     if (args) {
@@ -120,9 +121,10 @@ def getGrain(master, target, grain = null) {
  * @param state Salt state
  * @param output print output (optional, default true)
  * @param failOnError throw exception on salt state result:false (optional, default true)
+ * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
  * @return output of salt command
  */
-def enforceState(master, target, state, output = true, failOnError = true) {
+def enforceState(master, target, state, output = true, failOnError = true, batch = null) {
     def common = new com.mirantis.mk.Common()
     def run_states
 
@@ -134,7 +136,7 @@ def enforceState(master, target, state, output = true, failOnError = true) {
 
     common.infoMsg("Enforcing state ${run_states} on ${target}")
 
-    def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', null, [run_states])
+    def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states])
 
     if (output == true) {
         printSaltStateResult(out)
@@ -148,14 +150,15 @@ def enforceState(master, target, state, output = true, failOnError = true) {
  * @param master Salt connection object
  * @param target Get pillar target
  * @param cmd command
+ * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
  * @return output of salt command
  */
-def cmdRun(master, target, cmd) {
+def cmdRun(master, target, cmd, batch=null) {
     def common = new com.mirantis.mk.Common()
 
     common.infoMsg("Running command ${cmd} on ${target}")
 
-    return runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.run', null, [cmd])
+    return runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.run', batch, [cmd])
 }
 
 /**
@@ -174,10 +177,11 @@ def syncAll(master, target) {
  * @param target Highstate enforcing target
  * @param output print output (optional, default true)
  * @param failOnError throw exception on salt state result:false (optional, default true)
+ * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
  * @return output of salt command
  */
-def enforceHighstate(master, target, output = false, failOnError = true) {
-    def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.highstate')
+def enforceHighstate(master, target, output = false, failOnError = true, batch = null) {
+    def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.highstate', batch)
     if (output == true) {
         printSaltStateResult(out)
     }
@@ -210,7 +214,7 @@ def generateNodeKey(master, target, host, keysize = 4096) {
 }
 
 /**
- * Generates node reclass metadata 
+ * Generates node reclass metadata
  * @param master Salt connection object
  * @param target Metadata generating target
  * @param host Metadata generating host
@@ -239,7 +243,7 @@ def orchestrateSystem(master, target, orchestrate) {
  * @param tgt Salt process step target
  * @param fun Salt process step function
  * @param arg process step arguments (optional, default [])
- * @param batch using batch (optional, default false)
+ * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
  * @param output print output (optional, default false)
  * @return output of salt command
  */
