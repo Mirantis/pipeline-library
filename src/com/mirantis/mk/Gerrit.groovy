@@ -37,6 +37,7 @@ def gerritPatchsetCheckout(LinkedHashMap config) {
     def gerritPort = config.get('gerritPort', GERRIT_PORT)
     def gerritProject = config.get('gerritProject', GERRIT_PROJECT)
     def gerritBranch = config.get('gerritBranch', GERRIT_BRANCH)
+    def path = config.get('path', "")
 
     // default parameters
     def scmExtensions = [
@@ -66,12 +67,25 @@ def gerritPatchsetCheckout(LinkedHashMap config) {
         scmExtensions.add([$class: 'WipeWorkspace'])
     }
 
-    checkout(
-        scm: [
-            $class: 'GitSCM',
-            branches: [[name: "${gerritBranch}"]],
-            extensions: scmExtensions,
-            userRemoteConfigs: [scmUserRemoteConfigs]
-        ]
-    )
+    if (path == "") {
+        checkout(
+            scm: [
+                $class: 'GitSCM',
+                branches: [[name: "${gerritBranch}"]],
+                extensions: scmExtensions,
+                userRemoteConfigs: [scmUserRemoteConfigs]
+            ]
+        )
+    } else {
+        dir(path) {
+            checkout(
+                scm: [
+                    $class: 'GitSCM',
+                    branches: [[name: "${gerritBranch}"]],
+                    extensions: scmExtensions,
+                    userRemoteConfigs: [scmUserRemoteConfigs]
+                ]
+            )
+        }
+    }
 }
