@@ -106,17 +106,20 @@ def gerritPatchsetCheckout(LinkedHashMap config) {
 /**
  * Execute git clone and checkout stage from gerrit review
  *
- * @param gitUrl git url with scheme
+ * @param gerritUrl gerrit url with scheme
  *    "${GERRIT_SCHEME}://${GERRIT_NAME}@${GERRIT_HOST}:${GERRIT_PORT}/${GERRIT_PROJECT}.git
- * @param gitRef git ref spec
+ * @param gerritRef gerrit ref spec
+ * @param gerritBranch gerrit branch
+ * @param credentialsId jenkins credentials id
  * @return boolean result
  */
-def gerritPatchsetCheckout(gitUrl, gitRef) {
-    def gerritParams = _getGerritParamsFromUrl(gitUrl)
+def gerritPatchsetCheckout(gerritUrl, gerritRef, gerritBranch, credentialsId) {
+    def gerritParams = _getGerritParamsFromUrl(gerritUrl)
     if(gerritParams.size() == 5){
         gerritPatchsetCheckout([
-          credentialsId : CREDENTIALS_ID,
-          gerritRefSpec: gitRef,
+          credentialsId : credentialsId,
+          gerritBranch: gerritBranch,
+          gerritRefSpec: gerritRef,
           gerritScheme: gerritParams[0],
           gerritName: gerritParams[1],
           gerritHost: gerritParams[2],
@@ -144,5 +147,6 @@ def _validGerritConfig(LinkedHashMap config){
            config.get("gerritHost","") != null && config.get("gerritHost","") != "" &&
            config.get("gerritPort","") != null && config.get("gerritPort","") != "" &&
            config.get("gerritProject","") != null && config.get("gerritProject","") != "" &&
+           config.get("gerritBranch","") != null && config.get("gerritBranch","") != "" &&
            config.get("gerritRefSpec","") != null && config.get("gerritRefSpec","") != ""
 }
