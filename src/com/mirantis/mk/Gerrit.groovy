@@ -97,8 +97,11 @@ def gerritPatchsetCheckout(LinkedHashMap config) {
             }
         }
         return true
+    }else{
+        def common = new com.mirantis.mk.Common()
+        common.errorMsg("Cannot perform gerrit checkout, given config file is not valid")
+        return false
     }
-    return false
 }
 /**
  * Execute git clone and checkout stage from gerrit review
@@ -136,9 +139,10 @@ def _getGerritParamsFromUrl(gitUrl){
 }
 
 def _validGerritConfig(LinkedHashMap config){
-    return config.get("gerritScheme","") != "" &&
-           config.get("gerritName","") != "" &&
-           config.get("gerritHost","") != "" &&
-           config.get("gerritPort","") != "" &&
-           config.get("gerritProject","") != ""
+    return config.get("gerritScheme","") != null && config.get("gerritScheme","") != "" &&
+           config.get("gerritName","") != null && config.get("gerritName","") != "" &&
+           config.get("gerritHost","") != null && config.get("gerritHost","") != "" &&
+           config.get("gerritPort","") != null && config.get("gerritPort","") != "" &&
+           config.get("gerritProject","") != null && config.get("gerritProject","") != "" &&
+           config.get("gerritRefSpec","") != null && config.get("gerritRefSpec","") != ""
 }
