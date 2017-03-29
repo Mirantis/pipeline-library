@@ -38,11 +38,15 @@ def gerritPatchsetCheckout(LinkedHashMap config) {
     def gerritProject = config.get('gerritProject', GERRIT_PROJECT)
     def gerritBranch = config.get('gerritBranch', GERRIT_BRANCH)
     def path = config.get('path', "")
+    def depth = config.get('depth', 0)
+    def timeout = config.get('timeout', 20)
 
     // default parameters
     def scmExtensions = [
         [$class: 'CleanCheckout'],
-        [$class: 'BuildChooserSetting', buildChooser: [$class: 'GerritTriggerBuildChooser']]
+        [$class: 'BuildChooserSetting', buildChooser: [$class: 'GerritTriggerBuildChooser']],
+        [$class: 'CheckoutOption', timeout: timeout],
+        [$class: 'CloneOption', depth: depth, noTags: false, reference: '', shallow: depth > 0, timeout: timeout]
     ]
     def scmUserRemoteConfigs = [
         name: 'gerrit',
