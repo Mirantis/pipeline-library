@@ -109,21 +109,30 @@ def gerritPatchsetCheckout(LinkedHashMap config) {
  * @return boolean result
  */
 def gerritPatchsetCheckout(gitUrl, gitRef) {
-    def gitUrlPattern = Pattern.compile("(.+):\\/\\/(.+)@(.+):(.+)\\/(.+)")
-    def gitUrlMatcher = gitUrlPattern.matcher(gitUrl)
-    if(gitUrlMatcher.find()){
+    def gerritParams = _getGerritParamsFromUrl(gitUrl)
+    if(gerritParams.size() == 5){
         gerritPatchsetCheckout([
           credentialsId : CREDENTIALS_ID,
           gerritRefSpec: gitRef,
-          gerritScheme: gitUrlMatcher.group(1),
-          gerritName: gitUrlMatcher.group(2),
-          gerritHost: gitUrlMatcher.group(3),
-          gerritPort: gitUrlMatcher.group(4),
-          gerritProject: gitUrlMatcher.group(5)
+          gerritScheme: gerritParams[0],
+          gerritName: gerritParams[1],
+          gerritHost: gerritParams[2],
+          gerritPort: gerritParams[3],
+          gerritProject: gerritParams[4]
         ])
         return true
     }
     return false
+}
+
+@NonCPS
+def _getGerritParamsFromUrl(gitUrl){
+    def gitUrlPattern = Pattern.compile("(.+):\\/\\/(.+)@(.+):(.+)\\/(.+)")
+    def gitUrlMatcher = gitUrlPattern.matcher(gitUrl)
+    if(gitUrlMatcher.find() && gitUrlMatcher.groupCount() == 5){
+        return [gitUrlMatcher.group(1),gitUrlMatcher.group(2),gitUrlMatcher.group(3),gitUrlMatcher.group(4),gitUrlMatcher.group(5)]
+    }
+    return []
 }
 
 def _validGerritConfig(LinkedHashMap config){
