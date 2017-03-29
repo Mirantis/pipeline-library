@@ -17,8 +17,8 @@ def validateFoundationInfra(master) {
 def installFoundationInfra(master) {
     def salt = new com.mirantis.mk.Salt()
     salt.runSaltProcessStep(master, 'I@salt:master', 'state.sls', ['salt.master,reclass'])
-    salt.runSaltProcessStep(master, 'I@linux:system', 'saltutil.refresh_pillar')
-    salt.runSaltProcessStep(master, 'I@linux:system', 'saltutil.sync_all')
+    salt.runSaltProcessStep(master, '*', 'saltutil.refresh_pillar')
+    salt.runSaltProcessStep(master, '*', 'saltutil.sync_all')
     salt.runSaltProcessStep(master, 'I@linux:system', 'state.sls', ['linux,openssh,salt.minion,ntp'])
 }
 
