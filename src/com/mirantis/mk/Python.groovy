@@ -230,7 +230,7 @@ def buildCookiecutterTemplate(template, context, outputDir = '.', path = none) {
     configFile = "default_config.yaml"
     configString = "default_context:\n"
     for (parameter in context) {
-      configString = "${configString}  ${parameter.key}: ${parameter.value}\n"
+      configString = "${configString}  ${parameter.key}: \"${parameter.value}\"\n"
     }
     writeFile file: configFile, text: configString
     command = ". ${path}/bin/activate; cookiecutter --config-file ${configFile} --output-dir ${outputDir} --overwrite-if-exists --verbose --no-input ${template}"
