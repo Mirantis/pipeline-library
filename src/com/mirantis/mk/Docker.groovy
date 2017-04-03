@@ -7,25 +7,24 @@ package com.mirantis.mk
  */
 
 /**
- * Build step to build docker image. For use with eg. parallel
+ * Build step to build docker image.
  *
  * @param img           Image name
  * @param baseImg       Base image to use (can be empty)
  * @param dockerFile    Dockerfile to use
  * @param timestamp     Image tag
+ * @return "docker app" - result of docker.build
  */
 def buildDockerImageStep(img, baseImg, dockerFile, timestamp) {
-    File df = new File(dockerfile);
-    return {
-        if (baseImg) {
-            sh "git checkout -f ${dockerfile}; sed -i -e 's,^FROM.*,FROM ${baseImg},g' ${dockerFile}"
-        }
-        docker.build(
-            "${img}:${timestamp}",
-            [
-                "-f ${dockerFile}",
-                df.getParent()
-            ].join(' ')
-        )
+    def imageDir = dockerFile.substring(0, dockerFile.lastIndexOf("/"))
+    if (baseImg) {
+        sh "git checkout -f ${dockerFile}; sed -i -e 's,^FROM.*,FROM ${baseImg},g' ${dockerFile}"
     }
+    return docker.build(
+        "${img}:${timestamp}",
+        [
+            "-f ${dockerFile}",
+            imageDir
+        ].join(' ')
+    )
 }
