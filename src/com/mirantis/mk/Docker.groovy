@@ -15,7 +15,7 @@ package com.mirantis.mk
  * @param timestamp     Image tag
  * @return "docker app" - result of docker.build
  */
-def buildDockerImageStep(img, baseImg, dockerFile, timestamp) {
+def buildDockerImage(img, baseImg, dockerFile, timestamp) {
     def imageDir = dockerFile.substring(0, dockerFile.lastIndexOf("/"))
     if (baseImg) {
         sh "git checkout -f ${dockerFile}; sed -i -e 's,^FROM.*,FROM ${baseImg},g' ${dockerFile}"
