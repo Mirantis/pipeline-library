@@ -54,8 +54,10 @@ def gerritPatchsetCheckout(LinkedHashMap config) {
         ]
         def scmUserRemoteConfigs = [
             name: 'gerrit',
-            refspec: gerritRefSpec
         ]
+        if(gerritRefSpec && gerritRefSpec != ""){
+            scmUserRemoteConfigs.put('refspec', gerritRefSpec)
+        }
 
         if (credentials == '') {
             // then try to checkout in anonymous mode
@@ -98,10 +100,9 @@ def gerritPatchsetCheckout(LinkedHashMap config) {
         }
         return true
     }else{
-        def common = new com.mirantis.mk.Common()
-        common.errorMsg("Cannot perform gerrit checkout, given config file is not valid")
-        return false
+        throw new Exception("Cannot perform gerrit checkout, given config file is not valid")
     }
+    return false
 }
 /**
  * Execute git clone and checkout stage from gerrit review
@@ -147,6 +148,5 @@ def _validGerritConfig(LinkedHashMap config){
            config.get("gerritHost","") != null && config.get("gerritHost","") != "" &&
            config.get("gerritPort","") != null && config.get("gerritPort","") != "" &&
            config.get("gerritProject","") != null && config.get("gerritProject","") != "" &&
-           config.get("gerritBranch","") != null && config.get("gerritBranch","") != "" &&
-           config.get("gerritRefSpec","") != null && config.get("gerritRefSpec","") != ""
+           config.get("gerritBranch","") != null && config.get("gerritBranch","") != ""
 }
