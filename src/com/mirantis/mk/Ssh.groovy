@@ -41,21 +41,22 @@ def getKnownHost(url){
  * Execute command with ssh-agent
  *
  * @param cmd   Command to execute
+ * @return STDOUT output
  */
 def runSshAgentCommand(cmd) {
     // if file exists, then we started ssh-agent
     if (fileExists("$HOME/.ssh/ssh-agent.sh")) {
-        sh(". ~/.ssh/ssh-agent.sh && ${cmd}")
+        return sh(script:". ~/.ssh/ssh-agent.sh && ${cmd}", returnStdout:true)
     } else {
     // we didn't start ssh-agent in prepareSshAgentKey() because some ssh-agent
     // is running. Let's re-use already running agent and re-construct
     //   * SSH_AUTH_SOCK
     //   * SSH_AGENT_PID
-        sh """
+        return sh(script:"""
         export SSH_AUTH_SOCK=`find /tmp/ -type s -name agent.\\* 2> /dev/null |  grep '/tmp/ssh-.*/agent.*' | head -n 1`
         export SSH_AGENT_PID=`echo \${SSH_AUTH_SOCK} | cut -d. -f2`
         ${cmd}
-        """
+        """, returnStdout: true)
     }
 }
 
@@ -63,9 +64,10 @@ def runSshAgentCommand(cmd) {
  * Execute command with ssh-agent (shortcut for runSshAgentCommand)
  *
  * @param cmd   Command to execute
+ * @return STDOUT output
  */
 def agentSh(cmd) {
-    runSshAgentCommand(cmd)
+    return runSshAgentCommand(cmd)
 }
 
 /**
