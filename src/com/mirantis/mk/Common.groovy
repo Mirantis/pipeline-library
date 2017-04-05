@@ -1,5 +1,6 @@
 package com.mirantis.mk
 
+import groovy.json.JsonSlurper
 import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
 /**
