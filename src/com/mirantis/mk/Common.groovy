@@ -1,8 +1,8 @@
 package com.mirantis.mk
 
-import groovy.json.JsonSlurper
 import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
+import groovy.json.JsonSlurperClassic
 /**
  *
  * Common functions
@@ -405,7 +405,7 @@ def checkContains(variable, keyword) {
  */
 def parseJSON(jsonString){
    def m = [:]
-   def lazyMap = new JsonSlurper().parseText(jsonString)
+   def lazyMap = new JsonSlurperClassic().parseText(jsonString)
    m.putAll(lazyMap)
    return m
 }
