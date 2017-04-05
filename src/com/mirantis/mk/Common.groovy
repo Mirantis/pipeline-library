@@ -405,7 +405,7 @@ def checkContains(variable, keyword) {
  */
 def parseJSON(jsonString){
    def m = [:]
-   def lazyMap = new JsonSlurper().parseText(output)
+   def lazyMap = new JsonSlurper().parseText(jsonString)
    m.putAll(lazyMap)
    return m
 }
