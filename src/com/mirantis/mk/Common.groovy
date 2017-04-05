@@ -396,3 +396,15 @@ def checkContains(variable, keyword) {
         return false
     }
 }
+
+/**
+ * Parse JSON string to hashmap
+ * @param jsonString input JSON string
+ * @return created hashmap
+ */
+def parseJSON(jsonString){
+   def m = [:]
+   def lazyMap = new JsonSlurper().parseText(output)
+   m.putAll(lazyMap)
+   return m
+}
