@@ -64,7 +64,7 @@ def runSaltCommand(master, client, target, function, batch = null, args = null, 
         'expr_form': target.type,
     ]
 
-    if(batch != null && (batch > 0 || (batch instanceof String && batch.contains("%")))){
+    if(batch != null && ( (batch instanceof Integer && batch > 0) || (batch instanceof String && batch.contains("%")))){
         data['client']= "local_batch"
         data['batch'] = batch
     }
