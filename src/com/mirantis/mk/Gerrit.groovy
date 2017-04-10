@@ -134,13 +134,13 @@ def gerritPatchsetCheckout(gerritUrl, gerritRef, gerritBranch, credentialsId) {
 
 /**
  * Return gerrit change object from gerrit API
- * @param gerritHost gerrit host (usually GERRIT_HOST property)
  * @param gerritName gerrit user name (usually GERRIT_NAME property)
+ * @param gerritHost gerrit host (usually GERRIT_HOST property)
  * @param gerritChangeNumber gerrit change number (usually GERRIT_CHANGE_NUMBER property)
  * @param credentialsId jenkins credentials id for gerrit
  * @return gerrit change object
  */
-def getGerritChange(gerritHost, gerritName, gerritChangeNumber, credentialsId){
+def getGerritChange(gerritName, gerritHost, gerritChangeNumber, credentialsId){
     def common = new com.mirantis.mk.Common()
     def ssh = new com.mirantis.mk.Ssh()
     ssh.prepareSshAgentKey(credentialsId)
