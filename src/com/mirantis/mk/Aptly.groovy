@@ -85,7 +85,7 @@ def promotePublish(server, source, target, recreate=false, components=null, pack
         opts = "${opts} --recreate"
     }
     if (diff.toBoolean() == true) {
-        opts = "--dry --diff"
+        opts = "${opts} --dry --diff"
     }
 
     sh("aptly-publisher --url ${server} promote --source ${source} --target ${target} ${opts}")
