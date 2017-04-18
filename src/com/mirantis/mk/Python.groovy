@@ -11,14 +11,14 @@ package com.mirantis.mk
  *
  * @param path     Path to virtualenv
  * @param python   Version of Python (python/python3)
- * @param reqs     Environment requirements in list format    
+ * @param reqs     Environment requirements in list format
  */
 def setupVirtualenv(path, python = 'python2', reqs = []) {
-    virtualenv_cmd = "virtualenv ${path} --python ${python}"
+    def virtualenv_cmd = "virtualenv ${path} --python ${python}"
 
     echo("[Python ${path}] Setup ${python} environment")
     sh(returnStdout: true, script: virtualenv_cmd)
-    args = ""
+    def args = ""
     for (req in reqs) {
         args = args + "${req}\n"
     }
@@ -217,6 +217,7 @@ print json.dumps(final_data)
 def setupCookiecutterVirtualenv(path) {
     requirements = [
         'cookiecutter',
+        'jinja2==2.8.1'
     ]
     setupVirtualenv(path, 'python2', requirements)
 }
