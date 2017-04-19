@@ -188,6 +188,18 @@ def createHeatStack(client, name, template, params = [], environment = null, pat
 }
 
 /**
+ * Get list of stack names with given stack status
+ *
+ * @param env          Connection parameters for OpenStack API endpoint
+ * @param status       Stack status
+ * @param path         Optional path to the custom virtualenv
+ */
+ def getStacksWithStatus(client, status, path = null) {
+    cmd = 'heat stack-list -f stack_status='+status+' | awk \'NR>3 {print $4}\' | sed \'$ d\''
+    return runOpenstackCommand(cmd, client, path).trim().tokenize("\n")
+ }
+
+/**
  * Get life cycle status for existing OpenStack Heat stack
  *
  * @param env          Connection parameters for OpenStack API endpoint
