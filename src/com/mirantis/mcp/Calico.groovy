@@ -414,6 +414,7 @@ def testFelix() {
  *          - projectNamespace String, artifactory server namespace (optional)
  *          - felixImage String, calico/felix image name (optional)
  *          - felixImageTag String, tag of docker image (optional)
+ *          - dockerFilePath String, path to the Dockerfile for image (optional)
  *
  * Usage example:
  *
@@ -434,11 +435,12 @@ def buildFelix(LinkedHashMap config) {
 
   def felixImage = config.get('felixImage', "calico/felix")
   def felixImageTag = config.get('felixImageTag', git.getGitDescribe(true) + "-" + common.getDatetime())
+  def dockerFilePath = config.get('dockerFilePath', "./docker-image/Dockerfile")
 
   def felixContainerName = dockerRegistry ?  "${dockerRegistry}/${projectNamespace}/${felixImage}:${felixImageTag}" : "${felixImage}:${felixImageTag}"
 
   stage ('Build calico/felix image') {
-    docker.setDockerfileLabels("./Dockerfile", ["docker.imgTag=${felixImageTag}"])
+    docker.setDockerfileLabels(dockerFilePath, ["docker.imgTag=${felixImageTag}"])
     sh """
        make calico/felix
        docker tag calico/felix ${felixContainerName}
