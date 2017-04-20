@@ -138,10 +138,7 @@ def enforceState(master, target, state, output = true, failOnError = true, batch
 
     def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states])
 
-    if (output == true) {
-        printSaltStateResult(out)
-    }
-    checkResult(out, failOnError, !output)
+    checkResult(out, failOnError, output, !output)
     return out
 }
 
@@ -182,10 +179,7 @@ def syncAll(master, target) {
  */
 def enforceHighstate(master, target, output = false, failOnError = true, batch = null) {
     def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.highstate', batch)
-    if (output == true) {
-        printSaltStateResult(out)
-    }
-    checkResult(out, failOnError, !output)
+    checkResult(out, failOnError, output, !output)
     return out
 }
 
@@ -269,9 +263,11 @@ def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false)
  *
  * @param result    Parsed response of Salt API
  * @param failOnError Do you want to throw exception if salt-call fails (optional, default true)
+ * @param printResults Do you want to print salt results (optional, default true)
  * @param printStateOnError Do you want to print failed state on error (optional, default true)
+ * @param printOnlyChanges If true (default), print only changed resources
  */
-def checkResult(result, failOnError = true, printStateOnError = true) {
+def checkResult(result, failOnError = true, printResults = true, printStateOnError = true, printOnlyChanges = true) {
     def common = new com.mirantis.mk.Common()
     if(result != null){
         if(result['return']){
@@ -287,66 +283,9 @@ def checkResult(result, failOnError = true, printStateOnError = true) {
                 for (int j=0;j<entry.size();j++) {
                     def nodeKey = entry.keySet()[j]
                     def node=entry[nodeKey]
-                    for (int k=0;k<node.size();k++) {
-                        def resource;
-                        def resKey;
-                        if(node instanceof Map){
-                            resKey = node.keySet()[k]
-                        }else if(node instanceof List){
-                            resKey = k
-                        }
-                        resource = node[resKey]
-                        common.debugMsg("checkResult: checking resource: ${resource}")
-                        if(resource instanceof String || !resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
-                            if(env["ASK_ON_ERROR"] && env["ASK_ON_ERROR"] == "true"){
-                                def prettyResource = common.prettyPrint(resource)
-                                timeout(time:1, unit:'HOURS') {
-                                   input message: "False result on ${nodeKey} found, resource ${prettyResource}. \nDo you want to continue?"
-                                }
-                            }else{
-                                def errorMsg
-                                if(printStateOnError){
-                                    errorMsg = "Salt state on node ${nodeKey} failed: ${resource}. State output: ${node}"
-                                }else{
-                                    errorMsg = "Salt state on node ${nodeKey} failed. Look on error upper."
-                                }
-                                if (failOnError) {
-                                    throw new Exception(errorMsg)
-                                } else {
-                                    common.errorMsg(errorMsg)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }else{
-            common.errorMsg("Salt result hasn't return attribute! Result: ${result}")
-        }
-    }else{
-        common.errorMsg("Cannot check salt result, given result is null")
-    }
-}
-
-/**
- * Print Salt state run results in human-friendly form
- *
- * @param result        Parsed response of Salt API
-  * @param onlyChanges   If true (default), print only changed resources
- */
-def printSaltStateResult(result, onlyChanges = true) {
-    def common = new com.mirantis.mk.Common()
-    if(result != null){
-        if(result['return']){
-            for (int i=0; i<result['return'].size(); i++) {
-                def entry = result['return'][i]
-                for (int j=0; j<entry.size(); j++) {
-                    common.debugMsg("printSaltStateResult: printing salt command entry: ${entry}")
-                    def nodeKey = entry.keySet()[j]
-                    def node=entry[nodeKey]
+                    def outputResources = []
                     common.infoMsg("Node ${nodeKey} changes:")
                     if(node instanceof Map || node instanceof List){
-                        def outputResources = []
                         for (int k=0;k<node.size();k++) {
                             def resource;
                             def resKey;
@@ -356,37 +295,63 @@ def printSaltStateResult(result, onlyChanges = true) {
                                 resKey = k
                             }
                             resource = node[resKey]
-                            if(resource instanceof Map && resource.keySet().contains("result")){
-                                //clean unnesaccary fields
-                                if(resource.keySet().contains("__run_num__")){
-                                    resource.remove("__run_num__")
-                                }
-                                if(resource.keySet().contains("__id__")){
-                                    resource.remove("__id__")
-                                }
-                                if(resource.keySet().contains("pchanges")){
-                                    resource.remove("pchanges")
-                                }
-                                if(!resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
-                                    if(resource["result"] != null){
-                                        outputResources.add(String.format("Resource: %s\n\u001B[31m%s\u001B[0m", resKey, common.prettyPrint(resource)))
-                                    }else{
-                                        outputResources.add(String.format("Resource: %s\n\u001B[33m%s\u001B[0m", resKey, common.prettyPrint(resource)))
+                            common.debugMsg("checkResult: checking resource: ${resource}")
+                            if(resource instanceof String || !resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
+                                if(env["ASK_ON_ERROR"] && env["ASK_ON_ERROR"] == "true"){
+                                    def prettyResource = common.prettyPrint(resource)
+                                    timeout(time:1, unit:'HOURS') {
+                                       input message: "False result on ${nodeKey} found, resource ${prettyResource}. \nDo you want to continue?"
                                     }
                                 }else{
-                                    if(!onlyChanges || resource.changes.size() > 0){
-                                        outputResources.add(String.format("Resource: %s\n\u001B[32m%s\u001B[0m", resKey, common.prettyPrint(resource)))
+                                    def errorMsg
+                                    if(printStateOnError){
+                                        errorMsg = "Salt state on node ${nodeKey} failed: ${resource}. State output: ${node}"
+                                    }else{
+                                        errorMsg = "Salt state on node ${nodeKey} failed. Look on error upper."
+                                    }
+                                    if (failOnError) {
+                                        throw new Exception(errorMsg)
+                                    } else {
+                                        common.errorMsg(errorMsg)
                                     }
                                 }
-                            }else{
-                                outputResources.add(String.format("Resource: %s\n\u001B[36m%s\u001B[0m", resKey, common.prettyPrint(resource)))
+                            }
+                            // print
+                            if(printResults){
+                                if(resource instanceof Map && resource.keySet().contains("result")){
+                                    //clean unnesaccary fields
+                                    if(resource.keySet().contains("__run_num__")){
+                                        resource.remove("__run_num__")
+                                    }
+                                    if(resource.keySet().contains("__id__")){
+                                        resource.remove("__id__")
+                                    }
+                                    if(resource.keySet().contains("pchanges")){
+                                        resource.remove("pchanges")
+                                    }
+                                    if(!resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
+                                        if(resource["result"] != null){
+                                            outputResources.add(String.format("Resource: %s\n\u001B[31m%s\u001B[0m", resKey, common.prettyPrint(resource)))
+                                        }else{
+                                            outputResources.add(String.format("Resource: %s\n\u001B[33m%s\u001B[0m", resKey, common.prettyPrint(resource)))
+                                        }
+                                    }else{
+                                        if(!printOnlyChanges || resource.changes.size() > 0){
+                                            outputResources.add(String.format("Resource: %s\n\u001B[32m%s\u001B[0m", resKey, common.prettyPrint(resource)))
+                                        }
+                                    }
+                                }else{
+                                    outputResources.add(String.format("Resource: %s\n\u001B[36m%s\u001B[0m", resKey, common.prettyPrint(resource)))
+                                }
                             }
                         }
+                    }else if(node!=null && node!=""){
+                        outputResources.add(String.format("Resource: %s\n\u001B[36m%s\u001B[0m", resKey, common.prettyPrint(node)))
+                    }
+                    if(printResults && !outputResources.isEmpty()){
                         wrap([$class: 'AnsiColorBuildWrapper']) {
                             print outputResources.stream().collect(Collectors.joining("\n"))
                         }
-                    }else{
-                        common.infoMsg(common.prettyPrint(node))
                     }
                 }
             }
@@ -394,7 +359,7 @@ def printSaltStateResult(result, onlyChanges = true) {
             common.errorMsg("Salt result hasn't return attribute! Result: ${result}")
         }
     }else{
-        common.errorMsg("Cannot print salt state result, given result is null")
+        common.errorMsg("Cannot check salt result, given result is null")
     }
 }
 
