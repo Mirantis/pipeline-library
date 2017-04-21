@@ -398,7 +398,6 @@ def printSaltCommandResult(result) {
  * @param file      File path to read (/etc/hosts for example)
  */
 
-@NonCPS
 def getFileContent(master, target, file) {
     result = cmdRun(master, target, "cat ${file}")
     return result['return'][0].values()[0]
