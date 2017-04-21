@@ -14,7 +14,9 @@ package com.mirantis.mk
  */
 def runConformanceTests(master, k8s_api, image) {
     def salt = new com.mirantis.mk.Salt()
-    salt.runSaltProcessStep(master, 'ctl01*', 'cmd.run', ["docker run --rm --net=host -e API_SERVER=${k8s_api} ${image} >> ${image}.output"])
+    def outfile = "/tmp/" + image.replaceAll('/', '-') + '.output'
+    salt.runSaltProcessStep(master, 'ctl01*', 'cmd.run', ["docker run --rm --net=host -e API_SERVER=${k8s_api} ${image} > ${outfile}"])
+    print("Conformance test output saved in ${outfile}")
 }
 
 /**
