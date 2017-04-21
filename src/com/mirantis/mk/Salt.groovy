@@ -388,3 +388,17 @@ def printSaltCommandResult(result) {
         common.errorMsg("Cannot print salt command result, given result is null")
     }
 }
+
+
+/**
+ * Return content of file target
+ *
+ * @param master    Salt master object
+ * @param target    Compound target (should target only one host)
+ * @param file      File path to read (/etc/hosts for example)
+ */
+
+def getFileContent(master, target, file) {
+    result = cmdRun(master, target, "cat ${file}")
+    return result['return'][0].values()[0]
+}
