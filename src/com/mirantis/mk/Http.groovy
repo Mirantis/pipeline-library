@@ -13,6 +13,7 @@ package com.mirantis.mk
  * @param data      JSON data to POST or PUT
  * @param headers   Map of additional request headers
  */
+@NonCPS
 def sendHttpRequest(url, method = 'GET', data = null, headers = [:]) {
     def common = new com.mirantis.mk.Common()
     def connection = new URL(url).openConnection()
