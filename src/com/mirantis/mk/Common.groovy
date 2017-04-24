@@ -145,7 +145,7 @@ def warningMsg(msg, color = true) {
  */
 def debugMsg(msg, color = true){
     // if debug property exists on env, debug is enabled
-    if(env.getEnvironment().containsKey('DEBUG')){
+    if(env.getEnvironment().containsKey('DEBUG') && env['DEBUG'] == "true"){
         printMsg("[DEBUG] ${msg}", "red")
     }
 }
