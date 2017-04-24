@@ -144,13 +144,8 @@ def warningMsg(msg, color = true) {
  * @param color Colorful output or not
  */
 def debugMsg(msg, color = true){
-    def debugEnabled
-    try {
-        debugEnabled = DEBUG
-    } catch (MissingPropertyException e) {
-        debugEnabled = false
-    }
-    if(debugEnabled){
+    // if debug property exists on env, debug is enabled
+    if(env.getEnvironment().containsKey('DEBUG')){
         printMsg("[DEBUG] ${msg}", "red")
     }
 }

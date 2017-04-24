@@ -13,9 +13,8 @@ package com.mirantis.mk
  * @param data      JSON data to POST or PUT
  * @param headers   Map of additional request headers
  */
-@NonCPS
 def sendHttpRequest(url, method = 'GET', data = null, headers = [:]) {
-
+    def common = new com.mk.mirantis.Common()
     def connection = new URL(url).openConnection()
     if (method != 'GET') {
         connection.setRequestMethod(method)
@@ -40,7 +39,7 @@ def sendHttpRequest(url, method = 'GET', data = null, headers = [:]) {
             dataStr = new groovy.json.JsonBuilder(data).toString()
         }
         def output = new OutputStreamWriter(connection.outputStream)
-        //infoMsg("[HTTP] Request URL: ${url}, method: ${method}, headers: ${headers}, content: ${dataStr}")
+        common.debugMsg("[HTTP] Request URL: ${url}, method: ${method}, headers: ${headers}, content: ${dataStr}")
         output.write(dataStr)
         output.close()
     }
@@ -52,10 +51,10 @@ def sendHttpRequest(url, method = 'GET', data = null, headers = [:]) {
         } catch (groovy.json.JsonException e) {
             response_content = response
         }
-        //successMsg("[HTTP] Response: code ${connection.responseCode}")
+        common.debugMsg("[HTTP] Response: code ${connection.responseCode}")
         return response_content
     } else {
-        //errorMsg("[HTTP] Response: code ${connection.responseCode}")
+        common.debugMsg("[HTTP] Response: code ${connection.responseCode}")
         throw new Exception(connection.responseCode + ": " + connection.inputStream.text)
     }
 
