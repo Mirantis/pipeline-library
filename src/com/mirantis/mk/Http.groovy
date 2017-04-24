@@ -14,7 +14,7 @@ package com.mirantis.mk
  * @param headers   Map of additional request headers
  */
 def sendHttpRequest(url, method = 'GET', data = null, headers = [:]) {
-    def common = new com.mk.mirantis.Common()
+    def common = new com.mirantis.mk.Common()
     def connection = new URL(url).openConnection()
     if (method != 'GET') {
         connection.setRequestMethod(method)
