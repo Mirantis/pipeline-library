@@ -88,12 +88,12 @@ def promotePublish(server, source, target, recreate=false, components=null, pack
         opts = "${opts} --dry --diff"
     }
 
-    sh("aptly-publisher --url ${server} promote --source ${source} --target ${target} ${opts}")
+    sh("aptly-publisher --url ${server} promote --source ${source} --target ${target} --force-overwrite ${opts}")
 }
 
 def publish(server, config='/etc/aptly-publisher.yaml', recreate=false, opts='-d --timeout 600') {
     if (recreate == true) {
         opts = "${opts} --recreate"
     }
-    sh("aptly-publisher --url ${server} -c ${config} ${opts} publish")
+    sh("aptly-publisher --url ${server} -c ${config} ${opts} --force-overwrite publish")
 }
