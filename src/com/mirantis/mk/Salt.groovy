@@ -296,7 +296,7 @@ def checkResult(result, failOnError = true, printResults = true, printStateOnErr
                             }
                             resource = node[resKey]
                             common.debugMsg("checkResult: checking resource: ${resource}")
-                            if(resource instanceof String || !resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
+                            if(resource instanceof String || !resource["result"] || (resource["result"] instanceof String && resource["result"] == "false")){
                                 if(env["ASK_ON_ERROR"] && env["ASK_ON_ERROR"] == "true"){
                                     def prettyResource = common.prettyPrint(resource)
                                     timeout(time:1, unit:'HOURS') {
