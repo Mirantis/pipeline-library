@@ -225,13 +225,16 @@ def setupCookiecutterVirtualenv(path) {
 /**
  * Generate the cookiecutter templates with given context
  *
- * @param path        Path where virtualenv is created
+ * @param template template
+ * @param context template context
+ * @param path Path where virtualenv is created (optional)
+ * @param templatePath path to cookiecutter template repo (optional)
  */
-def buildCookiecutterTemplate(template, context, outputDir = '.', path = none) {
+def buildCookiecutterTemplate(template, context, outputDir = '.', path = null, templatePath = ".") {
     configFile = "default_config.yaml"
     configString = "default_context:\n"
     writeFile file: configFile, text: context
-    command = "if [ -f generate.py ]; then python generate.py --config-file ${configFile} --template ${template}; else . ${path}/bin/activate; cookiecutter --config-file ${configFile} --output-dir ${outputDir} --overwrite-if-exists --verbose --no-input ${template}; fi"
+    command = "if [ -f ${templatePath}/generate.py ]; then python ${templatePath}/generate.py --config-file ${configFile} --template ${template} --output-dir ${outputDir}; else . ${path}/bin/activate; cookiecutter --config-file ${configFile} --output-dir ${outputDir} --overwrite-if-exists --verbose --no-input ${template}; fi"
     output = sh (returnStdout: true, script: command)
     echo("[Cookiecutter build] Output: ${output}")
 }
