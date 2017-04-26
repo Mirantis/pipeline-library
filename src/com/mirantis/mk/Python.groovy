@@ -234,7 +234,7 @@ def buildCookiecutterTemplate(template, context, outputDir = '.', path = null, t
     configFile = "default_config.yaml"
     configString = "default_context:\n"
     writeFile file: configFile, text: context
-    command = "if [ -f ${templatePath}/generate.py ]; then python ${templatePath}/generate.py --config-file ${configFile} --template ${template} --output-dir ${outputDir}; else . ${path}/bin/activate; cookiecutter --config-file ${configFile} --output-dir ${outputDir} --overwrite-if-exists --verbose --no-input ${template}; fi"
+    command = ". ${path}/bin/activate; if [ -f ${templatePath}/generate.py ]; then python ${templatePath}/generate.py --config-file ${configFile} --template ${template} --output-dir ${outputDir}; else cookiecutter --config-file ${configFile} --output-dir ${outputDir} --overwrite-if-exists --verbose --no-input ${template}; fi"
     output = sh (returnStdout: true, script: command)
     echo("[Cookiecutter build] Output: ${output}")
 }
