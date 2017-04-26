@@ -217,7 +217,8 @@ print json.dumps(final_data)
 def setupCookiecutterVirtualenv(path) {
     requirements = [
         'cookiecutter',
-        'jinja2==2.8.1'
+        'jinja2==2.8.1',
+        'PyYAML==3.12'
     ]
     setupVirtualenv(path, 'python2', requirements)
 }
