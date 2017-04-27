@@ -138,7 +138,7 @@ def enforceState(master, target, state, output = true, failOnError = true, batch
 
     def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states])
 
-    checkResult(out, failOnError, output, !output)
+    checkResult(out, failOnError, output)
     return out
 }
 
@@ -179,7 +179,7 @@ def syncAll(master, target) {
  */
 def enforceHighstate(master, target, output = false, failOnError = true, batch = null) {
     def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.highstate', batch)
-    checkResult(out, failOnError, output, !output)
+    checkResult(out, failOnError, output)
     return out
 }
 
@@ -264,10 +264,9 @@ def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false)
  * @param result    Parsed response of Salt API
  * @param failOnError Do you want to throw exception if salt-call fails (optional, default true)
  * @param printResults Do you want to print salt results (optional, default true)
- * @param printStateOnError Do you want to print failed state on error (optional, default true)
  * @param printOnlyChanges If true (default), print only changed resources
  */
-def checkResult(result, failOnError = true, printResults = true, printStateOnError = true, printOnlyChanges = true) {
+def checkResult(result, failOnError = true, printResults = true, printOnlyChanges = true) {
     def common = new com.mirantis.mk.Common()
     if(result != null){
         if(result['return']){
@@ -303,12 +302,7 @@ def checkResult(result, failOnError = true, printResults = true, printStateOnErr
                                        input message: "False result on ${nodeKey} found, resource ${prettyResource}. \nDo you want to continue?"
                                     }
                                 }else{
-                                    def errorMsg
-                                    if(printStateOnError){
-                                        errorMsg = "Salt state on node ${nodeKey} failed: ${resource}. State output: ${node}"
-                                    }else{
-                                        errorMsg = "Salt state on node ${nodeKey} failed. Look on error upper."
-                                    }
+                                    def errorMsg = "Salt state on node ${nodeKey} failed: ${resource}. State output: ${node}"
                                     if (failOnError) {
                                         throw new Exception(errorMsg)
                                     } else {
