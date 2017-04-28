@@ -251,7 +251,7 @@ def installKubernetesInfra(master) {
 }
 
 
-def installKubernetersControl(master) {
+def installKubernetesControl(master) {
     def salt = new com.mirantis.mk.Salt()
     // Install Kubernetes pool and Calico
     salt.runSaltProcessStep(master, 'I@kubernetes:master', 'state.sls', ['kubernetes.master.kube-addons'])
