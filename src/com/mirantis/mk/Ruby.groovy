@@ -20,7 +20,18 @@ def ensureRubyEnv(rubyVersion="2.3.2"){
  */
 def installKitchen(){
     sh """rbenv exec gem install bundler;
-          rbenv exec gem install test-kitchen"""
+          rbenv exec gem install test-kitchen;"""
+    sh """  test -e Gemfile || cat <<EOF > Gemfile
+            source 'https://rubygems.org'
+            gem 'rake'
+            gem 'test-kitchen'
+            gem 'kitchen-docker'
+            gem 'kitchen-inspec'
+            gem 'inspec'
+            gem 'kitchen-salt', :git => 'https://github.com/epcim/kitchen-salt.git', :branch => 'dependencis-pkg-repo2'
+            #Waiting for PR#78
+            #gem 'kitchen-salt', '>=0.2.25'"""
+    sh "rbenv exec bundler install --path vendor/bundle"
 }
 
 /**
