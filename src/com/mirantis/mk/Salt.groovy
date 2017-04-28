@@ -294,23 +294,7 @@ def checkResult(result, failOnError = true, printResults = true, printOnlyChange
                                 resKey = k
                             }
                             resource = node[resKey]
-                            common.debugMsg("checkResult: checking resource: ${resource}")
-                            if(resource instanceof String || (resource["result"] != null && !resource["result"]) || (resource["result"] instanceof String && resource["result"] == "false")){
-                                if(env["ASK_ON_ERROR"] && env["ASK_ON_ERROR"] == "true"){
-                                    def prettyResource = common.prettyPrint(resource)
-                                    timeout(time:1, unit:'HOURS') {
-                                       input message: "False result on ${nodeKey} found, resource ${prettyResource}. \nDo you want to continue?"
-                                    }
-                                }else{
-                                    def errorMsg = "Salt state on node ${nodeKey} failed: ${resource}. State output: ${node}"
-                                    if (failOnError) {
-                                        throw new Exception(errorMsg)
-                                    } else {
-                                        common.errorMsg(errorMsg)
-                                    }
-                                }
-                            }
-                            // print
+                           // print
                             if(printResults){
                                 if(resource instanceof Map && resource.keySet().contains("result")){
                                     //clean unnesaccary fields
@@ -336,6 +320,23 @@ def checkResult(result, failOnError = true, printResults = true, printOnlyChange
                                     }
                                 }else{
                                     outputResources.add(String.format("Resource: %s\n\u001B[36m%s\u001B[0m", resKey, common.prettyPrint(resource)))
+                                }
+                            }
+                            common.debugMsg("checkResult: checking resource: ${resource}")
+                            if(resource instanceof String || (resource["result"] != null && !resource["result"]) || (resource["result"] instanceof String && resource["result"] == "false")){
+                                def prettyResource = common.prettyPrint(resource)
+                                if(env["ASK_ON_ERROR"] && env["ASK_ON_ERROR"] == "true"){
+                                    timeout(time:1, unit:'HOURS') {
+                                       input message: "False result on ${nodeKey} found, resource ${prettyResource}. \nDo you want to continue?"
+                                    }
+                                }else{
+                                    print(String.format("Resource: %s\n\u001B[33m%s\u001B[0m", resKey, prettyResource))
+                                    def errorMsg = "Salt state on node ${nodeKey} failed: ${prettyResource}. State output: ${node}"
+                                    if (failOnError) {
+                                        throw new Exception(errorMsg)
+                                    } else {
+                                        common.errorMsg(errorMsg)
+                                    }
                                 }
                             }
                         }
