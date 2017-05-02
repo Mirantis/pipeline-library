@@ -219,19 +219,24 @@ def installContrailCompute(master) {
 
 
 def installKubernetesInfra(master) {
+    def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
 
     // Install glusterfs
-    salt.enforceState(master, 'I@glusterfs:server', 'glusterfs.server.service')
+    if (common.checkContains('INSTALL', 'glusterfs')) {
+        salt.enforceState(master, 'I@glusterfs:server', 'glusterfs.server.service')
+    }
 
     // Install keepalived
     salt.enforceState(master, 'I@keepalived:cluster and *01*', 'keepalived')
     salt.enforceState(master, 'I@keepalived:cluster', 'keepalived')
 
     // Setup glusterfs
-    salt.enforceState(master, 'I@glusterfs:server and *01*', 'glusterfs.server.setup')
-    salt.runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster peer status'])
-    salt.runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster volume status'])
+    if (common.checkContains('INSTALL', 'glusterfs')) {
+        salt.enforceState(master, 'I@glusterfs:server and *01*', 'glusterfs.server.setup')
+        salt.runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster peer status'])
+        salt.runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster volume status'])
+    }
 
     // Install haproxy
     salt.enforceState(master, 'I@haproxy:proxy', 'state.sls', 'haproxy')
