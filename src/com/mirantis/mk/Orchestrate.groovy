@@ -239,7 +239,7 @@ def installKubernetesInfra(master) {
     }
 
     // Install haproxy
-    salt.enforceState(master, 'I@haproxy:proxy', 'state.sls', 'haproxy')
+    salt.enforceState(master, 'I@haproxy:proxy', 'haproxy')
     salt.runSaltProcessStep(master, 'I@haproxy:proxy', 'service.status', ['haproxy'])
 
     // Install docker
