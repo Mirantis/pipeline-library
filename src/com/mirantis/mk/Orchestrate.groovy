@@ -219,33 +219,30 @@ def installContrailCompute(master) {
 
 
 def installKubernetesInfra(master) {
-     def salt = new com.mirantis.mk.Salt()
+    def salt = new com.mirantis.mk.Salt()
 
     // Install glusterfs
-    salt.runSaltProcessStep(master, 'I@glusterfs:server', 'state.sls', ['glusterfs.server.service'])
+    salt.enforceState(master, 'I@glusterfs:server', 'glusterfs.server.service')
 
     // Install keepalived
-    salt.runSaltProcessStep(master, 'I@keepalived:cluster and *01*', 'state.sls', ['keepalived'])
-    salt.runSaltProcessStep(master, 'I@keepalived:cluster', 'state.sls', ['keepalived'])
-
-    // Check the keepalived VIPs
-    salt.runSaltProcessStep(master, 'I@keepalived:cluster', 'cmd.run', ['ip a | grep 172.16.10.2'])
+    salt.enforceState(master, 'I@keepalived:cluster and *01*', 'keepalived')
+    salt.enforceState(master, 'I@keepalived:cluster', 'keepalived')
 
     // Setup glusterfs
-    salt.runSaltProcessStep(master, 'I@glusterfs:server and *01*', 'state.sls', ['glusterfs.server.setup'])
+    salt.enforceState(master, 'I@glusterfs:server and *01*', 'glusterfs.server.setup')
     salt.runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster peer status'])
     salt.runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster volume status'])
 
     // Install haproxy
-    salt.runSaltProcessStep(master, 'I@haproxy:proxy', 'state.sls', ['haproxy'])
+    salt.enforceState(master, 'I@haproxy:proxy', 'state.sls', 'haproxy')
     salt.runSaltProcessStep(master, 'I@haproxy:proxy', 'service.status', ['haproxy'])
 
     // Install docker
-    salt.runSaltProcessStep(master, 'I@docker:host', 'state.sls', ['docker.host'])
+    salt.enforceState(master, 'I@docker:host', 'docker.host')
     salt.runSaltProcessStep(master, 'I@docker:host', 'cmd.run', ['docker ps'])
 
     // Install etcd
-    salt.runSaltProcessStep(master, 'I@etcd:server', 'state.sls', ['etcd.server.service'])
+    salt.enforceState(master, 'I@etcd:server', 'etcd.server.service')
     salt.runSaltProcessStep(master, 'I@etcd:server', 'cmd.run', ['./var/lib/etcd/configenv && etcdctl cluster-health'])
 
 }
@@ -253,18 +250,19 @@ def installKubernetesInfra(master) {
 
 def installKubernetesControl(master) {
     def salt = new com.mirantis.mk.Salt()
+
     // Install Kubernetes pool and Calico
-    salt.runSaltProcessStep(master, 'I@kubernetes:master', 'state.sls', ['kubernetes.master.kube-addons'])
-    salt.runSaltProcessStep(master, 'I@kubernetes:pool', 'state.sls', ['kubernetes.pool'])
+    salt.enforceState(master, 'I@kubernetes:master', 'kubernetes.master.kube-addons')
+    salt.enforceState(master, 'I@kubernetes:pool', 'kubernetes.pool')
 
     // Setup etcd server
-    salt.runSaltProcessStep(master, 'I@kubernetes:master and *01*', 'state.sls', ['etcd.server.setup'])
+    salt.enforceState(master, 'I@kubernetes:master and *01*', 'etcd.server.setup')
 
     // Run k8s without master.setup
     salt.runSaltProcessStep(master, 'I@kubernetes:master', 'state.sls', ['kubernetes', 'exclude=kubernetes.master.setup'])
 
     // Run k8s master setup
-    salt.runSaltProcessStep(master, 'I@kubernetes:master and *01*', 'state.sls', ['kubernetes.master.setup'])
+    salt.enforceState(master, 'I@kubernetes:master and *01*', 'kubernetes.master.setup')
 
     // Restart kubelet
     salt.runSaltProcessStep(master, 'I@kubernetes:pool', 'service.restart', ['kubelet'])
