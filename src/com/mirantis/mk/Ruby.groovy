@@ -6,9 +6,9 @@ package com.mirantis.mk
 
 /**
  * Ensures Ruby environment with given version (install it if necessary)
- * @param rubyVersion target ruby version (optional, default 2.3.2)
+ * @param rubyVersion target ruby version (optional, default 2.2.3)
  */
-def ensureRubyEnv(rubyVersion="2.3.2"){
+def ensureRubyEnv(rubyVersion="2.2.3"){
     if(!fileExists("/var/lib/jenkins/.rbenv/versions/${rubyVersion}/bin/ruby")){
         sh "rbenv install ${rubyVersion}";
     }
