@@ -275,7 +275,7 @@ def installKubernetesControl(master) {
 
 
 def installKubernetesCompute(master) {
-    def salt = new com.mirantis.mk.Salt();
+    def salt = new com.mirantis.mk.Salt()
     // Install opencontrail
     salt.runSaltProcessStep(master, 'I@opencontrail:compute', 'state.sls', ['opencontrail'])
     // Reboot compute nodes
@@ -284,7 +284,7 @@ def installKubernetesCompute(master) {
 
 
 def installStacklightControl(master) {
-    def salt = new com.mirantis.mk.Salt();
+    def salt = new com.mirantis.mk.Salt()
 
     // infra install
     // Install the StackLight backends
@@ -308,7 +308,8 @@ def installStacklightControl(master) {
 }
 
 def installStacklightClient(master) {
-    def salt = new com.mirantis.mk.Salt();
+    def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
 
     salt.runSaltProcessStep(master, 'I@elasticsearch.client', 'cmd.run', ['salt-call state.sls elasticsearch.client'], null, true)
     // salt.enforceState(master, 'I@elasticsearch:client', 'elasticsearch.client', true)
