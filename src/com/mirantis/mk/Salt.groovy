@@ -158,7 +158,7 @@ def cmdRun(master, target, cmd, checkResponse = true, batch=null) {
     if (checkResponse) {
       cmd = cmd + " && echo Salt command execution success"
     }
-    def output = salt.runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.run', batch, [cmd])
+    def output = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.run', batch, [cmd])
     if (checkResponse) {
         // iterate over all affected nodes and check success return code
         if (output["return"]){
