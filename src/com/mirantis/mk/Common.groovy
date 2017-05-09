@@ -404,3 +404,11 @@ def parseJSON(jsonString){
    m.putAll(lazyMap)
    return m
 }
+
+/**
+ * Test pipeline input parameter existence and validity (not null and not empty string)
+ * @param paramName input parameter name (usually uppercase)
+ */
+def validInputParam(paramName){
+    return env.getEnvironment().containsKey(paramName) && env[paramName] != null && env[paramName] != ""
+}
