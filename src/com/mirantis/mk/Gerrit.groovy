@@ -148,6 +148,28 @@ def getGerritChange(gerritName, gerritHost, gerritChangeNumber, credentialsId){
     return common.parseJSON(ssh.agentSh(String.format("ssh -p 29418 %s@%s gerrit query --format=JSON change:%s", gerritName, gerritHost, gerritChangeNumber)))
 }
 
+/**
+ * Returns list of Gerrit trigger requested builds
+ * @param allBuilds list of all builds of some job
+ * @param gerritChange gerrit change number
+ * @param excludePatchset gerrit patchset number which will be excluded from builds, optional null
+ */
+@NonCPS
+def getGerritTriggeredBuilds(allBuilds, gerritChange, excludePatchset = null){
+    return allBuilds.findAll{job ->
+        def cause = job.causes[0]
+        if(cause instanceof com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.GerritCause &&
+           cause.getEvent() instanceof com.sonymobile.tools.gerrit.gerritevents.dto.events.PatchsetCreated){
+            if(excludePatchset == null || excludePatchset == 0){
+                return cause.event.change.number.equals(String.valueOf(gerritChange))
+            }else{
+                return cause.event.change.number.equals(String.valueOf(gerritChange)) && !cause.event.patchSet.number.equals(String.valueOf(excludePatchset))
+            }
+        }
+        return false
+    }
+}
+
 @NonCPS
 def _getGerritParamsFromUrl(gitUrl){
     def gitUrlPattern = Pattern.compile("(.+):\\/\\/(.+)@(.+):(.+)\\/(.+)")
