@@ -41,7 +41,7 @@ def buildBinary(file, image="debian:sid", extraRepoUrl=null, extraRepoKeyUrl=nul
             apt-get update && apt-get install -y build-essential devscripts equivs sudo &&
             groupadd -g ${jenkinsGID} jenkins &&
             useradd -s /bin/bash --uid ${jenkinsUID} --gid ${jenkinsGID} -m jenkins &&
-            [ ! -x pre_build_script.sh ] || ./pre_build_script.sh &&
+            [ ! -f pre_build_script.sh ] || bash ./pre_build_script.sh &&
             sudo -H -E -u jenkins dpkg-source -x ${file} build-area/${pkg} && cd build-area/${pkg} &&
             mk-build-deps -t "apt-get -o Debug::pkgProblemResolver=yes -y" -i debian/control
             sudo -H -E -u jenkins debuild --no-lintian -uc -us -b'""")
