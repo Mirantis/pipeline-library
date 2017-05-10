@@ -188,9 +188,22 @@ def createHeatStack(client, name, template, params = [], environment = null, pat
 }
 
 /**
+ * Returns list of stacks for stack name filter
+ *
+ * @param client       Connection parameters for OpenStack API endpoint
+ * @param filter       Stack name filter
+ * @param path         Optional path to the custom virtualenv
+ */
+def getStacksForNameContains(client, filter, path = null){
+    cmd = 'heat stack-list | awk \'NR>3 {print $4}\' | sed \'$ d\' | grep ' + filter
+    return runOpenstackCommand(cmd, client, path).trim().tokenize("\n")
+}
+
+
+/**
  * Get list of stack names with given stack status
  *
- * @param env          Connection parameters for OpenStack API endpoint
+ * @param client       Connection parameters for OpenStack API endpoint
  * @param status       Stack status
  * @param path         Optional path to the custom virtualenv
  */
