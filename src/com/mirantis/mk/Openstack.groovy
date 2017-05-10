@@ -195,7 +195,7 @@ def createHeatStack(client, name, template, params = [], environment = null, pat
  * @param path         Optional path to the custom virtualenv
  */
 def getStacksForNameContains(client, filter, path = null){
-    cmd = 'heat stack-list | awk \'NR>3 {print $4}\' | sed \'$ d\' | grep ' + filter
+    cmd = 'heat stack-list | awk \'NR>3 {print $4}\' | sed \'$ d\' | grep ' + filter + '|| true'
     return runOpenstackCommand(cmd, client, path).trim().tokenize("\n")
 }
 
