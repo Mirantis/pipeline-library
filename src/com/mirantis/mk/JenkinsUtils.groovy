@@ -11,6 +11,11 @@ package com.mirantis.mk
  * @param jobName job name
  * @return list of running builds
  */
+@NonCPS
 def getJobRunningBuilds(jobName){
-  return Jenkins.instance.items.find{it -> it.name.equals(jobName)}.builds.findAll{build -> build.isBuilding()}
+  def job = Jenkins.instance.items.find{it -> it.name.equals(jobName)}
+  if(job){
+   return job.builds.findAll{build -> build.isBuilding()}
+  }
+  return []
 }
