@@ -350,9 +350,7 @@ def checkResult(result, failOnError = true, printResults = true, printOnlyChange
                                        input message: "False result on ${nodeKey} found, resource ${prettyResource}. \nDo you want to continue?"
                                     }
                                 }else{
-                                    wrap([$class: 'AnsiColorBuildWrapper']) {
-                                        print(String.format("Resource: %s\n\u001B[33m%s\u001B[0m", resKey, prettyResource))
-                                    }
+                                    common.errorMsg(String.format("Resource: %s\n%s", resKey, prettyResource))
                                     def errorMsg = "Salt state on node ${nodeKey} failed: ${prettyResource}."
                                     if (failOnError) {
                                         throw new Exception(errorMsg)
