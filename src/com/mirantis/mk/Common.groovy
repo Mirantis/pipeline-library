@@ -215,7 +215,7 @@ def serial(steps) {
         def step = stepsArray[i]
         def dummySteps = [:]
         def stepKey
-        if(step[1] instanceof Iterable){
+        if(step[1] instanceof List || step[1] instanceof Map){
             for(j=0;j < step[1].size; j++){
                 if(step[1] instanceof List){
                     stepKey = j
