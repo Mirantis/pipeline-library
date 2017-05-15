@@ -207,22 +207,41 @@ def entries(m) {
 /**
  * Opposite of build-in parallel, run map of steps in serial
  *
- * @param steps Map of String<name>: CPSClosure2<step>
+ * @param steps Map of String<name>: CPSClosure2<step> (or list of closures)
  */
 def serial(steps) {
     stepsArray = entries(steps)
     for (i=0; i < stepsArray.size; i++) {
         def step = stepsArray[i]
-        dummySteps = [:]
+        def dummySteps = [:]
+        def stepKey
         if(step[1] instanceof Iterable){
-            for(j=0;j < step[1].size; i++){
-                dummySteps.put(step[0],step[1][j])
+            for(j=0;j < step[1].size; j++){
+                if(step[1] instanceof List){
+                    stepKey = j
+                }else if(step[1] instanceof Map){
+                    stepKey = step[1].keySet()[j]
+                }
+                dummySteps.put("step-${step[0]}-${stepKey}",step[1][stepKey])
             }
         }else{
             dummySteps.put(step[0], step[1])
         }
         parallel dummySteps
     }
+}
+
+/**
+ * Partition given list to list of small lists
+ * @param inputList input list
+ * @param partitionSize (partition size, optional, default 5)
+ */
+def partitionList(inputList, partitionSize=5){
+  List<List<String>> partitions = new ArrayList<>();
+  for (int i=0; i<inputList.size(); i += partitionSize) {
+      partitions.add(new ArrayList<String>(inputList.subList(i, Math.min(i + partitionSize, inputList.size()))));
+  }
+  return partitions
 }
 
 /**
