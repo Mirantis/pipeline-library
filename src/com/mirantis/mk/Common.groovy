@@ -216,7 +216,7 @@ def serial(steps) {
         def dummySteps = [:]
         def stepKey
         if(step[1] instanceof List || step[1] instanceof Map){
-            for(j=0;j < step[1].size; j++){
+            for(j=0;j < step[1].size(); j++){
                 if(step[1] instanceof List){
                     stepKey = j
                 }else if(step[1] instanceof Map){
