@@ -212,8 +212,15 @@ def entries(m) {
 def serial(steps) {
     stepsArray = entries(steps)
     for (i=0; i < stepsArray.size; i++) {
-        s = stepsArray[i]
-        dummySteps = ["${s[0]}": s[1]]
+        def step = stepsArray[i]
+        dummySteps = [:]
+        if(step[1] instanceof Iterable){
+            for(j=0;j < step[1].size; i++){
+                dummySteps.put(step[0],step[1][j])
+            }
+        }else{
+            dummySteps.put(step[0], step[1])
+        }
         parallel dummySteps
     }
 }
