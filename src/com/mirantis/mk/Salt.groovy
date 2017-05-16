@@ -108,9 +108,9 @@ def getPillar(master, target, pillar = null) {
  */
 def getGrain(master, target, grain = null) {
     if(grain != null) {
-        return runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'grain.item', null, [grain])
+        return runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'grains.item', null, [grain])
     } else {
-        return runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'grain.items')
+        return runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'grains.items')
     }
 }
 
