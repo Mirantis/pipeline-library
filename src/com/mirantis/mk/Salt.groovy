@@ -276,6 +276,7 @@ def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false)
     if (output == true) {
         printSaltCommandResult(out)
     }
+    return out
 }
 
 /**
