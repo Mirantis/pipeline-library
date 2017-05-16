@@ -19,10 +19,10 @@ def installFoundationInfra(master) {
     def salt = new com.mirantis.mk.Salt()
 
     salt.enforceState(master, 'I@salt:master', ['salt.master', 'reclass'], true)
-    salt.enforceState(master, '*', ['linux.system'], true)
-    salt.enforceState(master, '*', ['salt.minion'], true)
     salt.runSaltProcessStep(master, 'I@linux:system', 'saltutil.refresh_pillar', [], null, true)
     salt.runSaltProcessStep(master, 'I@linux:system', 'saltutil.sync_all', [], null, true)
+    salt.enforceState(master, '*', ['linux.system'], true)
+    salt.enforceState(master, '*', ['salt.minion'], true)
     salt.enforceState(master, 'I@linux:system', ['linux', 'openssh', 'salt.minion', 'ntp'], true)
 }
 
