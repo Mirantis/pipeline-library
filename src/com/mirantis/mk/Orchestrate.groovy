@@ -171,7 +171,7 @@ def installOpenstackCompute(master) {
 
     // Configure compute nodes
     retry(2) {
-        salt.runSaltProcessStep(master, 'I@nova:compute', 'state.apply', [], null, true)
+        salt.runSaltProcessStep(master, 'I@nova:compute', 'state.highstate', ['exclude=opencontrail.client'], null, true)
     }
 }
 
@@ -211,10 +211,10 @@ def installContrailCompute(master) {
     // Provision opencontrail control services
     salt.enforceState(master, 'I@opencontrail:database:id:1', 'opencontrail.client', true)
     // Provision opencontrail virtual routers
-    salt.enforceState(master, 'I@opencontrail:compute', 'opencontrail.client', true)
 
     salt.runSaltProcessStep(master, 'I@nova:compute', 'cmd.run', ['exec 0>&-; exec 1>&-; exec 2>&-; nohup bash -c "ip link | grep vhost && echo no_reboot || sleep 5 && reboot & "'], null, true)
     sleep(300)
+    salt.enforceState(master, 'I@opencontrail:compute', 'opencontrail.client', true)
 }
 
 
