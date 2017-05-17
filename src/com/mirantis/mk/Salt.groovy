@@ -151,19 +151,19 @@ def enforceState(master, target, state, output = true, failOnError = true, batch
  * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
  * @return output of salt command
  */
-def cmdRun(master, target, cmd, checkResponse = true, batch=null) {
+def cmdRun(master, target, cmd, checkResponse = true, batch=null, output = true) {
     def common = new com.mirantis.mk.Common()
     def originalCmd = cmd
     common.infoMsg("Running command ${cmd} on ${target}")
     if (checkResponse) {
       cmd = cmd + " && echo Salt command execution success"
     }
-    def output = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.run', batch, [cmd])
+    def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.run', batch, [cmd])
     if (checkResponse) {
         // iterate over all affected nodes and check success return code
-        if (output["return"]){
-            for(int i=0;i<output["return"].size();i++){
-                def node = output["return"][i];
+        if (out["return"]){
+            for(int i=0;i<out["return"].size();i++){
+                def node = out["return"][i];
                 for(int j=0;j<node.size();j++){
                     def nodeKey = node.keySet()[j]
                     if (!node[nodeKey].contains("Salt command execution success")) {
@@ -175,7 +175,10 @@ def cmdRun(master, target, cmd, checkResponse = true, batch=null) {
             throw new Exception("Salt Api response doesn't have return param!")
         }
     }
-    return output
+    if (output == true) {
+        printSaltCommandResult(out)
+    }
+    return out
 }
 
 /**
