@@ -64,7 +64,8 @@ def setupOpenstackVirtualenv(path, version = 'kilo'){
  * @param credentialsId   Credentials to the OpenStack API
  * @param project         OpenStack project to connect to
  */
-def createOpenstackEnv(url, credentialsId, project) {
+def createOpenstackEnv(url, credentialsId, project, project_domain="default",
+    user_domain= "default") {
     def common = new com.mirantis.mk.Common()
     rcFile = "${env.WORKSPACE}/keystonerc"
     creds = common.getPasswordCredentials(credentialsId)
@@ -74,6 +75,10 @@ export OS_PASSWORD=${creds.password.toString()}
 export OS_TENANT_NAME=${project}
 export OS_AUTH_URL=${url}
 export OS_AUTH_STRATEGY=keystone
+//introduce keystone v3 vars
+export OS_PROJECT_NAME=${project}
+export OS_PROJECT_DOMAIN_ID=${project_domain}
+export OS_USER_DOMAIN_ID=${user_domain}
 set -x
 """
     writeFile file: rcFile, text: rc
