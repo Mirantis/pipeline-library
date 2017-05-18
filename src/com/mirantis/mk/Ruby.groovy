@@ -37,17 +37,22 @@ def installKitchen(){
 /**
  * Run kitchen tests in tests/integration
  */
-def runKitchenTests(){
-    runKitchenCommand("converge")
-    runKitchenCommand("verify -t tests/integration")
+def runKitchenTests(platform){
+    runKitchenCommand("converge ${platform}")
+    runKitchenCommand("verify -t tests/integration ${platform}")
+    runKitchenCommand("destroy ${platform}");
 }
 
 /**
  * Run kitchen command
  * @param cmd kitchen command
  */
-def runKitchenCommand(cmd){
-    sh "rbenv exec bundler exec kitchen ${cmd}"
+def runKitchenCommand(cmd, platform = null){
+    if(platform){
+        sh "PLATFORM=${platform} rbenv exec bundler exec kitchen ${cmd}"
+    }else{
+        sh "rbenv exec bundler exec kitchen ${cmd}"
+    }
 }
 
 
