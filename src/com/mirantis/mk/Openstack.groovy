@@ -75,7 +75,6 @@ export OS_PASSWORD=${creds.password.toString()}
 export OS_TENANT_NAME=${project}
 export OS_AUTH_URL=${url}
 export OS_AUTH_STRATEGY=keystone
-//introduce keystone v3 vars
 export OS_PROJECT_NAME=${project}
 export OS_PROJECT_DOMAIN_ID=${project_domain}
 export OS_USER_DOMAIN_ID=${user_domain}
