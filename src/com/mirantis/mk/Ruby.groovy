@@ -28,9 +28,7 @@ def installKitchen(){
             gem 'kitchen-docker'
             gem 'kitchen-inspec'
             gem 'inspec'
-            gem 'kitchen-salt', :git => 'https://github.com/epcim/kitchen-salt.git', :branch => 'dependencis-pkg-repo2'
-            #Waiting for PR#78
-            #gem 'kitchen-salt', '>=0.2.25'"""
+            gem 'kitchen-salt', :git => 'https://github.com/salt-formulas/kitchen-salt.git'"""
     sh "rbenv exec bundler install --path vendor/bundle"
 }
 
