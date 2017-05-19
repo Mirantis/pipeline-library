@@ -37,7 +37,7 @@ def installKitchen(){
 /**
  * Run kitchen tests in tests/integration
  */
-def runKitchenTests(platform){
+def runKitchenTests(platform=""){
     runKitchenCommand("converge ${platform}")
     runKitchenCommand("verify -t tests/integration ${platform}")
     runKitchenCommand("destroy ${platform}");
