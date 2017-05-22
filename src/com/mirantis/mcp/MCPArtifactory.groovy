@@ -174,7 +174,8 @@ def getImagesByTag(String artifactoryURL, String repo, String tag) {
  */
 def uploadImageToArtifactory (ArtifactoryServer server, String registry, String image,
                               String version, String repository,
-                              BuildInfo buildInfo = null) {
+                              BuildInfo buildInfo = null,
+                              LinkedHashMap properties = null) {
     // TODO Switch to Artifactoy image' pushing mechanism once we will
     // prepare automatical way for enabling artifactory build-proxy
     //def artDocker
@@ -191,8 +192,8 @@ def uploadImageToArtifactory (ArtifactoryServer server, String registry, String 
     sh ("docker push ${registry}/${image}:${version}")
     //artDocker.push("${registry}/${image}:${version}", "${repository}")
     def image_url = server.getUrl() + "/api/storage/${repository}/${image}/${version}"
-
-    def properties = [
+    if ( ! properties ) {
+        properties = [
             'com.mirantis.buildName':"${env.JOB_NAME}",
             'com.mirantis.buildNumber': "${env.BUILD_NUMBER}",
             'com.mirantis.gerritProject': "${env.GERRIT_PROJECT}",
@@ -202,7 +203,8 @@ def uploadImageToArtifactory (ArtifactoryServer server, String registry, String 
             'com.mirantis.gerritPatchsetRevision': "${env.GERRIT_PATCHSET_REVISION}",
             'com.mirantis.targetImg': "${image}",
             'com.mirantis.targetTag': "${version}"
-    ]
+        ]
+    }
 
     setProperties(image_url, properties)
 
