@@ -37,7 +37,7 @@ def installKitchen(){
  */
 def runKitchenTests(environment=""){
     def common = new com.mirantis.mk.Common()
-    def kitchenTests=runKitchenCommand("list", environment)
+    def kitchenTests=runKitchenCommand("list -b", environment)
     if(kitchenTests && kitchenTests != ""){
         def kitchenTestsList = kitchenTests.trim().tokenize("\n")
         def kitchenTestRuns = [:]
