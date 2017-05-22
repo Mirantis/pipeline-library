@@ -19,8 +19,8 @@ def ensureRubyEnv(rubyVersion="2.2.3"){
  * Install kitchen tools
  */
 def installKitchen(){
-    sh """rbenv exec gem install bundler;
-          rbenv exec gem install test-kitchen;"""
+    sh """rbenv exec gem install bundler --conservative;
+          rbenv exec gem install test-kitchen --conservative;"""
     sh """  test -e Gemfile || cat <<EOF > Gemfile
             source 'https://rubygems.org'
             gem 'rake'
@@ -42,8 +42,9 @@ def runKitchenTests(environment=""){
         def kitchenTestsList = kitchenTests.trim().tokenize("\n")
         def kitchenTestRuns = [:]
         for(int i=0;i<kitchenTestsList.size();i++){
-            kitchenTestRuns["kitchen-run-${i}"]= {
-                runKitchenCommand("converge ${kitchenTestsList[i]}", environment)
+            def testSuite = kitchenTestsList[i]
+            kitchenTestRuns["kitchen-${testSuite}-${i}"] = {
+                runKitchenCommand("converge " + testSuite, environment)
             }
         }
         parallel kitchenTestRuns
