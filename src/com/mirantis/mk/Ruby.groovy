@@ -34,8 +34,10 @@ def installKitchen(){
 
 /**
  * Run kitchen tests in tests/integration
+ * @param environment kitchen environment (optional can be empty)
+ * @param parallel run kitchen test suites in parallel (optional, default true)
  */
-def runKitchenTests(environment=""){
+def runKitchenTests(environment="", parallel = true){
     def common = new com.mirantis.mk.Common()
     def kitchenTests=runKitchenCommand("list -b", environment)
     if(kitchenTests && kitchenTests != ""){
@@ -47,7 +49,11 @@ def runKitchenTests(environment=""){
                 runKitchenCommand("converge " + testSuite, environment)
             }
         }
-        parallel kitchenTestRuns
+        if(parallel){
+            parallel kitchenTestRuns
+        }else{
+            common.serial(kitchenTestRuns)
+        }
         runKitchenCommand("destroy", environment)
         runKitchenCommand("verify -t tests/integration", environment)
     }else{
@@ -68,6 +74,3 @@ def runKitchenCommand(cmd, environment = null){
         return sh(script: "rbenv exec bundler exec kitchen ${cmd}", returnStdout: true)
     }
 }
-
-
-
