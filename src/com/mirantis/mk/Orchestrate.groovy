@@ -21,7 +21,6 @@ def installFoundationInfra(master) {
     salt.enforceState(master, 'I@salt:master', ['salt.master', 'reclass'], true)
     salt.runSaltProcessStep(master, 'I@linux:system', 'saltutil.refresh_pillar', [], null, true)
     salt.runSaltProcessStep(master, 'I@linux:system', 'saltutil.sync_all', [], null, true)
-    salt.enforceState(master, '*', 'linux.system.service', true)
     salt.enforceState(master, '*', ['linux.system'], true)
     salt.enforceState(master, '*', ['salt.minion'], true)
     salt.enforceState(master, 'I@linux:system', ['linux', 'openssh', 'salt.minion', 'ntp'], true)
@@ -33,15 +32,14 @@ def installInfraKvm(master) {
     salt.runSaltProcessStep(master, 'I@linux:system', 'saltutil.refresh_pillar', [], null, true)
     salt.runSaltProcessStep(master, 'I@linux:system', 'saltutil.sync_all', [], null, true)
 
-    salt.enforceState(master, 'I@salt:control', 'linux.system.service', true)
     salt.enforceState(master, 'I@salt:control', ['salt.minion', 'linux.system', 'linux.network', 'ntp'], true)
     salt.enforceState(master, 'I@salt:control', 'libvirt', true)
     salt.enforceState(master, 'I@salt:control', 'salt.control', true)
 
     sleep(600)
 
-    salt.runSaltProcessStep(master, '*', 'saltutil.refresh_pillar', [], null, true)
-    salt.runSaltProcessStep(master, '*', 'saltutil.sync_all', [], null, true)
+    salt.runSaltProcessStep(master, '* and not kvm*', 'saltutil.refresh_pillar', [], null, true)
+    salt.runSaltProcessStep(master, '* and not kvm*', 'saltutil.sync_all', [], null, true)
 }
 
 def installOpenstackInfra(master) {
