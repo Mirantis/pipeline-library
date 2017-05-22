@@ -35,21 +35,36 @@ def installKitchen(){
 /**
  * Run kitchen tests in tests/integration
  */
-def runKitchenTests(platform=""){
-    runKitchenCommand("converge ${platform}")
-    runKitchenCommand("verify -t tests/integration ${platform}")
-    runKitchenCommand("destroy ${platform}");
+def runKitchenTests(environment=""){
+    def common = new com.mirantis.mk.Common()
+    def kitchenTests=runKitchenCommand("list", environment)
+    if(kitchenTests && kitchenTests != ""){
+        def kitchenTestsList = kitchenTests.trim().tokenize("\n")
+        def kitchenTestRuns = [:]
+        for(int i=0;i<kitchenTestsList.size();i++){
+            kitchenTestRuns["kitchen-run-${i}"]= {
+                runKitchenCommand("converge ${kitchenTestsList[i]}", environment)
+            }
+        }
+        parallel kitchenTestRuns
+        runKitchenCommand("destroy", environment)
+        runKitchenCommand("verify -t tests/integration", environment)
+    }else{
+        common.errorMsg("Cannot found kitchen test suites, kitchen list command returns bad output")
+    }
 }
 
 /**
  * Run kitchen command
  * @param cmd kitchen command
+ * @param environment kitchen environment properties  (will be used before kitchen command), example: PLATFORM=ubuntu-16-04
+ * @return return kitchen output
  */
-def runKitchenCommand(cmd, platform = null){
-    if(platform){
-        sh "PLATFORM=${platform} rbenv exec bundler exec kitchen ${cmd}"
+def runKitchenCommand(cmd, environment = null){
+    if(environment && environment != ""){
+        return sh(script: "${environment} rbenv exec bundler exec kitchen ${cmd}", returnStdout: true)
     }else{
-        sh "rbenv exec bundler exec kitchen ${cmd}"
+        return sh("rbenv exec bundler exec kitchen ${cmd}", returnStdout: true)
     }
 }
 
