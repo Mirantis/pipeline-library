@@ -64,7 +64,7 @@ def runKitchenCommand(cmd, environment = null){
     if(environment && environment != ""){
         return sh(script: "${environment} rbenv exec bundler exec kitchen ${cmd}", returnStdout: true)
     }else{
-        return sh("rbenv exec bundler exec kitchen ${cmd}", returnStdout: true)
+        return sh(script: "rbenv exec bundler exec kitchen ${cmd}", returnStdout: true)
     }
 }
 
