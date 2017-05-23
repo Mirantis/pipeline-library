@@ -18,17 +18,21 @@ def ensureRubyEnv(rubyVersion="2.2.3"){
 /**
  * Install kitchen tools
  */
-def installKitchen(){
+def installKitchen(kitchenInit=""){
     sh """rbenv exec gem install bundler --conservative;
           rbenv exec gem install test-kitchen --conservative;"""
-    sh """  test -e Gemfile || cat <<EOF > Gemfile
-            source 'https://rubygems.org'
-            gem 'rake'
-            gem 'test-kitchen'
-            gem 'kitchen-docker'
-            gem 'kitchen-inspec'
-            gem 'inspec'
-            gem 'kitchen-salt', :git => 'https://github.com/salt-formulas/kitchen-salt.git'"""
+    if(kitchenInit!=""){
+        sh kitchenInit
+    }else{
+        sh """  test -e Gemfile || cat <<EOF > Gemfile
+                source 'https://rubygems.org'
+                gem 'rake'
+                gem 'test-kitchen'
+                gem 'kitchen-docker'
+                gem 'kitchen-inspec'
+                gem 'inspec'
+                gem 'kitchen-salt', :git => 'https://github.com/salt-formulas/kitchen-salt.git'"""
+        }
     sh "rbenv exec bundler install --path vendor/bundle"
 }
 
