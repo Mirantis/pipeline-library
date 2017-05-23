@@ -50,7 +50,7 @@ def runKitchenTests(environment="", parallel = true){
         for(int i=0;i<kitchenTestsList.size();i++){
             def testSuite = kitchenTestsList[i]
             kitchenTestRuns["kitchen-${testSuite}-${i}"] = {
-                runKitchenCommand("converge " + testSuite, environment)
+                println runKitchenCommand("converge " + testSuite, environment)
             }
         }
         if(parallel){
@@ -58,8 +58,8 @@ def runKitchenTests(environment="", parallel = true){
         }else{
             common.serial(kitchenTestRuns)
         }
-        runKitchenCommand("verify -t tests/integration", environment)
-        runKitchenCommand("destroy", environment)
+        println runKitchenCommand("verify -t tests/integration", environment)
+        println runKitchenCommand("destroy", environment)
     }else{
         common.errorMsg("Cannot found kitchen test suites, kitchen list command returns bad output")
     }
