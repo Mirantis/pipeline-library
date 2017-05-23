@@ -58,8 +58,8 @@ def runKitchenTests(environment="", parallel = true){
         }else{
             common.serial(kitchenTestRuns)
         }
-        runKitchenCommand("destroy", environment)
         runKitchenCommand("verify -t tests/integration", environment)
+        runKitchenCommand("destroy", environment)
     }else{
         common.errorMsg("Cannot found kitchen test suites, kitchen list command returns bad output")
     }
