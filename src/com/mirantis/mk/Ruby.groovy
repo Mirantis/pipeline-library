@@ -39,21 +39,23 @@ def installKitchen(kitchenInit=""){
 /**
  * Run kitchen tests in tests/integration
  * @param environment kitchen environment (optional can be empty)
- * @param parallel run kitchen test suites in parallel (optional, default true)
+ * @param parallelTesting run kitchen test suites in parallel (optional, default true)
  */
-def runKitchenTests(environment="", parallel = true){
+def runKitchenTests(environment="", parallelTesting = true){
     def common = new com.mirantis.mk.Common()
     def kitchenTests=runKitchenCommand("list -b", environment)
     if(kitchenTests && kitchenTests != ""){
         def kitchenTestsList = kitchenTests.trim().tokenize("\n")
         def kitchenTestRuns = [:]
+        common.infoMsg(String.format("Found %s kitchen test suites", kitchenTestsList.size()))
         for(int i=0;i<kitchenTestsList.size();i++){
             def testSuite = kitchenTestsList[i]
             kitchenTestRuns["kitchen-${testSuite}-${i}"] = {
-                println runKitchenCommand("converge " + testSuite, environment)
+                common.infoMsg("Running kitchen test ${testSuite}")
+                println(runKitchenCommand("converge " + testSuite, environment))
             }
         }
-        if(parallel){
+        if(parallelTesting){
             parallel kitchenTestRuns
         }else{
             common.serial(kitchenTestRuns)
