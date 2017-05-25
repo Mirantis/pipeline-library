@@ -69,29 +69,22 @@ def waitForStatus(venv_path, env_vars, stack_name, state, timeout = 600, loop_sl
     def common = new com.mirantis.mk.Common()
     def python = new com.mirantis.mk.Python()
 
-    timeout = timeout * 1000
-    Date date = new Date()
-    def time_start = date.getTime() // in seconds
+    timeout(time: timeout, unit: 'SECONDS') {
+        withEnv(env_vars) {
+            while (true) {
+                // get stack state
+                def stack_info = aws.describeStack(venv_path, env_vars, stack_name)
+                common.infoMsg('Stack status is ' + stack_info['StackStatus'])
 
-    withEnv(env_vars) {
-        while (true) {
-            // get stack state
-            def stack_info = aws.describeStack(venv_path, env_vars, stack_name)
-            common.infoMsg('Stack status is ' + stack_info['StackStatus'])
+                if (stack_info['StackStatus'] == state) {
+                    common.successMsg("Stack ${stack_name} in in state ${state}")
+                    common.prettyPrint(stack_info)
+                    break
+                }
 
-            if (stack_info['StackStatus'] == state) {
-                common.successMsg("Stack ${stack_name} in in state ${state}")
-                common.prettyPrint(stack_info)
-                break
+                // wait for next loop
+                sleep(loop_sleep)
             }
-
-            // check for timeout
-            if (time_start + timeout < date.getTime()) {
-                throw new Exception("Timeout while waiting for state ${state} for stack ${stack}")
-            }
-
-            // wait for next loop
-            sleep(loop_sleep)
         }
     }
 }
