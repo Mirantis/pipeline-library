@@ -4,7 +4,7 @@ package com.mirantis.mk
  * setup and test salt-master
  *
  * @param masterName          salt master's name
- * @param testDir             directory of model inside of workspace
+ * @param testDir             directory of model
  */
 
 def setupAndTestNode(masterName, testDir="") {
@@ -28,7 +28,7 @@ def setupAndTestNode(masterName, testDir="") {
         sh("pip install git+https://github.com/epcim/reclass.git@pr/fix/fix_raise_UndefinedVariableError")
       }
       sh("mkdir -p /srv/salt/ || true")
-      sh("cp -r ${workspace}/${testDir} /srv/salt/reclass")
+      sh("cp -r ${testDir} /srv/salt/reclass")
       sh("svn export --force https://github.com/salt-formulas/salt-formulas/trunk/deploy/scripts /srv/salt/scripts")
       sh("git config --global user.email || git config --global user.email 'ci@ci.local'")
       sh("git config --global user.name || git config --global user.name 'CI'")
