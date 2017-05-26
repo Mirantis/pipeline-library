@@ -33,6 +33,7 @@ def setupOpenstackVirtualenv(path, version = 'kilo'){
         'python-neutronclient>=2.2.6,<2.3.0',
         'python-novaclient>=2.19.0,<2.20.0',
         'python-swiftclient>=2.5.0,<2.6.0',
+        'python-openstackclient>=1.7.0,<1.8.0',
         'oslo.config>=2.2.0,<2.3.0',
         'oslo.i18n>=2.3.0,<2.4.0',
         'oslo.serialization>=1.8.0,<1.9.0',
@@ -65,7 +66,7 @@ def setupOpenstackVirtualenv(path, version = 'kilo'){
  * @param project         OpenStack project to connect to
  */
 def createOpenstackEnv(url, credentialsId, project, project_domain="default",
-    user_domain= "default") {
+    project_id="", user_domain="default", api_ver="2") {
     def common = new com.mirantis.mk.Common()
     rcFile = "${env.WORKSPACE}/keystonerc"
     creds = common.getPasswordCredentials(credentialsId)
@@ -76,8 +77,10 @@ export OS_TENANT_NAME=${project}
 export OS_AUTH_URL=${url}
 export OS_AUTH_STRATEGY=keystone
 export OS_PROJECT_NAME=${project}
+export OS_PROJECT_ID=${project_id}
 export OS_PROJECT_DOMAIN_ID=${project_domain}
-export OS_USER_DOMAIN_ID=${user_domain}
+export OS_USER_DOMAIN_NAME=${user_domain}
+export OS_API_IDENTITY_VERSION=${api_ver}
 set -x
 """
     writeFile file: rcFile, text: rc
@@ -115,7 +118,7 @@ def runOpenstackCommand(cmd, venv, path = null) {
  */
 def getKeystoneToken(client, path = null) {
     def python = new com.mirantis.mk.Python()
-    cmd = "keystone token-get"
+    cmd = "openstack token issue"
     outputTable = runOpenstackCommand(cmd, client, path)
     output = python.parseTextTable(outputTable, 'item', 'prettytable', path)
     return output
