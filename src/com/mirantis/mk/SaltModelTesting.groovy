@@ -8,7 +8,7 @@ package com.mirantis.mk
  * @param testDir             directory of model
  */
 
-def setupAndTestNode(masterName, extraFormulas, testDir) {
+def setupAndTestNode(masterName, extraFormulas="linux", testDir) {
   def saltOpts = "--retcode-passthrough --force-color"
   def common = new com.mirantis.mk.Common()
   def workspace = common.getWorkspace()
