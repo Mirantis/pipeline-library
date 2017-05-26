@@ -22,8 +22,9 @@ def setupAndTestNode(masterName, extraFormulas, testDir) {
     imageFound = false
   }
 
-  if (extraFormulas == "")
+  if (extraFormulas == "") {
     extraFormulas = "linux"
+  }
 
   img.inside("-u root:root --hostname=${masterName}") {
     wrap([$class: 'AnsiColorBuildWrapper']) {
