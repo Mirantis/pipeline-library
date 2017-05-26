@@ -8,7 +8,7 @@ package com.mirantis.mk
  * @param testDir             directory of model
  */
 
-def setupAndTestNode(masterName, extraFormulas="linux", testDir) {
+def setupAndTestNode(masterName, extraFormulas, testDir) {
   def saltOpts = "--retcode-passthrough --force-color"
   def common = new com.mirantis.mk.Common()
   def workspace = common.getWorkspace()
@@ -21,6 +21,9 @@ def setupAndTestNode(masterName, extraFormulas="linux", testDir) {
     img = docker.image("ubuntu:latest")
     imageFound = false
   }
+
+  if (extraFormulas == "")
+    extraFormulas = "linux"
 
   img.inside("-u root:root --hostname=${masterName}") {
     wrap([$class: 'AnsiColorBuildWrapper']) {
