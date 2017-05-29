@@ -22,7 +22,7 @@ def setupAndTestNode(masterName, extraFormulas, testDir) {
     imageFound = false
   }
 
-  if (extraFormulas == "") {
+  if (!extraFormulas || extraFormulas == "") {
     extraFormulas = "linux"
   }
 
@@ -38,7 +38,7 @@ def setupAndTestNode(masterName, extraFormulas, testDir) {
       sh("git config --global user.email || git config --global user.email 'ci@ci.local'")
       sh("git config --global user.name || git config --global user.name 'CI'")
 
-      withEnv(["FORMULAS_SOURCE=pkg", "EXTRA_FORMULAS=${extraFormulas}}", "DEBUG=1", "MASTER_HOSTNAME=${masterName}", "MINION_ID=${masterName}", "HOSTNAME=cfg01", "DOMAIN=mk-ci.local"]){
+      withEnv(["FORMULAS_SOURCE=pkg", "EXTRA_FORMULAS=${extraFormulas}", "DEBUG=1", "MASTER_HOSTNAME=${masterName}", "MINION_ID=${masterName}", "HOSTNAME=cfg01", "DOMAIN=mk-ci.local"]){
           sh("bash -c 'echo $MASTER_HOSTNAME'")
           sh("bash -c 'source /srv/salt/scripts/salt-master-init.sh; cd /srv/salt/scripts && system_config'")
           sh("bash -c 'source /srv/salt/scripts/salt-master-init.sh; cd /srv/salt/scripts && saltmaster_bootstrap'")
