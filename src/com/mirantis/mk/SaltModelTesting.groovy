@@ -45,8 +45,15 @@ def setupAndTestNode(masterName, extraFormulas, testDir) {
           sh("bash -c 'source /srv/salt/scripts/salt-master-init.sh; cd /srv/salt/scripts && saltmaster_init'")
       }
 
+      def is_mk_ci
+      try {
+        is_mk_ci = DEFAULT_GIT_URL.contains("mk-ci")
+      } catch (Throwable e) {
+        is_mk_ci = false
+      }
+
       def nodes
-      if (DEFAULT_GIT_URL && DEFAULT_GIT_URL.contains("mk-ci")) {
+      if (is_mk_ci) {
         nodes = sh script: "find /srv/salt/reclass/nodes -name '*.yml' | grep -v 'cfg*.yml'", returnStdout: true
       } else {
         nodes = sh script:"find /srv/salt/reclass/nodes/_generated -name '*.yml' | grep -v 'cfg*.yml'", returnStdout: true
