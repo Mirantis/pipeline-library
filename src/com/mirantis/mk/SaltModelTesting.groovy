@@ -46,7 +46,7 @@ def setupAndTestNode(masterName, extraFormulas, testDir) {
       }
 
       def nodes
-      if (DEFAULT_GIT_URL.contains("mk-ci")) {
+      if (DEFAULT_GIT_URL && DEFAULT_GIT_URL.contains("mk-ci")) {
         nodes = sh script: "find /srv/salt/reclass/nodes -name '*.yml' | grep -v 'cfg*.yml'", returnStdout: true
       } else {
         nodes = sh script:"find /srv/salt/reclass/nodes/_generated -name '*.yml' | grep -v 'cfg*.yml'", returnStdout: true
