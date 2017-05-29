@@ -27,6 +27,14 @@ def setupAndTestNode(masterName, extraFormulas, testDir) {
   }
 
   img.inside("-u root:root --hostname=${masterName}") {
+
+    def is_mk_ci
+    try {
+      is_mk_ci = DEFAULT_GIT_URL.contains("mk-ci")
+    } catch (Throwable e) {
+      is_mk_ci = false
+    }
+
     wrap([$class: 'AnsiColorBuildWrapper']) {
       if (!imageFound) {
         sh("apt-get update && apt-get install -y curl subversion git python-pip sudo python-pip python-dev zlib1g-dev git")
@@ -43,27 +51,22 @@ def setupAndTestNode(masterName, extraFormulas, testDir) {
           sh("bash -c 'source /srv/salt/scripts/salt-master-init.sh; cd /srv/salt/scripts && system_config'")
           sh("bash -c 'source /srv/salt/scripts/salt-master-init.sh; cd /srv/salt/scripts && saltmaster_bootstrap'")
           sh("bash -c 'source /srv/salt/scripts/salt-master-init.sh; cd /srv/salt/scripts && saltmaster_init'")
+
+          if (!is_mk_ci) {
+             sh("bash -c 'source /srv/salt/scripts/salt-master-init.sh; cd /srv/salt/scripts && verify_salt_minions'")
+          }
       }
 
-      def is_mk_ci
-      try {
-        is_mk_ci = DEFAULT_GIT_URL.contains("mk-ci")
-      } catch (Throwable e) {
-        is_mk_ci = false
-      }
-
-      def nodes
       if (is_mk_ci) {
-        nodes = sh script: "find /srv/salt/reclass/nodes -name '*.yml' | grep -v 'cfg*.yml'", returnStdout: true
-      } else {
-        nodes = sh script:"find /srv/salt/reclass/nodes/_generated -name '*.yml' | grep -v 'cfg*.yml'", returnStdout: true
-      }
-      for (minion in nodes.tokenize()) {
-        def basename = sh script: "basename ${minion} .yml", returnStdout: true
-        if (!basename.trim().contains(masterName)) {
-          testMinion(basename.trim())
+        def nodes = sh script: "find /srv/salt/reclass/nodes -name '*.yml' | grep -v 'cfg*.yml'", returnStdout: true
+        for (minion in nodes.tokenize()) {
+          def basename = sh script: "basename ${minion} .yml", returnStdout: true
+          if (!basename.trim().contains(masterName)) {
+            testMinion(basename.trim())
+          }
         }
       }
+
     }
   }
 }
