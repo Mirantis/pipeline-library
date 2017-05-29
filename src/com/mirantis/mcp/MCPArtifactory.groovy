@@ -257,7 +257,8 @@ def promoteDockerArtifact(String artifactoryURL, String artifactoryDevRepo,
                           String artifactoryProdRepo, String dockerRepo,
                           String artifactTag, String targetTag, Boolean copy = false) {
     def url = "${artifactoryURL}/api/docker/${artifactoryDevRepo}/v2/promote"
-    writeFile file: "query.json",
+    String queryFile = UUID.randomUUID()
+    writeFile file: queryFile,
             text: """{
                   \"targetRepo\": \"${artifactoryProdRepo}\",
                   \"dockerRepository\": \"${dockerRepo}\",
@@ -265,13 +266,14 @@ def promoteDockerArtifact(String artifactoryURL, String artifactoryDevRepo,
                   \"targetTag\" : \"${targetTag}\",
                   \"copy\": \"${copy}\"
               }""".stripIndent()
-    sh "cat query.json"
+    sh "cat ${queryFile}"
     withCredentials([
             [$class          : 'UsernamePasswordMultiBinding',
              credentialsId   : 'artifactory',
              passwordVariable: 'ARTIFACTORY_PASSWORD',
              usernameVariable: 'ARTIFACTORY_LOGIN']
     ]) {
-        sh "bash -c \"curl  -u ${ARTIFACTORY_LOGIN}:${ARTIFACTORY_PASSWORD} -H \"Content-Type:application/json\" -X POST -d @query.json ${url}\""
+        sh "bash -c \"curl  -u ${ARTIFACTORY_LOGIN}:${ARTIFACTORY_PASSWORD} -H \"Content-Type:application/json\" -X POST -d @${queryFile} ${url}\""
     }
+    sh "rm -v ${queryFile}"
 }
