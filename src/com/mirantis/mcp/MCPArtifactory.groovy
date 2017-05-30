@@ -257,7 +257,7 @@ def promoteDockerArtifact(String artifactoryURL, String artifactoryDevRepo,
                           String artifactoryProdRepo, String dockerRepo,
                           String artifactTag, String targetTag, Boolean copy = false) {
     def url = "${artifactoryURL}/api/docker/${artifactoryDevRepo}/v2/promote"
-    String queryFile = UUID.randomUUID()
+    String queryFile = UUID.randomUUID().toString()
     writeFile file: queryFile,
             text: """{
                   \"targetRepo\": \"${artifactoryProdRepo}\",
