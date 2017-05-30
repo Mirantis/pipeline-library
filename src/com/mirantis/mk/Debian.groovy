@@ -108,7 +108,7 @@ def buildSourceGbp(dir, image="debian:sid", snapshot=false, gitName='Jenkins', g
             which eatmydata || (apt-get update && apt-get install -y eatmydata) &&
             export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}/usr/lib/libeatmydata &&
             export LD_PRELOAD=\${LD_PRELOAD:+"\$LD_PRELOAD "}libeatmydata.so &&
-            apt-get update && apt-get install -y build-essential git-buildpackage sudo &&
+            apt-get update && apt-get install -y build-essential git-buildpackage dpkg-dev sudo &&
             groupadd -g ${jenkinsGID} jenkins &&
             useradd -s /bin/bash --uid ${jenkinsUID} --gid ${jenkinsGID} -m jenkins &&
             cd ${dir} &&
