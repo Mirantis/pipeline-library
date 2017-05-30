@@ -12,8 +12,11 @@ import java.util.regex.Pattern
  * @param config LinkedHashMap
  *        config includes next parameters:
  *          - credentialsId, id of user which should make checkout
- *          - withMerge, prevent detached mode in repo
+ *          - withMerge, merge master before build
+ *          - withLocalBranch, prevent detached mode in repo
  *          - withWipeOut, wipe repository and force clone
+ *        Gerrit properties like GERRIT_SCHEMA can be passed in config as gerritSchema or will be obtained from env
+ * @param extraScmExtensions list of extra scm extensions which will be used for checkout (optional)
  * @return boolean result
  *
  * Usage example:
@@ -29,9 +32,10 @@ import java.util.regex.Pattern
  *   withMerge : true
  * ])
  */
-def gerritPatchsetCheckout(LinkedHashMap config) {
+def gerritPatchsetCheckout(LinkedHashMap config, List extraScmExtensions = []) {
     def merge = config.get('withMerge', false)
     def wipe = config.get('withWipeOut', false)
+    def localBranch = config.get('withLocalBranch', false)
     def credentials = config.get('credentialsId','')
     def gerritScheme = config.get('gerritScheme', env["GERRIT_SCHEME"] ? env["GERRIT_SCHEME"] : "")
     def gerritRefSpec = config.get('gerritRefSpec', env["GERRIT_REFSPEC"] ? env["GERRIT_REFSPEC"] : "")
@@ -70,13 +74,20 @@ def gerritPatchsetCheckout(LinkedHashMap config) {
 
         // if we need to "merge" code from patchset to GERRIT_BRANCH branch
         if (merge) {
-            scmExtensions.add([$class: 'LocalBranch', localBranch: "${gerritBranch}"])
+            scmExtensions.add([$class: 'PreBuildMerge', options: [fastForwardMode: 'FF', mergeRemote: 'gerrit', mergeStrategy: 'default', mergeTarget: gerritBranch]])
         }
         // we need wipe workspace before checkout
         if (wipe) {
             scmExtensions.add([$class: 'WipeWorkspace'])
         }
 
+        if(localBranch){
+            scmExtensions.add([$class: 'LocalBranch', localBranch: gerritBranch])
+        }
+
+        if(!extraScmExtensions.isEmpty()){
+            scmExtensions.addAll(extraScmExtensions)
+        }
         if (path == "") {
             checkout(
                 scm: [
