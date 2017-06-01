@@ -48,6 +48,16 @@ def createStack(venv_path, env_vars, template_file, stack_name, parameters = [])
     }
 }
 
+def deleteStack(venv_path, env_vars, stack_name) {
+    def python = new com.mirantis.mk.Python()
+
+    def cmd = "aws cloudformation delete-stack --stack-name ${stack_name}"
+
+    withEnv(env_vars) {
+        def out = python.runVirtualenvCommand(venv_path, cmd)
+    }
+}
+
 def describeStack(venv_path, env_vars, stack_name) {
     def python = new com.mirantis.mk.Python()
     def common = new com.mirantis.mk.Common()
@@ -64,7 +74,7 @@ def describeStack(venv_path, env_vars, stack_name) {
     }
 }
 
-def waitForStatus(venv_path, env_vars, stack_name, state, max_timeout = 600, loop_sleep = 30) {
+def waitForStatus(venv_path, env_vars, stack_name, state, state_failed = [], max_timeout = 600, loop_sleep = 30) {
     def aws = new com.mirantis.mk.Aws()
     def common = new com.mirantis.mk.Common()
     def python = new com.mirantis.mk.Python()
@@ -76,10 +86,16 @@ def waitForStatus(venv_path, env_vars, stack_name, state, max_timeout = 600, loo
                 def stack_info = aws.describeStack(venv_path, env_vars, stack_name)
                 common.infoMsg('Stack status is ' + stack_info['StackStatus'])
 
+                // check for desired state
                 if (stack_info['StackStatus'] == state) {
                     common.successMsg("Stack ${stack_name} in in state ${state}")
                     common.prettyPrint(stack_info)
                     break
+                }
+
+                // check for failed state
+                if (stack_failed.contains(stack_info['StackStatus'])) {
+                    throw new Exception("Stack ${stack_name} in in failed state")
                 }
 
                 // wait for next loop
