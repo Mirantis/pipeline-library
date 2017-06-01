@@ -43,7 +43,7 @@ def installKitchen(kitchenInit=""){
  */
 def runKitchenTests(environment="", parallelTesting = true){
     def common = new com.mirantis.mk.Common()
-    def kitchenTests=runKitchenCommand("list -b", environment)
+    def kitchenTests=runKitchenCommand("list -b 2>/dev/null \"\$SUITE\"", environment)
     if(kitchenTests && kitchenTests != ""){
         def kitchenTestsList = kitchenTests.trim().tokenize("\n")
         def kitchenTestRuns = [:]
@@ -52,7 +52,9 @@ def runKitchenTests(environment="", parallelTesting = true){
             def testSuite = kitchenTestsList[i]
             kitchenTestRuns["kitchen-${testSuite}-${i}"] = {
                 common.infoMsg("Running kitchen test ${testSuite}")
-                println(runKitchenCommand("converge " + testSuite, environment))
+                println(runKitchenCommand("converge ${testSuite}", environment))
+                println runKitchenCommand("verify ${testSuite} -t tests/integration", environment)
+                println runKitchenCommand("destroy", environment)
             }
         }
         if(parallelTesting){
@@ -60,8 +62,6 @@ def runKitchenTests(environment="", parallelTesting = true){
         }else{
             common.serial(kitchenTestRuns)
         }
-        println runKitchenCommand("verify -t tests/integration", environment)
-        println runKitchenCommand("destroy", environment)
     }else{
         common.errorMsg("Cannot found kitchen test suites, kitchen list command returns bad output")
     }
