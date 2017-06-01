@@ -94,7 +94,7 @@ def waitForStatus(venv_path, env_vars, stack_name, state, state_failed = [], max
                 }
 
                 // check for failed state
-                if (stack_failed.contains(stack_info['StackStatus'])) {
+                if (state_failed.contains(stack_info['StackStatus'])) {
                     throw new Exception("Stack ${stack_name} in in failed state")
                 }
 
