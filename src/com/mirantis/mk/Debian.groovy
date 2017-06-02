@@ -24,13 +24,16 @@ def buildBinary(file, image="debian:sid", extraRepoUrl=null, extraRepoKeyUrl=nul
     def common = new com.mirantis.mk.Common()
     def jenkinsUID = common.getJenkinsUid()
     def jenkinsGID = common.getJenkinsGid()
-
     def pkg = file.split('/')[-1].split('_')[0]
-    def img = docker.image(image)
+    def dockerLib = new com.mirantis.mk.Docker()
+    def imageArray = image.split(":")
+    def os = imageArray[0]
+    def dist = imageArray[1]
+    def img = dockerLib.getImage("debian-build-${os}-${dist}", image)
+    def workspace = common.getWorkspace()
 
-    workspace = common.getWorkspace()
-    sh("""docker run -e DEBIAN_FRONTEND=noninteractive -v ${workspace}:${workspace} -w ${workspace} --rm=true --privileged ${image} /bin/bash -c '
-            which eatmydata || (apt-get update && apt-get install -y eatmydata) &&
+    img.inside("-v ${workspace}:${workspace} -w ${workspace} --privileged" ) {
+        sh("""which eatmydata || (apt-get update && apt-get install -y eatmydata) &&
             export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}/usr/lib/libeatmydata &&
             export LD_PRELOAD=\${LD_PRELOAD:+"\$LD_PRELOAD "}libeatmydata.so &&
             [[ -z "${extraRepoUrl}" && "${extraRepoUrl}" != "null" ]] || echo "${extraRepoUrl}" >/etc/apt/sources.list.d/extra.list &&
@@ -44,7 +47,10 @@ def buildBinary(file, image="debian:sid", extraRepoUrl=null, extraRepoKeyUrl=nul
             [ ! -f pre_build_script.sh ] || bash ./pre_build_script.sh &&
             sudo -H -E -u jenkins dpkg-source -x ${file} build-area/${pkg} && cd build-area/${pkg} &&
             mk-build-deps -t "apt-get -o Debug::pkgProblemResolver=yes -y" -i debian/control
-            sudo -H -E -u jenkins debuild --no-lintian -uc -us -b'""")
+            sudo -H -E -u jenkins debuild --no-lintian -uc -us -b""")
+    }
+
+
 }
 
 /*
@@ -78,12 +84,18 @@ def buildSource(dir, image="debian:sid", snapshot=false, gitEmail='jenkins@dummy
  */
 def buildSourceUscan(dir, image="debian:sid") {
     def common = new com.mirantis.mk.Common()
-    def img = docker.image(image)
-    workspace = common.getWorkspace()
-    sh("""docker run -e DEBIAN_FRONTEND=noninteractive -v ${workspace}:${workspace} -w ${workspace} --rm=true --privileged ${image} /bin/bash -c '
-            apt-get update && apt-get install -y build-essential devscripts &&
-            cd ${dir} && uscan --download-current-version &&
-            dpkg-buildpackage -S -nc -uc -us'""")
+    def dockerLib = new com.mirantis.mk.Docker()
+    def imageArray = image.split(":")
+    def os = imageArray[0]
+    def dist = imageArray[1]
+    def img = dockerLib.getImage("debian-build-${os}-${dist}", image)
+    def workspace = common.getWorkspace()
+
+    img.inside("-v ${workspace}:${workspace} -w ${workspace} --privileged" ) {
+        sh("""apt-get update && apt-get install -y build-essential devscripts &&
+        cd ${dir} && uscan --download-current-version &&
+        dpkg-buildpackage -S -nc -uc -us""")
+    }
 }
 
 /*
@@ -102,10 +114,17 @@ def buildSourceGbp(dir, image="debian:sid", snapshot=false, gitName='Jenkins', g
         revisionPostfix = ""
     }
 
-    def img = docker.image(image)
-    workspace = common.getWorkspace()
-    sh("""docker run -e DEBIAN_FRONTEND=noninteractive -e DEBFULLNAME='${gitName}' -e DEBEMAIL='${gitEmail}' -v ${workspace}:${workspace} -w ${workspace} --rm=true --privileged ${image} /bin/bash -exc '
-            which eatmydata || (apt-get update && apt-get install -y eatmydata) &&
+    def workspace = common.getWorkspace()
+    def dockerLib = new com.mirantis.mk.Docker()
+    def imageArray = image.split(":")
+    def os = imageArray[0]
+    def dist = imageArray[1]
+    def img = dockerLib.getImage("debian-build-${os}-${dist}", image)
+
+    img.inside("-v ${workspace}:${workspace} -w ${workspace} --privileged") {
+
+        withEnv(["DEBIAN_FRONTEND=noninteractive", "DEBFULLNAME='${gitName}'", "DEBEMAIL='${gitEmail}'"]) {
+            sh("""which eatmydata || (apt-get update && apt-get install -y eatmydata) &&
             export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}/usr/lib/libeatmydata &&
             export LD_PRELOAD=\${LD_PRELOAD:+"\$LD_PRELOAD "}libeatmydata.so &&
             apt-get update && apt-get install -y build-essential git-buildpackage dpkg-dev sudo &&
@@ -134,7 +153,9 @@ def buildSourceGbp(dir, image="debian:sid", snapshot=false, gitName='Jenkins', g
                 sudo -H -E -u jenkins git add -u debian/changelog &&
                 sudo -H -E -u jenkins git commit -m "New snapshot version \$NEW_VERSION"
             ) &&
-            sudo -H -E -u jenkins gbp buildpackage -nc --git-force-create --git-notify=false --git-ignore-branch --git-ignore-new --git-verbose --git-export-dir=../build-area -sa -S -uc -us '""")
+            sudo -H -E -u jenkins gbp buildpackage -nc --git-force-create --git-notify=false --git-ignore-branch --git-ignore-new --git-verbose --git-export-dir=../build-area -sa -S -uc -us """)            
+        }
+    }
 }
 
 /*
@@ -146,11 +167,16 @@ def buildSourceGbp(dir, image="debian:sid", snapshot=false, gitName='Jenkins', g
  */
 def runLintian(changes, profile="debian", image="debian:sid") {
     def common = new com.mirantis.mk.Common()
-    def img = docker.image(image)
-    workspace = common.getWorkspace()
-    sh("""docker run -e DEBIAN_FRONTEND=noninteractive -v ${workspace}:${workspace} -w ${workspace} --rm=true --privileged ${image} /bin/bash -c '
-            apt-get update && apt-get install -y lintian &&
-            lintian -Ii -E --pedantic --profile=${profile} ${changes}'""")
+    def workspace = common.getWorkspace()
+    def dockerLib = new com.mirantis.mk.Docker()
+    def imageArray = image.split(":")
+    def os = imageArray[0]
+    def dist = imageArray[1]
+    def img = dockerLib.getImage("debian-build-${os}-${dist}", image)
+    img.inside("-v ${workspace}:${workspace} -w ${workspace} --privileged") {
+        sh("""apt-get update && apt-get install -y lintian &&
+            lintian -Ii -E --pedantic --profile=${profile} ${changes}""")
+    }
 }
 
 /*

@@ -30,3 +30,25 @@ def buildDockerImage(img, baseImg, dockerFile, timestamp, params=[]) {
         params.join(' ')
     )
 }
+
+/**
+ * Build step to build docker image.
+ *
+ * @param dockerHubImg     Name of image on dockerhub (ie: tcpcloud/salt-models-testing)
+ * @param defaultImg       Image to use if dockerHubImg is not found
+ * @return img             Docker image
+ */
+
+def getImage(dockerHubImg, defaultImg="ubuntu:latest") {
+
+    def img
+
+    try {
+        img = docker.image(dockerHubImg)
+        img.pull()
+    } catch (Throwable e) {
+        img = docker.image(defaultImg)
+    }
+
+    return img
+}
