@@ -32,7 +32,7 @@ def buildBinary(file, image="debian:sid", extraRepoUrl=null, extraRepoKeyUrl=nul
     def img = dockerLib.getImage("tcpcloud/debian-build-${os}-${dist}", image)
     def workspace = common.getWorkspace()
 
-    img.inside("-w ${workspace} --privileged" ) {
+    img.inside("-v ${workspace}:${workspace} -w ${workspace} -u root:root" ) {
         sh("""which eatmydata || (apt-get update && apt-get install -y eatmydata) &&
             export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}/usr/lib/libeatmydata &&
             export LD_PRELOAD=\${LD_PRELOAD:+"\$LD_PRELOAD "}libeatmydata.so &&
@@ -91,7 +91,7 @@ def buildSourceUscan(dir, image="debian:sid") {
     def img = dockerLib.getImage("tcpcloud/debian-build-${os}-${dist}", image)
     def workspace = common.getWorkspace()
 
-    img.inside("-w ${workspace} --privileged" ) {
+    img.inside("-v ${workspace}:${workspace} -w ${workspace} -u root:root" ) {
         sh("""apt-get update && apt-get install -y build-essential devscripts &&
         cd ${dir} && uscan --download-current-version &&
         dpkg-buildpackage -S -nc -uc -us""")
@@ -121,7 +121,7 @@ def buildSourceGbp(dir, image="debian:sid", snapshot=false, gitName='Jenkins', g
     def dist = imageArray[1]
     def img = dockerLib.getImage("tcpcloud/debian-build-${os}-${dist}", image)
 
-    img.inside("-w ${workspace} --privileged") {
+    img.inside("-v ${workspace}:${workspace} -w ${workspace} -u root:root") {
 
         withEnv(["DEBIAN_FRONTEND=noninteractive", "DEBFULLNAME='${gitName}'", "DEBEMAIL='${gitEmail}'"]) {
             sh("""which eatmydata || (apt-get update && apt-get install -y eatmydata) &&
@@ -173,7 +173,7 @@ def runLintian(changes, profile="debian", image="debian:sid") {
     def os = imageArray[0]
     def dist = imageArray[1]
     def img = dockerLib.getImage("tcpcloud/debian-build-${os}-${dist}", image)
-    img.inside("-w ${workspace} --privileged") {
+    img.inside("-v ${workspace}:${workspace} -w ${workspace} -u root:root") {
         sh("""apt-get update && apt-get install -y lintian &&
             lintian -Ii -E --pedantic --profile=${profile} ${changes}""")
     }
