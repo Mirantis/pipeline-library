@@ -29,7 +29,7 @@ def buildBinary(file, image="debian:sid", extraRepoUrl=null, extraRepoKeyUrl=nul
     def imageArray = image.split(":")
     def os = imageArray[0]
     def dist = imageArray[1]
-    def img = dockerLib.getImage("debian-build-${os}-${dist}", image)
+    def img = dockerLib.getImage("tcpcloud/debian-build-${os}-${dist}", image)
     def workspace = common.getWorkspace()
 
     img.inside("-v ${workspace}:${workspace} -w ${workspace} --privileged" ) {
@@ -88,7 +88,7 @@ def buildSourceUscan(dir, image="debian:sid") {
     def imageArray = image.split(":")
     def os = imageArray[0]
     def dist = imageArray[1]
-    def img = dockerLib.getImage("debian-build-${os}-${dist}", image)
+    def img = dockerLib.getImage("tcpcloud/debian-build-${os}-${dist}", image)
     def workspace = common.getWorkspace()
 
     img.inside("-v ${workspace}:${workspace} -w ${workspace} --privileged" ) {
@@ -119,7 +119,7 @@ def buildSourceGbp(dir, image="debian:sid", snapshot=false, gitName='Jenkins', g
     def imageArray = image.split(":")
     def os = imageArray[0]
     def dist = imageArray[1]
-    def img = dockerLib.getImage("debian-build-${os}-${dist}", image)
+    def img = dockerLib.getImage("tcpcloud/debian-build-${os}-${dist}", image)
 
     img.inside("-v ${workspace}:${workspace} -w ${workspace} --privileged") {
 
@@ -172,7 +172,7 @@ def runLintian(changes, profile="debian", image="debian:sid") {
     def imageArray = image.split(":")
     def os = imageArray[0]
     def dist = imageArray[1]
-    def img = dockerLib.getImage("debian-build-${os}-${dist}", image)
+    def img = dockerLib.getImage("tcpcloud/debian-build-${os}-${dist}", image)
     img.inside("-v ${workspace}:${workspace} -w ${workspace} --privileged") {
         sh("""apt-get update && apt-get install -y lintian &&
             lintian -Ii -E --pedantic --profile=${profile} ${changes}""")
