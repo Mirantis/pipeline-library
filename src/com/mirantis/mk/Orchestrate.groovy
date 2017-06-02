@@ -302,7 +302,7 @@ def installStacklightControl(master) {
 
     salt.enforceState(master, 'I@nagios:server', 'nagios.server', true)
     salt.enforceState(master, 'I@elasticsearch:client', 'elasticsearch.client.service', true)
-    salt.enforceState(master, 'I@kibana:client', 'kibana.client.service', true)
+    salt.enforceState(master, 'I@kibana:client', 'kibana.client', true)
 
     sleep(10)
 }
