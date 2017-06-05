@@ -1,7 +1,5 @@
 package com.mirantis.mk
 
-
-
 /**
  *
  * AWS function functions
@@ -29,6 +27,13 @@ def getEnvVars(credentials_id, region = 'us-west-2') {
         "AWS_DEFAULT_REGION=${region}"
     ]
 }
+
+
+/**
+ *
+ * CloudFormation stacks
+ *
+ */
 
 def createStack(venv_path, env_vars, template_file, stack_name, parameters = []) {
     def python = new com.mirantis.mk.Python()
@@ -123,3 +128,44 @@ def getOutputs(venv_path, env_vars, stack_name, key = '') {
         return output
     }
 }
+
+/**
+ *
+ * Autoscaling groups
+ *
+ */
+
+def describeAutoscalingGroup(venv_path, env_vars, group_name) {
+    def python = new com.mirantis.mk.Python()
+    def common = new com.mirantis.mk.Common()
+
+    def cmd = "aws autoscaling describe-auto-scaling-groups --auto-scaling-group-name ${group_name}"
+
+    withEnv(env_vars) {
+        def out = python.runVirtualenvCommand(venv_path, cmd)
+        def out_json = common.parseJSON(out)
+        def info = out_json['AutoScalingGroups'][0]
+        common.prettyPrint(info)
+
+        return info
+    }
+}
+
+def updateAutoscalingGroup(venv_path, env_vars, group_name, parameters = []) {
+    def python = new com.mirantis.mk.Python()
+    def common = new com.mirantis.mk.Common()
+
+    if (parameters == null || parameters.size() == 0) {
+        throw new Exception("Missing parameter")
+    }
+
+    def cmd = "aws autoscaling update-auto-scaling-groups --auto-scaling-group-name ${group_name} " + parameters.join(' ')
+
+    withEnv(env_vars) {
+        def out = python.runVirtualenvCommand(venv_path, cmd)
+
+        return out
+    }
+}
+
+
