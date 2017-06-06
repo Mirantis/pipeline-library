@@ -31,7 +31,7 @@ def getEnvVars(credentials_id, region = 'us-west-2') {
 
 /**
  *
- * CloudFormation stacks
+ * CloudFormation stacks (cloudformation)
  *
  */
 
@@ -131,7 +131,7 @@ def getOutputs(venv_path, env_vars, stack_name, key = '') {
 
 /**
  *
- * Autoscaling groups
+ * Autoscaling groups (autoscaling)
  *
  */
 
@@ -163,9 +163,39 @@ def updateAutoscalingGroup(venv_path, env_vars, group_name, parameters = []) {
 
     withEnv(env_vars) {
         def out = python.runVirtualenvCommand(venv_path, cmd)
-
         return out
     }
 }
+
+/**
+ *
+ * Load balancers (elb)
+ *
+ */
+
+
+def registerIntanceWithLb(venv_path, env_vars, lb, instances = []) {
+    def python = new com.mirantis.mk.Python()
+
+    def cmd = "aws elb register-instances-with-load-balancer --load-balancer-name ${lb} --instances " + instances.join(' ')
+
+    withEnv(env_vars) {
+        def out = python.runVirtualenvCommand(venv_path, cmd)
+        return out
+    }
+}
+
+def deregisterIntanceWithLb(venv_path, env_vars, lb, instances = []) {
+    def python = new com.mirantis.mk.Python()
+
+    def cmd = "aws elb deregister-instances-with-load-balancer --load-balancer-name ${lb} --instances " + instances.join(' ')
+
+    withEnv(env_vars) {
+        def out = python.runVirtualenvCommand(venv_path, cmd)
+        return out
+    }
+}
+
+
 
 
