@@ -281,6 +281,30 @@ def installKubernetesControl(master) {
 
 def installKubernetesCompute(master) {
     def salt = new com.mirantis.mk.Salt()
+
+    // Refresh minion's pillar data
+    salt.runSaltProcessStep(master, '*', 'saltutil.refresh_pillar', [], null, true)
+    salt.runSaltProcessStep(master, '*', 'saltutil.sync_all', [], null, true)
+
+    // Bootstrap all nodes
+    salt.enforceState(master, 'I@kubernetes:pool', 'linux')
+    salt.enforceState(master, 'I@kubernetes:pool', 'salt.minion')
+    salt.enforceState(master, 'I@kubernetes:pool', ['openssh', 'ntp'])
+
+    // Create and distribute SSL certificates for services using salt state
+    salt.enforceState(master, 'I@kubernetes:pool', 'salt.minion.cert')
+
+    // Install docker
+    salt.enforceState(master, 'I@docker:host', 'docker.host')
+
+    // Install Kubernetes and Calico
+    salt.enforceState(master, 'I@kubernetes:pool', 'kubernetes.pool')
+
+}
+
+
+def installKubernetesContrailCompute(master) {
+    def salt = new com.mirantis.mk.Salt()
     // Install opencontrail
     salt.runSaltProcessStep(master, 'I@opencontrail:compute', 'state.sls', ['opencontrail'])
     // Reboot compute nodes
