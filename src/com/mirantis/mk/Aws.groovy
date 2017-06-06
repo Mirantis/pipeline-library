@@ -159,7 +159,7 @@ def updateAutoscalingGroup(venv_path, env_vars, group_name, parameters = []) {
         throw new Exception("Missing parameter")
     }
 
-    def cmd = "aws autoscaling update-auto-scaling-groups --auto-scaling-group-name ${group_name} " + parameters.join(' ')
+    def cmd = "aws autoscaling update-auto-scaling-group --auto-scaling-group-name ${group_name} " + parameters.join(' ')
 
     withEnv(env_vars) {
         def out = python.runVirtualenvCommand(venv_path, cmd)
