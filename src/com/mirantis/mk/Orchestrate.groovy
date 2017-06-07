@@ -377,12 +377,12 @@ def installStacklightClient(master) {
     // TODO for stacklight team, should be fixed in model
     //salt.enforceState(master, 'I@sensu:server', 'sensu', true)
 
-    // Finalize the configuration of Grafana (add the dashboards...)
-    salt.enforceState(master, 'I@grafana:client', 'grafana.client.service', true)
-    // nw salt -C 'I@grafana:client' --async service.restart salt-minion; sleep 10
-
     salt.runSaltProcessStep(master, 'I@grafana.client and *01*', 'cmd.run', ['salt-call state.sls grafana.client'], null, true)
     // salt.enforceState(master, 'I@grafana:client and *01*', 'grafana.client', true)
+
+    // Finalize the configuration of Grafana (add the dashboards...)
+    salt.enforceState(master, 'I@grafana:client', 'grafana.client', true)
+    // nw salt -C 'I@grafana:client' --async service.restart salt-minion; sleep 10
 
     // Get the StackLight monitoring VIP addres
     //vip=$(salt-call pillar.data _param:stacklight_monitor_address --out key|grep _param: |awk '{print $2}')
