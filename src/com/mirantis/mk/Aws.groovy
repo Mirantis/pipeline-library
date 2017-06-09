@@ -167,6 +167,29 @@ def updateAutoscalingGroup(venv_path, env_vars, group_name, parameters = []) {
     }
 }
 
+def waitForAutoscalingInstances(venv_path, env_vars, group_name, max_timeout = 600, loop_sleep = 20) {
+    def aws = new com.mirantis.mk.Aws()
+
+    timeout(time: max_timeout, unit: 'SECONDS') {
+        withEnv(env_vars) {
+            while (true) {
+                // get instances in autoscaling group
+                def out = aws.describeAutoscalingGroup(venv_path, env_vars, group_name)
+                def out_json = common.parseJSON(out)
+                def instances = out_json['AutoScalingGroups'][0]['Instances']
+
+                // check all instances are InService
+                if (instances.stream().filter{i -> !i['LifecycleState'].equals("InService")}.collect(java.util.stream.Collectors.counting()) == 0) {
+                    break
+                }
+
+                // wait for next loop
+                sleep(loop_sleep)
+            }
+        }
+    }
+}
+
 /**
  *
  * Load balancers (elb)
