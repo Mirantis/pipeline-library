@@ -169,6 +169,7 @@ def updateAutoscalingGroup(venv_path, env_vars, group_name, parameters = []) {
 
 def waitForAutoscalingInstances(venv_path, env_vars, group_name, max_timeout = 600, loop_sleep = 20) {
     def aws = new com.mirantis.mk.Aws()
+    def common = new com.mirantis.mk.Common()
 
     timeout(time: max_timeout, unit: 'SECONDS') {
         withEnv(env_vars) {
