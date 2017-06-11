@@ -176,8 +176,7 @@ def waitForAutoscalingInstances(venv_path, env_vars, group_name, max_timeout = 6
             while (true) {
                 // get instances in autoscaling group
                 def out = aws.describeAutoscalingGroup(venv_path, env_vars, group_name)
-                def out_json = common.parseJSON(out)
-                def instances = out_json['AutoScalingGroups'][0]['Instances']
+                def instances = out['AutoScalingGroups'][0]['Instances']
 
                 // check all instances are InService
                 if (instances.stream().filter{i -> !i['LifecycleState'].equals("InService")}.collect(java.util.stream.Collectors.counting()) == 0) {
