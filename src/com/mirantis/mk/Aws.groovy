@@ -135,6 +135,7 @@ def getOutputs(venv_path, env_vars, stack_name, key = '') {
  *
  */
 
+@NonCPS
 def describeAutoscalingGroup(venv_path, env_vars, group_name) {
     def python = new com.mirantis.mk.Python()
     def common = new com.mirantis.mk.Common()
@@ -167,6 +168,7 @@ def updateAutoscalingGroup(venv_path, env_vars, group_name, parameters = []) {
     }
 }
 
+@NonCPS
 def waitForAutoscalingInstances(venv_path, env_vars, group_name, max_timeout = 600, loop_sleep = 20) {
     def aws = new com.mirantis.mk.Aws()
     def common = new com.mirantis.mk.Common()
