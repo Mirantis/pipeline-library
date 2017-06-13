@@ -1,5 +1,6 @@
 package com.mirantis.mk
 
+import com.cloudbees.groovy.cps.NonCPS
 import java.util.stream.Collectors
 /**
  * Salt functions
@@ -333,22 +334,22 @@ def checkResult(result, failOnError = true, printResults = true, printOnlyChange
                                     }
                                     if(!resource["result"] || (resource["result"] instanceof String && resource["result"] != "true")){
                                         if(resource["result"] != null){
-                                            outputResources.add(String.format("Resource: %s\n\u001B[31m%s\u001B[0m", resKey, common.prettyPrint(resource)))
+                                            outputResources.add(String.format("Resource: %s\n\u001B[31m%s\u001B[0m", resKey, common.prettify(resource)))
                                         }else{
-                                            outputResources.add(String.format("Resource: %s\n\u001B[33m%s\u001B[0m", resKey, common.prettyPrint(resource)))
+                                            outputResources.add(String.format("Resource: %s\n\u001B[33m%s\u001B[0m", resKey, common.prettify(resource)))
                                         }
                                     }else{
                                         if(!printOnlyChanges || resource.changes.size() > 0){
-                                            outputResources.add(String.format("Resource: %s\n\u001B[32m%s\u001B[0m", resKey, common.prettyPrint(resource)))
+                                            outputResources.add(String.format("Resource: %s\n\u001B[32m%s\u001B[0m", resKey, common.prettify(resource)))
                                         }
                                     }
                                 }else{
-                                    outputResources.add(String.format("Resource: %s\n\u001B[36m%s\u001B[0m", resKey, common.prettyPrint(resource)))
+                                    outputResources.add(String.format("Resource: %s\n\u001B[36m%s\u001B[0m", resKey, common.prettify(resource)))
                                 }
                             }
                             common.debugMsg("checkResult: checking resource: ${resource}")
                             if(resource instanceof String || (resource["result"] != null && !resource["result"]) || (resource["result"] instanceof String && resource["result"] == "false")){
-                                def prettyResource = common.prettyPrint(resource)
+                                def prettyResource = common.prettify(resource)
                                 if(env["ASK_ON_ERROR"] && env["ASK_ON_ERROR"] == "true"){
                                     timeout(time:1, unit:'HOURS') {
                                        input message: "False result on ${nodeKey} found, resource ${prettyResource}. \nDo you want to continue?"
@@ -365,7 +366,7 @@ def checkResult(result, failOnError = true, printResults = true, printOnlyChange
                             }
                         }
                     }else if(node!=null && node!=""){
-                        outputResources.add(String.format("Resource: %s\n\u001B[36m%s\u001B[0m", resKey, common.prettyPrint(node)))
+                        outputResources.add(String.format("Resource: %s\n\u001B[36m%s\u001B[0m", resKey, common.prettify(node)))
                     }
                     if(printResults && !outputResources.isEmpty()){
                         wrap([$class: 'AnsiColorBuildWrapper']) {
@@ -397,7 +398,7 @@ def printSaltCommandResult(result) {
                     common.debugMsg("printSaltCommandResult: printing salt command entry: ${entry}")
                     def nodeKey = entry.keySet()[j]
                     def node=entry[nodeKey]
-                    common.infoMsg(String.format("Node %s changes:\n%s",nodeKey, common.prettyPrint(node)))
+                    common.infoMsg(String.format("Node %s changes:\n%s",nodeKey, common.prettify(node)))
                 }
             }
         }else{

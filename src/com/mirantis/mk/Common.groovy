@@ -1,7 +1,7 @@
 package com.mirantis.mk
-
 import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
+import com.cloudbees.groovy.cps.NonCPS
 import groovy.json.JsonSlurperClassic
 /**
  *
@@ -90,12 +90,20 @@ def abortBuild() {
 }
 
 /**
+ * Print pretty-printed string representation of given item
+ * @param item item to be pretty-printed (list, map, whatever)
+ */
+def prettyPrint(item){
+    println prettify(item)
+}
+
+/**
  * Return pretty-printed string representation of given item
  * @param item item to be pretty-printed (list, map, whatever)
  * @return pretty-printed string
  */
-def prettyPrint(item){
-    return prettyPrint(toJson(item)).replace('\\n', System.getProperty('line.separator'))
+def prettify(item){
+    return groovy.json.JsonOutput.prettyPrint(toJson(item)).replace('\\n', System.getProperty('line.separator'))
 }
 
 /**
