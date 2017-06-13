@@ -135,7 +135,6 @@ def getOutputs(venv_path, env_vars, stack_name, key = '') {
  *
  */
 
-@NonCPS
 def describeAutoscalingGroup(venv_path, env_vars, group_name) {
     def python = new com.mirantis.mk.Python()
     def common = new com.mirantis.mk.Common()
@@ -168,7 +167,6 @@ def updateAutoscalingGroup(venv_path, env_vars, group_name, parameters = []) {
     }
 }
 
-@NonCPS
 def waitForAutoscalingInstances(venv_path, env_vars, group_name, max_timeout = 600, loop_sleep = 20) {
     def aws = new com.mirantis.mk.Aws()
     def common = new com.mirantis.mk.Common()
@@ -182,7 +180,7 @@ def waitForAutoscalingInstances(venv_path, env_vars, group_name, max_timeout = 6
                 def instances = out['AutoScalingGroups'][0]['Instances']
 
                 // check all instances are InService
-                if (instances.stream().filter{i -> !i['LifecycleState'].equals("InService")}.collect(java.util.stream.Collectors.counting()) == 0) {
+                if (common.countHashMapEquals(instances, 'LifecycleState', 'InService') == 0) {
                     break
                 }
 
@@ -198,7 +196,6 @@ def waitForAutoscalingInstances(venv_path, env_vars, group_name, max_timeout = 6
  * Load balancers (elb)
  *
  */
-
 
 def registerIntanceWithLb(venv_path, env_vars, lb, instances = []) {
     def python = new com.mirantis.mk.Python()
@@ -221,7 +218,3 @@ def deregisterIntanceWithLb(venv_path, env_vars, lb, instances = []) {
         return out
     }
 }
-
-
-
-

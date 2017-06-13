@@ -438,3 +438,16 @@ def parseJSON(jsonString){
 def validInputParam(paramName){
     return env.getEnvironment().containsKey(paramName) && env[paramName] != null && env[paramName] != ""
 }
+
+/**
+ * Take list of hashmaps and count number of hashmaps with parameter equals eq
+ * @param lm list of hashmaps
+ * @param param define parameter of hashmap to read and compare
+ * @param eq desired value of hashmap parameter
+ * @return count of hashmaps meeting defined condition
+ */
+
+@NonCPS
+def countHashMapEquals(lm, param, eq) {
+    return lm.stream().filter{i -> !i[param].equals(eq)}.collect(java.util.stream.Collectors.counting())
+}
