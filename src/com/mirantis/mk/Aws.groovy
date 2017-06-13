@@ -180,7 +180,7 @@ def waitForAutoscalingInstances(venv_path, env_vars, group_name, max_timeout = 6
                 def instances = out['Instances']
 
                 // check all instances are InService
-                if (common.countHashMapEquals(instances, 'LifecycleState', 'InService') == 0) {
+                if (common.countHashMapEquals(instances, 'LifecycleState', 'InService') == out['DesiredCapacity']) {
                     break
                 }
 

@@ -449,5 +449,5 @@ def validInputParam(paramName){
 
 @NonCPS
 def countHashMapEquals(lm, param, eq) {
-    return lm.stream().filter{i -> !i[param].equals(eq)}.collect(java.util.stream.Collectors.counting())
+    return lm.stream().filter{i -> i[param].equals(eq)}.collect(java.util.stream.Collectors.counting())
 }
