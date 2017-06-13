@@ -176,7 +176,7 @@ def waitForAutoscalingInstances(venv_path, env_vars, group_name, max_timeout = 6
             while (true) {
                 // get instances in autoscaling group
                 def out = aws.describeAutoscalingGroup(venv_path, env_vars, group_name)
-                print(out)
+                print(common.prettyPrint(out))
                 def instances = out['AutoScalingGroups'][0]['Instances']
 
                 // check all instances are InService
