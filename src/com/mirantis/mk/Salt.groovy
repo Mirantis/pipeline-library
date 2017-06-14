@@ -53,9 +53,10 @@ def saltLogin(master) {
  * @param batch    Batch param to salt (integer or string with percents)
  * @param args     Additional arguments to function
  * @param kwargs   Additional key-value arguments to function
+ * @param timeout  Additional argument salt api timeout
  */
 @NonCPS
-def runSaltCommand(master, client, target, function, batch = null, args = null, kwargs = null) {
+def runSaltCommand(master, client, target, function, batch = null, args = null, kwargs = null, timeout = -1) {
     def http = new com.mirantis.mk.Http()
 
     data = [
@@ -76,6 +77,10 @@ def runSaltCommand(master, client, target, function, batch = null, args = null, 
 
     if (kwargs) {
         data['kwarg'] = kwargs
+    }
+
+    if (timeout != -1) {
+        data['timeout'] = timeout
     }
 
     headers = [
@@ -263,22 +268,24 @@ def orchestrateSystem(master, target, orchestrate) {
  * @param arg process step arguments (optional, default [])
  * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
  * @param output print output (optional, default false)
+ * @param timeout  Additional argument salt api timeout
  * @return output of salt command
  */
-def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false) {
+def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false, timeout = -1) {
     def common = new com.mirantis.mk.Common()
+    def salt = new com.mirantis.mk.Salt()
     def out
 
     common.infoMsg("Running step ${fun} on ${tgt}")
 
     if (batch == true) {
-        out = runSaltCommand(master, 'local_batch', ['expression': tgt, 'type': 'compound'], fun, String.valueOf(batch), arg)
+        out = runSaltCommand(master, 'local_batch', ['expression': tgt, 'type': 'compound'], fun, String.valueOf(batch), arg, null, timeout)
     } else {
-        out = runSaltCommand(master, 'local', ['expression': tgt, 'type': 'compound'], fun, batch, arg)
+        out = runSaltCommand(master, 'local', ['expression': tgt, 'type': 'compound'], fun, batch, arg, null, timeout)
     }
 
     if (output == true) {
-        printSaltCommandResult(out)
+        salt.printSaltCommandResult(out)
     }
     return out
 }
