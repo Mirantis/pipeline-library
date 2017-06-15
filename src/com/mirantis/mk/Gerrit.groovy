@@ -1,6 +1,7 @@
 package com.mirantis.mk
-
 import java.util.regex.Pattern
+import com.cloudbees.groovy.cps.NonCPS
+import com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.GerritCause
 /**
  * Gerrit functions
  *
@@ -156,7 +157,7 @@ def getGerritChange(gerritName, gerritHost, gerritChangeNumber, credentialsId){
     def ssh = new com.mirantis.mk.Ssh()
     ssh.prepareSshAgentKey(credentialsId)
     ssh.ensureKnownHosts(gerritHost)
-    return common.parseJSON(ssh.agentSh(String.format("ssh -p 29418 %s@%s gerrit query --format=JSON change:%s", gerritName, gerritHost, gerritChangeNumber)))
+    return common.parseJSON(ssh.agentSh(String.format("ssh -p 29418 %s@%s gerrit query --current-patch-set --format=JSON change:%s", gerritName, gerritHost, gerritChangeNumber)))
 }
 
 /**
@@ -169,7 +170,7 @@ def getGerritChange(gerritName, gerritHost, gerritChangeNumber, credentialsId){
 def getGerritTriggeredBuilds(allBuilds, gerritChange, excludePatchset = null){
     return allBuilds.findAll{job ->
         def cause = job.causes[0]
-        if(cause instanceof com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.GerritCause &&
+        if(cause instanceof GerritCause &&
            cause.getEvent() instanceof com.sonymobile.tools.gerrit.gerritevents.dto.events.PatchsetCreated){
             if(excludePatchset == null || excludePatchset == 0){
                 return cause.event.change.number.equals(String.valueOf(gerritChange))
