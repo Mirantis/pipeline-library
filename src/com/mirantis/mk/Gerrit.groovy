@@ -181,6 +181,20 @@ def getGerritTriggeredBuilds(allBuilds, gerritChange, excludePatchset = null){
         return false
     }
 }
+/**
+ * Returns boolean result of test given gerrit change for given approval type and value
+ * @param gerritChange user gerrit change
+ * @param approvalType type of tested approval (optional, default Verified)
+ * @param approvalValue value of tested approval (optional, default 1)
+ * @return boolean result
+ */
+def changeHasApproval(gerritChange, approvalType="Verified", approvalValue="1"){
+  if(gerritChange.currentPatchSet && gerritChange.currentPatchSet.approvals){
+    def numberOfVerified = gerritChange.currentPatchSet.approvals.stream().filter{ approval -> approval.type.equals(approvalType) && approval.value.equals(approvalValue)}.collect(java.util.stream.Collectors.counting());
+    return numberOfVerified > 0;
+  }
+  return false
+}
 
 @NonCPS
 def _getGerritParamsFromUrl(gitUrl){
