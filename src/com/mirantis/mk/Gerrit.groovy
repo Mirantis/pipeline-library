@@ -191,7 +191,7 @@ def getGerritTriggeredBuilds(allBuilds, gerritChange, excludePatchset = null){
 def changeHasApproval(gerritChange, approvalType="Verified", approvalValue="1"){
   if(gerritChange.currentPatchSet && gerritChange.currentPatchSet.approvals){
     def numberOfVerified = gerritChange.currentPatchSet.approvals.stream().filter{ approval -> approval.type.equals(approvalType) && approval.value.equals(approvalValue)}.collect(java.util.stream.Collectors.counting());
-    return numberOfVerified > 0;
+    return numberOfVerified.intValue() > 0;
   }
   return false
 }
