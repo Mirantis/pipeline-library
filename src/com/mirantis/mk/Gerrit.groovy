@@ -190,17 +190,19 @@ def getGerritTriggeredBuilds(allBuilds, gerritChange, excludePatchset = null){
  * Returns boolean result of test given gerrit patchset for given approval type and value
  * @param patchset gerrit patchset
  * @param approvalType type of tested approval (optional, default Verified)
- * @param approvalValue value of tested approval (optional, default 1)
+ * @param approvalValue value of tested approval (optional, default empty string which means any value)
  * @return boolean result
  * @example patchsetHasApproval(gerrit.getGerritChange(*,*,*,*, true).currentPatchSet)
  */
 @NonCPS
-def patchsetHasApproval(patchSet, approvalType="Verified", approvalValue="1"){
+def patchsetHasApproval(patchSet, approvalType="Verified", approvalValue = ""){
   if(patchSet && patchSet.approvals){
     for(int i=0; i < patchSet.approvals.size();i++){
       def approval = patchSet.approvals.get(i)
-      if(approval.type.equals(approvalType) && approval.value.equals(approvalValue)){
-        return true
+      if(approval.type.equals(approvalType)){
+        if(approvalValue.equals("") || approval.value.equals(approvalValue)){
+            return true
+        }
       }
     }
   }
