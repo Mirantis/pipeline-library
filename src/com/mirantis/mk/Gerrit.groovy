@@ -150,14 +150,19 @@ def gerritPatchsetCheckout(gerritUrl, gerritRef, gerritBranch, credentialsId) {
  * @param gerritHost gerrit host (usually GERRIT_HOST property)
  * @param gerritChangeNumber gerrit change number (usually GERRIT_CHANGE_NUMBER property)
  * @param credentialsId jenkins credentials id for gerrit
+ * @param includeCurrentPatchset do you want to include current (last) patchset
  * @return gerrit change object
  */
-def getGerritChange(gerritName, gerritHost, gerritChangeNumber, credentialsId){
+def getGerritChange(gerritName, gerritHost, gerritChangeNumber, credentialsId, includeCurrentPatchset = false){
     def common = new com.mirantis.mk.Common()
     def ssh = new com.mirantis.mk.Ssh()
     ssh.prepareSshAgentKey(credentialsId)
     ssh.ensureKnownHosts(gerritHost)
-    return common.parseJSON(ssh.agentSh(String.format("ssh -p 29418 %s@%s gerrit query --current-patch-set --format=JSON change:%s", gerritName, gerritHost, gerritChangeNumber)))
+    def curPatchset = "";
+    if(includeCurrentPatchset){
+        curPatchset = "--current-patch-set"
+    }
+    return common.parseJSON(ssh.agentSh(String.format("ssh -p 29418 %s@%s gerrit query ${curPatchset} --format=JSON change:%s", gerritName, gerritHost, gerritChangeNumber)))
 }
 
 /**
@@ -182,16 +187,22 @@ def getGerritTriggeredBuilds(allBuilds, gerritChange, excludePatchset = null){
     }
 }
 /**
- * Returns boolean result of test given gerrit change for given approval type and value
- * @param gerritChange user gerrit change
+ * Returns boolean result of test given gerrit patchset for given approval type and value
+ * @param patchset gerrit patchset
  * @param approvalType type of tested approval (optional, default Verified)
  * @param approvalValue value of tested approval (optional, default 1)
  * @return boolean result
+ * @example patchsetHasApproval(gerrit.getGerritChange(*,*,*,*, true).currentPatchSet)
  */
-def changeHasApproval(gerritChange, approvalType="Verified", approvalValue="1"){
-  if(gerritChange.currentPatchSet && gerritChange.currentPatchSet.approvals){
-    def numberOfVerified = gerritChange.currentPatchSet.approvals.stream().filter{ approval -> approval.type.equals(approvalType) && approval.value.equals(approvalValue)}.collect(java.util.stream.Collectors.counting());
-    return numberOfVerified.intValue() > 0;
+@NonCPS
+def patchsetHasApproval(patchSet, approvalType="Verified", approvalValue="1"){
+  if(patchSet && patchSet.approvals){
+    for(int i=0; i < patchSet.approvals.size();i++){
+      def approval = patchSet.approvals.get(i)
+      if(approval.type.equals(approvalType) && approval.value.equals(approvalValue)){
+        return true
+      }
+    }
   }
   return false
 }
