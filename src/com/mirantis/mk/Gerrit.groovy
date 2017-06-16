@@ -202,6 +202,10 @@ def patchsetHasApproval(patchSet, approvalType="Verified", approvalValue = ""){
       if(approval.type.equals(approvalType)){
         if(approvalValue.equals("") || approval.value.equals(approvalValue)){
             return true
+        }else if(approvalValue.equals("+") && Integer.parseInt(approval.value) > 0) {
+            return true
+        }else if(approvalValue.equals("-") && Integer.parseInt(approval.value) < 0) {
+            return true
         }
       }
     }
