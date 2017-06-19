@@ -157,11 +157,12 @@ def pushGitChanges(path, branch = 'master', remote = 'origin', credentialsId = n
  * @param gitName        Name for creation of merge commits
  */
 def mirrorGit(sourceUrl, targetUrl, credentialsId, branches, followTags = false, pushSource = false, pushSourceTags = false, gitEmail = 'jenkins@localhost', gitName = 'Jenkins') {
+    def common = new com.mirantis.mk.Common()
+    def ssh = new com.mirantis.mk.Ssh()
     if (branches instanceof String) {
         branches = branches.tokenize(',')
     }
 
-    def ssh = new com.mirantis.mk.Ssh()
     ssh.prepareSshAgentKey(credentialsId)
     ssh.ensureKnownHosts(targetUrl)
     sh "git config user.email '${gitEmail}'"
@@ -172,8 +173,15 @@ def mirrorGit(sourceUrl, targetUrl, credentialsId, branches, followTags = false,
 
     for (i=0; i < branches.size; i++) {
         branch = branches[i]
-        sh "git branch | grep ${branch} || git checkout -b ${branch} origin/${branch}"
-        sh "git branch | grep ${branch} && git checkout ${branch} && git reset --hard origin/${branch}"
+        sh "git branch | grep ${branch} || git checkout -b ${branch}"
+        def resetResult = sh(script: "git checkout ${branch} && git reset --hard origin/${branch}", returnStatus: true)
+        if(resetResult != 0){
+            common.warningMsg("Cannot reset to origin/${branch} for perform git mirror, trying to reset from target/${branch}")
+            resetResult = sh(script: "git checkout ${branch} && git reset --hard target/${branch}", returnStatus: true)
+            if(resetResult != 0){
+                throw new Exception("Cannot reset even to target/${branch}, git mirroring failed!")
+            }
+        }
 
         sh "git ls-tree target/${branch} && git merge --no-edit --ff target/${branch} || echo 'Target repository is empty, skipping merge'"
         followTagsArg = followTags ? "--follow-tags" : ""
