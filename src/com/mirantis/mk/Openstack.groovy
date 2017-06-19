@@ -22,7 +22,7 @@ package com.mirantis.mk
  * @param version     Version of the OpenStack clients
  */
 
-def setupOpenstackVirtualenv(path, version = 'kilo'){
+def setupOpenstackVirtualenv(path, version = 'kilo') {
     def python = new com.mirantis.mk.Python()
 
     def openstack_kilo_packages = [
@@ -41,16 +41,32 @@ def setupOpenstackVirtualenv(path, version = 'kilo'){
         'docutils>=0.12'
     ]
 
-    def openstack_latest_packages = openstack_kilo_packages
+    def openstack_ocata_packages = [
+        'pbr!=2.1.0,>=2.0.0',
+        'six>=1.9.0',
+        'Babel!=2.4.0,>=2.3.4',
+        'cliff>=2.6.0',
+        'keystoneauth1>=2.21.0',
+        'openstacksdk>=0.9.16',
+        'osc-lib>=1.5.1',
+        'oslo.i18n!=3.15.2,>=2.1.0',
+        'oslo.utils>=3.20.0',
+        'python-glanceclient>=2.7.0',
+        'python-keystoneclient>=3.8.0',
+        'python-novaclient>=9.0.0',
+        'python-cinderclient>=2.1.0',
+    ]
 
-    if(version == 'kilo') {
+    def openstack_latest_packages = openstack_ocata_packages
+
+    if (version == 'kilo') {
         requirements = openstack_kilo_packages
-    }
-    else if(version == 'liberty') {
+    } else if (version == 'liberty') {
         requirements = openstack_kilo_packages
-    }
-    else if(version == 'mitaka') {
+    } else if (version == 'mitaka') {
         requirements = openstack_kilo_packages
+    } else if (version == 'ocata') {
+        requirements = openstack_ocata_packages
     }
     else {
         requirements = openstack_latest_packages
