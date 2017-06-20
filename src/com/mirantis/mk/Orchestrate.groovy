@@ -61,7 +61,11 @@ def installOpenstackInfra(master) {
     // Check the keepalived VIPs
     salt.runSaltProcessStep(master, 'I@keepalived:cluster', 'cmd.run', ['ip a | grep 172.16.10.2'])
 
-    salt.enforceState(master, 'I@glusterfs:server and *01*', 'glusterfs.server.setup', true)
+    withEnv(['ASK_ON_ERROR=false']){
+        retry(5) {
+            salt.enforceState(master, 'I@glusterfs:server and *01*', 'glusterfs.server.setup', true)
+        }
+    }
 
     salt.runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster peer status'], null, true)
     salt.runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster volume status'], null, true)
@@ -238,7 +242,11 @@ def installKubernetesInfra(master) {
 
     // Setup glusterfs
     if (common.checkContains('INSTALL', 'glusterfs')) {
-        salt.enforceState(master, 'I@glusterfs:server and *01*', 'glusterfs.server.setup')
+        withEnv(['ASK_ON_ERROR=false']){
+            retry(5) {
+                salt.enforceState(master, 'I@glusterfs:server and *01*', 'glusterfs.server.setup')
+            }
+        }
         salt.runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster peer status'])
         salt.runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster volume status'])
     }
