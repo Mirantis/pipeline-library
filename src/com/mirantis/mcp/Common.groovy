@@ -1,5 +1,6 @@
 package com.mirantis.mcp
 
+import com.cloudbees.groovy.cps.NonCPS
 @Grab(group='org.yaml', module='snakeyaml', version='1.17')
 import org.yaml.snakeyaml.Yaml
 

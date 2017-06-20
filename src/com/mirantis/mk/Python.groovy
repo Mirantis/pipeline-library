@@ -1,5 +1,5 @@
 package com.mirantis.mk
-
+import com.cloudbees.groovy.cps.NonCPS
 /**
  *
  * Python functions

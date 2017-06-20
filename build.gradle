@@ -1,6 +1,5 @@
 version = '1.0'
 group = 'com.mirantis'
-
 apply plugin: 'groovy'
 apply plugin: 'codenarc'
 
@@ -14,12 +13,30 @@ sourceSets {
   }
 }
 
-compileGroovy.enabled = false
+configurations {
+  ivy
+}
+
+dependencies {
+  compile group: 'org.codehaus.groovy', name: 'groovy', version: '2.4.6'
+  compile group: 'com.cloudbees', name: 'groovy-cps', version: '1.12'
+  compile group: 'org.jenkins-ci.main', name: 'jenkins-core', version: '2.62'
+ //compile group: 'org.jenkins-ci.plugins.workflow', name: 'workflow-cps', version: '2.13'
+ //compile group: 'com.sonyericsson.hudson.plugins.gerrit', name: 'gerrit-trigger', version: '2.23.2'
+  compile group: 'org.jfrog.buildinfo', name: 'build-info-api', version: '2.2.1'
+  compile fileTree(include: ['*.jar'], dir: 'libs')
+  ivy group: 'org.apache.ivy', name: 'ivy', version: '2.4.0'
+
+}
+
+tasks.withType(GroovyCompile) {
+  groovyClasspath += configurations.ivy
+}
 
 repositories {
-  maven {
-    url jcenterRepo
-  }
+  mavenCentral() 
+  maven {url jcenterRepo}
+  maven {url "http://repo.jenkins-ci.org/releases/"}
 }
 
 codenarc {
