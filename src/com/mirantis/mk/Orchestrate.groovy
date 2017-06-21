@@ -389,7 +389,9 @@ def installStacklightClient(master) {
     // salt.enforceState(master, 'I@grafana:client and *01*', 'grafana.client', true)
 
     // Finalize the configuration of Grafana (add the dashboards...)
-    salt.enforceState(master, 'I@grafana:client', 'grafana.client', true)
+    salt.enforceState(master, 'I@grafana:client and *01*', 'grafana.client', true)
+    salt.enforceState(master, 'I@grafana:client and *02*', 'grafana.client', true)
+    salt.enforceState(master, 'I@grafana:client and *03*', 'grafana.client', true)
     // nw salt -C 'I@grafana:client' --async service.restart salt-minion; sleep 10
 
     // Get the StackLight monitoring VIP addres
