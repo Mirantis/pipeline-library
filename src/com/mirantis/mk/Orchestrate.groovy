@@ -348,9 +348,9 @@ def installStacklightClient(master) {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
 
-    salt.runSaltProcessStep(master, 'I@elasticsearch.client', 'cmd.run', ['salt-call state.sls elasticsearch.client'], null, true)
+    salt.runSaltProcessStep(master, 'I@elasticsearch:client', 'cmd.run', ['salt-call state.sls elasticsearch.client'], null, true)
     // salt.enforceState(master, 'I@elasticsearch:client', 'elasticsearch.client', true)
-    salt.runSaltProcessStep(master, 'I@kibana.client', 'cmd.run', ['salt-call state.sls kibana.client'], null, true)
+    salt.runSaltProcessStep(master, 'I@kibana:client', 'cmd.run', ['salt-call state.sls kibana.client'], null, true)
     // salt.enforceState(master, 'I@kibana:client', 'kibana.client', true)
 
     // Install collectd, heka and sensu services on the nodes, this will also
@@ -385,7 +385,7 @@ def installStacklightClient(master) {
     // TODO for stacklight team, should be fixed in model
     //salt.enforceState(master, 'I@sensu:server', 'sensu', true)
 
-    salt.runSaltProcessStep(master, 'I@grafana.client and *01*', 'cmd.run', ['salt-call state.sls grafana.client'], null, true)
+    salt.runSaltProcessStep(master, 'I@grafana:client and *01*', 'cmd.run', ['salt-call state.sls grafana.client'], null, true)
     // salt.enforceState(master, 'I@grafana:client and *01*', 'grafana.client', true)
 
     // Finalize the configuration of Grafana (add the dashboards...)
