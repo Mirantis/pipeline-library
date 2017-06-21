@@ -41,23 +41,10 @@ def setupOpenstackVirtualenv(path, version = 'kilo') {
         'docutils>=0.12'
     ]
 
-    def openstack_ocata_packages = [
-        'pbr!=2.1.0,>=2.0.0',
-        'six>=1.9.0',
-        'Babel!=2.4.0,>=2.3.4',
-        'cliff>=2.6.0',
-        'keystoneauth1>=2.21.0',
-        'openstacksdk>=0.9.16',
-        'osc-lib>=1.5.1',
-        'oslo.i18n!=3.15.2,>=2.1.0',
-        'oslo.utils>=3.20.0',
-        'python-glanceclient>=2.7.0',
-        'python-keystoneclient>=3.8.0',
-        'python-novaclient>=9.0.0',
-        'python-cinderclient>=2.1.0',
+    def openstack_latest_packages = [
+        'python-openstackclient',
+        'python-heatclient',
     ]
-
-    def openstack_latest_packages = openstack_ocata_packages
 
     if (version == 'kilo') {
         requirements = openstack_kilo_packages
@@ -65,10 +52,7 @@ def setupOpenstackVirtualenv(path, version = 'kilo') {
         requirements = openstack_kilo_packages
     } else if (version == 'mitaka') {
         requirements = openstack_kilo_packages
-    } else if (version == 'ocata') {
-        requirements = openstack_ocata_packages
-    }
-    else {
+    } else {
         requirements = openstack_latest_packages
     }
     python.setupVirtualenv(path, 'python2', requirements)
@@ -82,7 +66,7 @@ def setupOpenstackVirtualenv(path, version = 'kilo') {
  * @param project         OpenStack project to connect to
  */
 def createOpenstackEnv(url, credentialsId, project, project_domain="default",
-    project_id="", user_domain="default", api_ver="2") {
+    project_id="", user_domain="default", api_ver="2", cacert="/etc/ssl/certs/ca-certificates.crt") {
     def common = new com.mirantis.mk.Common()
     rcFile = "${env.WORKSPACE}/keystonerc"
     creds = common.getPasswordCredentials(credentialsId)
@@ -97,6 +81,7 @@ export OS_PROJECT_ID=${project_id}
 export OS_PROJECT_DOMAIN_ID=${project_domain}
 export OS_USER_DOMAIN_NAME=${user_domain}
 export OS_API_IDENTITY_VERSION=${api_ver}
+export OS_CACERT=${cacert}
 set -x
 """
     writeFile file: rcFile, text: rc
