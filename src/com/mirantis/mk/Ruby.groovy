@@ -43,7 +43,7 @@ def installKitchen(kitchenInit=""){
  */
 def runKitchenTests(environment="", parallelTesting = true){
     def common = new com.mirantis.mk.Common()
-    def kitchenTests=runKitchenCommand("list -b 2>/dev/null \"\$SUITE\"", environment)
+    def kitchenTests=runKitchenCommand("list -b 2>/dev/null \"\$SUITE_PATTERN\"", environment)
     if(kitchenTests && kitchenTests != ""){
         def kitchenTestsList = kitchenTests.trim().tokenize("\n")
         def kitchenTestRuns = [:]
