@@ -337,7 +337,24 @@ def installStacklightControl(master) {
     salt.enforceState(master, '*01* and I@grafana:server','grafana.server', true)
     salt.enforceState(master, 'I@grafana:server','grafana.server', true)
 
-    salt.enforceState(master, 'I@nagios:server', 'nagios.server', true)
+    def alarming_service_pillar = salt.getPillar(master, 'mon*01*', '_param:alarming_service')
+    def alarming_service = alarming_service_pillar['return'][0].values()[0]
+
+    switch (alarming_service) {
+        case 'sensu':
+            // Update Sensu
+            salt.enforceState(master, 'I@sensu:server and I@rabbitmq:server', 'rabbitmq', true)
+            salt.enforceState(master, 'I@redis:cluster:role:master', 'redis', true)
+            salt.enforceState(master, 'I@redis:server', 'redis', true)
+            salt.enforceState(master, 'I@sensu:server', 'sensu', true)
+        default:
+            // Update Nagios
+            salt.enforceState(master, 'I@nagios:server', 'nagios.server', true)
+            // Stop the Nagios service because the package starts it by default and it will
+            // started later only on the node holding the VIP address
+            salt.runSaltProcessStep(master, 'I@nagios:server', 'service.stop', ['nagios3'], null, true)
+    }
+
     salt.enforceState(master, 'I@elasticsearch:client', 'elasticsearch.client.service', true)
     salt.enforceState(master, 'I@kibana:client', 'kibana.client', true)
 
@@ -375,15 +392,18 @@ def installStacklightClient(master) {
     // Update collectd
     salt.enforceState(master, 'I@collectd:remote_client:enabled:True', 'collectd', true)
 
-    // Update Nagios
-    salt.enforceState(master, 'I@nagios:server', 'nagios', true)
-    // Stop the Nagios service because the package starts it by default and it will
-    // started later only on the node holding the VIP address
-    salt.runSaltProcessStep(master, 'I@nagios:server', 'service.stop', ['nagios3'], null, true)
+    def alarming_service_pillar = salt.getPillar(master, 'mon*01*', '_param:alarming_service')
+    def alarming_service = alarming_service_pillar['return'][0].values()[0]
 
-    // Update Sensu
-    // TODO for stacklight team, should be fixed in model
-    //salt.enforceState(master, 'I@sensu:server', 'sensu', true)
+    switch (alarming_service) {
+        case 'sensu':
+            // Update Sensu
+            // TODO for stacklight team, should be fixed in model
+            salt.enforceState(master, 'I@sensu:client', 'sensu', true)
+        default:
+            break
+            // Default is nagios, and was enforced in installStacklightControl()
+    }
 
     salt.runSaltProcessStep(master, 'I@grafana:client and *01*', 'cmd.run', ['salt-call state.sls grafana.client'], null, true)
     // salt.enforceState(master, 'I@grafana:client and *01*', 'grafana.client', true)
