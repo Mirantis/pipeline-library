@@ -319,8 +319,75 @@ def installKubernetesContrailCompute(master) {
     salt.runSaltProcessStep(master, 'I@opencontrail:compute', 'system.reboot')
 }
 
+def installDockerSwarm(master) {
+    def salt = new com.mirantis.mk.Salt()
 
-def installStacklightControl(master) {
+        //Install and Configure Docker
+    salt.enforceState(master, 'I@docker:swarm', 'docker.host')
+    salt.enforceState(master, 'I@docker:swarm:role:master', 'docker.swarm', true)
+    salt.enforceState(master, 'I@docker:swarm', 'salt.minion.grains', true)
+    salt.runSaltProcessStep(master, 'I@docker:swarm', 'mine.update', [], null, true)
+    salt.runSaltProcessStep(master, 'I@docker:swarm', 'saltutil.refresh_modules', [], null, true)
+    sleep(5)
+    salt.enforceState(master, 'I@docker:swarm:role:manager', 'docker.swarm', true)
+    salt.cmdRun(master, 'I@docker:swarm:role:master', 'docker node ls', true)
+
+}
+
+
+def installStacklight(master) {
+    def common = new com.mirantis.mk.Common()
+    def salt = new com.mirantis.mk.Salt()
+
+    //Install Telegraf
+    salt.enforceState(master, 'I@telegraf:agentor or I@telegraf:remote_agent', 'telegraf', true)
+
+    //Install Elasticsearch and Kibana
+    salt.enforceState(master, 'I@elasticsearch.server', 'elasticsearch.server', true)
+    salt.enforceState(master, 'I@kibana:server', 'kibana.server', true)
+    salt.enforceState(master, 'I@grafana:server', 'grafana.server', true)
+    salt.enforceState(master, 'I@nagios:server', 'nagios.server', true)
+    salt.enforceState(master, 'I@elasticsearch.client', 'elasticsearch.client', true)
+    salt.enforceState(master, 'I@kibana:client', 'kibana.client', true)
+    salt.enforceState(master, 'I@influxdb:server', 'influxdb', true)
+
+    //Collect Grains
+    salt.enforceState(master, 'I@salt:minion', 'salt.minion.grains', true)
+    salt.runSaltProcessStep(master, 'I@salt:minion', 'saltutil.refresh_modules', [], null, true)
+    salt.runSaltProcessStep(master, 'I@salt:minion', 'mine.update', [], null, true)
+    sleep(5)
+
+    //Configure services in Docker Swarm
+    salt.enforceState(master, 'I@docker:swarm', ['prometheus', 'heka.remote_collector'])
+    salt.enforceState(master, 'I@docker:swarm:role:master', 'docker', true)
+    salt.enforceState(master, 'I@docker:swarm', 'dockerng.ps', true)
+
+    //Configure Grafana
+    def pillar = salt.getPillar(master, 'ctl01*', '_param:stacklight_monitor_address')
+    common.prettyPrint(pillar)
+    
+    def stacklight_vip
+    if(!pillar['return'].isEmpty()) {
+        stacklight_vip = pillar['return'][0].values()[0]
+    } else {
+        common.errorMsg('[ERROR] Stacklight VIP address could not be retrieved')
+    }
+
+    def service_response = -1
+    common.infoMsg("Waiting for service on http://${stacklight_vip}:15013/ to start")
+    timeout(120){
+        while (service_response != 200) {
+            common.infoMsg("Trying to connect to http://${stacklight_vip}:15013/")
+            service_response = salt.cmdRun(master, "I@salt:master", "curl -ksL -w '%{http_code}' -o /dev/null "${stacklight_vip}:15013/"")
+            sleep(5)
+        }
+    }
+
+    salt.enforceState(master, 'I@grafana:client', 'grafana.client', true)
+
+    salt.enforceState(master, 'I@heka:log_collector', 'heka.log_collector')
+
+def installStacklightv1Control(master) {
     def salt = new com.mirantis.mk.Salt()
 
     // infra install
@@ -344,7 +411,7 @@ def installStacklightControl(master) {
     sleep(10)
 }
 
-def installStacklightClient(master) {
+def installStacklightv1Client(master) {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
 
