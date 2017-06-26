@@ -1,4 +1,4 @@
-package com.mirantis.mcp_qa
+package com.mirantis.tcp_qa
 
 /**
  * Get latest artifacts
@@ -80,7 +80,7 @@ def getCustomRefs(gerritUrl, project, targetDir, refs) {
     def remote = "${gerritUrl}/${project}"
     dir(targetDir) {
         for(int i=0; i<refs.size(); i++) {
-            sh "git fetch ${remote} ${refs[i]} && git checkout FETCH_HEAD"
+            sh "git fetch ${remote} ${refs[i]} && git cherry-pick FETCH_HEAD"
         }
     }
 }
