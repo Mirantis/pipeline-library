@@ -7,9 +7,11 @@ package com.mirantis.mk
  * @param extraFormulas       extraFormulas to install
  * @param formulasSource      formulas source (git or pkg)
  * @param testDir             directory of model
+ * @param formulasSource      Salt formulas source type (optional, default pkg)  
+ * @param formulasRevision    APT revision for formulas (optional default stable)
  */
 
-def setupAndTestNode(masterName, extraFormulas, testDir, formulasSource = 'pkg') {
+def setupAndTestNode(masterName, extraFormulas, testDir, formulasSource = 'pkg', formulasRevision = 'stable') {
   def saltOpts = "--retcode-passthrough --force-color"
   def common = new com.mirantis.mk.Common()
   def workspace = common.getWorkspace()
@@ -47,7 +49,7 @@ def setupAndTestNode(masterName, extraFormulas, testDir, formulasSource = 'pkg')
       sh("git config --global user.email || git config --global user.email 'ci@ci.local'")
       sh("git config --global user.name || git config --global user.name 'CI'")
 
-      withEnv(["FORMULAS_SOURCE=${formulasSource}", "EXTRA_FORMULAS=${extraFormulas}", "DEBUG=1", "MASTER_HOSTNAME=${masterName}", "MINION_ID=${masterName}", "HOSTNAME=cfg01", "DOMAIN=mk-ci.local"]){
+      withEnv(["FORMULAS_SOURCE=${formulasSource}", "EXTRA_FORMULAS=${extraFormulas}", "DISTRIB_REVISION=${formulasRevision}", "DEBUG=1", "MASTER_HOSTNAME=${masterName}", "MINION_ID=${masterName}", "HOSTNAME=cfg01", "DOMAIN=mk-ci.local"]){
           sh("bash -c 'echo $MASTER_HOSTNAME'")
           sh("bash -c 'source /srv/salt/scripts/salt-master-init.sh; cd /srv/salt/scripts && system_config'")
           sh("bash -c 'source /srv/salt/scripts/salt-master-init.sh; cd /srv/salt/scripts && saltmaster_bootstrap'")
