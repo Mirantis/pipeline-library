@@ -126,7 +126,7 @@ def getKeystoneToken(client, path = null) {
 }
 
 /**
- * Get OpenStack Keystone token for current credentials
+ * Create OpenStack environment file
  *
  * @param env          Connection parameters for OpenStack API endpoint
  * @param path         Optional path to the custom virtualenv
@@ -155,13 +155,21 @@ def createHeatEnv(file, environment = [], original_file = null) {
  * @param environment  Environmentale parameters of the new Heat stack
  * @param name         Name of the new Heat stack
  * @param path         Optional path to the custom virtualenv
+ * @param legacy_env   Use old path format [env_name/template_name] to
+ *                     target env file.
  */
-def createHeatStack(client, name, template, params = [], environment = null, path = null) {
+def createHeatStack(client, name, template, params = [], environment = null, path = null, legacy_env = true) {
     def python = new com.mirantis.mk.Python()
     templateFile = "${env.WORKSPACE}/template/template/${template}.hot"
     if (environment) {
-        envFile = "${env.WORKSPACE}/template/env/${template}/${name}.env"
-        envSource = "${env.WORKSPACE}/template/env/${template}/${environment}.env"
+        if (legacy_env) {
+            envFile = "${env.WORKSPACE}/template/env/${template}/${name}.env"
+            envSource = "${env.WORKSPACE}/template/env/${template}/${environment}.env"
+        }
+        else {
+            envFile = "${env.WORKSPACE}/template/${name}.env"
+            envSource = "${env.WORKSPACE}/template/env/${environment}.env"
+        }
         createHeatEnv(envFile, params, envSource)
     }
     else {
