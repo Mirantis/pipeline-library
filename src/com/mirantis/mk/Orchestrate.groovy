@@ -262,7 +262,7 @@ def installKubernetesInfra(master) {
 
     // Install etcd
     salt.enforceState(master, 'I@etcd:server', 'etcd.server.service')
-    salt.runSaltProcessStep(master, 'I@etcd:server', 'cmd.run', ['./var/lib/etcd/configenv && etcdctl cluster-health'])
+    salt.runSaltProcessStep(master, 'I@etcd:server', 'cmd.run', ['source /var/lib/etcd/configenv && etcdctl cluster-health'])
 
 }
 
@@ -317,7 +317,11 @@ def installKubernetesContrailCompute(master) {
     // Install opencontrail
     salt.runSaltProcessStep(master, 'I@opencontrail:compute', 'state.sls', ['opencontrail'])
     // Reboot compute nodes
-    salt.runSaltProcessStep(master, 'I@opencontrail:compute', 'system.reboot')
+    try {
+        salt.runSaltProcessStep(master, 'I@opencontrail:compute', 'system.reboot')
+    } catch (Exception e) {
+        common.warningMsg('Exception in state system.reboot on I@opencontrail:compute')
+    }
 }
 
 def installDockerSwarm(master) {
