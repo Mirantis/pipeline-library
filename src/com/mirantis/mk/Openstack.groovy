@@ -167,7 +167,7 @@ def createHeatStack(client, name, template, params = [], environment = null, pat
             envSource = "${env.WORKSPACE}/template/env/${template}/${environment}.env"
         }
         else {
-            envFile = "${env.WORKSPACE}/template/${name}.env"
+            envFile = "${env.WORKSPACE}/template/env/${name}.env"
             envSource = "${env.WORKSPACE}/template/env/${environment}.env"
         }
         createHeatEnv(envFile, params, envSource)
