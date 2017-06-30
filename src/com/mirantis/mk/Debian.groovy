@@ -47,7 +47,7 @@ def buildBinary(file, image="debian:sid", extraRepoUrl=null, extraRepoKeyUrl=nul
             chown -R ${jenkinsUID}:${jenkinsGID} /home/jenkins &&
             [ ! -f pre_build_script.sh ] || bash ./pre_build_script.sh &&
             sudo -H -E -u jenkins dpkg-source -x ${file} build-area/${pkg} && cd build-area/${pkg} &&
-            mk-build-deps -t "apt-get -o Debug::pkgProblemResolver=yes -y" -i debian/control
+            mk-build-deps -t "apt-get -o Debug::pkgProblemResolver=yes -y" -i debian/control &&
             sudo -H -E -u jenkins debuild --no-lintian -uc -us -b'""")
     }
 
