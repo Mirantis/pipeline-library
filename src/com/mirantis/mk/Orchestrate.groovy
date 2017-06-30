@@ -348,11 +348,11 @@ def installStacklight(master) {
     salt.enforceState(master, 'I@telegraf:agentor or I@telegraf:remote_agent', 'telegraf', true)
 
     //Install Elasticsearch and Kibana
-    salt.enforceState(master, 'I@elasticsearch.server', 'elasticsearch.server', true)
+    salt.enforceState(master, 'I@elasticsearch:server', 'elasticsearch.server', true)
     salt.enforceState(master, 'I@kibana:server', 'kibana.server', true)
     salt.enforceState(master, 'I@grafana:server', 'grafana.server', true)
     salt.enforceState(master, 'I@nagios:server', 'nagios.server', true)
-    salt.enforceState(master, 'I@elasticsearch.client', 'elasticsearch.client', true)
+    salt.enforceState(master, 'I@elasticsearch:client', 'elasticsearch.client', true)
     salt.enforceState(master, 'I@kibana:client', 'kibana.client', true)
     salt.enforceState(master, 'I@influxdb:server', 'influxdb', true)
 
