@@ -186,6 +186,7 @@ def installOpenstackCompute(master) {
 
 
 def installContrailNetwork(master) {
+    def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
 
 
