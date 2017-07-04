@@ -13,7 +13,7 @@ package com.mirantis.mk
  */
 def ensureKnownHosts(url) {
     def hostArray = getKnownHost(url)
-    sh "test -f ~/.ssh/known_hosts && grep ${hostArray[0]} ~/.ssh/known_hosts || ssh-keyscan -p ${hostArray[1]} ${hostArray[0]} >> ~/.ssh/known_hosts"
+    sh "test -f ~/.ssh/known_hosts && grep ${hostArray[0]} ~/.ssh/known_hosts || ssh-keyscan -H -p ${hostArray[1]} ${hostArray[0]} >> ~/.ssh/known_hosts"
 }
 
 @NonCPS
