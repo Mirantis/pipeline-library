@@ -350,8 +350,6 @@ def installStacklight(master) {
     //Install Elasticsearch and Kibana
     salt.enforceState(master, 'I@elasticsearch:server', 'elasticsearch.server', true)
     salt.enforceState(master, 'I@kibana:server', 'kibana.server', true)
-    salt.enforceState(master, 'I@grafana:server', 'grafana.server', true)
-    salt.enforceState(master, 'I@nagios:server', 'nagios.server', true)
     salt.enforceState(master, 'I@elasticsearch:client', 'elasticsearch.client', true)
     salt.enforceState(master, 'I@kibana:client', 'kibana.client', true)
     salt.enforceState(master, 'I@influxdb:server', 'influxdb', true)
@@ -363,14 +361,14 @@ def installStacklight(master) {
     sleep(5)
 
     //Configure services in Docker Swarm
-    salt.enforceState(master, 'I@docker:swarm', ['prometheus', 'heka.remote_collector'])
+    salt.enforceState(master, 'I@docker:swarm', ['prometheus', 'heka.remote_collector'], true, false)
     salt.enforceState(master, 'I@docker:swarm:role:master', 'docker', true)
-    salt.enforceState(master, 'I@docker:swarm', 'dockerng.ps', true)
+    salt.runSaltProcessStep(master, 'I@docker:swarm', 'dockerng.ps', [], null, true)
 
     //Configure Grafana
     def pillar = salt.getPillar(master, 'ctl01*', '_param:stacklight_monitor_address')
     common.prettyPrint(pillar)
-    
+
     def stacklight_vip
     if(!pillar['return'].isEmpty()) {
         stacklight_vip = pillar['return'][0].values()[0]
