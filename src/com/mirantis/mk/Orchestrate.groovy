@@ -345,7 +345,7 @@ def installStacklight(master) {
     def salt = new com.mirantis.mk.Salt()
 
     //Install Telegraf
-    salt.enforceState(master, 'I@telegraf:agentor or I@telegraf:remote_agent', 'telegraf', true)
+    salt.enforceState(master, 'I@telegraf:agent or I@telegraf:remote_agent', 'telegraf', true)
 
     //Install Elasticsearch and Kibana
     salt.enforceState(master, 'I@elasticsearch:server', 'elasticsearch.server', true)
