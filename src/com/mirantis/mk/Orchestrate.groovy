@@ -14,7 +14,6 @@ def validateFoundationInfra(master) {
     salt.runSaltProcessStep(master, 'I@salt:minion', 'state.show_top', [], null, true)
 }
 
-
 def installFoundationInfra(master) {
     def salt = new com.mirantis.mk.Salt()
 
@@ -47,61 +46,84 @@ def installInfraKvm(master) {
     salt.runSaltProcessStep(master, '* and not kvm*', 'saltutil.sync_all', [], null, true)
 }
 
-def installOpenstackInfra(master) {
+def installInfra(master) {
     def salt = new com.mirantis.mk.Salt()
 
     // Install glusterfs
-    salt.enforceState(master, 'I@glusterfs:server', 'glusterfs.server.service', true)
+    if (salt.testTarget('I@glusterfs:server')) {
+        salt.enforceState(master, 'I@glusterfs:server', 'glusterfs.server.service', true)
 
-    // Install keepaliveds
-    //runSaltProcessStep(master, 'I@keepalived:cluster', 'state.sls', ['keepalived'], 1)
-    salt.enforceState(master, 'I@keepalived:cluster and *01*', 'keepalived', true)
-    salt.enforceState(master, 'I@keepalived:cluster', 'keepalived', true)
-
-    // Check the keepalived VIPs
-    salt.runSaltProcessStep(master, 'I@keepalived:cluster', 'cmd.run', ['ip a | grep 172.16.10.2'])
-
-    withEnv(['ASK_ON_ERROR=false']){
-        retry(5) {
-            salt.enforceState(master, 'I@glusterfs:server and *01*', 'glusterfs.server.setup', true)
+        withEnv(['ASK_ON_ERROR=false']){
+            retry(5) {
+                salt.enforceState(master, 'I@glusterfs:server and *01*', 'glusterfs.server.setup', true)
+            }
         }
+
+        salt.runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster peer status'], null, true)
+        salt.runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster volume status'], null, true)
     }
-
-    salt.runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster peer status'], null, true)
-    salt.runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster volume status'], null, true)
-
-    // Install rabbitmq
-    withEnv(['ASK_ON_ERROR=false']){
-        retry(2) {
-            salt.enforceState(master, 'I@rabbitmq:server', 'rabbitmq', true, false)
-        }
-    }
-
-    // Check the rabbitmq status
-    salt.runSaltProcessStep(master, 'I@rabbitmq:server', 'cmd.run', ['rabbitmqctl cluster_status'])
 
     // Install galera
-    withEnv(['ASK_ON_ERROR=false']){
-        retry(2) {
-            salt.enforceState(master, 'I@galera:master', 'galera', true)
+    if (salt.testTarget('I@galera:server') || salt.testTarget('I@galera:slave')) {
+        withEnv(['ASK_ON_ERROR=false']){
+            retry(2) {
+                salt.enforceState(master, 'I@galera:master', 'galera', true)
+            }
         }
+        salt.enforceState(master, 'I@galera:slave', 'galera', true)
+
+        // Check galera status
+        salt.runSaltProcessStep(master, 'I@galera:master', 'mysql.status')
+        salt.runSaltProcessStep(master, 'I@galera:slave', 'mysql.status')
     }
-    salt.enforceState(master, 'I@galera:slave', 'galera', true)
 
-    // Check galera status
-    salt.runSaltProcessStep(master, 'I@galera:master', 'mysql.status')
-    salt.runSaltProcessStep(master, 'I@galera:slave', 'mysql.status')
+    // Install docker
+    if (salt.testTarget('I@docker:host')) {
+        salt.enforceState(master, 'I@docker:host', 'docker.host')
+        salt.runSaltProcessStep(master, 'I@docker:host', 'cmd.run', ['docker ps'])
+    }
 
-    // // Setup mysql client
-    // salt.enforceState(master, 'I@mysql:client', 'mysql.client', true)
+    // Install keepalived
+    if (salt.testTarget('I@keepalived:cluster')) {
+        salt.enforceState(master, 'I@keepalived:cluster and *01*', 'keepalived', true)
+        salt.enforceState(master, 'I@keepalived:cluster', 'keepalived', true)
+    }
+
+    // Install rabbitmq
+    if (salt.testTarget('I@rabbitmq:server')) {
+        withEnv(['ASK_ON_ERROR=false']){
+            retry(2) {
+                salt.enforceState(master, 'I@rabbitmq:server', 'rabbitmq', true)
+            }
+        }
+
+        // Check the rabbitmq status
+        salt.runSaltProcessStep(master, 'I@rabbitmq:server', 'cmd.run', ['rabbitmqctl cluster_status'])
+    }
 
     // Install haproxy
-    salt.enforceState(master, 'I@haproxy:proxy', 'haproxy', true)
-    salt.runSaltProcessStep(master, 'I@haproxy:proxy', 'service.status', ['haproxy'])
-    salt.runSaltProcessStep(master, 'I@haproxy:proxy', 'service.restart', ['rsyslog'])
+    if (salt.testTarget('I@haproxy:proxy')) {
+        salt.enforceState(master, 'I@haproxy:proxy', 'haproxy', true)
+        salt.runSaltProcessStep(master, 'I@haproxy:proxy', 'service.status', ['haproxy'])
+        salt.runSaltProcessStep(master, 'I@haproxy:proxy', 'service.restart', ['rsyslog'])
+    }
 
     // Install memcached
-    salt.enforceState(master, 'I@memcached:server', 'memcached', true, false)
+    if (salt.testTarget('I@memcached:server')) {
+        salt.enforceState(master, 'I@memcached:server', 'memcached', true)
+    }
+
+    // Install etcd
+    if (salt.testTarget('I@etcd:server')) {
+        salt.enforceState(master, 'I@etcd:server', 'etcd.server.service')
+        salt.runSaltProcessStep(master, 'I@etcd:server', 'cmd.run', ['bash -c "source /var/lib/etcd/configenv && etcdctl cluster-health"'])
+    }
+}
+
+def installOpenstackInfra(master) {
+
+    // THIS FUNCTION IS LEGACY, PLEASE USE installInfra directly
+    installInfra(master)
 }
 
 
@@ -229,41 +251,9 @@ def installContrailCompute(master) {
 
 
 def installKubernetesInfra(master) {
-    def common = new com.mirantis.mk.Common()
-    def salt = new com.mirantis.mk.Salt()
 
-    // Install glusterfs
-    if (common.checkContains('STACK_INSTALL', 'glusterfs')) {
-        salt.enforceState(master, 'I@glusterfs:server', 'glusterfs.server.service')
-    }
-
-    // Install keepalived
-    salt.enforceState(master, 'I@keepalived:cluster and *01*', 'keepalived')
-    salt.enforceState(master, 'I@keepalived:cluster', 'keepalived')
-
-    // Setup glusterfs
-    if (common.checkContains('STACK_INSTALL', 'glusterfs')) {
-        withEnv(['ASK_ON_ERROR=false']){
-            retry(5) {
-                salt.enforceState(master, 'I@glusterfs:server and *01*', 'glusterfs.server.setup')
-            }
-        }
-        salt.runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster peer status'])
-        salt.runSaltProcessStep(master, 'I@glusterfs:server', 'cmd.run', ['gluster volume status'])
-    }
-
-    // Install haproxy
-    salt.enforceState(master, 'I@haproxy:proxy', 'haproxy')
-    salt.runSaltProcessStep(master, 'I@haproxy:proxy', 'service.status', ['haproxy'])
-
-    // Install docker
-    salt.enforceState(master, 'I@docker:host', 'docker.host')
-    salt.runSaltProcessStep(master, 'I@docker:host', 'cmd.run', ['docker ps'])
-
-    // Install etcd
-    salt.enforceState(master, 'I@etcd:server', 'etcd.server.service')
-    salt.runSaltProcessStep(master, 'I@etcd:server', 'cmd.run', ['source /var/lib/etcd/configenv && etcdctl cluster-health'])
-
+    // THIS FUNCTION IS LEGACY, PLEASE USE installInfra directly
+    installInfra(master)
 }
 
 
@@ -327,7 +317,7 @@ def installKubernetesContrailCompute(master) {
 def installDockerSwarm(master) {
     def salt = new com.mirantis.mk.Salt()
 
-        //Install and Configure Docker
+    //Install and Configure Docker
     salt.enforceState(master, 'I@docker:swarm', 'docker.host')
     salt.enforceState(master, 'I@docker:swarm:role:master', 'docker.swarm', true)
     salt.enforceState(master, 'I@docker:swarm', 'salt.minion.grains', true)
@@ -336,7 +326,6 @@ def installDockerSwarm(master) {
     sleep(5)
     salt.enforceState(master, 'I@docker:swarm:role:manager', 'docker.swarm', true)
     salt.cmdRun(master, 'I@docker:swarm:role:master', 'docker node ls', true)
-
 }
 
 
@@ -397,7 +386,7 @@ def installStacklight(master) {
     } else {
         common.errorMsg('[ERROR] Stacklight VIP address could not be retrieved')
     }
-    
+
     common.infoMsg("Waiting for service on http://${stacklight_vip}:15013/ to start")
     sleep(120)
     salt.enforceState(master, 'I@grafana:client', 'grafana.client', true)

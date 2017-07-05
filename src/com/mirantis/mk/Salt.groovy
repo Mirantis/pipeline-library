@@ -228,7 +228,7 @@ def getMinions(master, target) {
  * Test if there are any minions to target
  * @param master Salt connection object
  * @param target Target to test
- * @return bool indicating in target was succesful
+ * @return bool indicating if target was succesful
  */
 
 def testTarget(master, target) {
