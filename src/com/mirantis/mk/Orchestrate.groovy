@@ -366,7 +366,7 @@ def installStacklight(master) {
     salt.runSaltProcessStep(master, 'I@docker:swarm', 'dockerng.ps', [], null, true)
 
     //Configure Grafana
-    def pillar = salt.getPillar(master, 'ctl01*', '_param:stacklight_monitor_address')
+/*    def pillar = salt.getPillar(master, 'ctl01*', '_param:stacklight_monitor_address')
     common.prettyPrint(pillar)
 
     def stacklight_vip
@@ -385,7 +385,9 @@ def installStacklight(master) {
             common.infoMsg("Server responded ${service_response}")
             sleep(5)
         }
-    }
+    }*/
+
+    sleep(120)
 
     salt.enforceState(master, 'I@grafana:client', 'grafana.client', true)
 
