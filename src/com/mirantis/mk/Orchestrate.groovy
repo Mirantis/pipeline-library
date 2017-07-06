@@ -344,18 +344,6 @@ def installStacklight(master) {
     def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
 
-    // Install galera
-    withEnv(['ASK_ON_ERROR=false']){
-        retry(2) {
-            salt.enforceState(master, 'I@galera:master', 'galera', true)
-        }
-    }
-    salt.enforceState(master, 'I@galera:slave', 'galera', true)
-
-    // Check galera status
-    salt.runSaltProcessStep(master, 'I@galera:master', 'mysql.status')
-    salt.runSaltProcessStep(master, 'I@galera:slave', 'mysql.status')
-
     // Install haproxy
     salt.enforceState(master, 'I@haproxy:proxy', 'haproxy')
     salt.runSaltProcessStep(master, 'I@haproxy:proxy', 'service.status', ['haproxy'])
@@ -372,6 +360,18 @@ def installStacklight(master) {
     salt.enforceState(master, 'I@kibana:client', 'kibana.client', true)
     salt.enforceState(master, '*01* and I@influxdb:server', 'influxdb', true)
     salt.enforceState(master, 'I@influxdb:server', 'influxdb', true)
+
+    // Install galera
+    withEnv(['ASK_ON_ERROR=false']){
+        retry(2) {
+            salt.enforceState(master, 'I@galera:master', 'galera', true)
+        }
+    }
+    salt.enforceState(master, 'I@galera:slave', 'galera', true)
+
+    // Check galera status
+    salt.runSaltProcessStep(master, 'I@galera:master', 'mysql.status')
+    salt.runSaltProcessStep(master, 'I@galera:slave', 'mysql.status')
 
     //Collect Grains
     salt.enforceState(master, 'I@salt:minion', 'salt.minion.grains', true)
