@@ -366,7 +366,7 @@ def installStacklight(master) {
     salt.runSaltProcessStep(master, 'I@docker:swarm', 'dockerng.ps', [], null, true)
 
     //Configure Grafana
-/*    def pillar = salt.getPillar(master, 'ctl01*', '_param:stacklight_monitor_address')
+    def pillar = salt.getPillar(master, 'ctl01*', '_param:stacklight_monitor_address')
     common.prettyPrint(pillar)
 
     def stacklight_vip
@@ -376,7 +376,7 @@ def installStacklight(master) {
         common.errorMsg('[ERROR] Stacklight VIP address could not be retrieved')
     }
 
-    def service_response = -1
+/*    def service_response = -1
     common.infoMsg("Waiting for service on http://${stacklight_vip}:15013/ to start")
     timeout(5){
         while (service_response != 200) {
@@ -386,8 +386,9 @@ def installStacklight(master) {
             sleep(5)
         }
     }*/
-
-    sleep(120)
+    
+    common.infoMsg("Waiting for service on http://${stacklight_vip}:15013/ to start")
+    salt.runSaltProcessStep(master, 'I@salt:master', 'http.wait_for_successful_query', ['http://${stacklight_vip}:15013 wait_for=480'], null, true)
 
     salt.enforceState(master, 'I@grafana:client', 'grafana.client', true)
 
