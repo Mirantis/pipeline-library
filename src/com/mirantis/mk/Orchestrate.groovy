@@ -344,6 +344,18 @@ def installStacklight(master) {
     def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
 
+    // Install galera
+    withEnv(['ASK_ON_ERROR=false']){
+        retry(2) {
+            salt.enforceState(master, 'I@galera:master', 'galera', true)
+        }
+    }
+    salt.enforceState(master, 'I@galera:slave', 'galera', true)
+
+    // Check galera status
+    salt.runSaltProcessStep(master, 'I@galera:master', 'mysql.status')
+    salt.runSaltProcessStep(master, 'I@galera:slave', 'mysql.status')
+
     //Install Telegraf
     salt.enforceState(master, 'I@telegraf:agent or I@telegraf:remote_agent', 'telegraf', true)
 
@@ -375,21 +387,9 @@ def installStacklight(master) {
     } else {
         common.errorMsg('[ERROR] Stacklight VIP address could not be retrieved')
     }
-
-/*    def service_response = -1
-    common.infoMsg("Waiting for service on http://${stacklight_vip}:15013/ to start")
-    timeout(5){
-        while (service_response != 200) {
-            common.infoMsg("Trying to connect to http://${stacklight_vip}:15013/")
-            service_response = salt.cmdRun(master, 'I@salt:master', 'curl -ksL -w "%{http_code}" -o /dev/null "${stacklight_vip}:15013/"', false)
-            common.infoMsg("Server responded ${service_response}")
-            sleep(5)
-        }
-    }*/
     
     common.infoMsg("Waiting for service on http://${stacklight_vip}:15013/ to start")
-    salt.runSaltProcessStep(master, 'I@salt:master', 'http.wait_for_successful_query', ['http://${stacklight_vip}:15013 wait_for=480'], null, true)
-
+    sleep(120)
     salt.enforceState(master, 'I@grafana:client', 'grafana.client', true)
 
     salt.enforceState(master, 'I@heka:log_collector', 'heka.log_collector')
