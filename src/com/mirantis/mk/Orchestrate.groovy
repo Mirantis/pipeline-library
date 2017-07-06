@@ -378,10 +378,11 @@ def installStacklight(master) {
 
     def service_response = -1
     common.infoMsg("Waiting for service on http://${stacklight_vip}:15013/ to start")
-    timeout(120){
+    timeout(5){
         while (service_response != 200) {
             common.infoMsg("Trying to connect to http://${stacklight_vip}:15013/")
-            service_response = salt.cmdRun(master, 'I@salt:master', 'curl -ksL -w "%{http_code}" -o /dev/null "${stacklight_vip}:15013/"')
+            service_response = salt.cmdRun(master, 'I@salt:master', 'curl -ksL -w "%{http_code}" -o /dev/null "${stacklight_vip}:15013/"', false)
+            common.infoMsg("Server responded ${service_response}")
             sleep(5)
         }
     }
