@@ -264,10 +264,10 @@ def getHeatStackInfo(env, name, path = null) {
  * @param path         Optional path to the custom virtualenv
  */
 def getHeatStackOutputParam(env, name, outputParam, path = null) {
-    cmd = "openstack stack output show ${name} ${outputParam} -f value -c output_value"
+    cmd = "heat output-show ${name} ${outputParam}"
     output = runOpenstackCommand(cmd, env, path)
     echo("${cmd}: ${output}")
-    return "${output}"
+    return "${output}".substring(1, output.length()-1)
 }
 
 /**
