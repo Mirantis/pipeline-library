@@ -231,7 +231,7 @@ def installContrailCompute(master) {
 def installKubernetesInfra(master) {
     def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
-
+    print(INSTALL)
     // Install glusterfs
     if (common.checkContains('INSTALL', 'glusterfs')) {
         salt.enforceState(master, 'I@glusterfs:server', 'glusterfs.server.service')
