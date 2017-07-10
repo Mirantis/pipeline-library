@@ -73,7 +73,7 @@ def installOpenstackInfra(master) {
     // Install rabbitmq
     withEnv(['ASK_ON_ERROR=false']){
         retry(2) {
-            salt.enforceState(master, 'I@rabbitmq:server', 'rabbitmq', true)
+            salt.enforceState(master, 'I@rabbitmq:server', 'rabbitmq', true, false)
         }
     }
 
