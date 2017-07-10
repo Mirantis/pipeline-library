@@ -101,7 +101,7 @@ def installOpenstackInfra(master) {
     salt.runSaltProcessStep(master, 'I@haproxy:proxy', 'service.restart', ['rsyslog'])
 
     // Install memcached
-    salt.enforceState(master, 'I@memcached:server', 'memcached', true)
+    salt.enforceState(master, 'I@memcached:server', 'memcached', true, false)
 }
 
 
