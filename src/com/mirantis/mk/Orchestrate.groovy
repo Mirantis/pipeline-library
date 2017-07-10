@@ -231,9 +231,9 @@ def installContrailCompute(master) {
 def installKubernetesInfra(master) {
     def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
-    print(INSTALL)
+
     // Install glusterfs
-    if (common.checkContains('INSTALL', 'glusterfs')) {
+    if (common.checkContains('STACK_INSTALL', 'glusterfs')) {
         salt.enforceState(master, 'I@glusterfs:server', 'glusterfs.server.service')
     }
 
@@ -242,7 +242,7 @@ def installKubernetesInfra(master) {
     salt.enforceState(master, 'I@keepalived:cluster', 'keepalived')
 
     // Setup glusterfs
-    if (common.checkContains('INSTALL', 'glusterfs')) {
+    if (common.checkContains('STACK_INSTALL', 'glusterfs')) {
         withEnv(['ASK_ON_ERROR=false']){
             retry(5) {
                 salt.enforceState(master, 'I@glusterfs:server and *01*', 'glusterfs.server.setup')
