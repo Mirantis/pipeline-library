@@ -442,7 +442,7 @@ def setSaltOverrides(master, salt_overrides, debug=false) {
     def common = new com.mirantis.mk.Common()
 
     def salt_overrides_map = mcpcommon.loadYAML(salt_overrides)
-    for (entry in common.entries(SALT_OVERRIDES_MAP)) {
+    for (entry in common.entries(salt_overrides_map)) {
          def key = entry[0]
          def value = entry[1]
 
