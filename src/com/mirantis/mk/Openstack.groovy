@@ -267,7 +267,10 @@ def getHeatStackOutputParam(env, name, outputParam, path = null) {
     cmd = "heat output-show ${name} ${outputParam}"
     output = runOpenstackCommand(cmd, env, path)
     echo("${cmd}: ${output}")
-    return "${output}".substring(1, output.length()-1)
+    // NOTE(vsaienko) heatclient 1.5.1 returns output in "", while later
+    // versions returns string without "".
+    // TODO Use openstack 'stack output show' when all jobs using at least Mitaka heatclient
+    return "${output}".replaceAll('"', '')
 }
 
 /**
