@@ -109,7 +109,7 @@ def installOpenstackControl(master) {
     def salt = new com.mirantis.mk.Salt()
 
     // Install horizon dashboard
-    salt.enforceState(master, 'I@horizon:server', 'horizon', true, false)
+    salt.enforceState(master, 'I@horizon:server', 'horizon', true)
     salt.enforceState(master, 'I@nginx:server', 'nginx', true)
 
     // setup keystone service
@@ -345,10 +345,9 @@ def installStacklight(master) {
     def salt = new com.mirantis.mk.Salt()
 
     // Install haproxy
-    if (common.checkContains('STACK_INSTALL', 'k8s')) {
-        salt.enforceState(master, 'I@haproxy:proxy', 'haproxy')
-        salt.runSaltProcessStep(master, 'I@haproxy:proxy', 'service.status', ['haproxy'])
-    }
+    salt.enforceState(master, 'I@haproxy:proxy', 'haproxy')
+    salt.runSaltProcessStep(master, 'I@haproxy:proxy', 'service.status', ['haproxy'])
+
     //Install Telegraf
     salt.enforceState(master, 'I@telegraf:agent or I@telegraf:remote_agent', 'telegraf', true)
 
@@ -363,18 +362,16 @@ def installStacklight(master) {
     salt.enforceState(master, 'I@influxdb:server', 'influxdb', true)
 
     // Install galera
-    if (common.checkContains('STACK_INSTALL', 'k8s')) {
-        withEnv(['ASK_ON_ERROR=false']){
-            retry(2) {
-                salt.enforceState(master, 'I@galera:master', 'galera', true)
-            }
+    withEnv(['ASK_ON_ERROR=false']){
+        retry(2) {
+            salt.enforceState(master, 'I@galera:master', 'galera', true)
         }
-        salt.enforceState(master, 'I@galera:slave', 'galera', true)
-
-        // Check galera status
-        salt.runSaltProcessStep(master, 'I@galera:master', 'mysql.status')
-        salt.runSaltProcessStep(master, 'I@galera:slave', 'mysql.status')
     }
+    salt.enforceState(master, 'I@galera:slave', 'galera', true)
+
+    // Check galera status
+    salt.runSaltProcessStep(master, 'I@galera:master', 'mysql.status')
+    salt.runSaltProcessStep(master, 'I@galera:slave', 'mysql.status')
 
     //Collect Grains
     salt.enforceState(master, 'I@salt:minion', 'salt.minion.grains', true)
