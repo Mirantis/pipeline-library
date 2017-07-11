@@ -132,62 +132,98 @@ def installOpenstackControl(master) {
     def salt = new com.mirantis.mk.Salt()
 
     // Install horizon dashboard
-    salt.enforceState(master, 'I@horizon:server', 'horizon', true)
-    salt.enforceState(master, 'I@nginx:server', 'nginx', true)
+    if (salt.testTarget(master, 'I@horizon:server')) {
+        salt.enforceState(master, 'I@horizon:server', 'horizon', true)
+    }
+    if (salt.testTarget(master, 'I@nginx:server')) {
+        salt.enforceState(master, 'I@nginx:server', 'nginx', true)
+    }
 
     // setup keystone service
-    //runSaltProcessStep(master, 'I@keystone:server', 'state.sls', ['keystone.server'], 1)
-    salt.enforceState(master, 'I@keystone:server and *01*', 'keystone.server', true)
-    salt.enforceState(master, 'I@keystone:server', 'keystone.server', true)
-    // populate keystone services/tenants/roles/users
+    if (salt.testTarget(master, 'I@keystone:server')) {
+        //runSaltProcessStep(master, 'I@keystone:server', 'state.sls', ['keystone.server'], 1)
+        salt.enforceState(master, 'I@keystone:server and *01*', 'keystone.server', true)
+        salt.enforceState(master, 'I@keystone:server', 'keystone.server', true)
+        // populate keystone services/tenants/roles/users
 
-    // keystone:client must be called locally
-    //salt.runSaltProcessStep(master, 'I@keystone:client', 'cmd.run', ['salt-call state.sls keystone.client'], null, true)
-    salt.runSaltProcessStep(master, 'I@keystone:server', 'service.restart', ['apache2'])
-    sleep(30)
-    salt.enforceState(master, 'I@keystone:client', 'keystone.client', true)
-    salt.enforceState(master, 'I@keystone:client', 'keystone.client', true)
-    salt.runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonercv3; openstack service list'], null, true)
+        // keystone:client must be called locally
+        //salt.runSaltProcessStep(master, 'I@keystone:client', 'cmd.run', ['salt-call state.sls keystone.client'], null, true)
+        salt.runSaltProcessStep(master, 'I@keystone:server', 'service.restart', ['apache2'])
+        sleep(30)
+    }
+    if (salt.testTarget(master, 'I@keystone:client')) {
+        salt.enforceState(master, 'I@keystone:client', 'keystone.client', true)
+        salt.enforceState(master, 'I@keystone:client', 'keystone.client', true)
+    }
+    if (salt.testTarget(master, 'I@keystone:server')) {
+        salt.runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonercv3; openstack service list'], null, true)
+    }
 
     // Install glance and ensure glusterfs clusters
-    //runSaltProcessStep(master, 'I@glance:server', 'state.sls', ['glance.server'], 1)
-    salt.enforceState(master, 'I@glance:server and *01*', 'glance.server', true)
-    salt.enforceState(master, 'I@glance:server', 'glance.server', true)
-    salt.enforceState(master, 'I@glance:server', 'glusterfs.client', true)
+    if (salt.testTarget(master, 'I@glance:server')) {
+        //runSaltProcessStep(master, 'I@glance:server', 'state.sls', ['glance.server'], 1)
+        salt.enforceState(master, 'I@glance:server and *01*', 'glance.server', true)
+       salt.enforceState(master, 'I@glance:server', 'glance.server', true)
+    }
+    if (salt.testTarget(master, 'I@glusterfs:client')) {
+        salt.enforceState(master, 'I@glusterfs:client', 'glusterfs.client', true)
+    }
 
     // Update fernet tokens before doing request on keystone server
-    salt.enforceState(master, 'I@keystone:server', 'keystone.server', true)
+    if (salt.testTarget(master, 'I@keystone:server')) {
+        salt.enforceState(master, 'I@keystone:server', 'keystone.server', true)
 
-    // Check glance service
-    salt.runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; glance image-list'], null, true)
+        // Check glance service
+        if (salt.testTarget(master, 'I@glance:server')){
+            salt.runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; glance image-list'], null, true)
+        }
+    }
 
     // Install and check nova service
-    //runSaltProcessStep(master, 'I@nova:controller', 'state.sls', ['nova'], 1)
-    salt.enforceState(master, 'I@nova:controller and *01*', 'nova.controller', true)
-    salt.enforceState(master, 'I@nova:controller', 'nova.controller', true)
-    salt.runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; nova service-list'], null, true)
+    if (salt.testTarget(master, 'I@nova:controller')) {
+        //runSaltProcessStep(master, 'I@nova:controller', 'state.sls', ['nova'], 1)
+        salt.enforceState(master, 'I@nova:controller and *01*', 'nova.controller', true)
+        salt.enforceState(master, 'I@nova:controller', 'nova.controller', true)
+        if (salt.testTarget(master, 'I@keystone:server')) {
+            salt.runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; nova service-list'], null, true)
+        }
+    }
 
     // Install and check cinder service
-    //runSaltProcessStep(master, 'I@cinder:controller', 'state.sls', ['cinder'], 1)
-    salt.enforceState(master, 'I@cinder:controller and *01*', 'cinder', true)
-    salt.enforceState(master, 'I@cinder:controller', 'cinder', true)
-    salt.runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; cinder list'], null, true)
+    if (salt.testTarget(master, 'I@cinder:controller')) {
+        //runSaltProcessStep(master, 'I@cinder:controller', 'state.sls', ['cinder'], 1)
+        salt.enforceState(master, 'I@cinder:controller and *01*', 'cinder', true)
+        salt.enforceState(master, 'I@cinder:controller', 'cinder', true)
+        if (salt.testTarget(master, 'I@keystone:server')) {
+            salt.runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; cinder list'], null, true)
+        }
+    }
 
     // Install neutron service
-    //runSaltProcessStep(master, 'I@neutron:server', 'state.sls', ['neutron'], 1)
+    if (salt.testTarget(master, 'I@neutron:server')) {
+        //runSaltProcessStep(master, 'I@neutron:server', 'state.sls', ['neutron'], 1)
 
-    salt.enforceState(master, 'I@neutron:server and *01*', 'neutron.server', true)
-    salt.enforceState(master, 'I@neutron:server', 'neutron.server', true)
-    salt.runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; neutron agent-list'], null, true)
+        salt.enforceState(master, 'I@neutron:server and *01*', 'neutron.server', true)
+        salt.enforceState(master, 'I@neutron:server', 'neutron.server', true)
+        if (salt.testTarget(master, 'I@keystone:server')) {
+            salt.runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; neutron agent-list'], null, true)
+        }
+    }
 
     // Install heat service
-    //runSaltProcessStep(master, 'I@heat:server', 'state.sls', ['heat'], 1)
-    salt.enforceState(master, 'I@heat:server and *01*', 'heat', true)
-    salt.enforceState(master, 'I@heat:server', 'heat', true)
-    salt.runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; heat resource-type-list'], null, true)
+    if (salt.testTarget(master, 'I@heat:server')) {
+        //runSaltProcessStep(master, 'I@heat:server', 'state.sls', ['heat'], 1)
+        salt.enforceState(master, 'I@heat:server and *01*', 'heat', true)
+        salt.enforceState(master, 'I@heat:server', 'heat', true)
+        if (salt.testTarget(master, 'I@keystone:server')) {
+            salt.runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; heat resource-type-list'], null, true)
+        }
+    }
 
     // Restart nova api
-    salt.runSaltProcessStep(master, 'I@nova:controller', 'service.restart', ['nova-api'])
+    if (salt.testTarget(master, 'I@nova:controller')) {
+        salt.runSaltProcessStep(master, 'I@nova:controller', 'service.restart', ['nova-api'])
+    }
 }
 
 
