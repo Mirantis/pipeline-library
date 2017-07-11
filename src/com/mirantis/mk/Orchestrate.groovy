@@ -344,10 +344,11 @@ def installStacklight(master) {
     def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
 
-    // Install haproxy
-    salt.enforceState(master, 'I@haproxy:proxy', 'haproxy')
-    salt.runSaltProcessStep(master, 'I@haproxy:proxy', 'service.status', ['haproxy'])
-
+        // Install haproxy
+    if (common.checkContains('STACK_INSTALL', 'k8s')) {
+        salt.enforceState(master, 'I@haproxy:proxy', 'haproxy')
+        salt.runSaltProcessStep(master, 'I@haproxy:proxy', 'service.status', ['haproxy'])
+    }
     //Install Telegraf
     salt.enforceState(master, 'I@telegraf:agent or I@telegraf:remote_agent', 'telegraf', true)
 
@@ -362,16 +363,18 @@ def installStacklight(master) {
     salt.enforceState(master, 'I@influxdb:server', 'influxdb', true)
 
     // Install galera
-    withEnv(['ASK_ON_ERROR=false']){
-        retry(2) {
-            salt.enforceState(master, 'I@galera:master', 'galera', true)
+    if (common.checkContains('STACK_INSTALL', 'k8s')) {
+        withEnv(['ASK_ON_ERROR=false']){
+            retry(2) {
+                salt.enforceState(master, 'I@galera:master', 'galera', true)
+            }
         }
-    }
-    salt.enforceState(master, 'I@galera:slave', 'galera', true)
+        salt.enforceState(master, 'I@galera:slave', 'galera', true)
 
-    // Check galera status
-    salt.runSaltProcessStep(master, 'I@galera:master', 'mysql.status')
-    salt.runSaltProcessStep(master, 'I@galera:slave', 'mysql.status')
+        // Check galera status
+        salt.runSaltProcessStep(master, 'I@galera:master', 'mysql.status')
+        salt.runSaltProcessStep(master, 'I@galera:slave', 'mysql.status')
+    }
 
     //Collect Grains
     salt.enforceState(master, 'I@salt:minion', 'salt.minion.grains', true)
