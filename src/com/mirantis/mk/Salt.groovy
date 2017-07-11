@@ -439,6 +439,7 @@ def getFileContent(master, target, file) {
 
 def setSaltOverrides(master, salt_overrides, debug=false) {
     def mcpcommon = new com.mirantis.mcp.Common()
+    def common = new com.mirantis.mk.Common()
 
     def salt_overrides_map = mcpcommon.loadYAML(salt_overrides)
     for (entry in common.entries(SALT_OVERRIDES_MAP)) {
