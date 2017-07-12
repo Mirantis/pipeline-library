@@ -459,3 +459,17 @@ def validInputParam(paramName){
 def countHashMapEquals(lm, param, eq) {
     return lm.stream().filter{i -> i[param].equals(eq)}.collect(java.util.stream.Collectors.counting())
 }
+
+/**
+ * Removes SUITE parameter from Kitchen envs and removes duplicates
+ * @param input list of kitchenEnvs
+ * @return filtered list
+ */
+
+def filterKitchenEnvs(input = []) {
+    def variablesList = input[0].split().flatten().sort()
+    def result = []
+    variablesList.removeAll { it.toUpperCase().contains('SUITE') }
+    result[0] = variablesList.join(' ')
+    return result
+}
