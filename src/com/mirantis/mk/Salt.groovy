@@ -225,6 +225,17 @@ def getMinions(master, target) {
 
 
 /**
+ * Test if there are any minions to target
+ * @param master Salt connection object
+ * @param target Target to test
+ * @return bool indicating in target was succesful
+ */
+
+def testTarget(master, target) {
+    return getMinions(master, target).size() > 0
+}
+
+/**
  * Generates node key using key.gen_accept call
  * @param master Salt connection object
  * @param target Key generating target
