@@ -24,6 +24,7 @@ package com.mirantis.mk
 
 def setupOpenstackVirtualenv(path, version = 'kilo') {
     def python = new com.mirantis.mk.Python()
+    python.setupDocutilsVirtualenv(path)
 
     def openstack_kilo_packages = [
         'python-cinderclient>=1.3.1,<1.4.0',
@@ -38,7 +39,6 @@ def setupOpenstackVirtualenv(path, version = 'kilo') {
         'oslo.i18n>=2.3.0,<2.4.0',
         'oslo.serialization>=1.8.0,<1.9.0',
         'oslo.utils>=1.4.0,<1.5.0',
-        'docutils>=0.12'
     ]
 
     def openstack_latest_packages = [
