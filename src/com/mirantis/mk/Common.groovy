@@ -468,8 +468,6 @@ def countHashMapEquals(lm, param, eq) {
 
 def filterKitchenEnvs(input = []) {
     def variablesList = input[0].split().flatten().sort()
-    def result = []
     variablesList.removeAll { it.toUpperCase().contains('SUITE') }
-    result[0] = variablesList.join(' ')
-    return result
+    return variablesList.join(' ')
 }
