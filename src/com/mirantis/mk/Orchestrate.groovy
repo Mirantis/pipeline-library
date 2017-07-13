@@ -75,6 +75,12 @@ def installInfra(master) {
         // Check galera status
         salt.runSaltProcessStep(master, 'I@galera:master', 'mysql.status')
         salt.runSaltProcessStep(master, 'I@galera:slave', 'mysql.status')
+    // If galera is not enabled check if we need to install mysql:server
+    } else if (salt.testTarget(master, 'I@mysql:server')){
+        salt.enforceState(master, 'I@mysql:server', 'mysql.server', true)
+        if (salt.testTarget(master, 'I@mysql:client')){
+            salt.enforceState(master, 'I@mysql:client', 'mysql.client', true)
+        }
     }
 
     // Install docker
