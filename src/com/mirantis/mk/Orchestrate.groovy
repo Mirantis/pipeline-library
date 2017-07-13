@@ -342,6 +342,11 @@ def installStacklight(master) {
     //Install Telegraf
     salt.enforceState(master, 'I@telegraf:agent or I@telegraf:remote_agent', 'telegraf', true)
 
+    // Install Prometheus exporters
+    if (salt.testTarget(master, 'I@prometheus:exporters')) {
+        salt.enforceState(master, 'I@prometheus:exporters', 'prometheus', true)
+    }
+
     //Install Elasticsearch and Kibana
     salt.enforceState(master, '*01* and  I@elasticsearch:server', 'elasticsearch.server', true)
     salt.enforceState(master, 'I@elasticsearch:server', 'elasticsearch.server', true)
