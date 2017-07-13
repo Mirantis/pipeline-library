@@ -219,7 +219,7 @@ def enforceHighstate(master, target, output = false, failOnError = true, batch =
  * @return list of active minions fitin
  */
 def getMinions(master, target) {
-    def minionsRaw = runSaltCommand(master, 'local', target, 'test.ping')
+    def minionsRaw = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'test.ping')
     return new ArrayList<String>(minionsRaw['return'][0].keySet())
 }
 
