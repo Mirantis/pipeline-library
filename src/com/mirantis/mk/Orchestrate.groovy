@@ -50,7 +50,7 @@ def installInfra(master) {
     def salt = new com.mirantis.mk.Salt()
 
     // Install glusterfs
-    if (salt.testTarget('I@glusterfs:server')) {
+    if (salt.testTarget(master, 'I@glusterfs:server')) {
         salt.enforceState(master, 'I@glusterfs:server', 'glusterfs.server.service', true)
 
         withEnv(['ASK_ON_ERROR=false']){
@@ -64,7 +64,7 @@ def installInfra(master) {
     }
 
     // Install galera
-    if (salt.testTarget('I@galera:server') || salt.testTarget('I@galera:slave')) {
+    if (salt.testTarget(master, 'I@galera:server') || salt.testTarget(master, 'I@galera:slave')) {
         withEnv(['ASK_ON_ERROR=false']){
             retry(2) {
                 salt.enforceState(master, 'I@galera:master', 'galera', true)
@@ -78,19 +78,19 @@ def installInfra(master) {
     }
 
     // Install docker
-    if (salt.testTarget('I@docker:host')) {
+    if (salt.testTarget(master, 'I@docker:host')) {
         salt.enforceState(master, 'I@docker:host', 'docker.host')
         salt.runSaltProcessStep(master, 'I@docker:host', 'cmd.run', ['docker ps'])
     }
 
     // Install keepalived
-    if (salt.testTarget('I@keepalived:cluster')) {
+    if (salt.testTarget(master, 'I@keepalived:cluster')) {
         salt.enforceState(master, 'I@keepalived:cluster and *01*', 'keepalived', true)
         salt.enforceState(master, 'I@keepalived:cluster', 'keepalived', true)
     }
 
     // Install rabbitmq
-    if (salt.testTarget('I@rabbitmq:server')) {
+    if (salt.testTarget(master, 'I@rabbitmq:server')) {
         withEnv(['ASK_ON_ERROR=false']){
             retry(2) {
                 salt.enforceState(master, 'I@rabbitmq:server', 'rabbitmq', true)
@@ -102,19 +102,19 @@ def installInfra(master) {
     }
 
     // Install haproxy
-    if (salt.testTarget('I@haproxy:proxy')) {
+    if (salt.testTarget(master, 'I@haproxy:proxy')) {
         salt.enforceState(master, 'I@haproxy:proxy', 'haproxy', true)
         salt.runSaltProcessStep(master, 'I@haproxy:proxy', 'service.status', ['haproxy'])
         salt.runSaltProcessStep(master, 'I@haproxy:proxy', 'service.restart', ['rsyslog'])
     }
 
     // Install memcached
-    if (salt.testTarget('I@memcached:server')) {
+    if (salt.testTarget(master, 'I@memcached:server')) {
         salt.enforceState(master, 'I@memcached:server', 'memcached', true)
     }
 
     // Install etcd
-    if (salt.testTarget('I@etcd:server')) {
+    if (salt.testTarget(master, 'I@etcd:server')) {
         salt.enforceState(master, 'I@etcd:server', 'etcd.server.service')
         salt.runSaltProcessStep(master, 'I@etcd:server', 'cmd.run', ['bash -c "source /var/lib/etcd/configenv && etcdctl cluster-health"'])
     }
