@@ -224,7 +224,38 @@ def installOpenstackControl(master) {
     if (salt.testTarget(master, 'I@nova:controller')) {
         salt.runSaltProcessStep(master, 'I@nova:controller', 'service.restart', ['nova-api'])
     }
+
+    // Install ironic service
+    if (salt.testTarget(master, 'I@ironic:api')) {
+        salt.enforceState(master, 'I@ironic:api and ctl01*', 'ironic.api', true)
+        salt.enforceState(master, 'I@ironic:api', 'ironic.api', true)
+    }
 }
+
+
+def installIronicConductor(master){
+    def salt = new com.mirantis.mk.Salt()
+
+    if (salt.testTarget(master, 'I@ironic:conductor')) {
+        salt.enforceState(master, 'I@ironic:conductor', 'ironic.conductor', true)
+        salt.enforceState(master, 'I@ironic:conductor', 'apache', true)
+    }
+    if (salt.testTarget(master, 'I@tftpd_hpa:server')) {
+        salt.enforceState(master, 'I@tftpd_hpa:server', 'tftpd_hpa', true)
+    }
+
+    if (salt.testTarget(master, 'I@nova:compute')) {
+        salt.runSaltProcessStep(master, 'I@nova:compute', 'service.restart', ['nova-compute'])
+    }
+
+    if (salt.testTarget(master, 'I@baremetal_simulator:enabled')) {
+        salt.enforceState(master, 'I@baremetal_simulator:enabled', 'baremetal_simulator', true)
+    }
+    if (salt.testTarget(master, 'I@ironic:client')) {
+        salt.enforceState(master, 'I@ironic:client', 'ironic.client', true)
+    }
+}
+
 
 
 def installOpenstackNetwork(master, physical = "false") {
