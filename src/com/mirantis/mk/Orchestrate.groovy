@@ -121,9 +121,10 @@ def installInfra(master) {
 }
 
 def installOpenstackInfra(master) {
+    def orchestrate = new com.mirantis.mk.Orchestrate()
 
     // THIS FUNCTION IS LEGACY, PLEASE USE installInfra directly
-    installInfra(master)
+    orchestrate.installInfra(master)
 }
 
 
@@ -238,7 +239,7 @@ def installContrailNetwork(master) {
 
 
 def installContrailCompute(master) {
-     def salt = new com.mirantis.mk.Salt()
+    def salt = new com.mirantis.mk.Salt()
     // Configure compute nodes
     // Provision opencontrail control services
     salt.enforceState(master, 'I@opencontrail:database:id:1', 'opencontrail.client', true)
@@ -251,9 +252,9 @@ def installContrailCompute(master) {
 
 
 def installKubernetesInfra(master) {
-
+    def orchestrate = new com.mirantis.mk.Orchestrate()
     // THIS FUNCTION IS LEGACY, PLEASE USE installInfra directly
-    installInfra(master)
+    orchestrate.installInfra(master)
 }
 
 
