@@ -208,6 +208,10 @@ def syncAll(master, target) {
  */
 def enforceHighstate(master, target, output = false, failOnError = true, batch = null) {
     def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.highstate', batch)
+    def common = new com.mirantis.mk.Common()
+
+    common.infoMsg("Running step state.highstate on ${target}")
+
     checkResult(out, failOnError, output)
     return out
 }
