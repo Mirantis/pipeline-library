@@ -335,10 +335,10 @@ def _needNotification(notificatedTypes, buildStatus, jobName) {
  * @param notificatedTypes types of notifications will be sent, default onchange - notificate if current build result not equal last result;
  *                         otherwise use - ["success","unstable","failed"]
  * @param jobName optional job name param, if empty env.JOB_NAME will be used
- * @param buildNumber build number param, if empty env.JOB_NAME will be used
- * @param buildUrl build url param, if empty env.JOB_NAME will be used
+ * @param buildNumber build number param, if empty env.BUILD_NUM will be used
+ * @param buildUrl build url param, if empty env.BUILD_URL will be used
  * @param mailFrom mail FROM param, if empty "jenkins" will be used, it's mandatory for sending email notifications
- * @param mailTo mail TO param, it's mandatory for sending email notifications
+ * @param mailTo mail TO param, it's mandatory for sending email notifications, this option enable mail notification
  */
 def sendNotification(buildStatus, msgText="", enabledNotifications = [], notificatedTypes=["onchange"], jobName=null, buildNumber=null, buildUrl=null, mailFrom="jenkins", mailTo=null){
     // Default values
