@@ -54,9 +54,10 @@ def saltLogin(master) {
  * @param args     Additional arguments to function
  * @param kwargs   Additional key-value arguments to function
  * @param timeout  Additional argument salt api timeout
+ * @param read_timeout http session read timeout
  */
 @NonCPS
-def runSaltCommand(master, client, target, function, batch = null, args = null, kwargs = null, timeout = -1) {
+def runSaltCommand(master, client, target, function, batch = null, args = null, kwargs = null, timeout = -1, read_timeout = -1) {
     def http = new com.mirantis.mk.Http()
 
     data = [
@@ -87,7 +88,7 @@ def runSaltCommand(master, client, target, function, batch = null, args = null, 
       'X-Auth-Token': "${master.authToken}"
     ]
 
-    return http.sendHttpPostRequest("${master.url}/", data, headers)
+    return http.sendHttpPostRequest("${master.url}/", data, headers, read_timeout)
 }
 
 /**
@@ -128,10 +129,11 @@ def getGrain(master, target, grain = null) {
  * @param output print output (optional, default true)
  * @param failOnError throw exception on salt state result:false (optional, default true)
  * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
- * @param optional don't fail on empty response from salt caused by 'No minions matched the targed' if set to true (default false)
+ * @param read_timeout http session read timeout
+ * @param retries Retry count for salt state.
  * @return output of salt command
  */
-def enforceState(master, target, state, output = true, failOnError = true, batch = null, optional = false) {
+def enforceState(master, target, state, output = true, failOnError = true, batch = null, optional = false, read_timeout=-1, retries=-1) {
     def common = new com.mirantis.mk.Common()
     def run_states
 
@@ -142,14 +144,19 @@ def enforceState(master, target, state, output = true, failOnError = true, batch
     }
 
     common.infoMsg("Enforcing state ${run_states} on ${target}")
-    if (optional==false){
-        def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states])
+    def out
+
+    if (optional == false || testTarget(master, target)){
+        if (retries != -1){
+            retry(retries){
+                out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states], null, -1, read_timeout)
+            }
+            }
+        else {
+            out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states], null, -1, read_timeout)
+        }
         checkResult(out, failOnError, output)
         return out
-    } else if (testTarget(master, target)) {
-        def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states])
-        checkResult(out, failOnError, output)
-        return out        
     } else {
         common.infoMsg("No Minions matched the target given, but 'optional' param was set to true - Pipeline continues. ")
     }

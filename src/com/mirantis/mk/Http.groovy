@@ -12,10 +12,15 @@ package com.mirantis.mk
  * @param method    HTTP method to use (default GET)
  * @param data      JSON data to POST or PUT
  * @param headers   Map of additional request headers
+ * @param read_timeout http session read timeout
  */
 @NonCPS
-def sendHttpRequest(url, method = 'GET', data = null, headers = [:]) {
+def sendHttpRequest(url, method = 'GET', data = null, headers = [:], read_timeout=-1) {
     def connection = new URL(url).openConnection()
+
+    if (read_timeout != -1){
+        connection.setReadTimeout(read_timeout*1000)
+    }
     if (method != 'GET') {
         connection.setRequestMethod(method)
     }
@@ -80,9 +85,10 @@ def sendHttpGetRequest(url, data = null, headers = [:]) {
  *
  * @param url     URL which will requested
  * @param data    JSON data to PUT
+ * @param read_timeout http session read timeout
  */
-def sendHttpPostRequest(url, data = null, headers = [:]) {
-    return sendHttpRequest(url, 'POST', data, headers)
+def sendHttpPostRequest(url, data = null, headers = [:], read_timeout=-1) {
+    return sendHttpRequest(url, 'POST', data, headers, read_timeout)
 }
 
 /**
