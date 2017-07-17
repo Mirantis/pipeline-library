@@ -80,3 +80,20 @@ def runKitchenCommand(cmd, environment = null){
         return sh(script: "rbenv exec bundler exec kitchen ${cmd}", returnStdout: true)
     }
 }
+
+/**
+ * Filters given kitchen env lists for forbidden env properties
+ * @param input list of kitchenEnvs
+ * @param cleanRegex regex will be used for env cleaning (default removing SUITE=* properties)
+ * @return filtered env list
+ */
+def filterKitchenEnvs(inputEnvs = [], cleanRegex = "\\s?SUITE\\=[^\\s]*") {
+    def output = []
+    for(int i=0; i<inputEnvs.size(); i++) {
+        def cleanEnv = inputEnvs[i].replaceAll(cleanRegex, "")
+        if(cleanEnv != "") {
+            output.add(cleanEnv.trim())
+        }
+     }
+    return output
+}
