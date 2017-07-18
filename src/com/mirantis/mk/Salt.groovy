@@ -206,7 +206,7 @@ def cmdRun(master, target, cmd, checkResponse = true, batch=null, output = true)
  * @param output print salt command (default true)
  * @return output of salt command
  */
-def minion_present(master, target, minion_name, waitUntilPresent = true, batch=null, output = true) {
+def minionPresent(master, target, minion_name, waitUntilPresent = true, batch=null, output = true) {
     return command_status(master, target, 'salt-key | grep ' + minion_name, minion_name, waitUntilPresent, batch, output)
 }
 
@@ -221,14 +221,16 @@ def minion_present(master, target, minion_name, waitUntilPresent = true, batch=n
  * @param output print salt command (default true)
  * @return output of salt command
  */
-def command_status(master, target, cmd, correct_state='running', waitUntilOk = true, batch=null, output = true, maxRetries = 200) {
+def commandStatus(master, target, cmd, correct_state='running', waitUntilOk = true, batch=null, output = true, maxRetries = 200) {
     def common = new com.mirantis.mk.Common()
     common.infoMsg("Checking if status of verification command ${cmd} on ${target} is in correct state")
     if (waitUntilOk){
         def count = 0
         while(count < maxRetries) {
             def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd])
-            if (out.toLowerCase().contains(correct_state.toLowerCase()) && output == true) {
+            def resultMap = out["return"][0]
+            def result = resultMap.get(resultMap.keySet()[0])
+            if (result.toLowerCase().contains(correct_state.toLowerCase())) {
                 if (output) {
                     printSaltCommandResult(out)
                 }
@@ -239,7 +241,9 @@ def command_status(master, target, cmd, correct_state='running', waitUntilOk = t
         }
     } else {
         def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd])
-        if (out.toLowerCase().contains(correct_state.toLowerCase()) && output == true) {
+        def resultMap = out["return"][0]
+        def result = resultMap.get(resultMap.keySet()[0])
+        if (result.toLowerCase().contains(correct_state.toLowerCase())) {
             if (output) {
                 printSaltCommandResult(out)
             }
