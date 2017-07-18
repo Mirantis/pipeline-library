@@ -162,6 +162,7 @@ def enforceState(master, target, state, output = true, failOnError = true, batch
  * @param cmd command
  * @param checkResponse test command success execution (default true)
  * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
+ * @param output do you want to print output
  * @return output of salt command
  */
 def cmdRun(master, target, cmd, checkResponse = true, batch=null, output = true) {
@@ -193,6 +194,62 @@ def cmdRun(master, target, cmd, checkResponse = true, batch=null, output = true)
     }
     return out
 }
+
+
+/**
+ * Run command on salt minion (salt cmd.run wrapper)
+ * @param master Salt connection object
+ * @param target Get pillar target
+ * @param minion_name unique identification of a minion in salt-key command output
+ * @param waitUntilPresent return after the minion becomes present (default true)
+ * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
+ * @param output print salt command (default true)
+ * @return output of salt command
+ */
+def minion_present(master, target, minion_name, waitUntilPresent = true, batch=null, output = true) {
+    return command_status(master, target, 'salt-key | grep ' + minion_name, minion_name, waitUntilPresent, batch, output)
+}
+
+/**
+ * Run command on salt minion (salt cmd.run wrapper)
+ * @param master Salt connection object
+ * @param target Get pillar target
+ * @param cmd name of a service
+ * @param correct_state string that command must contain if status is in correct state (optional, default 'running')
+ * @param waitUntilOk return after the minion becomes present (optional, default true)
+ * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
+ * @param output print salt command (default true)
+ * @return output of salt command
+ */
+def command_status(master, target, cmd, correct_state='running', waitUntilOk = true, batch=null, output = true, maxRetries = 200) {
+    def common = new com.mirantis.mk.Common()
+    common.infoMsg("Checking if status of verification command ${cmd} on ${target} is in correct state")
+    if (waitUntilOk){
+        def count = 0
+        while(count < maxRetries) {
+            def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd])
+            if (out.toLowerCase().contains(correct_state.toLowerCase()) && output == true) {
+                if (output) {
+                    printSaltCommandResult(out)
+                }
+                return out
+            }
+            count++
+            sleep(time: 500, unit: 'MILLISECONDS')
+        }
+    } else {
+        def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd])
+        if (out.toLowerCase().contains(correct_state.toLowerCase()) && output == true) {
+            if (output) {
+                printSaltCommandResult(out)
+            }
+            return out
+        }
+    }
+    // otherwise throw exception
+    throw new Exception("${cmd} signals failure of status check!")
+}
+
 
 /**
  * Perform complete salt sync between master and target
