@@ -128,9 +128,10 @@ def getGrain(master, target, grain = null) {
  * @param output print output (optional, default true)
  * @param failOnError throw exception on salt state result:false (optional, default true)
  * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
+ * @param optional don't fail on empty response from salt caused by 'No minions matched the targed' if set to true (default false)
  * @return output of salt command
  */
-def enforceState(master, target, state, output = true, failOnError = true, batch = null) {
+def enforceState(master, target, state, output = true, failOnError = true, batch = null, optional = false) {
     def common = new com.mirantis.mk.Common()
     def run_states
 
@@ -141,11 +142,17 @@ def enforceState(master, target, state, output = true, failOnError = true, batch
     }
 
     common.infoMsg("Enforcing state ${run_states} on ${target}")
-
-    def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states])
-
-    checkResult(out, failOnError, output)
-    return out
+    if (optional==false){
+        def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states])
+        checkResult(out, failOnError, output)
+        return out
+    } else if (testTarget(master, target)) {
+        def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states])
+        checkResult(out, failOnError, output)
+        return out        
+    } else {
+        common.infoMsg("No Minions matched the target given, but 'optional' param was set to true - Pipeline continues. ")
+    }
 }
 
 /**
