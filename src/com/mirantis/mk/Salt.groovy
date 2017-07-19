@@ -525,9 +525,10 @@ def getFileContent(master, target, file) {
  *
  * @param master         Salt master object
  * @param salt_overrides YAML formatted string containing key: value, one per line
+ * @param reclass_dir    Directory where Reclass git repo is located
  */
 
-def setSaltOverrides(master, salt_overrides, debug=false) {
+def setSaltOverrides(master, salt_overrides, reclass_dir="/srv/salt/reclass") {
     def mcpcommon = new com.mirantis.mcp.Common()
     def common = new com.mirantis.mk.Common()
 
@@ -539,4 +540,5 @@ def setSaltOverrides(master, salt_overrides, debug=false) {
          common.debugMsg("Set salt override ${key}=${value}")
          runSaltProcessStep(master, 'I@salt:master', 'reclass.cluster_meta_set', ["${key}", "${value}"], false, debug)
     }
+    runSaltProcessStep(master, 'I@salt:master', 'cmd.run', ["git -C ${reclass_dir} update-index --skip-worktree classes/cluster/overrides.yml"])
 }
