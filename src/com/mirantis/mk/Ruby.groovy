@@ -50,7 +50,7 @@ def runKitchenTests(environment="", parallelTesting = true){
         common.infoMsg(String.format("Found %s kitchen test suites", kitchenTestsList.size()))
         for(int i=0;i<kitchenTestsList.size();i++){
             def testSuite = kitchenTestsList[i]
-            kitchenTestRuns["kitchen-${testSuite}-${i}"] = {
+            kitchenTestRuns["kitchen-${testSuite}-${i}".replaceAll("trevorj-salty-whales:", "")] = {
                 common.infoMsg("Running kitchen test ${testSuite}")
                 println(runKitchenCommand("converge ${testSuite}", environment))
                 println runKitchenCommand("verify ${testSuite} -t tests/integration", environment)
