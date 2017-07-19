@@ -160,7 +160,7 @@ def installOpenstackControl(master) {
         sleep(30)
     }
     if (salt.testTarget(master, 'I@keystone:client')) {
-        salt.enforceState(master, 'I@keystone:client', 'keystone.client', true)
+        salt.enforceState(master, 'I@keystone:client and *01*', 'keystone.client', true)
         salt.enforceState(master, 'I@keystone:client', 'keystone.client', true)
     }
     if (salt.testTarget(master, 'I@keystone:server')) {
