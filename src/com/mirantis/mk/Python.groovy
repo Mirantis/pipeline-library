@@ -9,21 +9,25 @@ package com.mirantis.mk
 /**
  * Install python virtualenv
  *
- * @param path     Path to virtualenv
- * @param python   Version of Python (python/python3)
- * @param reqs     Environment requirements in list format
+ * @param path          Path to virtualenv
+ * @param python        Version of Python (python/python3)
+ * @param reqs          Environment requirements in list format
+ * @param reqs_path     Environment requirements path in str format
  */
-def setupVirtualenv(path, python = 'python2', reqs = []) {
+def setupVirtualenv(path, python = 'python2', reqs = [], reqs_path=null) {
     def virtualenv_cmd = "virtualenv ${path} --python ${python}"
-
+    
     echo("[Python ${path}] Setup ${python} environment")
     sh(returnStdout: true, script: virtualenv_cmd)
-    def args = ""
-    for (req in reqs) {
-        args = args + "${req}\n"
+    if (reqs_path==null) {
+        def args = ""
+        for (req in reqs) {
+            args = args + "${req}\n"
+        }
+        writeFile file: "${path}/requirements.txt", text: args
+        reqs_path = "${path}/requirements.txt"
     }
-    writeFile file: "${path}/requirements.txt", text: args
-    runVirtualenvCommand(path, "pip install -r ${path}/requirements.txt")
+    runVirtualenvCommand(path, "pip install -r ${reqs_path}")
 }
 
 /**
