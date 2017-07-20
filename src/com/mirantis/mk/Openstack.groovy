@@ -80,7 +80,7 @@ export OS_PROJECT_NAME=${project}
 export OS_PROJECT_ID=${project_id}
 export OS_PROJECT_DOMAIN_ID=${project_domain}
 export OS_USER_DOMAIN_NAME=${user_domain}
-export OS_API_IDENTITY_VERSION=${api_ver}
+export OS_IDENTITY_API_VERSION=${api_ver}
 export OS_CACERT=${cacert}
 set -x
 """
