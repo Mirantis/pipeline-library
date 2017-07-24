@@ -228,39 +228,61 @@ def minionPresent(master, target, minion_name, waitUntilPresent = true, batch=nu
  * @param output print salt command (default true)
  * @return output of salt command
  */
-def commandStatus(master, target, cmd, correct_state='running', waitUntilOk = true, batch=null, output = true, maxRetries = 200) {
+def commandStatus(master, target, cmd, correct_state='running', find = true, waitUntilOk = true, batch=null, output = true, maxRetries = 200) {
     def common = new com.mirantis.mk.Common()
     common.infoMsg("Checking if status of verification command ${cmd} on ${target} is in correct state")
     if (waitUntilOk){
         def count = 0
         while(count < maxRetries) {
-            def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd])
+            def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd], null, 5)
             def resultMap = out["return"][0]
             def result = resultMap.get(resultMap.keySet()[0])
+            // if the goal is to find some string in output of the command
+            if (find) {
+                if(result == null || result.isEmpty()) { result='' }
+                if (result.toLowerCase().contains(correct_state.toLowerCase())) {
+                    if (output) {
+                        printSaltCommandResult(out)
+                    }
+                    return out
+                }
+
+            // else the goal is to not find any string in output of the command
+            } else {
+                if(result instanceof String && result.isEmpty()) {
+                    return out
+                }
+            }
+            count++
+            sleep(time: 500, unit: 'MILLISECONDS')
+            common.infoMsg("Waiting for ${cmd} on ${target} to be in correct state")
+        }
+    } else {
+        def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd])
+        def resultMap = out["return"][0]
+        def result = resultMap.get(resultMap.keySet()[0])
+
+        // if the goal is to find some string in output of the command
+        if (find) {
+            if(result == null || result.isEmpty()) { result='' }
             if (result.toLowerCase().contains(correct_state.toLowerCase())) {
                 if (output) {
                     printSaltCommandResult(out)
                 }
                 return out
             }
-            count++
-            sleep(time: 500, unit: 'MILLISECONDS')
-        }
-    } else {
-        def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd])
-        def resultMap = out["return"][0]
-        def result = resultMap.get(resultMap.keySet()[0])
-        if (result.toLowerCase().contains(correct_state.toLowerCase())) {
-            if (output) {
-                printSaltCommandResult(out)
+
+        // else the goal is to not find any string in output of the command
+        } else {
+            if(result instanceof String && result.isEmpty()) {
+                return out
             }
-            return out
         }
     }
     // otherwise throw exception
+    common.errorMsg("Status of command ${cmd} on ${target} failed, please check it.")
     throw new Exception("${cmd} signals failure of status check!")
 }
-
 
 /**
  * Perform complete salt sync between master and target
