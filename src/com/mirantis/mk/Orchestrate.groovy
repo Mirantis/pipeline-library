@@ -235,8 +235,20 @@ def installOpenstackControl(master) {
 
     // Install ironic service
     if (salt.testTarget(master, 'I@ironic:api')) {
-        salt.enforceState(master, 'I@ironic:api and ctl01*', 'ironic.api', true)
+        salt.enforceState(master, 'I@ironic:api and *01*', 'ironic.api', true)
         salt.enforceState(master, 'I@ironic:api', 'ironic.api', true)
+    }
+
+    // Install designate service
+    if (salt.testTarget(master, 'I@designate:server:enabled')) {
+        if (salt.testTarget(master, 'I@designate:server:backend:bind9')) {
+            salt.enforceState(master, 'I@bind:server', 'bind.server', true)
+        }
+        if (salt.testTarget(master, 'I@designate:server:backend:pdns4')) {
+            salt.enforceState(master, 'I@powerdns:server', 'powerdns.server', true)
+        }
+        salt.enforceState(master, 'I@designate:server and *01*', 'designate.server', true)
+        salt.enforceState(master, 'I@designate:server', 'designate.server', true)
     }
 }
 
