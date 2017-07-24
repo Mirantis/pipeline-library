@@ -89,6 +89,10 @@ def promotePublish(server, source, target, recreate=false, components=null, pack
     }
 
     sh("aptly-publisher --url ${server} promote --source ${source} --target ${target} --force-overwrite ${opts}")
+
+    def now = new Date();
+    def timestamp = now.format("yyyyMMddHHmmss", TimeZone.getTimeZone('UTC'));
+    dumpPublishes(server, ".", timestamp, target)
 }
 
 def publish(server, config='/etc/aptly-publisher.yaml', recreate=false, opts='-d --timeout 600') {
@@ -96,4 +100,38 @@ def publish(server, config='/etc/aptly-publisher.yaml', recreate=false, opts='-d
         opts = "${opts} --recreate"
     }
     sh("aptly-publisher --url ${server} -c ${config} ${opts} --force-overwrite publish")
+}
+
+/**
+ * Dump publishes
+ *
+ * @param server        Server host
+ * @param save-dir      Directory where publishes are to be serialized
+ * @param publishes     Publishes to be serialized
+ * @param prefix        Prefix of dump files
+ * @param opts          Options: debug, timeout, ...
+ */
+def dumpPublishes(server, saveDir, prefix, publishes='all', opts='-d --timeout 600') {
+    sh("aptly-publisher dump --url ${server} --save-dir ${saveDir} --prefix ${prefix} ${opts}")
+    archiveArtifacts artifacts: "${saveDir}/${prefix}*"
+}
+
+/**
+ * Restore publish from YAML file
+ *
+ * @param server        Server host
+ * @param recreate      Recreate publishes
+ * @param publish       Serialized YAML of Publish
+ * @param components    Components to restore
+ */
+def restorePublish(server, recreate, publish, components='all') {
+
+    opts = ""
+    if (recreate) {
+        opts << " --recreate"
+    }
+
+    sh("rm tmpFile || true")
+    writeFile(file: "tmpFile", text: publish)
+    sh("aptly-publisher restore --url ${server} --restore-file tmpFile --components ${components} ${opts}")
 }
