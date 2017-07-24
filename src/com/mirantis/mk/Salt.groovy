@@ -214,7 +214,7 @@ def cmdRun(master, target, cmd, checkResponse = true, batch=null, output = true)
  * @return output of salt command
  */
 def minionPresent(master, target, minion_name, waitUntilPresent = true, batch=null, output = true) {
-    return command_status(master, target, 'salt-key | grep ' + minion_name, minion_name, waitUntilPresent, batch, output)
+    return commandStatus(master, target, 'salt-key | grep ' + minion_name, minion_name, waitUntilPresent, batch, output)
 }
 
 /**
