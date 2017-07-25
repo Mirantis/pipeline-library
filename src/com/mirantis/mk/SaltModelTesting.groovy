@@ -11,7 +11,7 @@ package com.mirantis.mk
  * @param formulasRevision    APT revision for formulas (optional default stable)
  */
 
-def setupAndTestNode(masterName, extraFormulas, testDir, formulasSource = 'pkg', formulasRevision = 'stable') {
+def setupAndTestNode(masterName, extraFormulas, testDir, formulasSource = 'pkg', formulasRevision = 'stable', dockerMaxCpus = 0) {
   def saltOpts = "--retcode-passthrough --force-color"
   def common = new com.mirantis.mk.Common()
   def workspace = common.getWorkspace()
@@ -29,7 +29,12 @@ def setupAndTestNode(masterName, extraFormulas, testDir, formulasSource = 'pkg',
     extraFormulas = "linux"
   }
 
-  img.inside("-u root:root --hostname=${masterName}") {
+  def dockerMaxCpusOption = ""
+  if (dockerMaxCpus > 0) {
+    dockerMaxCpusOption = "--cpus=${dockerMaxCpus}"
+  }
+
+  img.inside("-u root:root --hostname=${masterName} ${dockerMaxCpusOption}") {
 
     def is_mk_ci
     try {
