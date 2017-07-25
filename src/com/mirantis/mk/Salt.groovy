@@ -214,7 +214,7 @@ def cmdRun(master, target, cmd, checkResponse = true, batch=null, output = true)
  * @return output of salt command
  */
 def minionPresent(master, target, minion_name, waitUntilPresent = true, batch=null, output = true) {
-    return commandStatus(master, target, 'salt-key | grep ' + minion_name, minion_name, waitUntilPresent, batch, output)
+    return commandStatus(master, target, 'salt-key | grep ' + minion_name, minion_name, true, waitUntilPresent, batch, output)
 }
 
 /**
@@ -223,6 +223,7 @@ def minionPresent(master, target, minion_name, waitUntilPresent = true, batch=nu
  * @param target Get pillar target
  * @param cmd name of a service
  * @param correct_state string that command must contain if status is in correct state (optional, default 'running')
+ * @param find bool value if it is suppose to find some string in the output or the cmd should return empty string (optional, default true)
  * @param waitUntilOk return after the minion becomes present (optional, default true)
  * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
  * @param output print salt command (default true)
