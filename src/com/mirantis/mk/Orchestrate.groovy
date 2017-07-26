@@ -37,7 +37,7 @@ def installInfraKvm(master) {
     salt.runSaltProcessStep(master, 'I@linux:system', 'saltutil.refresh_pillar', [], null, true)
     salt.runSaltProcessStep(master, 'I@linux:system', 'saltutil.sync_all', [], null, true)
 
-    salt.enforceState(master, 'I@salt:control' ['salt.minion'], true, false, null, false, 60, 2)
+    salt.enforceState(master, 'I@salt:control', ['salt.minion'], true, false, null, false, 60, 2)
     salt.enforceState(master, 'I@salt:control', ['linux.system', 'linux.network', 'ntp'], true)
     salt.enforceState(master, 'I@salt:control', 'libvirt', true)
     salt.enforceState(master, 'I@salt:control', 'salt.control', true)
