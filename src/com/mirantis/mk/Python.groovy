@@ -14,10 +14,17 @@ package com.mirantis.mk
  * @param reqs          Environment requirements in list format
  * @param reqs_path     Environment requirements path in str format
  */
-def setupVirtualenv(path, python = 'python2', reqs = [], reqs_path=null) {
+def setupVirtualenv(path, python = 'python2', reqs=[], reqs_path=null, clean=false) {
+    def common = new com.mirantis.mk.Common()
+
     def virtualenv_cmd = "virtualenv ${path} --python ${python}"
-    
-    echo("[Python ${path}] Setup ${python} environment")
+
+    if (clean) {
+        common.infoMsg("Cleaning venv directory " + path)
+        sh("rm -rf \"${path}\"")
+    }
+
+    common.infoMsg("[Python ${path}] Setup ${python} environment")
     sh(returnStdout: true, script: virtualenv_cmd)
     if (reqs_path==null) {
         def args = ""
@@ -37,8 +44,10 @@ def setupVirtualenv(path, python = 'python2', reqs = [], reqs_path=null) {
  * @param cmd    Command to be executed
  */
 def runVirtualenvCommand(path, cmd) {
+    def common = new com.mirantis.mk.Common()
+
     virtualenv_cmd = ". ${path}/bin/activate > /dev/null; ${cmd}"
-    echo("[Python ${path}] Run command ${cmd}")
+    common.infoMsg("[Python ${path}] Run command ${cmd}")
     output = sh(
         returnStdout: true,
         script: virtualenv_cmd
