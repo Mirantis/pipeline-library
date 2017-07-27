@@ -66,7 +66,7 @@ def installInfra(master) {
     }
 
     // Install galera
-    if (salt.testTarget(master, 'I@galera:server') || salt.testTarget(master, 'I@galera:slave')) {
+    if (salt.testTarget(master, 'I@galera:master') || salt.testTarget(master, 'I@galera:slave')) {
         withEnv(['ASK_ON_ERROR=false']){
             retry(2) {
                 salt.enforceState(master, 'I@galera:master', 'galera', true)
