@@ -50,20 +50,20 @@ def copyTestsOutput(master, image) {
 def runTempestTests(master, dockerImageLink, target, pattern = "false") {
     def salt = new com.mirantis.mk.Salt()
     if (pattern == "false") {
-        salt.runSaltProcessStep(master, "${target}", 'cmd.run', ["docker run --rm --net=host " +
-                                                                  "-e TEMPEST_CONF=mcp.conf " +
-                                                                  "-e SKIP_LIST=mcp_skip.list " +
-                                                                  "-e SOURCE_FILE=keystonercv3 " +
-                                                                  "-v /root/:/home/rally ${dockerImageLink} >> docker-tempest.log"])
-        }
+        salt.cmdRun(master, "${target}", "docker run --rm --net=host " +
+                                         "-e TEMPEST_CONF=mcp.conf " +
+                                         "-e SKIP_LIST=mcp_skip.list " +
+                                         "-e SOURCE_FILE=keystonercv3 " +
+                                         "-v /root/:/home/rally ${dockerImageLink} >> docker-tempest.log")
+    }
     else {
-        salt.runSaltProcessStep(master, "${target}", 'cmd.run', ["docker run --rm --net=host " +
-                                                                  "-e TEMPEST_CONF=mcp.conf " +
-                                                                  "-e SKIP_LIST=mcp_skip.list " +
-                                                                  "-e SOURCE_FILE=keystonercv3 " +
-                                                                  "-e CUSTOM='--pattern ${pattern}' " +
-                                                                  "-v /root/:/home/rally ${dockerImageLink} >> docker-tempest.log"])
-         }
+        salt.cmdRun(master, "${target}", "docker run --rm --net=host " +
+                                         "-e TEMPEST_CONF=mcp.conf " +
+                                         "-e SKIP_LIST=mcp_skip.list " +
+                                         "-e SOURCE_FILE=keystonercv3 " +
+                                         "-e CUSTOM='--pattern ${pattern}' " +
+                                         "-v /root/:/home/rally ${dockerImageLink} >> docker-tempest.log")
+    }
 }
 
 /**
