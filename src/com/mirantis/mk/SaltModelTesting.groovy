@@ -34,7 +34,7 @@ def setupAndTestNode(masterName, extraFormulas, testDir, formulasSource = 'pkg',
     dockerMaxCpusOption = "--cpus=${dockerMaxCpus}"
   }
 
-  img.inside("-u root:root --hostname=${masterName} ${dockerMaxCpusOption}") {
+  img.inside("-u root:root --hostname=${masterName} --ulimit nofile=4096:8192 ${dockerMaxCpusOption}") {
 
     def is_mk_ci
     try {
