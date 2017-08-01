@@ -187,6 +187,11 @@ def installOpenstackControl(master) {
         }
     }
 
+    // Create glance resources
+    if (salt.testTarget(master, 'I@glance:client')) {
+        salt.enforceState(master, 'I@glance:client', 'glance.client', true)
+    }
+
     // Install and check nova service
     if (salt.testTarget(master, 'I@nova:controller')) {
         //runSaltProcessStep(master, 'I@nova:controller', 'state.sls', ['nova'], 1)
@@ -195,6 +200,11 @@ def installOpenstackControl(master) {
         if (salt.testTarget(master, 'I@keystone:server')) {
             salt.runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; nova service-list'], null, true)
         }
+    }
+
+    // Create nova resources
+    if (salt.testTarget(master, 'I@nova:client')) {
+        salt.enforceState(master, 'I@nova:client', 'nova.client', true)
     }
 
     // Install and check cinder service
@@ -216,6 +226,11 @@ def installOpenstackControl(master) {
         if (salt.testTarget(master, 'I@keystone:server')) {
             salt.runSaltProcessStep(master, 'I@keystone:server', 'cmd.run', ['. /root/keystonerc; neutron agent-list'], null, true)
         }
+    }
+
+    // Create neutron resources
+    if (salt.testTarget(master, 'I@neutron:client')) {
+        salt.enforceState(master, 'I@neutron:client', 'neutron.client', true)
     }
 
     // Install heat service
@@ -250,6 +265,11 @@ def installOpenstackControl(master) {
         salt.enforceState(master, 'I@designate:server and *01*', 'designate.server', true)
         salt.enforceState(master, 'I@designate:server', 'designate.server', true)
     }
+
+    // Install octavia api service
+    if (salt.testTarget(master, 'I@octavia:api')) {
+        salt.enforceState(master, 'I@octavia:api', 'octavia', true)
+    }
 }
 
 
@@ -282,6 +302,13 @@ def installOpenstackNetwork(master, physical = "false") {
     def salt = new com.mirantis.mk.Salt()
 
     salt.runSaltProcessStep(master, 'I@neutron:gateway', 'state.apply', [], null, true)
+
+    // install octavia manager services
+    if (salt.testTarget(master, 'I@octavia:manager')) {
+        salt.runSaltProcessStep(master, 'I@salt:master', 'mine.update', ['*'], null, true)
+        salt.enforceState(master, 'I@octavia:manager', 'salt.minion.ca', true)
+        salt.enforceState(master, 'I@octavia:manager', 'salt.minion.cert', true)
+    }
 }
 
 
