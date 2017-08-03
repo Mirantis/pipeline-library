@@ -67,13 +67,15 @@ def runTempestTests(master, dockerImageLink, target, pattern = "false") {
 }
 
 /**
- * Upload results to worker
+ * Upload results to cfg01 node
  *
  */
 def copyTempestResults(master, target) {
     def salt = new com.mirantis.mk.Salt()
-    salt.runSaltProcessStep(master, "${target}", 'cmd.run', ["scp /root/docker-tempest.log cfg01:/home/ubuntu/ && " +
-                                                             "find /root -name result.xml -exec scp {} cfg01:/home/ubuntu \\;"])
+    if (! target.contains('cfg')) {
+        salt.runSaltProcessStep(master, "${target}", 'cmd.run', ["mkdir /root/rally_reports/ && " +
+                                                                 "rsync -av /root/rally_reports/ cfg01:/root/rally_reports/"])
+    }
 }
 
 
