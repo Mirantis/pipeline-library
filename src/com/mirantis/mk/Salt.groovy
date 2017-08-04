@@ -562,7 +562,7 @@ def checkResult(result, failOnError = true, printResults = true, printOnlyChange
                             }
                         }
                     }else if(node!=null && node!=""){
-                        outputResources.add(String.format("Resource: %s\n\u001B[36m%s\u001B[0m", resKey, common.prettify(node)))
+                        outputResources.add(String.format("Resource: %s\n\u001B[36m%s\u001B[0m", nodeKey, common.prettify(node)))
                     }
                     if(printResults && !outputResources.isEmpty()){
                         wrap([$class: 'AnsiColorBuildWrapper']) {
