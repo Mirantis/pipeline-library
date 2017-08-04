@@ -484,16 +484,20 @@ def systestCalico(nodeImage, ctlImage, failOnErrors = true) {
     try {
       // create fake targets to avoid execution of unneeded operations
       sh """
-        mkdir -p vendor
+        mkdir -p calicoctl_home/vendor
+        mkdir -p calico_home/vendor
       """
       // pull calico/ctl image and extract calicoctl binary from it
       sh """
+        cd calicoctl_home
         mkdir -p dist
         docker run --rm -u \$(id -u):\$(id -g) --entrypoint /bin/cp -v \$(pwd)/dist:/dist ${ctlImage} /calicoctl /dist/calicoctl
         touch dist/calicoctl dist/calicoctl-linux-amd64
       """
       // pull calico/node image and extract required binaries
       sh """
+        cd calico_home
+        mkdir -p dist
         mkdir -p calico_node/filesystem/bin
         for calico_binary in startup allocate-ipip-addr calico-felix bird calico-bgp-daemon confd libnetwork-plugin; do
           docker run --rm -u \$(id -u):\$(id -g) --entrypoint /bin/cp -v \$(pwd)/calico_node/filesystem/bin:/calicobin ${nodeImage} /bin/\${calico_binary} /calicobin/
@@ -503,7 +507,11 @@ def systestCalico(nodeImage, ctlImage, failOnErrors = true) {
         touch calico_node/filesystem/bin/*
         touch calico_node/.calico_node.created
       """
-      sh "NODE_CONTAINER_NAME=${nodeImage} make st"
+      // execute systests against calico/node
+      sh """
+        cd calico_home
+        NODE_CONTAINER_NAME=${nodeImage} make st
+      """
     } catch (Exception e) {
       sh "make stop-etcd"
       // FIXME: cleaning has to be done by make stop/clean targets
@@ -591,12 +599,12 @@ def buildCalicoContainers(LinkedHashMap config) {
   def birdclUrl = config.get('birdclUrl', "${artifactoryURL}/${projectNamespace}/bird/birdcl-${birdBuildId}")
 
   // add LABELs to dockerfiles
-  docker.setDockerfileLabels("./calicoctl/Dockerfile.calicoctl",
+  docker.setDockerfileLabels("./calicoctl_home/calicoctl/Dockerfile.calicoctl",
                              ["docker.imgTag=${imgTag}",
                               "calico.buildImage=${buildImage}",
                               "calico.birdclUrl=${birdclUrl}"])
 
-  docker.setDockerfileLabels("./calico_node/Dockerfile",
+  docker.setDockerfileLabels("./calico_home/calico_node/Dockerfile",
                              ["docker.imgTag=${imgTag}",
                               "calico.buildImage=${buildImage}",
                               "calico.felixImage=${felixImage}",
@@ -608,6 +616,7 @@ def buildCalicoContainers(LinkedHashMap config) {
   // Start build section
   stage ('Build calico/ctl image'){
     sh """
+      cd calicoctl_home
       make calico/ctl \
         CTL_CONTAINER_NAME=${ctlName} \
         PYTHON_BUILD_CONTAINER_NAME=${buildImage} \
@@ -618,6 +627,7 @@ def buildCalicoContainers(LinkedHashMap config) {
 
   stage('Build calico/node'){
     sh """
+      cd calico_home
       make calico/node \
         NODE_CONTAINER_NAME=${nodeName} \
         PYTHON_BUILD_CONTAINER_NAME=${buildImage} \
