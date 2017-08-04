@@ -97,3 +97,27 @@ def install_docker(master, target) {
     def salt = new com.mirantis.mk.Salt()
     salt.runSaltProcessStep(master, "${target}", 'pkg.install', ["docker.io"])
 }
+
+/** Archive Rally results in Artifacts
+ *
+ * @param master              Salt connection.
+ * @param target              Target node to install docker pkg
+ * @param reports_dir         Source directory to archive
+ */
+
+def archiveRallyArtifacts(master, target, reports_dir='/root/rally_reports') {
+    def salt = new com.mirantis.mk.Salt()
+
+    def artifacts_dir = '_artifacts/'
+    def output_file = 'rally_reports.tar'
+
+    salt.runSaltProcessStep(master, "${target}", 'cmd.run', ["tar -cf /root/${output_file} ${reports_dir}"])
+    sh "mkdir -p ${artifacts_dir}"
+
+    encoded = salt.cmdRun(master, target, "cat /root/${output_file}", true, null, false)['return'][0].values()[0].replaceAll('Salt command execution success','').trim()
+
+    writeFile file: "${artifacts_dir}${output_file}", text: encoded
+
+    // collect artifacts
+    archiveArtifacts artifacts: "${artifacts_dir}${output_file}"
+}
