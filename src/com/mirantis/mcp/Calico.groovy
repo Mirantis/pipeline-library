@@ -575,15 +575,16 @@ def buildCalicoContainers(LinkedHashMap config) {
       error('artifactoryURL parameter has to be set.')
   }
 
-  def imgTag = config.get('imageTag', git.getGitDescribe(true) + "-" + common.getDatetime())
+  def ctlImgTag = null
+  def nodeImgTag = null
 
   def nodeImage = config.get('nodeImage', "calico/node")
   def nodeRepo = "${dockerRegistry}/${projectNamespace}/${nodeImage}"
-  def nodeName = "${nodeRepo}:${imgTag}"
+  def nodeName = null
 
   def ctlImage = config.get('ctlImage', "calico/ctl")
   def ctlRepo = "${dockerRegistry}/${projectNamespace}/${ctlImage}"
-  def ctlName = "${ctlRepo}:${imgTag}"
+  def ctlName = null
 
    // calico/build goes from libcalico
   def buildImage = config.get('buildImage',"${dockerRegistry}/${projectNamespace}/calico/build:latest")
@@ -598,45 +599,61 @@ def buildCalicoContainers(LinkedHashMap config) {
   def bird6Url = config.get('bird6Url', "${artifactoryURL}/${projectNamespace}/bird/bird6-${birdBuildId}")
   def birdclUrl = config.get('birdclUrl', "${artifactoryURL}/${projectNamespace}/bird/birdcl-${birdBuildId}")
 
-  // add LABELs to dockerfiles
-  docker.setDockerfileLabels("./calicoctl_home/calicoctl/Dockerfile.calicoctl",
-                             ["docker.imgTag=${imgTag}",
-                              "calico.buildImage=${buildImage}",
-                              "calico.birdclUrl=${birdclUrl}"])
+  
+  // Configure and build calico/ctl image
+  dir("./calicoctl_home"){
+    ctlImgTag = config.get('imageTag', git.getGitDescribe(true) + "-" + common.getDatetime())
+    ctlName = "${ctlRepo}:${ctlImgTag}"
 
-  docker.setDockerfileLabels("./calico_home/calico_node/Dockerfile",
-                             ["docker.imgTag=${imgTag}",
-                              "calico.buildImage=${buildImage}",
-                              "calico.felixImage=${felixImage}",
-                              "calico.confdUrl=${confdUrl}",
-                              "calico.birdUrl=${birdUrl}",
-                              "calico.bird6Url=${bird6Url}",
-                              "calico.birdclUrl=${birdclUrl}"])
+    // Add LABELs to dockerfile
+    docker.setDockerfileLabels("./calicoctl/Dockerfile.calicoctl",
+                               ["docker.imgTag=${imgTag}",
+                                "calico.buildImage=${buildImage}",
+                                "calico.birdclUrl=${birdclUrl}"])
 
-  // Start build section
-  stage ('Build calico/ctl image'){
-    sh """
-      cd calicoctl_home
-      make calico/ctl \
-        CTL_CONTAINER_NAME=${ctlName} \
-        PYTHON_BUILD_CONTAINER_NAME=${buildImage} \
-        BIRDCL_URL=${birdclUrl}
-    """
+    // Start build process
+    stage ('Build calico/ctl image'){
+      sh """
+        cd calicoctl_home
+        make calico/ctl \
+          CTL_CONTAINER_NAME=${ctlName} \
+          PYTHON_BUILD_CONTAINER_NAME=${buildImage} \
+          BIRDCL_URL=${birdclUrl}
+      """
+    }
+
   }
 
+  // Configure and build calico/node image
+  dir("./calico_home"){
+    nodeImgTag = config.get('imageTag', git.getGitDescribe(true) + "-" + common.getDatetime())
+    nodeName = "${nodeRepo}:${nodeImgTag}"
 
-  stage('Build calico/node'){
-    sh """
-      cd calico_home
-      make calico/node \
-        NODE_CONTAINER_NAME=${nodeName} \
-        PYTHON_BUILD_CONTAINER_NAME=${buildImage} \
-        FELIX_CONTAINER_NAME=${felixImage} \
-        CONFD_URL=${confdUrl} \
-        BIRD_URL=${birdUrl} \
-        BIRD6_URL=${bird6Url} \
-        BIRDCL_URL=${birdclUrl}
-    """
+    // Add LABELs to dockerfile
+    docker.setDockerfileLabels("./calico_node/Dockerfile",
+                               ["docker.imgTag=${imgTag}",
+                                "calico.buildImage=${buildImage}",
+                                "calico.felixImage=${felixImage}",
+                                "calico.confdUrl=${confdUrl}",
+                                "calico.birdUrl=${birdUrl}",
+                                "calico.bird6Url=${bird6Url}",
+                                "calico.birdclUrl=${birdclUrl}"])
+
+    // Start build process
+    stage('Build calico/node'){
+      sh """
+        cd calico_home
+        make calico/node \
+          NODE_CONTAINER_NAME=${nodeName} \
+          PYTHON_BUILD_CONTAINER_NAME=${buildImage} \
+          FELIX_CONTAINER_NAME=${felixImage} \
+          CONFD_URL=${confdUrl} \
+          BIRD_URL=${birdUrl} \
+          BIRD6_URL=${bird6Url} \
+          BIRDCL_URL=${birdclUrl}
+      """
+    }
+
   }
 
 
@@ -645,7 +662,8 @@ def buildCalicoContainers(LinkedHashMap config) {
     NODE_CONTAINER_NAME:"${nodeImage}",
     CALICO_NODE_IMAGE_REPO:"${nodeRepo}",
     CALICOCTL_IMAGE_REPO:"${ctlRepo}",
-    CALICO_VERSION: "${imgTag}"
+    CALICO_NODE_VERSION: "${nodeImgTag}",
+    CALICOCTL_VERSION: "${ctlImgTag}"
   ]
 
 }
