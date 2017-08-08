@@ -439,6 +439,7 @@ def installDockerSwarm(master) {
     salt.runSaltProcessStep(master, 'I@docker:swarm', 'mine.update', [], null, true)
     salt.runSaltProcessStep(master, 'I@docker:swarm', 'saltutil.refresh_modules', [], null, true)
     sleep(5)
+    salt.enforceState(master, 'I@docker:swarm:role:master', 'docker.swarm', true)
     salt.enforceState(master, 'I@docker:swarm:role:manager', 'docker.swarm', true)
     salt.cmdRun(master, 'I@docker:swarm:role:master', 'docker node ls', true)
 }
