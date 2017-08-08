@@ -101,6 +101,40 @@ def install_docker(master, target) {
     salt.runSaltProcessStep(master, "${target}", 'pkg.install', ["docker.io"])
 }
 
+/** Upload Tempest test results to Testrail
+ *
+ * @param report              Source report to upload
+ * @param image               Testrail reporter image
+ * @param testGroup           Testrail test group
+ * @param credentialsId       Testrail credentials id
+ * @param plan                Testrail test plan
+ * @param milestone           Testrail test milestone
+ * @param suite               Testrail test suite
+ * @param type                Use local shell or remote salt connection
+ * @param master              Salt connection.
+ * @param target              Target node to install docker pkg
+ */
+
+def uploadResultsTestrail(report, image, testGroup, credentialsId, plan, milestone, suite, master = null, target = 'cfg01*') {
+    def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+    creds = common.getPasswordCredentials(credentialsId)
+    command =  "docker run --rm --net=host " +
+                           "-v ${report}:/srv/report.xml " +
+                           "-e TESTRAIL_USER=${creds.username} " +
+                           "-e PASS=${creds.password.toString()} " +
+                           "-e TESTRAIL_PLAN_NAME=${plan} " +
+                           "-e TESTRAIL_MILESTONE=${milestone} " +
+                           "-e TESTRAIL_SUITE=${suite} " +
+                           "-e SHORT_TEST_GROUP=${testGroup} " +
+                           "${image}"
+    if (master == null) {
+      sh("${command}")
+    } else {
+      salt.cmdRun(master, "${target}", "${command}")
+    }
+}
+
 /** Archive Rally results in Artifacts
  *
  * @param master              Salt connection.
