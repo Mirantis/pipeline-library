@@ -607,7 +607,7 @@ def buildCalicoContainers(LinkedHashMap config) {
 
     // Add LABELs to dockerfile
     docker.setDockerfileLabels("./calicoctl/Dockerfile.calicoctl",
-                               ["docker.imgTag=${imgTag}",
+                               ["docker.imgTag=${ctlImgTag}",
                                 "calico.buildImage=${buildImage}",
                                 "calico.birdclUrl=${birdclUrl}"])
 
@@ -631,7 +631,7 @@ def buildCalicoContainers(LinkedHashMap config) {
 
     // Add LABELs to dockerfile
     docker.setDockerfileLabels("./calico_node/Dockerfile",
-                               ["docker.imgTag=${imgTag}",
+                               ["docker.imgTag=${nodeImgTag}",
                                 "calico.buildImage=${buildImage}",
                                 "calico.felixImage=${felixImage}",
                                 "calico.confdUrl=${confdUrl}",
