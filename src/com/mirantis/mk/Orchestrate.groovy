@@ -359,9 +359,20 @@ def installContrailCompute(master) {
     salt.enforceState(master, 'I@opencontrail:database:id:1', 'opencontrail.client', true)
     // Provision opencontrail virtual routers
 
+    // Generate script /usr/lib/contrail/if-vhost0 for up vhost0
+    try {
+        salt.enforceState(master, 'I@opencontrail:compute', 'opencontrail', true)
+    } catch (Exception e) {
+        common.warningMsg('Exception in state opencontrail on I@opencontrail:compute')
+    }
+
     salt.runSaltProcessStep(master, 'I@nova:compute', 'cmd.run', ['exec 0>&-; exec 1>&-; exec 2>&-; nohup bash -c "ip link | grep vhost && echo no_reboot || sleep 5 && reboot & "'], null, true)
-    sleep(300)
-    salt.enforceState(master, 'I@opencontrail:compute', 'opencontrail.client', true)
+
+    if (salt.testTarget(master, 'I@opencontrail:compute')) {
+        sleep(300)
+        salt.enforceState(master, 'I@opencontrail:compute', 'opencontrail.client', true)
+        salt.enforceState(master, 'I@opencontrail:compute', 'opencontrail', true)
+    }
 }
 
 
@@ -416,18 +427,6 @@ def installKubernetesCompute(master) {
 
 }
 
-
-def installKubernetesContrailCompute(master) {
-    def salt = new com.mirantis.mk.Salt()
-    // Install opencontrail
-    salt.runSaltProcessStep(master, 'I@opencontrail:compute', 'state.sls', ['opencontrail'])
-    // Reboot compute nodes
-    try {
-        salt.runSaltProcessStep(master, 'I@opencontrail:compute', 'system.reboot')
-    } catch (Exception e) {
-        common.warningMsg('Exception in state system.reboot on I@opencontrail:compute')
-    }
-}
 
 def installDockerSwarm(master) {
     def salt = new com.mirantis.mk.Salt()
