@@ -565,9 +565,7 @@ def checkResult(result, failOnError = true, printResults = true, printOnlyChange
                         outputResources.add(String.format("Resource: %s\n\u001B[36m%s\u001B[0m", nodeKey, common.prettify(node)))
                     }
                     if(printResults && !outputResources.isEmpty()){
-                        wrap([$class: 'AnsiColorBuildWrapper']) {
-                            print outputResources.stream().collect(Collectors.joining("\n"))
-                        }
+                        print outputResources.stream().collect(Collectors.joining("\n"))
                     }
                 }
             }

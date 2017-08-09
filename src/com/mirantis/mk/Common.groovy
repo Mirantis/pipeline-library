@@ -207,9 +207,7 @@ def printMsg(msg, color = false) {
         'reset' : '\u001B[0m'
     ]
     if (color != false) {
-        wrap([$class: 'AnsiColorBuildWrapper']) {
-            print "${colors[color]}${msg}${colors.reset}"
-        }
+        print "${colors[color]}${msg}${colors.reset}"
     } else {
         print "[${level}] ${msg}"
     }
