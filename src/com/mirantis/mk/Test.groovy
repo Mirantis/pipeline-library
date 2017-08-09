@@ -111,10 +111,10 @@ def archiveRallyArtifacts(master, target, reports_dir='/root/rally_reports') {
     def artifacts_dir = '_artifacts/'
     def output_file = 'rally_reports.tar'
 
-    salt.runSaltProcessStep(master, "${target}", 'cmd.run', ["tar -cf /root/${output_file} ${reports_dir}"])
+    salt.runSaltProcessStep(master, "${target}", 'cmd.run', ["tar -cf /root/${output_file} -C ${reports_dir} ."])
     sh "mkdir -p ${artifacts_dir}"
 
-    encoded = salt.cmdRun(master, target, "cat /root/${output_file}", true, null, false)['return'][0].values()[0].replaceAll('Salt command execution success','').trim()
+    encoded = salt.cmdRun(master, target, "cat /root/${output_file}", true, null, false)['return'][0].values()[0].replaceAll('Salt command execution success','')
 
     writeFile file: "${artifacts_dir}${output_file}", text: encoded
 
