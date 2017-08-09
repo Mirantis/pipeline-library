@@ -613,12 +613,12 @@ def buildCalicoContainers(LinkedHashMap config) {
 
     // Start build process
     stage ('Build calico/ctl image'){
-      sh """
-        make calico/ctl \
-          CTL_CONTAINER_NAME=${ctlName} \
-          PYTHON_BUILD_CONTAINER_NAME=${buildImage} \
-          BIRDCL_URL=${birdclUrl}
-      """
+
+      withEnv(["CTL_CONTAINER_NAME=${ctlName}",
+               "PYTHON_BUILD_CONTAINER_NAME=${buildImage}",
+               "BIRDCL_URL=${birdclUrl}"]){
+        sh "make calico/ctl"
+      }
     }
 
   }
@@ -640,16 +640,16 @@ def buildCalicoContainers(LinkedHashMap config) {
 
     // Start build process
     stage('Build calico/node'){
-      sh """
-        make calico/node \
-          NODE_CONTAINER_NAME=${nodeName} \
-          PYTHON_BUILD_CONTAINER_NAME=${buildImage} \
-          FELIX_CONTAINER_NAME=${felixImage} \
-          CONFD_URL=${confdUrl} \
-          BIRD_URL=${birdUrl} \
-          BIRD6_URL=${bird6Url} \
-          BIRDCL_URL=${birdclUrl}
-      """
+
+      withEnv(["NODE_CONTAINER_NAME=${nodeName}",
+               "PYTHON_BUILD_CONTAINER_NAME=${buildImage}",
+               "FELIX_CONTAINER_NAME=${felixImage}",
+               "CONFD_URL=${confdUrl}",
+               "BIRD_URL=${birdUrl}",
+               "BIRD6_URL=${bird6Url}",
+               "BIRDCL_URL=${birdclUrl}"]){
+        sh "make -C calico_node calico/node"
+      }
     }
 
   }
