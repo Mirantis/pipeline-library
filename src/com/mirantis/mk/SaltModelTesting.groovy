@@ -47,20 +47,20 @@ def setupAndTestNode(masterName, extraFormulas, testDir, formulasSource = 'pkg',
       sh("apt-get update && apt-get install -y curl subversion git python-pip sudo python-pip python-dev zlib1g-dev git")
       sh("pip install git+https://github.com/epcim/reclass.git@pr/fix/fix_raise_UndefinedVariableError")
     }
-    sh("mkdir -p /srv/salt/ || true")
+    sh("mkdir -p /srv/salt/scripts/ || true")
     sh("cp -r ${testDir} /srv/salt/reclass")
-    sh("svn export --force https://github.com/salt-formulas/salt-formulas/trunk/deploy/scripts /srv/salt/scripts")
+    sh("curl https://raw.githubusercontent.com/salt-formulas/salt-formulas-scripts/master/bootstrap.sh -o /srv/salt/scripts/bootstrap.sh")
     sh("git config --global user.email || git config --global user.email 'ci@ci.local'")
     sh("git config --global user.name || git config --global user.name 'CI'")
 
     withEnv(["FORMULAS_SOURCE=${formulasSource}", "EXTRA_FORMULAS=${extraFormulas}", "DISTRIB_REVISION=${formulasRevision}", "DEBUG=1", "MASTER_HOSTNAME=${masterName}", "MINION_ID=${masterName}", "HOSTNAME=cfg01", "DOMAIN=mk-ci.local"]){
         sh("bash -c 'echo $MASTER_HOSTNAME'")
-        sh("bash -c 'source /srv/salt/scripts/salt-master-init.sh; cd /srv/salt/scripts && system_config'")
-        sh("bash -c 'source /srv/salt/scripts/salt-master-init.sh; cd /srv/salt/scripts && saltmaster_bootstrap'")
-        sh("bash -c 'source /srv/salt/scripts/salt-master-init.sh; cd /srv/salt/scripts && saltmaster_init'")
+        sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && system_config_master'")
+        sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && saltmaster_bootstrap'")
+        sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && saltmaster_init'")
 
         if (!is_mk_ci) {
-           sh("bash -c 'source /srv/salt/scripts/salt-master-init.sh; cd /srv/salt/scripts && verify_salt_minions'")
+           sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && verify_salt_minions'")
         }
     }
 
@@ -84,5 +84,5 @@ def setupAndTestNode(masterName, extraFormulas, testDir, formulasSource = 'pkg',
 
 def testMinion(minionName)
 {
-  sh("service salt-master restart && service salt-minion restart && sleep 5 && bash -c 'source /srv/salt/scripts/salt-master-init.sh; cd /srv/salt/scripts && verify_salt_minion ${minionName}'")
+  sh("service salt-master restart && service salt-minion restart && sleep 5 && bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && verify_salt_minion ${minionName}'")
 }
