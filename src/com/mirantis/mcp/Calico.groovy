@@ -614,7 +614,6 @@ def buildCalicoContainers(LinkedHashMap config) {
     // Start build process
     stage ('Build calico/ctl image'){
       sh """
-        cd calicoctl_home
         make calico/ctl \
           CTL_CONTAINER_NAME=${ctlName} \
           PYTHON_BUILD_CONTAINER_NAME=${buildImage} \
@@ -642,7 +641,6 @@ def buildCalicoContainers(LinkedHashMap config) {
     // Start build process
     stage('Build calico/node'){
       sh """
-        cd calico_home
         make calico/node \
           NODE_CONTAINER_NAME=${nodeName} \
           PYTHON_BUILD_CONTAINER_NAME=${buildImage} \
