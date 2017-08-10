@@ -39,11 +39,13 @@ def setupOpenstackVirtualenv(path, version = 'latest') {
         'oslo.i18n>=2.3.0,<2.4.0',
         'oslo.serialization>=1.8.0,<1.9.0',
         'oslo.utils>=1.4.0,<1.5.0',
+        'docutils'
     ]
 
     def openstack_latest_packages = [
         'python-openstackclient',
         'python-heatclient',
+        'docutils'
     ]
 
     if (version == 'kilo') {
