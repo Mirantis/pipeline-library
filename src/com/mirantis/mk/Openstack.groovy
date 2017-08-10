@@ -22,7 +22,7 @@ package com.mirantis.mk
  * @param version     Version of the OpenStack clients
  */
 
-def setupOpenstackVirtualenv(path, version = 'kilo') {
+def setupOpenstackVirtualenv(path, version = 'latest') {
     def python = new com.mirantis.mk.Python()
     python.setupDocutilsVirtualenv(path)
 
@@ -55,7 +55,7 @@ def setupOpenstackVirtualenv(path, version = 'kilo') {
     } else {
         requirements = openstack_latest_packages
     }
-    python.setupVirtualenv(path, 'python2', requirements)
+    python.setupVirtualenv(path, 'python2', requirements, null, true)
 }
 
 /**
