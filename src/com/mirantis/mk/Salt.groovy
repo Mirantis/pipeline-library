@@ -614,7 +614,7 @@ def printSaltCommandResult(result) {
 
 def getFileContent(master, target, file) {
     result = cmdRun(master, target, "cat ${file}")
-    return result['return'][0].values()[0]
+    return result['return'][0].values()[0].replaceAll('Salt command execution success','')
 }
 
 /**
