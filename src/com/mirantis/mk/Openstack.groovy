@@ -170,7 +170,7 @@ def createHeatStack(client, name, template, params = [], environment = null, pat
         } else {
             if(environment.contains("/")){
               //init() returns all elements but the last in a collection.
-              def envPath = env.tokenize("/").init().join("/")
+              def envPath = environment.tokenize("/").init().join("/")
               if(envPath){
                 name = envPath + "/" + name
               }
