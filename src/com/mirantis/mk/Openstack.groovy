@@ -162,20 +162,22 @@ def createHeatEnv(file, environment = [], original_file = null) {
  */
 def createHeatStack(client, name, template, params = [], environment = null, path = null, legacy_env = true) {
     def python = new com.mirantis.mk.Python()
-    templateFile = "${env.WORKSPACE}/template/template/${template}.hot"
+    def templateFile = "${env.WORKSPACE}/template/template/${template}.hot"
+    def envFile
+    def envSource
     if (environment) {
         if (legacy_env) {
             envFile = "${env.WORKSPACE}/template/env/${template}/${name}.env"
             envSource = "${env.WORKSPACE}/template/env/${template}/${environment}.env"
         } else {
+            envFile = "${env.WORKSPACE}/template/env/${name}.env"
             if(environment.contains("/")){
               //init() returns all elements but the last in a collection.
               def envPath = environment.tokenize("/").init().join("/")
               if(envPath){
-                name = envPath + "/" + name
+                envFile = "${env.WORKSPACE}/template/env/${envPath}/${name}.env"
               }
             }
-            envFile = "${env.WORKSPACE}/template/env/${name}.env"
             envSource = "${env.WORKSPACE}/template/env/${environment}.env"
         }
         createHeatEnv(envFile, params, envSource)
