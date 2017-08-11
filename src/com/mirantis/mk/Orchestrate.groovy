@@ -444,7 +444,6 @@ def installDockerSwarm(master) {
     salt.cmdRun(master, 'I@docker:swarm:role:master', 'docker node ls', true)
 }
 
-
 def installStacklight(master) {
     def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
@@ -626,4 +625,23 @@ def installStacklightv1Client(master) {
     } else {
         throw new Exception("Missing stacklight_vip")
     }
+}
+
+
+//
+// Ceph
+//
+
+def installCephMon(master, target='I@ceph:mon') {
+    def salt = new com.mirantis.mk.Salt()
+
+    // install Ceph MOns
+    salt.enforceState(master, target, 'ceph.mon', true)
+}
+
+def installCephOsd(master, target='I@ceph:osd') {
+    def salt = new com.mirantis.mk.Salt()
+
+    // install Ceph OSDs
+    salt.enforceState(master, target, 'ceph.osd', true)
 }
