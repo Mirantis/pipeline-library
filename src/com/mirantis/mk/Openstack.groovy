@@ -167,14 +167,19 @@ def createHeatStack(client, name, template, params = [], environment = null, pat
         if (legacy_env) {
             envFile = "${env.WORKSPACE}/template/env/${template}/${name}.env"
             envSource = "${env.WORKSPACE}/template/env/${template}/${environment}.env"
-        }
-        else {
+        } else {
+            if(environment.contains("/")){
+              //init() returns all elements but the last in a collection.
+              def envPath = env.tokenize("/").init().join("/")
+              if(envPath){
+                name = envPath + "/" + name
+              }
+            }
             envFile = "${env.WORKSPACE}/template/env/${name}.env"
             envSource = "${env.WORKSPACE}/template/env/${environment}.env"
         }
         createHeatEnv(envFile, params, envSource)
-    }
-    else {
+    } else {
         envFile = "${env.WORKSPACE}/template/${name}.env"
         createHeatEnv(envFile, params)
     }
@@ -184,11 +189,10 @@ def createHeatStack(client, name, template, params = [], environment = null, pat
     }
     output = python.parseTextTable(outputTable, 'item', 'prettytable', path)
 
-    i = 1
-
-    while (true) {
+    def heatStatusCheckerCount = 1
+    while (heatStatusCheckerCount <= 500) {
         status = getHeatStackStatus(client, name, path)
-        echo("[Heat Stack] Status: ${status}, Check: ${i}")
+        echo("[Heat Stack] Status: ${status}, Check: ${heatStatusCheckerCount}")
 
         if (status.indexOf('CREATE_FAILED') != -1) {
             info = getHeatStackInfo(client, name, path)
@@ -200,7 +204,7 @@ def createHeatStack(client, name, template, params = [], environment = null, pat
             break
         }
         sh('sleep 5s')
-        i++
+        heatStatusCheckerCount++
     }
     echo("[Heat Stack] Status: ${status}")
 }
