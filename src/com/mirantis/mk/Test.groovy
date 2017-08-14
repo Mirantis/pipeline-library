@@ -45,15 +45,17 @@ def copyTestsOutput(master, image) {
  *
  * @param dockerImageLink   Docker image link with rally and tempest
  * @param target            Host to run tests
- * @param pattern            If not false, will run only tests matched the pattern
+ * @param pattern           If not false, will run only tests matched the pattern
+ * @param logDir            Directory to store tempest/rally reports
  */
-def runTempestTests(master, dockerImageLink, target, pattern = "false") {
+def runTempestTests(master, dockerImageLink, target, pattern = "false", logDir = '/home/rally/rally_reports/') {
     def salt = new com.mirantis.mk.Salt()
     if (pattern == "false") {
         salt.cmdRun(master, "${target}", "docker run --rm --net=host " +
                                          "-e TEMPEST_CONF=mcp.conf " +
                                          "-e SKIP_LIST=mcp_skip.list " +
                                          "-e SOURCE_FILE=keystonercv3 " +
+                                         "-e LOG_DIR=${logDir}" +
                                          "-v /root/:/home/rally ${dockerImageLink} >> docker-tempest.log")
     }
     else {
@@ -61,6 +63,7 @@ def runTempestTests(master, dockerImageLink, target, pattern = "false") {
                                          "-e TEMPEST_CONF=mcp.conf " +
                                          "-e SKIP_LIST=mcp_skip.list " +
                                          "-e SOURCE_FILE=keystonercv3 " +
+                                         "-e LOG_DIR=${logDir} " +
                                          "-e CUSTOM='--pattern ${pattern}' " +
                                          "-v /root/:/home/rally ${dockerImageLink} >> docker-tempest.log")
     }
