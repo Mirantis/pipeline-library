@@ -19,7 +19,7 @@ def ensureKnownHosts(url) {
 @NonCPS
 def getKnownHost(url){
      // test for git@github.com:organization/repository like URLs
-    def p = ~/.+@(.+\..+)\:{1}.*/
+    def p = ~/[a-z0-9\._\-]+@(.+\..+)\:{1}.*/
     def result = p.matcher(url)
     def host = ""
     if (result.matches()) {
