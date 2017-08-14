@@ -632,11 +632,11 @@ def installStacklightv1Client(master) {
 // Ceph
 //
 
-def installCephMon(master, target='I@ceph:monitor') {
+def installCephMon(master, target='I@ceph:mon') {
     def salt = new com.mirantis.mk.Salt()
 
     // install Ceph Mons
-    salt.enforceState(master, target, 'ceph.monitor', true)
+    salt.enforceState(master, target, 'ceph.mon', true)
 }
 
 def installCephOsd(master, target='I@ceph:osd') {
