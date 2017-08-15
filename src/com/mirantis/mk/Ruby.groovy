@@ -8,8 +8,10 @@ package com.mirantis.mk
  * Ensures Ruby environment with given version (install it if necessary)
  * @param rubyVersion target ruby version (optional, default 2.2.3)
  */
-def ensureRubyEnv(rubyVersion="2.2.3"){
+def ensureRubyEnv(rubyVersion="2.4.1"){
     if(!fileExists("/var/lib/jenkins/.rbenv/versions/${rubyVersion}/bin/ruby")){
+        //XXX: patch ruby-build because debian package is quite old
+        sh "git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build"
         sh "rbenv install ${rubyVersion}";
     }
     sh "rbenv local ${rubyVersion};rbenv exec gem update --system"
