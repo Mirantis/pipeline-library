@@ -645,3 +645,10 @@ def installCephOsd(master, target='I@ceph:osd') {
     // install Ceph OSDs
     salt.enforceState(master, target, 'ceph.osd', true)
 }
+
+def installCephRadosgw(master, target='I@ceph:radosgw') {
+    def salt = new com.mirantis.mk.Salt()
+
+    // install Ceph Radosgw
+    salt.enforceState(master, target, 'ceph.radosgw', true)
+}
