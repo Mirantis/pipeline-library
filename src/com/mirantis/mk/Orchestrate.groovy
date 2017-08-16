@@ -642,6 +642,9 @@ def installCephMon(master, target='I@ceph:mon') {
 def installCephOsd(master, target='I@ceph:osd') {
     def salt = new com.mirantis.mk.Salt()
 
+    // Prapare filesystem on OSD drives
+    salt.enforceState(master, target, 'linux.storage', true)
+
     // install Ceph OSDs
     salt.enforceState(master, target, 'ceph.osd', true)
 }
