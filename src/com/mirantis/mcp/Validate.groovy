@@ -77,7 +77,9 @@ def runRallyTests(master, target, output_dir, pattern = "false") {
  */
 def runCleanup(master, target, output_dir) {
     def salt = new com.mirantis.mk.Salt()
-    salt.cmdRun(master, target, "docker rm -f qa_tools")
+    if ( salt.cmdRun(master, target, "docker ps -f name=qa_tools -q", false, null, false)['return'][0].values()[0] ) {
+        salt.cmdRun(master, target, "docker rm -f qa_tools")
+    }
     sh "rm -r ${output_dir}"
 }
 
