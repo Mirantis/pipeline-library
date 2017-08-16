@@ -126,7 +126,7 @@ def uploadResultsTestrail(report, image, testGroup, credentialsId, plan, milesto
                            "-e TESTRAIL_PLAN_NAME=${plan} " +
                            "-e TESTRAIL_MILESTONE=${milestone} " +
                            "-e TESTRAIL_SUITE=${suite} " +
-                           "-e SHORT_TEST_GROUP=${testGroup} " +
+                           "-e TEST_GROUP=${testGroup} " +
                            "${image}"
     if (master == null) {
       sh("${command}")
