@@ -17,8 +17,10 @@ def runContainerConfiguration(master, dockerImageLink, target, output_dir){
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
     def output_file = 'docker.log'
-    def _pillar = salt.getPillar(master, "ctl01*", 'keystone:server')
-    def keystone = _pillar['return'][0].values()[0]
+    def controller = salt.minionPresent(master, 'I@salt:master', 'ctl01', true, null, true, 200, 1)['return'][0].values()[0]
+    def _pillar = salt.cmdRun(master, 'I@salt:master', "reclass-salt -o json -p ${controller} | " +
+            "python -c 'import json,sys; print(json.dumps(json.loads(sys.stdin.read())[\"keystone\"][\"server\"]))'")
+    def keystone = common.parseJSON(_pillar['return'][0].values()[0])
     salt.cmdRun(master, target, "docker run -tid --net=host --name=qa_tools " +
             "-e tempest_version=15.0.0 -e OS_USERNAME=${keystone.admin_name} " +
             "-e OS_PASSWORD=${keystone.admin_password} -e OS_TENANT_NAME=${keystone.admin_tenant} " +
