@@ -45,7 +45,7 @@ def setupAndTestNode(masterName, extraFormulas, testDir, formulasSource = 'pkg',
 
     if (!imageFound) {
       sh("apt-get update && apt-get install -y curl subversion git python-pip sudo python-pip python-dev zlib1g-dev git")
-      sh("pip install git+https://github.com/epcim/reclass.git@pr/fix/fix_raise_UndefinedVariableError")
+      sh("pip install git+https://github.com/salt-formulas/reclass.git")
     }
     sh("mkdir -p /srv/salt/scripts/ || true")
     sh("cp -r ${testDir} /srv/salt/reclass")
