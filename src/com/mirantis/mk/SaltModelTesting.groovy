@@ -4,6 +4,7 @@ package com.mirantis.mk
  * setup and test salt-master
  *
  * @param masterName          salt master's name
+ * @param clusterName         model cluster name
  * @param extraFormulas       extraFormulas to install
  * @param formulasSource      formulas source (git or pkg)
  * @param testDir             directory of model
@@ -11,7 +12,7 @@ package com.mirantis.mk
  * @param formulasRevision    APT revision for formulas (optional default stable)
  */
 
-def setupAndTestNode(masterName, extraFormulas, testDir, formulasSource = 'pkg', formulasRevision = 'stable', dockerMaxCpus = 0) {
+def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSource = 'pkg', formulasRevision = 'stable', dockerMaxCpus = 0) {
   def saltOpts = "--retcode-passthrough --force-color"
   def common = new com.mirantis.mk.Common()
   def workspace = common.getWorkspace()
@@ -53,7 +54,7 @@ def setupAndTestNode(masterName, extraFormulas, testDir, formulasSource = 'pkg',
     sh("git config --global user.name || git config --global user.name 'CI'")
     sh("git clone https://github.com/salt-formulas/salt-formulas-scripts /srv/salt/scripts")
 
-    withEnv(["FORMULAS_SOURCE=${formulasSource}", "EXTRA_FORMULAS=${extraFormulas}", "DISTRIB_REVISION=${formulasRevision}", "DEBUG=1", "MASTER_HOSTNAME=${masterName}", "MINION_ID=${masterName}", "HOSTNAME=cfg01", "DOMAIN=mk-ci.local"]){
+    withEnv(["FORMULAS_SOURCE=${formulasSource}", "EXTRA_FORMULAS=${extraFormulas}", "DISTRIB_REVISION=${formulasRevision}", "DEBUG=1", "MASTER_HOSTNAME=${masterName}", "CLUSTER_NAME=${clusterName}", "MINION_ID=${masterName}", "HOSTNAME=cfg01", "DOMAIN=mk-ci.local"]){
         sh("bash -c 'echo $MASTER_HOSTNAME'")
         sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && system_config_master'")
         sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && saltmaster_bootstrap'")
