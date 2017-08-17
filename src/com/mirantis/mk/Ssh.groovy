@@ -80,7 +80,7 @@ def prepareSshAgentKey(credentialsId) {
     c = common.getSshCredentials(credentialsId)
     // create ~/.ssh and delete file ssh-agent.sh which can be stale
     sh('mkdir -p -m 700 ~/.ssh && rm -f ~/.ssh/ssh-agent.sh')
-    sh('pgrep -l -u $USER -f ssh-agent\$ >/dev/null || ssh-agent|grep -v "Agent pid" > ~/.ssh/ssh-agent.sh')
+    sh('pgrep -l -u `id -u` -f ssh-agent\$ >/dev/null || ssh-agent|grep -v "Agent pid" > ~/.ssh/ssh-agent.sh')
     sh("set +x; echo '${c.getPrivateKey()}' > ~/.ssh/id_rsa_${credentialsId} && chmod 600 ~/.ssh/id_rsa_${credentialsId}; set -x")
     runSshAgentCommand("ssh-add ~/.ssh/id_rsa_${credentialsId}")
 }
