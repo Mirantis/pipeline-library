@@ -45,8 +45,8 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
     }
 
     if (!imageFound) {
-      sh("apt-get update && apt-get install -y curl subversion git python-pip sudo python-pip python-dev zlib1g-dev git")
-      sh("pip install git+https://github.com/salt-formulas/reclass.git")
+      sh("apt-get update && apt-get install -y curl git python-pip sudo python-pip python-dev zlib1g-dev git")
+      sh("pip install git+https://github.com/salt-formulas/reclass.git --upgrade")
     }
     sh("mkdir -p /srv/salt/scripts/ || true")
     sh("cp -r ${testDir} /srv/salt/reclass")
