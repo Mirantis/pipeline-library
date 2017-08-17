@@ -51,7 +51,7 @@ def setupAndTestNode(masterName, extraFormulas, testDir, formulasSource = 'pkg',
     sh("cp -r ${testDir} /srv/salt/reclass")
     sh("git config --global user.email || git config --global user.email 'ci@ci.local'")
     sh("git config --global user.name || git config --global user.name 'CI'")
-    sh("git clone https://raw.githubusercontent.com/salt-formulas/salt-formulas-scripts -o /srv/salt/scripts")
+    sh("git clone https://github.com/salt-formulas/salt-formulas-scripts /srv/salt/scripts")
 
     withEnv(["FORMULAS_SOURCE=${formulasSource}", "EXTRA_FORMULAS=${extraFormulas}", "DISTRIB_REVISION=${formulasRevision}", "DEBUG=1", "MASTER_HOSTNAME=${masterName}", "MINION_ID=${masterName}", "HOSTNAME=cfg01", "DOMAIN=mk-ci.local"]){
         sh("bash -c 'echo $MASTER_HOSTNAME'")
