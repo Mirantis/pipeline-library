@@ -55,7 +55,7 @@ def runTempestTests(master, dockerImageLink, target, pattern = "false", logDir =
                                          "-e TEMPEST_CONF=mcp.conf " +
                                          "-e SKIP_LIST=mcp_skip.list " +
                                          "-e SOURCE_FILE=keystonercv3 " +
-                                         "-e LOG_DIR=${logDir}" +
+                                         "-e LOG_DIR=${logDir} " +
                                          "-v /root/:/home/rally ${dockerImageLink} >> docker-tempest.log")
     }
     else {
