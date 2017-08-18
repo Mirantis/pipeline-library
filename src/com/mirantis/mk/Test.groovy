@@ -158,3 +158,22 @@ def archiveRallyArtifacts(master, target, reports_dir='/root/rally_reports') {
     // collect artifacts
     archiveArtifacts artifacts: "${artifacts_dir}${output_file}"
 }
+/**
+ * Helper function for collecting junit tests results
+ * @param testResultAction - test result from build - use: currentBuild.rawBuild.getAction(AbstractTestResultAction.class)
+ * @return resultMap with structure ["total": total, "passed": passed, "skipped": skipped, "failed": failed]
+ */
+@NonCPS
+def collectJUnitResults(testResultAction) {
+    if (testResultAction != null) {
+       def total = testResultAction.totalCount
+       def failed = testResultAction.failCount
+       def skipped = testResultAction.skipCount
+       def passed = total - failed - skipped
+       return ["total": total, "passed": passed, "skipped": skipped, "failed": failed]
+    }else{
+        def common = new com.mirantis.mk.Common()
+        common.errorMsg("Cannot collect jUnit tests results, given result is null")
+    }
+    return [:]
+}
