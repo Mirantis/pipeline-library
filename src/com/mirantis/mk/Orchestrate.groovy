@@ -27,8 +27,8 @@ def installFoundationInfra(master) {
     salt.enforceState(master, 'I@salt:master', ['salt.minion'], true)
 
     salt.enforceState(master, '*', ['linux.system'], true)
-    salt.enforceState(master, '*', ['salt.minion'], true, false, null, false, 60, 2)
     salt.enforceState(master, 'I@linux:system', ['linux', 'openssh', 'ntp'], true)
+    salt.enforceState(master, '*', ['salt.minion'], true, false, null, false, 60, 2)
 }
 
 def installInfraKvm(master) {
