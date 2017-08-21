@@ -168,7 +168,12 @@ def mirrorGit(sourceUrl, targetUrl, credentialsId, branches, followTags = false,
     sh "git config user.email '${gitEmail}'"
     sh "git config user.name '${gitName}'"
 
-    sh "git remote -v | grep ${TARGET_URL} | grep target || { git remote remove target >/dev/null 2>&1; git remote add target ${TARGET_URL}; }"
+    def remoteExistence = sh(script: "git remote -v | grep ${TARGET_URL} | grep target", returnStatus: true)
+    if(remoteExistence != 0){
+       // silently try to remove target
+       sh(script:"git remote remove target", returnStatus: true)
+       sh("git remote add target ${TARGET_URL}")
+    }
     ssh.agentSh "git remote update --prune"
 
     for (i=0; i < branches.size; i++) {
