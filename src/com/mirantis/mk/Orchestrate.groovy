@@ -491,7 +491,12 @@ def installStacklight(master) {
     sleep(5)
 
     //Configure services in Docker Swarm
-    salt.enforceState(master, 'I@docker:swarm', ['prometheus', 'heka.remote_collector'], true, false)
+    if (common.checkContains('STACK_INSTALL', 'k8s')) {
+            salt.enforceState(master, 'I@docker:swarm and I@prometheus:server', 'prometheus', true, false)
+    }
+    else {
+        salt.enforceState(master, 'I@docker:swarm and I@prometheus:server', ['prometheus', 'heka.remote_collector'], true, false)
+    }
     salt.enforceState(master, 'I@docker:swarm:role:master', 'docker', true)
     salt.runSaltProcessStep(master, 'I@docker:swarm', 'dockerng.ps', [], null, true)
 
