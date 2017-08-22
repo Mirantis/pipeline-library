@@ -41,31 +41,15 @@ def installKitchen(kitchenInit=""){
 /**
  * Run kitchen tests in tests/integration
  * @param environment kitchen environment (optional can be empty)
- * @param parallelTesting run kitchen test suites in parallel (optional, default true)
+ * @param suite name of test suite for kitchen
  */
-def runKitchenTests(environment="", parallelTesting = true){
+def runKitchenTests(environment="", suite= ""){
     def common = new com.mirantis.mk.Common()
-    def kitchenTests=runKitchenCommand("list -b 2>/dev/null \"\$SUITE_PATTERN\"", environment)
-    if(kitchenTests && kitchenTests != ""){
-        def kitchenTestsList = kitchenTests.trim().tokenize("\n")
-        def kitchenTestRuns = [:]
-        common.infoMsg(String.format("Found %s kitchen test suites", kitchenTestsList.size()))
-        for(int i=0;i<kitchenTestsList.size();i++){
-            def testSuite = kitchenTestsList[i]
-            kitchenTestRuns["kitchen-${testSuite}-${i}".replaceAll("trevorj-salty-whales:", "")] = {
-                common.infoMsg("Running kitchen test ${testSuite}")
-                println(runKitchenCommand("converge ${testSuite}", environment))
-                println runKitchenCommand("verify ${testSuite} -t tests/integration", environment)
-                println runKitchenCommand("destroy", environment)
-            }
-        }
-        if(parallelTesting){
-            parallel kitchenTestRuns
-        }else{
-            common.serial(kitchenTestRuns)
-        }
-    }else{
-        common.errorMsg("Cannot found kitchen test suites, kitchen list command returns bad output")
+    kitchenTestRuns["kitchen-${suite}".replaceAll("trevorj-salty-whales:", "")] = {
+        common.infoMsg("Running kitchen test ${suite}")
+        println(runKitchenCommand("converge ${suite}", environment))
+        println runKitchenCommand("verify ${suite} -t tests/integration", environment)
+        println runKitchenCommand("destroy", environment)
     }
 }
 
@@ -81,21 +65,4 @@ def runKitchenCommand(cmd, environment = null){
     }else{
         return sh(script: "rbenv exec bundler exec kitchen ${cmd}", returnStdout: true)
     }
-}
-
-/**
- * Filters given kitchen env lists for forbidden env properties
- * @param input list of kitchenEnvs
- * @param cleanRegex regex will be used for env cleaning (default removing SUITE=* properties)
- * @return filtered env list
- */
-def filterKitchenEnvs(inputEnvs = [], cleanRegex = "\\s?SUITE\\=[^\\s]*") {
-    def output = []
-    for(int i=0; i<inputEnvs.size(); i++) {
-        def cleanEnv = inputEnvs[i].replaceAll(cleanRegex, "")
-        if(cleanEnv != "") {
-            output.add(cleanEnv.trim())
-        }
-     }
-    return output
 }
