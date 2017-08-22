@@ -627,7 +627,7 @@ def getFileContent(master, target, file) {
 
 def setSaltOverrides(master, salt_overrides, reclass_dir="/srv/salt/reclass") {
     def common = new com.mirantis.mk.Common()
-    def salt_overrides_map = readYaml(salt_overrides)
+    def salt_overrides_map = readYaml text: salt_overrides
     for (entry in common.entries(salt_overrides_map)) {
          def key = entry[0]
          def value = entry[1]
