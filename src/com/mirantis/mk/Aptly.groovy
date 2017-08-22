@@ -88,11 +88,12 @@ def promotePublish(server, source, target, recreate=false, components=null, pack
         opts = "${opts} --dry --diff"
     }
 
-    sh("aptly-publisher --url ${server} promote --source ${source} --target ${target} --force-overwrite ${opts}")
-
     def now = new Date();
     def timestamp = now.format("yyyyMMddHHmmss", TimeZone.getTimeZone('UTC'));
     dumpPublishes(server, ".", timestamp, target)
+
+    sh("aptly-publisher --url ${server} promote --source ${source} --target ${target} --force-overwrite ${opts}")
+
 }
 
 def publish(server, config='/etc/aptly-publisher.yaml', recreate=false, opts='-d --timeout 600') {
