@@ -157,55 +157,58 @@ def createHeatEnv(file, environment = [], original_file = null) {
  * @param environment  Environmentale parameters of the new Heat stack
  * @param name         Name of the new Heat stack
  * @param path         Optional path to the custom virtualenv
- * @param legacy_env   Use old path format [env_name/template_name] to
- *                     target env file, default false
  */
-def createHeatStack(client, name, template, params = [], environment = null, path = null, legacy_env = false) {
+def createHeatStack(client, name, template, params = [], environment = null, path = null, action="create") {
     def python = new com.mirantis.mk.Python()
     def templateFile = "${env.WORKSPACE}/template/template/${template}.hot"
     def envFile
     def envSource
     if (environment) {
-        if (legacy_env) {
-            envFile = "${env.WORKSPACE}/template/env/${template}/${name}.env"
-            envSource = "${env.WORKSPACE}/template/env/${template}/${environment}.env"
-        } else {
-            envFile = "${env.WORKSPACE}/template/env/${name}.env"
-            if(environment.contains("/")){
-              //init() returns all elements but the last in a collection.
-              def envPath = environment.tokenize("/").init().join("/")
-              if(envPath){
-                envFile = "${env.WORKSPACE}/template/env/${envPath}/${name}.env"
-              }
-            }
-            envSource = "${env.WORKSPACE}/template/env/${environment}.env"
+        envFile = "${env.WORKSPACE}/template/env/${name}.env"
+        if (environment.contains("/")) {
+          //init() returns all elements but the last in a collection.
+          def envPath = environment.tokenize("/").init().join("/")
+          if (envPath) {
+            envFile = "${env.WORKSPACE}/template/env/${envPath}/${name}.env"
+          }
         }
+        envSource = "${env.WORKSPACE}/template/env/${environment}.env"
         createHeatEnv(envFile, params, envSource)
     } else {
         envFile = "${env.WORKSPACE}/template/${name}.env"
         createHeatEnv(envFile, params)
     }
-    cmd = "heat stack-create -f ${templateFile} -e ${envFile} ${name}"
+
+    if (action == "create") {
+        def cmd = "heat stack-create -f ${templateFile} -e ${envFile} ${name}"
+        def waitState = "CREATE_COMPLETE"
+    } else {
+        def cmd = "heat stack-update -f ${templateFile} -e ${envFile} ${name}"
+        def waitState = "UPDATE_COMPLETE"
+    }
+
     dir("${env.WORKSPACE}/template/template") {
         outputTable = runOpenstackCommand(cmd, client, path)
     }
+
     output = python.parseTextTable(outputTable, 'item', 'prettytable', path)
 
     def heatStatusCheckerCount = 1
-    while (heatStatusCheckerCount <= 500) {
+    while (heatStatusCheckerCount <= 125) {
         status = getHeatStackStatus(client, name, path)
         echo("[Heat Stack] Status: ${status}, Check: ${heatStatusCheckerCount}")
 
-        if (status.indexOf('CREATE_FAILED') != -1) {
+        if (status.contains('CREATE_FAILED')) {
             info = getHeatStackInfo(client, name, path)
             throw new Exception(info.stack_status_reason)
-        }
-        else if (status.indexOf('CREATE_COMPLETE') != -1) {
+
+        } else if (status.contains(waitState)) {
             info = getHeatStackInfo(client, name, path)
             echo(info.stack_status_reason)
             break
         }
-        sh('sleep 5s')
+
+        sleep(20)
         heatStatusCheckerCount++
     }
     echo("[Heat Stack] Status: ${status}")
