@@ -158,9 +158,9 @@ def createHeatEnv(file, environment = [], original_file = null) {
  * @param name         Name of the new Heat stack
  * @param path         Optional path to the custom virtualenv
  * @param legacy_env   Use old path format [env_name/template_name] to
- *                     target env file.
+ *                     target env file, default false
  */
-def createHeatStack(client, name, template, params = [], environment = null, path = null, legacy_env = true) {
+def createHeatStack(client, name, template, params = [], environment = null, path = null, legacy_env = false) {
     def python = new com.mirantis.mk.Python()
     def templateFile = "${env.WORKSPACE}/template/template/${template}.hot"
     def envFile
