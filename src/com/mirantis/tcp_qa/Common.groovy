@@ -172,9 +172,11 @@ def uploadResultsTestRail(config) {
     report ${reporterOptions.join(' ')} ${junitXml}
   """
 
+  def testrail_cred_id = params.TESTRAIL_CRED ?: 'testrail'
+
   withCredentials([
              [$class          : 'UsernamePasswordMultiBinding',
-             credentialsId   : 'testrail',
+             credentialsId   : testrail_cred_id,
              passwordVariable: 'TESTRAIL_PASSWORD',
              usernameVariable: 'TESTRAIL_USER']
   ]) {
