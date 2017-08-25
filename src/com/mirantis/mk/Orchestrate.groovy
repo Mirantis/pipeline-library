@@ -448,10 +448,20 @@ def installStacklight(master) {
     def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
 
-        // Install haproxy
+    // Install core services for K8S environments:
+    // HAProxy, Nginx and lusterFS clients
+    // In case of OpenStack, those are already installed
     if (common.checkContains('STACK_INSTALL', 'k8s')) {
         salt.enforceState(master, 'I@haproxy:proxy', 'haproxy')
         salt.runSaltProcessStep(master, 'I@haproxy:proxy', 'service.status', ['haproxy'])
+
+        if (salt.testTarget(master, 'I@nginx:server')) {
+            salt.enforceState(master, 'I@nginx:server', 'nginx', true)
+        }
+
+        if (salt.testTarget(master, 'I@glusterfs:client')) {
+            salt.enforceState(master, 'I@glusterfs:client', 'glusterfs.client', true)
+        }
     }
     //Install Telegraf
     salt.enforceState(master, 'I@telegraf:agent or I@telegraf:remote_agent', 'telegraf', true)
