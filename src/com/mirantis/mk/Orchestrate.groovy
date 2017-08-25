@@ -354,6 +354,7 @@ def installContrailNetwork(master) {
 
 def installContrailCompute(master) {
     def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
     // Configure compute nodes
     // Provision opencontrail control services
     salt.enforceState(master, 'I@opencontrail:database:id:1', 'opencontrail.client', true)
