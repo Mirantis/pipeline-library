@@ -144,6 +144,9 @@ def getNodeList(master, filter = null) {
 def runTempestTests(master, target, output_dir, pattern = "false") {
     def salt = new com.mirantis.mk.Salt()
     def output_file = 'docker-tempest.log'
+    def path = '/opt/devops-qa-tools/generate_test_report/test_results'
+    def jsonfile = 'tempest_results.json'
+    def htmlfile = 'tempest_results.html'
     if (pattern == "false") {
         salt.cmdRun(master, target, "docker exec qa_tools rally verify start --pattern set=full " +
                 "--detailed > ${output_file}")
@@ -152,7 +155,18 @@ def runTempestTests(master, target, output_dir, pattern = "false") {
         salt.cmdRun(master, target, "docker exec qa_tools rally verify start --pattern ${pattern} " +
                 "--detailed > ${output_file}")
     }
-    def file_content = getFileContent(master, target, output_file)
+    salt.cmdRun(master, target, "docker exec qa_tools rally verify report --type json " +
+                "--to ${path}/report-tempest.json")
+    salt.cmdRun(master, target, "docker exec qa_tools rally verify report --type html " +
+                "--to ${path}/report-tempest.html")
+
+    salt.cmdRun(master, target, "docker cp qa_tools:${path}/report-tempest.json ${jsonfile}")
+    salt.cmdRun(master, target, "docker cp qa_tools:${path}/report-tempest.html ${htmlfile}")
+    def file_content = getFileContent(master, target, jsonfile)
+    writeFile file: "${output_dir}/report-tempest.json", text: file_content
+    file_content = getFileContent(master, target, htmlfile)
+    writeFile file: "${output_dir}/report-tempest.html", text: file_content
+    file_content = getFileContent(master, target, output_file)
     writeFile file: "${output_dir}${output_file}", text: file_content
 }
 
@@ -166,10 +180,76 @@ def runTempestTests(master, target, output_dir, pattern = "false") {
 def runRallyTests(master, target, output_dir, pattern = "false") {
     def salt = new com.mirantis.mk.Salt()
     def output_file = 'docker-rally.log'
+    def path = '/opt/devops-qa-tools/generate_test_report/test_results'
+    def xmlfile = 'rally_results.xml'
+    def htmlfile = 'rally_results.html'
     salt.cmdRun(master, target, "docker exec qa_tools rally task start combined_scenario.yaml --task-args-file " +
             "/opt/devops-qa-tools/rally-scenarios/task_arguments.yaml | tee ${output_file}")
-    def file_content = getFileContent(master, target, output_file)
+
+    salt.cmdRun(master, target, "docker exec qa_tools rally task export --type junit-xml " +
+                "--to ${path}/report-rally.xml")
+    salt.cmdRun(master, target, "docker exec qa_tools rally task report --out ${path}/report-rally.html")
+    salt.cmdRun(master, target, "docker cp qa_tools:${path}/report-rally.xml ${xmlfile}")
+    salt.cmdRun(master, target, "docker cp qa_tools:${path}/report-rally.html ${htmlfile}")
+
+    def file_content = getFileContent(master, target, xmlfile)
+    writeFile file: "${output_dir}/report-rally.xml", text: file_content
+    file_content = getFileContent(master, target, htmlfile)
+    writeFile file: "${output_dir}/report-rally.html", text: file_content
+    file_content = getFileContent(master, target, output_file)
     writeFile file: "${output_dir}${output_file}", text: file_content
+}
+
+/**
+ * Generate test report
+ *
+ * @param target            Host to run script from
+ * @param output_dir        Directory for results
+ */
+def generateTestReport(master, target, output_dir) {
+    def report_file = 'jenkins_test_report.html'
+    def path = '/opt/devops-qa-tools/generate_test_report/'
+    def res_path = '/opt/devops-qa-tools/generate_test_report/test_results/'
+    def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+
+    // Create 'test_results' directory in case it doesn't exist in container
+    def test_results = salt.cmdRun(master, target, "docker exec qa_tools bash -c \"if [ ! -d ${res_path} ]; " +
+                "then echo Creating directory ${res_path}; mkdir ${res_path}; fi\"")
+
+    def reports = ['report-tempest.json', 'report-rally.xml', 'report-k8s-e2e-tests.txt', 'report-ha.json', 'report-spt.txt']
+
+    for (report in reports) {
+        def _result = salt.cmdRun(master, target, "docker exec qa_tools bash -c \"if [ -f ${res_path}${report} ]; then echo 1; fi\"", checkResponse=false)
+        res = _result['return'][0].values()[0]
+        if ( res ) {
+            common.infoMsg("File ${report} already exists in docker container")
+            continue
+        }
+        if ( fileExists("${output_dir}${report}") ) {
+            common.infoMsg("Copying ${report} to docker container")
+            if ("${report}" == "report-tempest.json") {
+                def temp_file = readJSON file: "${output_dir}/${report}"
+                def tempest_cont = temp_file['verifications']
+                def json = common.prettify(["verifications":tempest_cont])
+                json = sh(script: "echo '${json}' | base64 -w 0", returnStdout: true)
+                salt.cmdRun(master, target, "docker exec qa_tools bash -c \"echo \"${json}\" | base64 -d | tee ${res_path}${report}\"", false, null, true)
+            }
+            else if ( "${report}" == "report-k8s-e2e-tests.txt" ) {
+                def k8s_content = sh(script: "cat ${output_dir}${report}| tail -20 | base64 -w 0", returnStdout: true)
+                salt.cmdRun(master, target, "docker exec qa_tools bash -c \"echo ${k8s_content} | base64 -d | tee ${res_path}${report}\"", false, null, true)
+            }
+            else {
+                def rep_content = sh(script: "cat ${output_dir}${report} | base64 -w 0", returnStdout: true)
+                salt.cmdRun(master, target, "docker exec qa_tools bash -c \"echo \"${rep_content}\" | base64 -d | tee ${res_path}${report}\"", false, null, true)
+            }
+        }
+    }
+    salt.cmdRun(master, target, "docker exec qa_tools jenkins_report.py --path ${path}")
+    salt.cmdRun(master, target, "docker cp qa_tools:/home/rally/${report_file} ${report_file}")
+
+    def report_content = salt.getFileContent(master, target, report_file)
+    writeFile file: "${output_dir}${report_file}", text: report_content
 }
 
 /**
@@ -184,12 +264,17 @@ def runSptTests(master, target, output_dir) {
     def report_file = 'report-spt.txt'
     def report_file_hw = 'report-spt-hw.txt'
     def archive_file = 'results-spt.tar.gz'
+    def path = '/opt/devops-qa-tools/generate_test_report/test_results'
+
     salt.cmdRun(master, target, "docker exec qa_tools sudo timmy -c simplified-performance-testing/config.yaml " +
             "--nodes-json nodes.json --log-file ${output_file}")
     salt.cmdRun(master, target, "docker exec qa_tools ./simplified-performance-testing/SPT_parser.sh > ${report_file}")
     salt.cmdRun(master, target, "docker exec qa_tools custom_spt_parser.sh > ${report_file_hw}")
+
+    salt.cmdRun(master, target, "docker cp ${report_file} qa_tools:${path}/report-spt.txt")
     salt.cmdRun(master, target, "docker cp qa_tools:/home/rally/${output_file} ${output_file}")
     salt.cmdRun(master, target, "docker cp qa_tools:/tmp/timmy/archives/general.tar.gz ${archive_file}")
+
     def file_content = getFileContent(master, target, output_file)
     writeFile file: "${output_dir}${output_file}", text: file_content
     file_content = getFileContent(master, target, report_file)
@@ -197,7 +282,6 @@ def runSptTests(master, target, output_dir) {
     file_content = getFileContent(master, target, report_file_hw)
     writeFile file: "${output_dir}${report_file_hw}", text: file_content
 }
-
 
 /**
  * Cleanup
@@ -210,7 +294,6 @@ def runCleanup(master, target, output_dir) {
     if ( salt.cmdRun(master, target, "docker ps -f name=qa_tools -q", false, null, false)['return'][0].values()[0] ) {
         salt.cmdRun(master, target, "docker rm -f qa_tools")
     }
-    sh "rm -r ${output_dir}"
 }
 
 /** Install docker if needed
