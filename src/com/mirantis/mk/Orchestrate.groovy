@@ -664,6 +664,6 @@ def installCephClient(master) {
 
     // install Ceph Radosgw
     if (salt.testTarget(master, 'I@ceph:radosgw')) {
-        salt.enforceState(master, target, 'ceph.radosgw', true)
+        salt.enforceState(master, 'I@ceph:radosgw', 'ceph.radosgw', true)
     }
 }
