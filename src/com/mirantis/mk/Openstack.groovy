@@ -179,12 +179,15 @@ def createHeatStack(client, name, template, params = [], environment = null, pat
         createHeatEnv(envFile, params)
     }
 
+    def cmd
+    def waitState
+
     if (action == "create") {
-        def cmd = "heat stack-create -f ${templateFile} -e ${envFile} ${name}"
-        def waitState = "CREATE_COMPLETE"
+        cmd = "heat stack-create -f ${templateFile} -e ${envFile} ${name}"
+        waitState = "CREATE_COMPLETE"
     } else {
-        def cmd = "heat stack-update -f ${templateFile} -e ${envFile} ${name}"
-        def waitState = "UPDATE_COMPLETE"
+        cmd = "heat stack-update -f ${templateFile} -e ${envFile} ${name}"
+        waitState = "UPDATE_COMPLETE"
     }
 
     dir("${env.WORKSPACE}/template/template") {
