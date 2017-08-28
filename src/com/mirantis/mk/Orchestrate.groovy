@@ -270,6 +270,15 @@ def installOpenstackControl(master) {
     if (salt.testTarget(master, 'I@octavia:api')) {
         salt.enforceState(master, 'I@octavia:api', 'octavia', true)
     }
+
+    // Install barbican server service
+    if (salt.testTarget(master, 'I@barbican:server')) {
+        salt.enforceState(master, 'I@barbican:server', 'barbican.server', true)
+    }
+    // Install barbican client
+    if (salt.testTarget(master, 'I@barbican:client')) {
+        salt.enforceState(master, 'I@barbican:client', 'barbican.client', true)
+    }
 }
 
 
