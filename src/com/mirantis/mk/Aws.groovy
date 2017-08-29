@@ -72,10 +72,26 @@ def describeStack(venv_path, env_vars, stack_name) {
     withEnv(env_vars) {
         def out = python.runVirtualenvCommand(venv_path, cmd)
         def out_json = common.parseJSON(out)
-        def stack_info = out_json['Stacks'][0]
-        common.prettyPrint(stack_info)
+        def resources = out_json['Stacks'][0]
+        common.prettyPrint(resources)
 
-        return stack_info
+        return resources
+    }
+}
+
+def describeStackResources(venv_path, env_vars, stack_name) {
+    def python = new com.mirantis.mk.Python()
+    def common = new com.mirantis.mk.Common()
+
+    def cmd = "aws cloudformation describe-stack-resources --stack-name ${stack_name}"
+
+    withEnv(env_vars) {
+        def out = python.runVirtualenvCommand(venv_path, cmd)
+        def out_json = common.parseJSON(out)
+        def resources = out_json['StackResources']
+        common.prettyPrint(resources)
+
+        return resources
     }
 }
 
@@ -102,6 +118,9 @@ def waitForStatus(venv_path, env_vars, stack_name, state, state_failed = [], max
                 if (state_failed.contains(stack_info['StackStatus'])) {
                     throw new Exception("Stack ${stack_name} in in failed state")
                 }
+
+                // print stack resources
+                aws.describeStackResources(venv_path, env_vars, stack_name)
 
                 // wait for next loop
                 sleep(loop_sleep)
