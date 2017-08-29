@@ -674,6 +674,7 @@ def installCephOsd(master, target='I@ceph:osd', setup=true) {
 
     // setup poools, keyrings and maybe crush
     if (salt.testTarget(master, 'I@ceph:setup') && setup) {
+        sleep(30)
         salt.enforceState(master, 'I@ceph:setup', 'ceph.setup', true)
     }
 }
