@@ -647,19 +647,14 @@ def installStacklightv1Client(master) {
 // Ceph
 //
 
-def installCephMon(master, target='I@ceph:mon', setup=true) {
+def installCephMon(master, target='I@ceph:mon') {
     def salt = new com.mirantis.mk.Salt()
 
     // install Ceph Mons
     salt.enforceState(master, target, 'ceph.mon', true)
-
-    // setup poools, keyrings and maybe crush
-    if (salt.testTarget(master, 'I@ceph:setup') && setup) {
-        salt.enforceState(master, 'I@ceph:setup', 'ceph.setup', true)
-    }
 }
 
-def installCephOsd(master, target='I@ceph:osd') {
+def installCephOsd(master, target='I@ceph:osd', setup=true) {
     def salt = new com.mirantis.mk.Salt()
 
     // Prapare filesystem on OSD drives
@@ -667,6 +662,11 @@ def installCephOsd(master, target='I@ceph:osd') {
 
     // install Ceph OSDs
     salt.enforceState(master, target, 'ceph.osd', true)
+
+    // setup poools, keyrings and maybe crush
+    if (salt.testTarget(master, 'I@ceph:setup') && setup) {
+        salt.enforceState(master, 'I@ceph:setup', 'ceph.setup', true)
+    }
 }
 
 def installCephClient(master) {
