@@ -45,12 +45,10 @@ def installKitchen(kitchenInit=""){
  */
 def runKitchenTests(environment="", suite= ""){
     def common = new com.mirantis.mk.Common()
-    kitchenTestRuns["kitchen-${suite}".replaceAll("trevorj-salty-whales:", "")] = {
-        common.infoMsg("Running kitchen test ${suite}")
-        println(runKitchenCommand("converge ${suite}", environment))
-        println runKitchenCommand("verify ${suite} -t tests/integration", environment)
-        println runKitchenCommand("destroy", environment)
-    }
+    common.infoMsg("Running kitchen test ${suite}")
+    println(runKitchenCommand("converge ${suite}", environment))
+    println runKitchenCommand("verify ${suite} -t tests/integration", environment)
+    println runKitchenCommand("destroy", environment)
 }
 
 /**
