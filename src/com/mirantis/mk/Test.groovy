@@ -48,7 +48,8 @@ def copyTestsOutput(master, image) {
  * @param pattern           If not false, will run only tests matched the pattern
  * @param logDir            Directory to store tempest/rally reports
  */
-def runTempestTests(master, dockerImageLink, target, pattern = "false", logDir = '/home/rally/rally_reports/') {
+def runTempestTests(master, dockerImageLink, target, pattern = "false", logDir = "/home/rally/rally_reports/",
+                    doCleanupResources = "false") {
     def salt = new com.mirantis.mk.Salt()
     if (pattern == "false") {
         salt.cmdRun(master, "${target}", "docker run --rm --net=host " +
@@ -56,6 +57,7 @@ def runTempestTests(master, dockerImageLink, target, pattern = "false", logDir =
                                          "-e SKIP_LIST=mcp_skip.list " +
                                          "-e SOURCE_FILE=keystonercv3 " +
                                          "-e LOG_DIR=${logDir} " +
+                                         "-e DO_CLEANUP_RESOURCES=${doCleanupResources} " +
                                          "-v /root/:/home/rally ${dockerImageLink} >> docker-tempest.log")
     }
     else {
@@ -64,10 +66,36 @@ def runTempestTests(master, dockerImageLink, target, pattern = "false", logDir =
                                          "-e SKIP_LIST=mcp_skip.list " +
                                          "-e SOURCE_FILE=keystonercv3 " +
                                          "-e LOG_DIR=${logDir} " +
+                                         "-e DO_CLEANUP_RESOURCES=${doCleanupResources} " +
                                          "-e CUSTOM='--pattern ${pattern}' " +
                                          "-v /root/:/home/rally ${dockerImageLink} >> docker-tempest.log")
     }
 }
+
+
+/**
+ * Execute Rally scenarios
+ *
+ * @param dockerImageLink      Docker image link with rally and tempest
+ * @param target               Host to run scenarios
+ * @param scenario             Specify the scenario as a string
+ * @param containerName        Docker container name
+ * @param doCleanupResources   Do run clean-up script after tests? Cleans up OpenStack test resources
+ */
+def runRallyScenarios(master, dockerImageLink, target, scenario, logDir = "/home/rally/rally_reports/",
+                      doCleanupResources = "false", containerName = "rally_ci") {
+    def salt = new com.mirantis.mk.Salt()
+    salt.cmdRun(master, target, "docker run --net=host -dit " +
+                                "--name ${containerName} " +
+                                "-e SOURCE_FILE=keystonercv3 " +
+                                "-e SCENARIO=${scenario} " +
+                                "-e DO_CLEANUP_RESOURCES=${doCleanupResources} " +
+                                "-e LOG_DIR=${logDir} " +
+                                "--entrypoint /bin/bash -v /root/:/home/rally ${dockerImageLink}")
+    salt.cmdRun(master, target, "docker exec ${containerName} " +
+                                "bash -c /usr/bin/run-rally | tee -a docker-rally.log")
+}
+
 
 /**
  * Upload results to cfg01 node
@@ -100,6 +128,7 @@ def install_docker(master, target) {
     def salt = new com.mirantis.mk.Salt()
     salt.runSaltProcessStep(master, "${target}", 'pkg.install', ["docker.io"])
 }
+
 
 /** Upload Tempest test results to Testrail
  *
@@ -176,4 +205,29 @@ def collectJUnitResults(testResultAction) {
         common.errorMsg("Cannot collect jUnit tests results, given result is null")
     }
     return [:]
+}
+
+
+/** Cleanup: Remove reports directory
+ *
+ * @param target                   Target node to remove repo
+ * @param reports_dir_name         Reports directory name to be removed (that is in /root/ on target node)
+ * @param archive_artifacts_name   Archive of the artifacts
+ */
+def removeReports(master, target, reports_dir_name = 'rally_reports', archive_artifacts_name = 'rally_reports.tar') {
+    def salt = new com.mirantis.mk.Salt()
+    salt.runSaltProcessStep(master, target, 'file.find', ["/root/${reports_dir_name}", '\\*', 'delete'])
+    salt.runSaltProcessStep(master, target, 'file.remove', ["/root/${archive_artifacts_name}"])
+}
+
+
+/** Cleanup: Remove Docker container
+ *
+ * @param target              Target node to remove Docker container
+ * @param image_link          The link of the Docker image that was used for the container
+ */
+def removeDockerContainer(master, target, image_link) {
+    def salt = new com.mirantis.mk.Salt()
+    salt.cmdRun(master, target, "docker stop \$(docker ps -a | grep ${image_link} | awk '{print \$1}')")
+    salt.cmdRun(master, target, "docker rm \$(docker ps -a | grep ${image_link} | awk '{print \$1}')")
 }
