@@ -460,7 +460,7 @@ def orchestrateSystem(master, target, orchestrate) {
  * @param timeout  Additional argument salt api timeout
  * @return output of salt command
  */
-def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false, timeout = -1) {
+def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false, timeout = -1, kwargs = null) {
     def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
     def out
@@ -468,9 +468,9 @@ def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false,
     common.infoMsg("Running step ${fun} ${arg} on ${tgt}")
 
     if (batch == true) {
-        out = runSaltCommand(master, 'local_batch', ['expression': tgt, 'type': 'compound'], fun, String.valueOf(batch), arg, null, timeout)
+        out = runSaltCommand(master, 'local_batch', ['expression': tgt, 'type': 'compound'], fun, String.valueOf(batch), arg, kwargs, timeout)
     } else {
-        out = runSaltCommand(master, 'local', ['expression': tgt, 'type': 'compound'], fun, batch, arg, null, timeout)
+        out = runSaltCommand(master, 'local', ['expression': tgt, 'type': 'compound'], fun, batch, arg, kwargs, timeout)
     }
 
     if (output == true) {
