@@ -75,7 +75,7 @@ def getSuiteName(kitchenEnv){
   def suiteMatcher = suitePattern.matcher(kitchenEnv)
   if (suiteMatcher.find()) {
       def suite = suiteMatcher.group(1)
-      if(suite && suite != ""){
+      if(suite && suite != ""){
           return suite.replaceAll("_", "-")
       }
   }
