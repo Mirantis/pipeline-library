@@ -64,3 +64,20 @@ def runKitchenCommand(cmd, environment = null){
         return sh(script: "rbenv exec bundler exec kitchen ${cmd}", returnStdout: true)
     }
 }
+
+/**
+ * Returns suite name from given env
+ * @param kitchenEnv kitchen env string
+ * @return suite name of empty string if no suite found
+ */
+def getSuiteName(kitchenEnv){
+  def suitePattern = java.util.regex.Pattern.compile("\\s?SUITE=([^\\s]*)")
+  def suiteMatcher = suitePattern.matcher(kitchenEnv)
+  if (suiteMatcher.find()) {
+      def suite = suiteMatcher.group(1)
+      if(suite && suite != ""){
+          return suite.replaceAll("_", "-")
+      }
+  }
+  return ""
+}
