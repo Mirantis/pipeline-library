@@ -90,7 +90,7 @@ def installInfra(master) {
     // Install docker
     if (salt.testTarget(master, 'I@docker:host')) {
         salt.enforceState(master, 'I@docker:host', 'docker.host')
-        salt.runSaltProcessStep(master, 'I@docker:host', 'cmd.run', ['docker ps'])
+        salt.cmdRun(master, 'I@docker:host', 'docker ps')
     }
 
     // Install keepalived
@@ -126,7 +126,7 @@ def installInfra(master) {
     // Install etcd
     if (salt.testTarget(master, 'I@etcd:server')) {
         salt.enforceState(master, 'I@etcd:server', 'etcd.server.service')
-        salt.runSaltProcessStep(master, 'I@etcd:server', 'cmd.run', ['bash -c "source /var/lib/etcd/configenv && etcdctl cluster-health"'])
+        salt.cmdRun(master, 'I@etcd:server', 'bash -c "source /var/lib/etcd/configenv && etcdctl cluster-health"')
     }
 }
 
