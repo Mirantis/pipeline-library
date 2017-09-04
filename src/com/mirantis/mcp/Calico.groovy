@@ -509,7 +509,7 @@ def systestCalico(nodeImage, ctlImage, failOnErrors = true) {
       """
       // execute systests against calico/node
       sh """
-        cd calico_home
+        cd calico_home/calico_node
         NODE_CONTAINER_NAME=${nodeImage} make st
       """
     } catch (Exception e) {
