@@ -458,6 +458,21 @@ def installDockerSwarm(master) {
     salt.cmdRun(master, 'I@docker:swarm:role:master', 'docker node ls', true)
 }
 
+
+def installCicd(master) {
+    def salt = new com.mirantis.mk.Salt()
+
+    //Install and Configure Docker
+    salt.enforceState(master, 'I@aptly:publisher', 'aptly.publisher')
+    salt.enforceState(master, 'I@docker:swarm:role:master', 'docker.client', true)
+    sleep(300)
+    salt.enforceState(master, 'I@aptly:server', 'aptly', true)
+    salt.enforceState(master, 'I@openldap:client', 'openldap', true)
+    salt.enforceState(master, 'I@gerrit:client', 'gerrit', true)
+    salt.enforceState(master, 'I@jenkins:client', 'jenkins', true)
+}
+
+
 def installStacklight(master) {
     def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
