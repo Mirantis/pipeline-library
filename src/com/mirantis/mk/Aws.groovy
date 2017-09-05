@@ -38,7 +38,7 @@ def getEnvVars(credentials_id, region = 'us-west-2') {
 def createStack(venv_path, env_vars, template_file, stack_name, parameters = []) {
     def python = new com.mirantis.mk.Python()
 
-    def cmd = "aws cloudformation create-stack --stack-name ${stack_name} --template-body file://template/${template_file} --capabilities CAPABILITY_IAM"
+    def cmd = "aws cloudformation create-stack --stack-name ${stack_name} --template-body file://template/${template_file} --capabilities CAPABILITY_NAMED_IAM"
 
     if (parameters != null && parameters.size() > 0) {
         cmd = "${cmd} --parameters"
