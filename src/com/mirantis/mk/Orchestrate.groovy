@@ -510,6 +510,8 @@ def installStacklight(master) {
     salt.enforceState(master, '*01* and I@influxdb:server', 'influxdb', true)
     salt.enforceState(master, 'I@influxdb:server', 'influxdb', true)
 
+    salt.enforceState(master, 'I@heka:log_collector', 'heka.log_collector')
+
     // Install galera
     if (common.checkContains('STACK_INSTALL', 'k8s')) {
         withEnv(['ASK_ON_ERROR=false']){
@@ -554,8 +556,6 @@ def installStacklight(master) {
     common.infoMsg("Waiting for service on http://${stacklight_vip}:15013/ to start")
     sleep(120)
     salt.enforceState(master, 'I@grafana:client', 'grafana.client', true)
-
-    salt.enforceState(master, 'I@heka:log_collector', 'heka.log_collector')
 }
 
 def installStacklightv1Control(master) {
