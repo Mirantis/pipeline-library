@@ -16,14 +16,28 @@ def setupVirtualEnv(venv_path = 'aws_venv') {
     python.setupVirtualenv(venv_path, 'python2', requirements)
 }
 
-def getEnvVars(credentials_id, region = 'us-west-2') {
+def getEnvVars(credentials, region = 'us-west-2') {
     def common = new com.mirantis.mk.Common()
 
-    def creds = common.getCredentials(credentials_id)
+    def creds
+    def username
+    def password
+
+    if (credentials.contains(':')) {
+        // we have key and secret in string (delimited by :)
+        creds = credentials.tokenized(':')
+        username = creds[0]
+        password = creds[0]
+    } else {
+        // we have creadentials_id
+        creds = common.getCredentials(credentials)
+        username = creds.username
+        password = creds.password
+    }
 
     return [
-        "AWS_ACCESS_KEY_ID=${creds.username}",
-        "AWS_SECRET_ACCESS_KEY=${creds.password}",
+        "AWS_ACCESS_KEY_ID=${username}",
+        "AWS_SECRET_ACCESS_KEY=${password}",
         "AWS_DEFAULT_REGION=${region}"
     ]
 }
