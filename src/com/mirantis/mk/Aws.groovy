@@ -27,7 +27,7 @@ def getEnvVars(credentials, region = 'us-west-2') {
         // we have key and secret in string (delimited by :)
         creds = credentials.tokenize(':')
         username = creds[0]
-        password = creds[0]
+        password = creds[1]
     } else {
         // we have creadentials_id
         creds = common.getCredentials(credentials)
