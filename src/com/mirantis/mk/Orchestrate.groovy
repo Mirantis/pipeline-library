@@ -437,9 +437,10 @@ def installKubernetesCompute(master) {
     // Install Kubernetes and Calico
     salt.enforceState(master, 'I@kubernetes:pool', 'kubernetes.pool')
 
-    if (salt.testTarget(master, 'I@helm:client')) {
-        salt.enforceState(master, 'I@helm:client', 'helm')
-    }
+    // temporarily disable helm installation
+    // if (salt.testTarget(master, 'I@helm:client')) {
+    //     salt.enforceState(master, 'I@helm:client', 'helm')
+    // }
 }
 
 
