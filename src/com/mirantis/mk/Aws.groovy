@@ -25,7 +25,7 @@ def getEnvVars(credentials, region = 'us-west-2') {
 
     if (credentials.contains(':')) {
         // we have key and secret in string (delimited by :)
-        creds = credentials.tokenized(':')
+        creds = credentials.tokenize(':')
         username = creds[0]
         password = creds[0]
     } else {
