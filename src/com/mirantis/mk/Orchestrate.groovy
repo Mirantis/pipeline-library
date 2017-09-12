@@ -314,6 +314,7 @@ def installOpenstackNetwork(master, physical = "false") {
     // install octavia manager services
     if (salt.testTarget(master, 'I@octavia:manager')) {
         salt.runSaltProcessStep(master, 'I@salt:master', 'mine.update', ['*'], null, true)
+        salt.enforceState(master, 'I@octavia:manager', 'octavia', true)
         salt.enforceState(master, 'I@octavia:manager', 'salt.minion.ca', true)
         salt.enforceState(master, 'I@octavia:manager', 'salt.minion.cert', true)
     }
