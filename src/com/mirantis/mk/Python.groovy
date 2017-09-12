@@ -283,3 +283,13 @@ def jinjaBuildTemplate (template, context, path = none) {
     echo(data)
     return data
 }
+
+/**
+ * Install salt-pepper in isolated environment
+ *
+ * @param path        Path where virtualenv is created
+ */
+def setupPepperVirtualenv(path) {
+    requirements = ['salt-pepper']
+    setupVirtualenv(path, 'python2', requirements)
+}

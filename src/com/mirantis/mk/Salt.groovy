@@ -22,7 +22,6 @@ def connection(url, credentialsId = "salt") {
         "creds": common.getCredentials(credentialsId)
     ]
     params["authToken"] = saltLogin(params)
-
     return params
 }
 
@@ -43,7 +42,7 @@ def saltLogin(master) {
 }
 
 /**
- * Run action using Salt API
+ * Run action using Salt API (using plain HTTP request from Jenkins master)
  *
  * @param master   Salt connection object
  * @param client   Client type
@@ -66,7 +65,6 @@ def runSaltCommand(master, client, target, function, batch = null, args = null, 
         'client': client,
         'expr_form': target.type,
     ]
-
     if(batch != null && ( (batch instanceof Integer && batch > 0) || (batch instanceof String && batch.contains("%")))){
         data['client']= "local_batch"
         data['batch'] = batch
@@ -89,6 +87,54 @@ def runSaltCommand(master, client, target, function, batch = null, args = null, 
     ]
 
     return http.sendHttpPostRequest("${master.url}/", data, headers, read_timeout)
+}
+
+/**
+ * Run action using Salt API (using salt pepper from slave shell)
+ *
+ * @param master   Salt connection object
+ * @param client   Client type
+ * @param target   Target specification, eg. for compound matches by Pillar
+ *                 data: ['expression': 'I@openssh:server', 'type': 'compound'])
+ * @param function Function to execute (eg. "state.sls")
+ * @param batch    Batch param to salt (integer or string with percents)
+ * @param args     Additional arguments to function
+ * @param kwargs   Additional key-value arguments to function
+ * @param timeout  Additional argument salt api timeout
+ * @param read_timeout http session read timeout
+ */
+@NonCPS
+def runSaltCommandPepper(pepperVenv, client, target, function, batch = null, args = null, kwargs = null, timeout = -1, read_timeout = -1) {
+    def http = new com.mirantis.mk.Http()
+
+    data = [
+        'tgt': target.expression,
+        'fun': function,
+        'client': client,
+        'expr_form': target.type,
+    ]
+    if(batch != null && ( (batch instanceof Integer && batch > 0) || (batch instanceof String && batch.contains("%")))){
+        data['client']= "local_batch"
+        data['batch'] = batch
+    }
+
+    if (args) {
+        data['arg'] = args
+    }
+
+    if (kwargs) {
+        data['kwarg'] = kwargs
+    }
+
+    if (timeout != -1) {
+        data['timeout'] = timeout
+    }
+
+    headers = [
+      'X-Auth-Token': "${master.authToken}"
+    ]
+
+    return runPepperCommand(data, pepperVenv)
 }
 
 /**
@@ -636,4 +682,53 @@ def setSaltOverrides(master, salt_overrides, reclass_dir="/srv/salt/reclass") {
          runSaltProcessStep(master, 'I@salt:master', 'reclass.cluster_meta_set', ["${key}", "${value}"], false)
     }
     runSaltProcessStep(master, 'I@salt:master', 'cmd.run', ["git -C ${reclass_dir} update-index --skip-worktree classes/cluster/overrides.yml"])
+}
+
+/**
+* Execute salt commands via salt-api with
+* CLI client salt-pepper
+*
+* @param data   Salt command map
+* @param venv   Path to virtualenv with
+*/
+
+def runPepperCommand(data, venv)   {
+    def python = new com.mirantis.mk.Python()
+    def dataStr = new groovy.json.JsonBuilder(data).toString()
+
+    def pepperCmd = "pepper -c ${venv}/pepperrc --make-token --json \'${dataStr}\'"
+
+    if (venv) {
+        output = python.runVirtualenvCommand(venv, pepperCmd)
+    } else {
+        echo("[Command]: ${pepperCmd}")
+        output = sh (
+            script: pepperCmd,
+            returnStdout: true
+        ).trim()
+    }
+
+    return new groovy.json.JsonSlurperClassic().parseText(output)
+}
+
+/**
+* Create config file for pepper
+*
+* @param url            SALT_MASTER URL
+* @param credentialsId  credentials to SALT_API
+* @param path path to pepper env
+*/
+def createPepperEnv(url, credentialsId, path) {
+    def common = new com.mirantis.mk.Common()
+    rcFile = "${path}/pepperrc"
+    creds = common.getPasswordCredentials(credentialsId)
+    rc = """\
+[main]
+SALTAPI_EAUTH=pam
+SALTAPI_URL=${url}
+SALTAPI_USER=${creds.username}
+SALTAPI_PASS=${creds.password.toString()}
+"""
+    writeFile file: rcFile, text: rc
+    return rcFile
 }
