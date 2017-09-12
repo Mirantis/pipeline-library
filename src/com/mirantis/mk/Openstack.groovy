@@ -197,7 +197,7 @@ def createHeatStack(client, name, template, params = [], environment = null, pat
     output = python.parseTextTable(outputTable, 'item', 'prettytable', path)
 
     def heatStatusCheckerCount = 1
-    while (heatStatusCheckerCount <= 125) {
+    while (heatStatusCheckerCount <= 250) {
         status = getHeatStackStatus(client, name, path)
         echo("[Heat Stack] Status: ${status}, Check: ${heatStatusCheckerCount}")
 
@@ -211,7 +211,7 @@ def createHeatStack(client, name, template, params = [], environment = null, pat
             break
         }
 
-        sleep(20)
+        sleep(30)
         heatStatusCheckerCount++
     }
     echo("[Heat Stack] Status: ${status}")
