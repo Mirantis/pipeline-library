@@ -136,7 +136,7 @@ def buildSourceGbp(dir, image="debian:sid", snapshot=false, gitName='Jenkins', g
             sudo -H -E -u jenkins git config --global user.name "${gitName}" &&
             sudo -H -E -u jenkins git config --global user.email "${gitEmail}" &&
             [[ "${snapshot}" == "false" ]] || (
-                VERSION=`dpkg-parsechangelog --count 1 | grep Version: | sed "s,Version: ,,g"` &&
+                VERSION=`dpkg-parsechangelog --count 1 --show-field Version` &&
                 UPSTREAM_VERSION=`echo \$VERSION | cut -d "-" -f 1` &&
                 REVISION=`echo \$VERSION | cut -d "-" -f 2` &&
                 TIMESTAMP=`date +%Y%m%d%H%M` &&
@@ -144,10 +144,11 @@ def buildSourceGbp(dir, image="debian:sid", snapshot=false, gitName='Jenkins', g
                     UPSTREAM_BRANCH=`(grep upstream-branch debian/gbp.conf || echo master) | cut -d = -f 2 | tr -d " "` &&
                     UPSTREAM_REV=`git rev-parse --short origin/\$UPSTREAM_BRANCH` &&
                     NEW_UPSTREAM_VERSION="\$UPSTREAM_VERSION+\$TIMESTAMP.\$UPSTREAM_REV" &&
+                    NEW_UPSTREAM_VERSION_TAG=`echo \$NEW_UPSTREAM_VERSION | sed 's/.*://'` &&
                     NEW_VERSION=\$NEW_UPSTREAM_VERSION-\$REVISION$revisionPostfix &&
-                    echo "Generating new upstream version \$NEW_UPSTREAM_VERSION" &&
-                    sudo -H -E -u jenkins git tag \$NEW_UPSTREAM_VERSION origin/\$UPSTREAM_BRANCH &&
-                    sudo -H -E -u jenkins git merge -X theirs \$NEW_UPSTREAM_VERSION
+                    echo "Generating new upstream version \$NEW_UPSTREAM_VERSION_TAG" &&
+                    sudo -H -E -u jenkins git tag \$NEW_UPSTREAM_VERSION_TAG origin/\$UPSTREAM_BRANCH &&
+                    sudo -H -E -u jenkins git merge -X theirs \$NEW_UPSTREAM_VERSION_TAG
                 else
                     NEW_VERSION=\$VERSION+\$TIMESTAMP.`git rev-parse --short HEAD`$revisionPostfix
                 fi &&
