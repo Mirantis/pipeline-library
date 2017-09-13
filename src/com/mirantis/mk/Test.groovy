@@ -51,6 +51,7 @@ def copyTestsOutput(master, image) {
 def runTempestTests(master, dockerImageLink, target, pattern = "false", logDir = "/home/rally/rally_reports/",
                     doCleanupResources = "false") {
     def salt = new com.mirantis.mk.Salt()
+    salt.runSaltProcessStep(master, target, 'file.mkdir', ["/root/rally_reports"])
     if (pattern == "false") {
         salt.cmdRun(master, "${target}", "docker run --rm --net=host " +
                                          "-e TEMPEST_CONF=mcp.conf " +
@@ -85,6 +86,7 @@ def runTempestTests(master, dockerImageLink, target, pattern = "false", logDir =
 def runRallyScenarios(master, dockerImageLink, target, scenario, logDir = "/home/rally/rally_reports/",
                       doCleanupResources = "false", containerName = "rally_ci") {
     def salt = new com.mirantis.mk.Salt()
+    salt.runSaltProcessStep(master, target, 'file.mkdir', ["/root/rally_reports"])
     salt.cmdRun(master, target, "docker run --net=host -dit " +
                                 "--name ${containerName} " +
                                 "-e SOURCE_FILE=keystonercv3 " +
