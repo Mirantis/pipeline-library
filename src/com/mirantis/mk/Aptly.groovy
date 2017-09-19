@@ -91,7 +91,7 @@ def promotePublish(server, source, target, recreate=false, components=null, pack
     if (dump_publish) {
         def now = new Date();
         def timestamp = now.format("yyyyMMddHHmmss", TimeZone.getTimeZone('UTC'));
-        dumpPublishes(server, ".", timestamp, target)
+        dumpPublishes(server, timestamp, target)
     }
 
     sh("aptly-publisher --url ${server} promote --source ${source} --target ${target} --force-overwrite ${opts}")
@@ -114,9 +114,9 @@ def publish(server, config='/etc/aptly-publisher.yaml', recreate=false, opts='-d
  * @param prefix        Prefix of dump files
  * @param opts          Options: debug, timeout, ...
  */
-def dumpPublishes(server, saveDir, prefix, publishes='all', opts='-d --timeout 600') {
-    sh("aptly-publisher dump --url ${server} --save-dir ${saveDir} --prefix ${prefix} ${opts}")
-    archiveArtifacts artifacts: "${saveDir}/${prefix}*"
+def dumpPublishes(server, prefix, publishes='all', opts='-d --timeout 600') {
+    sh("aptly-publisher dump --url ${server} --save-dir . --prefix ${prefix} --p ${publishes} ${opts}")
+    archiveArtifacts artifacts: "${prefix}*"
 }
 
 /**
