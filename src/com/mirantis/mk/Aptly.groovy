@@ -115,7 +115,7 @@ def publish(server, config='/etc/aptly-publisher.yaml', recreate=false, opts='-d
  * @param opts          Options: debug, timeout, ...
  */
 def dumpPublishes(server, prefix, publishes='all', opts='-d --timeout 600') {
-    sh("aptly-publisher dump --url ${server} --save-dir . --prefix ${prefix} --p ${publishes} ${opts}")
+    sh("aptly-publisher dump --url ${server} --save-dir . --prefix ${prefix} -p ${publishes} ${opts}")
     archiveArtifacts artifacts: "${prefix}*"
 }
 
