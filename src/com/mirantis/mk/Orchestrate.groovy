@@ -466,6 +466,11 @@ def installCicd(master) {
     sleep(300)
     salt.enforceState(master, 'I@aptly:server', 'aptly', true)
     salt.enforceState(master, 'I@openldap:client', 'openldap', true)
+
+    if (salt.testTarget(master, 'I@python:environment')) {
+        salt.enforceState(master, 'I@python:environment', 'python', true)
+    }
+
     salt.enforceState(master, 'I@gerrit:client', 'gerrit', true)
     salt.enforceState(master, 'I@jenkins:client', 'jenkins', true)
 }
