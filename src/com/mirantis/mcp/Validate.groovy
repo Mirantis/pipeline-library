@@ -20,10 +20,8 @@ def runContainerConfiguration(master, dockerImageLink, target, output_dir, spt_v
     def output_file = 'docker.log'
     def nodes = getNodeList(master)
     def nodes_hw = getNodeList(master, 'G@virtual:physical')
-    def controller = salt.minionPresent(master, 'I@salt:master', 'ctl01', true, null, true, 200, 1)['return'][0].values()[0]
-    def _pillar = salt.cmdRun(master, 'I@salt:master', "reclass-salt -o json -p ${controller} | " +
-            "python -c 'import json,sys; print(json.dumps(json.loads(sys.stdin.read())[\"keystone\"][\"server\"]))'")
-    def keystone = common.parseJSON(_pillar['return'][0].values()[0])
+    def _pillar = salt.getPillar(master, 'I@keystone:server', 'keystone:server')
+    def keystone = _pillar['return'][0].values()[0]
     def ssh_key = getFileContent(master, 'I@salt:master', '/root/.ssh/id_rsa')
     salt.cmdRun(master, target, "docker run -tid --net=host --name=qa_tools " +
             " ${spt_variables} " +
