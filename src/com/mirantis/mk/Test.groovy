@@ -9,24 +9,24 @@ package com.mirantis.mk
 /**
  * Run e2e conformance tests
  *
- * @param k8s_api    Kubernetes api address
- * @param image      Docker image with tests
- * @param timeout    Timeout waiting for e2e conformance tests
+ * @param target        Kubernetes node to run tests from
+ * @param k8s_api       Kubernetes api address
+ * @param image         Docker image with tests
+ * @param timeout       Timeout waiting for e2e conformance tests
  */
-def runConformanceTests(master, k8s_api, image, timeout=2400) {
+def runConformanceTests(master, target, k8s_api, image, timeout=2400) {
     def salt = new com.mirantis.mk.Salt()
     def containerName = 'conformance_tests'
     def outfile = "/tmp/" + image.replaceAll('/', '-') + '.output'
-    salt.cmdRun(master, 'ctl01*', "docker rm -f ${containerName}", false)
-    salt.cmdRun(master, 'ctl01*', "docker run -d --name ${containerName} --net=host -e API_SERVER=${k8s_api} ${image}")
+    salt.cmdRun(master, target, "docker rm -f ${containerName}", false)
+    salt.cmdRun(master, target, "docker run -d --name ${containerName} --net=host -e API_SERVER=${k8s_api} ${image}")
     sleep(10)
 
     print("Waiting for tests to run...")
-    salt.runSaltProcessStep(master, 'ctl01*', 'cmd.run', ["docker wait ${containerName}"], null, false, timeout)
+    salt.runSaltProcessStep(master, target, 'cmd.run', ["docker wait ${containerName}"], null, false, timeout)
 
     print("Writing test results to output file...")
-    salt.runSaltProcessStep(master, 'ctl01*', 'cmd.run', ["docker logs -t ${containerName} &> ${outfile}"])
-
+    salt.runSaltProcessStep(master, target, 'cmd.run', ["docker logs -t ${containerName} > ${outfile}"])
     print("Conformance test output saved in " + outfile)
 }
 
