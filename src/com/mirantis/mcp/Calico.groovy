@@ -537,7 +537,6 @@ def systestCalico(nodeImage, ctlImage, failOnErrors = true) {
  *          - imageTag String, tag of images
  *          - nodeImage String, Calico Node image name
  *          - ctlImage String, Calico CTL image name
- *          - buildImage String, Calico Build image name
  *          - felixImage String, Calico Felix image name
  *          - confdBuildId String, Version of Calico Confd
  *          - confdUrl String, URL to Calico Confd
@@ -584,8 +583,6 @@ def buildCalicoContainers(LinkedHashMap config) {
   def ctlRepo = "${dockerRegistry}/${projectNamespace}/${ctlImage}"
   def ctlName = null
 
-   // calico/build goes from libcalico
-  def buildImage = config.get('buildImage',"${dockerRegistry}/${projectNamespace}/calico/build:latest")
   // calico/felix goes from felix
   def felixImage = config.get('felixImage', "${dockerRegistry}/${projectNamespace}/calico/felix:latest")
 
@@ -597,7 +594,7 @@ def buildCalicoContainers(LinkedHashMap config) {
   def bird6Url = config.get('bird6Url', "${artifactoryURL}/${projectNamespace}/bird/bird6-${birdBuildId}")
   def birdclUrl = config.get('birdclUrl', "${artifactoryURL}/${projectNamespace}/bird/birdcl-${birdBuildId}")
 
-  
+
   // Configure and build calico/ctl image
   dir("./calicoctl_home"){
     ctlImgTag = config.get('imageTag', git.getGitDescribe(true) + "-" + common.getDatetime())
@@ -606,14 +603,12 @@ def buildCalicoContainers(LinkedHashMap config) {
     // Add LABELs to dockerfile
     docker.setDockerfileLabels("./calicoctl/Dockerfile.calicoctl",
                                ["docker.imgTag=${ctlImgTag}",
-                                "calico.buildImage=${buildImage}",
                                 "calico.birdclUrl=${birdclUrl}"])
 
     // Start build process
     stage ('Build calico/ctl image'){
 
       withEnv(["CTL_CONTAINER_NAME=${ctlName}",
-               "PYTHON_BUILD_CONTAINER_NAME=${buildImage}",
                "BIRDCL_URL=${birdclUrl}"]){
         sh "make calico/ctl"
       }
@@ -629,7 +624,6 @@ def buildCalicoContainers(LinkedHashMap config) {
     // Add LABELs to dockerfile
     docker.setDockerfileLabels("./calico_node/Dockerfile",
                                ["docker.imgTag=${nodeImgTag}",
-                                "calico.buildImage=${buildImage}",
                                 "calico.felixImage=${felixImage}",
                                 "calico.confdUrl=${confdUrl}",
                                 "calico.birdUrl=${birdUrl}",
@@ -640,7 +634,6 @@ def buildCalicoContainers(LinkedHashMap config) {
     stage('Build calico/node'){
 
       withEnv(["NODE_CONTAINER_NAME=${nodeName}",
-               "PYTHON_BUILD_CONTAINER_NAME=${buildImage}",
                "FELIX_CONTAINER_NAME=${felixImage}",
                "CONFD_URL=${confdUrl}",
                "BIRD_URL=${birdUrl}",
