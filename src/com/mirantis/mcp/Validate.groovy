@@ -12,9 +12,9 @@ package com.mirantis.mcp
  * @param dockerImageLink   Docker image link with rally and tempest
  * @param target            Host to run tests
  * @param output_dir        Directory for results
- * @param spt_variables     The set of variables for SPT
+ * @param ext_variables     The set of external variables
  */
-def runContainerConfiguration(master, dockerImageLink, target, output_dir, spt_variables){
+def runContainerConfiguration(master, dockerImageLink, target, output_dir, ext_variables){
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
     def output_file = 'docker.log'
@@ -24,7 +24,7 @@ def runContainerConfiguration(master, dockerImageLink, target, output_dir, spt_v
     def keystone = _pillar['return'][0].values()[0]
     def ssh_key = getFileContent(master, 'I@salt:master', '/root/.ssh/id_rsa')
     salt.cmdRun(master, target, "docker run -tid --net=host --name=qa_tools " +
-            " ${spt_variables} " +
+            " ${ext_variables} " +
             "-e tempest_version=15.0.0 -e OS_USERNAME=${keystone.admin_name} " +
             "-e OS_PASSWORD=${keystone.admin_password} -e OS_TENANT_NAME=${keystone.admin_tenant} " +
             "-e OS_AUTH_URL=http://${keystone.bind.private_address}:${keystone.bind.private_port}/v2.0 " +
