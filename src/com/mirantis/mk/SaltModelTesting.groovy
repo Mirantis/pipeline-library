@@ -37,11 +37,13 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
 
   img.inside("-u root:root --hostname=${masterName} --ulimit nofile=4096:8192 ${dockerMaxCpusOption}") {
 
-    def is_mk_ci
+  /* unlike other models, mk-ci and infra don't generate nodes dynamically
+     and therefore it is not possible to use the standard way for testing */
+    def is_mk_infra
     try {
-      is_mk_ci = DEFAULT_GIT_URL.contains("mk-ci")
+      is_mk_infra = DEFAULT_GIT_URL.contains("mk-ci") || DEFAULT_GIT_URL.contains("salt-models/infra") 
     } catch (Throwable e) {
-      is_mk_ci = false
+      is_mk_infra = false
     }
 
     if (!imageFound) {
@@ -60,12 +62,12 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
         sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && saltmaster_bootstrap'")
         sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && saltmaster_init'")
 
-        if (!is_mk_ci) {
+        if (!is_mk_infra) {
            sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && verify_salt_minions'")
         }
     }
 
-    if (is_mk_ci) {
+    if (is_mk_infra) {
       def nodes = sh script: "find /srv/salt/reclass/nodes -name '*.yml' | grep -v 'cfg*.yml'", returnStdout: true
       for (minion in nodes.tokenize()) {
         def basename = sh script: "basename ${minion} .yml", returnStdout: true
