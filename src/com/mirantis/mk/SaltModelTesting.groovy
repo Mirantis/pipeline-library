@@ -11,9 +11,12 @@ package com.mirantis.mk
  * @param formulasSource      Salt formulas source type (optional, default pkg)
  * @param formulasRevision    APT revision for formulas (optional default stable)
  * @param ignoreClassNotfound Ignore missing classes for reclass model
+ * @param dockerMaxCpus       max cpus passed to docker (default 0, disabled)
+ * @param legacyTestingMode   do you want to enable legacy testing mode (iterating through the nodes directory definitions instead of reading cluster models)
  */
 
-def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSource = 'pkg', formulasRevision = 'stable', dockerMaxCpus = 0, ignoreClassNotfound = false) {
+def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSource = 'pkg', formulasRevision = 'stable', dockerMaxCpus = 0, ignoreClassNotfound = false, legacyTestingMode = false) {
+
   def saltOpts = "--retcode-passthrough --force-color"
   def common = new com.mirantis.mk.Common()
   def workspace = common.getWorkspace()
@@ -37,16 +40,6 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
   }
 
   img.inside("-u root:root --hostname=${masterName} --ulimit nofile=4096:8192 ${dockerMaxCpusOption}") {
-
-  /* unlike other models, mk-ci and infra don't generate nodes dynamically
-     and therefore it is not possible to use the standard way for testing */
-    def is_mk_infra
-    try {
-      is_mk_infra = DEFAULT_GIT_URL.contains("mk-ci") || DEFAULT_GIT_URL.contains("salt-models/infra") 
-    } catch (Throwable e) {
-      is_mk_infra = false
-    }
-
     if (!imageFound) {
       sh("apt-get update && apt-get install -y curl git python-pip sudo python-pip python-dev zlib1g-dev git")
       sh("pip install git+https://github.com/salt-formulas/reclass.git --upgrade")
@@ -63,12 +56,13 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
         sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && saltmaster_bootstrap'")
         sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && saltmaster_init'")
 
-        if (!is_mk_infra) {
+        if (!legacyTestingMode) {
            sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && verify_salt_minions'")
         }
     }
 
-    if (is_mk_infra) {
+    if (legacyTestingMode) {
+      common.infoMsg("Running legacy mode test for master hostname ${masterName}")
       def nodes = sh script: "find /srv/salt/reclass/nodes -name '*.yml' | grep -v 'cfg*.yml'", returnStdout: true
       for (minion in nodes.tokenize()) {
         def basename = sh script: "basename ${minion} .yml", returnStdout: true
