@@ -17,7 +17,7 @@ def validateFoundationInfra(master) {
 def installFoundationInfra(master) {
     def salt = new com.mirantis.mk.Salt()
 
-    salt.enforceState(master, 'I@salt:master', ['salt.master', 'reclass'], true, false, null, false, 60, 2)
+    salt.enforceState(master, 'I@salt:master', ['salt.master', 'reclass'], true, false, null, false, 120, 2)
 
     salt.runSaltProcessStep(master, '*', 'saltutil.refresh_pillar', [], null, true)
     salt.runSaltProcessStep(master, '*', 'saltutil.sync_all', [], null, true)

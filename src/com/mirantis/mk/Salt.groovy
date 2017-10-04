@@ -175,11 +175,12 @@ def getGrain(master, target, grain = null) {
  * @param output print output (optional, default true)
  * @param failOnError throw exception on salt state result:false (optional, default true)
  * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
- * @param read_timeout http session read timeout
- * @param retries Retry count for salt state.
+ * @param read_timeout http session read timeout (optional, default -1 - disabled)
+ * @param retries Retry count for salt state. (optional, default -1 - no retries)
+ * @param queue salt queue parameter for state.sls calls (optional, default true) - CANNOT BE USED WITH BATCH
  * @return output of salt command
  */
-def enforceState(master, target, state, output = true, failOnError = true, batch = null, optional = false, read_timeout=-1, retries=-1) {
+def enforceState(master, target, state, output = true, failOnError = true, batch = null, optional = false, read_timeout=-1, retries=-1, queue=true) {
     def common = new com.mirantis.mk.Common()
     def run_states
 
@@ -191,15 +192,19 @@ def enforceState(master, target, state, output = true, failOnError = true, batch
 
     common.infoMsg("Running state ${run_states} on ${target}")
     def out
+    def kwargs = [:]
+
+    if (queue && batch == null) {
+      kwargs["queue"] = true
+    }
 
     if (optional == false || testTarget(master, target)){
         if (retries != -1){
             retry(retries){
-                out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states], null, -1, read_timeout)
+                out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states], kwargs, -1, read_timeout)
             }
-            }
-        else {
-            out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states], null, -1, read_timeout)
+        } else {
+            out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states], kwargs, -1, read_timeout)
         }
         checkResult(out, failOnError, output)
         return out
