@@ -105,7 +105,6 @@ def runSaltCommand(master, client, target, function, batch = null, args = null, 
  */
 @NonCPS
 def runSaltCommandPepper(pepperVenv, client, target, function, batch = null, args = null, kwargs = null, timeout = -1, read_timeout = -1) {
-    def http = new com.mirantis.mk.Http()
 
     data = [
         'tgt': target.expression,
@@ -129,10 +128,6 @@ def runSaltCommandPepper(pepperVenv, client, target, function, batch = null, arg
     if (timeout != -1) {
         data['timeout'] = timeout
     }
-
-    headers = [
-      'X-Auth-Token': "${master.authToken}"
-    ]
 
     return runPepperCommand(data, pepperVenv)
 }
