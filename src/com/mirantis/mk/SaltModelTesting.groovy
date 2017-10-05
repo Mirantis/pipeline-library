@@ -87,5 +87,5 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
 
 def testMinion(minionName)
 {
-  sh("service salt-master restart && service salt-minion restart && sleep 5 && bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && verify_salt_minion ${minionName}'")
+  sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && verify_salt_minion ${minionName}'")
 }
