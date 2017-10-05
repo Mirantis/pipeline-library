@@ -42,9 +42,9 @@ def saltLogin(master) {
 }
 
 /**
- * Run action using Salt API (using plain HTTP request from Jenkins master)
+ * Run action using Salt API (using plain HTTP request from Jenkins master) or Pepper (from slave shell)
  *
- * @param master   Salt connection object
+ * @param saltId   Salt Connection object or pepperEnv (the command will be sent using the selected method) (determines if command will be sent with Pepper of Salt API )
  * @param client   Client type
  * @param target   Target specification, eg. for compound matches by Pillar
  *                 data: ['expression': 'I@openssh:server', 'type': 'compound'])
@@ -56,8 +56,7 @@ def saltLogin(master) {
  * @param read_timeout http session read timeout
  */
 @NonCPS
-def runSaltCommand(master, client, target, function, batch = null, args = null, kwargs = null, timeout = -1, read_timeout = -1) {
-    def http = new com.mirantis.mk.Http()
+def runSaltCommand(saltId, client, target, function, batch = null, args = null, kwargs = null, timeout = -1, read_timeout = -1) {
 
     data = [
         'tgt': target.expression,
@@ -82,89 +81,56 @@ def runSaltCommand(master, client, target, function, batch = null, args = null, 
         data['timeout'] = timeout
     }
 
-    headers = [
-      'X-Auth-Token': "${master.authToken}"
-    ]
+    // Command will be sent using HttpRequest
+    if (saltId instanceof HashMap && saltId.containsKey("authToken") ) {
 
-    return http.sendHttpPostRequest("${master.url}/", data, headers, read_timeout)
+        def headers = [
+          'X-Auth-Token': "${saltId.authToken}"
+        ]
+
+        def http = new com.mirantis.mk.Http()
+        return http.sendHttpPostRequest("${saltId.url}/", data, headers, read_timeout)
+    } else if (saltId instanceof HashMap) {
+        throw new Exception("Invalid saltId")
+    }
+
+    // Command will be sent using Pepper
+    return runPepperCommand(data, saltId)
 }
 
 /**
- * Run action using Salt API (using salt pepper from slave shell)
- *
- * @param master   Salt connection object
- * @param client   Client type
- * @param target   Target specification, eg. for compound matches by Pillar
- *                 data: ['expression': 'I@openssh:server', 'type': 'compound'])
- * @param function Function to execute (eg. "state.sls")
- * @param batch    Batch param to salt (integer or string with percents)
- * @param args     Additional arguments to function
- * @param kwargs   Additional key-value arguments to function
- * @param timeout  Additional argument salt api timeout
- * @param read_timeout http session read timeout
- */
-@NonCPS
-def runSaltCommandPepper(pepperVenv, client, target, function, batch = null, args = null, kwargs = null, timeout = -1, read_timeout = -1) {
-
-    data = [
-        'tgt': target.expression,
-        'fun': function,
-        'client': client,
-        'expr_form': target.type,
-    ]
-    if(batch != null && ( (batch instanceof Integer && batch > 0) || (batch instanceof String && batch.contains("%")))){
-        data['client']= "local_batch"
-        data['batch'] = batch
-    }
-
-    if (args) {
-        data['arg'] = args
-    }
-
-    if (kwargs) {
-        data['kwarg'] = kwargs
-    }
-
-    if (timeout != -1) {
-        data['timeout'] = timeout
-    }
-
-    return runPepperCommand(data, pepperVenv)
-}
-
-/**
- * Return pillar for given master and target
- * @param master Salt connection object
+ * Return pillar for given saltId and target
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Get pillar target
  * @param pillar pillar name (optional)
  * @return output of salt command
  */
-def getPillar(master, target, pillar = null) {
+def getPillar(saltId, target, pillar = null) {
     if (pillar != null) {
-        return runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'pillar.get', null, [pillar.replace('.', ':')])
+        return runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'pillar.get', null, [pillar.replace('.', ':')])
     } else {
-        return runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'pillar.data')
+        return runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'pillar.data')
     }
 }
 
 /**
- * Return grain for given master and target
- * @param master Salt connection object
+ * Return grain for given saltId and target
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Get grain target
  * @param grain grain name (optional)
  * @return output of salt command
  */
-def getGrain(master, target, grain = null) {
+def getGrain(saltId, target, grain = null) {
     if(grain != null) {
-        return runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'grains.item', null, [grain])
+        return runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'grains.item', null, [grain])
     } else {
-        return runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'grains.items')
+        return runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'grains.items')
     }
 }
 
 /**
- * Enforces state on given master and target
- * @param master Salt connection object
+ * Enforces state on given saltId and target
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target State enforcing target
  * @param state Salt state
  * @param output print output (optional, default true)
@@ -175,7 +141,7 @@ def getGrain(master, target, grain = null) {
  * @param queue salt queue parameter for state.sls calls (optional, default true) - CANNOT BE USED WITH BATCH
  * @return output of salt command
  */
-def enforceState(master, target, state, output = true, failOnError = true, batch = null, optional = false, read_timeout=-1, retries=-1, queue=true) {
+def enforceState(saltId, target, state, output = true, failOnError = true, batch = null, optional = false, read_timeout=-1, retries=-1, queue=true) {
     def common = new com.mirantis.mk.Common()
     def run_states
 
@@ -193,13 +159,13 @@ def enforceState(master, target, state, output = true, failOnError = true, batch
       kwargs["queue"] = true
     }
 
-    if (optional == false || testTarget(master, target)){
+    if (optional == false || testTarget(saltId, target)){
         if (retries != -1){
             retry(retries){
-                out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states], kwargs, -1, read_timeout)
+                out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states], kwargs, -1, read_timeout)
             }
         } else {
-            out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states], kwargs, -1, read_timeout)
+            out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states], kwargs, -1, read_timeout)
         }
         checkResult(out, failOnError, output)
         return out
@@ -210,7 +176,7 @@ def enforceState(master, target, state, output = true, failOnError = true, batch
 
 /**
  * Run command on salt minion (salt cmd.run wrapper)
- * @param master Salt connection object
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Get pillar target
  * @param cmd command
  * @param checkResponse test command success execution (default true)
@@ -218,14 +184,14 @@ def enforceState(master, target, state, output = true, failOnError = true, batch
  * @param output do you want to print output
  * @return output of salt command
  */
-def cmdRun(master, target, cmd, checkResponse = true, batch=null, output = true) {
+def cmdRun(saltId, target, cmd, checkResponse = true, batch=null, output = true) {
     def common = new com.mirantis.mk.Common()
     def originalCmd = cmd
     common.infoMsg("Running command ${cmd} on ${target}")
     if (checkResponse) {
       cmd = cmd + " && echo Salt command execution success"
     }
-    def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.run', batch, [cmd])
+    def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'cmd.run', batch, [cmd])
     if (checkResponse) {
         // iterate over all affected nodes and check success return code
         if (out["return"]){
@@ -250,8 +216,8 @@ def cmdRun(master, target, cmd, checkResponse = true, batch=null, output = true)
 
 /**
  * Checks if salt minion is in a list of salt master's accepted keys
- * @usage minionPresent(saltMaster, 'I@salt:master', 'ntw', true, null, true, 200, 3)
- * @param master Salt connection object
+ * @usage minionPresent(saltId, 'I@salt:master', 'ntw', true, null, true, 200, 3)
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Get pillar target
  * @param minion_name unique identification of a minion in salt-key command output
  * @param waitUntilPresent return after the minion becomes present (default true)
@@ -261,14 +227,14 @@ def cmdRun(master, target, cmd, checkResponse = true, batch=null, output = true)
  * @param answers how many minions should return (optional, default 1)
  * @return output of salt command
  */
-def minionPresent(master, target, minion_name, waitUntilPresent = true, batch=null, output = true, maxRetries = 200, answers = 1) {
+def minionPresent(saltId, target, minion_name, waitUntilPresent = true, batch=null, output = true, maxRetries = 200, answers = 1) {
     minion_name = minion_name.replace("*", "")
     def common = new com.mirantis.mk.Common()
     def cmd = 'salt-key | grep ' + minion_name
     if (waitUntilPresent){
         def count = 0
         while(count < maxRetries) {
-            def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd], null, 5)
+            def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd], null, 5)
             if (output) {
                 printSaltCommandResult(out)
             }
@@ -277,14 +243,14 @@ def minionPresent(master, target, minion_name, waitUntilPresent = true, batch=nu
             def resultsArray = result.tokenize("\n")
             def size = resultsArray.size()
             if (size >= answers) {
-                return out 
+                return out
             }
             count++
             sleep(time: 500, unit: 'MILLISECONDS')
             common.infoMsg("Waiting for ${cmd} on ${target} to be in correct state")
         }
     } else {
-        def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd], null, 5)
+        def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd], null, 5)
         if (output) {
             printSaltCommandResult(out)
         }
@@ -297,7 +263,7 @@ def minionPresent(master, target, minion_name, waitUntilPresent = true, batch=nu
 
 /**
  * You can call this function when salt-master already contains salt keys of the target_nodes
- * @param master Salt connection object
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Should always be salt-master
  * @param target_nodes unique identification of a minion or group of salt minions
  * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
@@ -305,7 +271,7 @@ def minionPresent(master, target, minion_name, waitUntilPresent = true, batch=nu
  * @param maxRetries finite number of iterations to check status of a command (default 200)
  * @return output of salt command
  */
-def minionsReachable(master, target, target_nodes, batch=null, wait = 10, maxRetries = 200) {
+def minionsReachable(saltId, target, target_nodes, batch=null, wait = 10, maxRetries = 200) {
     def common = new com.mirantis.mk.Common()
     def cmd = "salt -t${wait} -C '${target_nodes}' test.ping"
     common.infoMsg("Checking if all ${target_nodes} minions are reachable")
@@ -313,7 +279,7 @@ def minionsReachable(master, target, target_nodes, batch=null, wait = 10, maxRet
     while(count < maxRetries) {
         Calendar timeout = Calendar.getInstance();
         timeout.add(Calendar.SECOND, wait);
-        def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd], null, wait)
+        def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd], null, wait)
         Calendar current = Calendar.getInstance();
         if (current.getTime().before(timeout.getTime())) {
            printSaltCommandResult(out)
@@ -327,7 +293,7 @@ def minionsReachable(master, target, target_nodes, batch=null, wait = 10, maxRet
 
 /**
  * Run command on salt minion (salt cmd.run wrapper)
- * @param master Salt connection object
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Get pillar target
  * @param cmd name of a service
  * @param correct_state string that command must contain if status is in correct state (optional, default 'running')
@@ -339,13 +305,13 @@ def minionsReachable(master, target, target_nodes, batch=null, wait = 10, maxRet
  * @param answers how many minions should return (optional, default 0)
  * @return output of salt command
  */
-def commandStatus(master, target, cmd, correct_state='running', find = true, waitUntilOk = true, batch=null, output = true, maxRetries = 200, answers = 0) {
+def commandStatus(saltId, target, cmd, correct_state='running', find = true, waitUntilOk = true, batch=null, output = true, maxRetries = 200, answers = 0) {
     def common = new com.mirantis.mk.Common()
     common.infoMsg("Checking if status of verification command ${cmd} on ${target} is in correct state")
     if (waitUntilOk){
         def count = 0
         while(count < maxRetries) {
-            def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd], null, 5)
+            def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd], null, 5)
             if (output) {
                 printSaltCommandResult(out)
             }
@@ -371,7 +337,7 @@ def commandStatus(master, target, cmd, correct_state='running', find = true, wai
                         success++
                         if (success == answers) {
                             return out
-                        }                    
+                        }
                     }
                 }
             }
@@ -380,7 +346,7 @@ def commandStatus(master, target, cmd, correct_state='running', find = true, wai
             common.infoMsg("Waiting for ${cmd} on ${target} to be in correct state")
         }
     } else {
-        def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd], null, 5)
+        def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd], null, 5)
         def resultMap = out["return"][0]
         if (output) {
             printSaltCommandResult(out)
@@ -409,25 +375,25 @@ def commandStatus(master, target, cmd, correct_state='running', find = true, wai
 
 /**
  * Perform complete salt sync between master and target
- * @param master Salt connection object
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Get pillar target
  * @return output of salt command
  */
-def syncAll(master, target) {
-    return runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'saltutil.sync_all')
+def syncAll(saltId, target) {
+    return runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'saltutil.sync_all')
 }
 
 /**
  * Enforce highstate on given targets
- * @param master Salt connection object
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Highstate enforcing target
  * @param output print output (optional, default true)
  * @param failOnError throw exception on salt state result:false (optional, default true)
  * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
  * @return output of salt command
  */
-def enforceHighstate(master, target, output = false, failOnError = true, batch = null) {
-    def out = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'state.highstate', batch)
+def enforceHighstate(saltId, target, output = false, failOnError = true, batch = null) {
+    def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'state.highstate', batch)
     def common = new com.mirantis.mk.Common()
 
     common.infoMsg("Running state highstate on ${target}")
@@ -438,66 +404,66 @@ def enforceHighstate(master, target, output = false, failOnError = true, batch =
 
 /**
  * Get running minions IDs according to the target
- * @param master Salt connection object
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Get minions target
  * @return list of active minions fitin
  */
-def getMinions(master, target) {
-    def minionsRaw = runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'test.ping')
+def getMinions(saltId, target) {
+    def minionsRaw = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'test.ping')
     return new ArrayList<String>(minionsRaw['return'][0].keySet())
 }
 
 
 /**
  * Test if there are any minions to target
- * @param master Salt connection object
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Target to test
  * @return bool indicating if target was succesful
  */
 
-def testTarget(master, target) {
-    return getMinions(master, target).size() > 0
+def testTarget(saltId, target) {
+    return getMinions(saltId, target).size() > 0
 }
 
 /**
  * Generates node key using key.gen_accept call
- * @param master Salt connection object
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Key generating target
  * @param host Key generating host
  * @param keysize generated key size (optional, default 4096)
  * @return output of salt command
  */
-def generateNodeKey(master, target, host, keysize = 4096) {
-    return runSaltCommand(master, 'wheel', target, 'key.gen_accept', [host], ['keysize': keysize])
+def generateNodeKey(saltId, target, host, keysize = 4096) {
+    return runSaltCommand(saltId, 'wheel', target, 'key.gen_accept', [host], ['keysize': keysize])
 }
 
 /**
  * Generates node reclass metadata
- * @param master Salt connection object
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Metadata generating target
  * @param host Metadata generating host
  * @param classes Reclass classes
  * @param parameters Reclass parameters
  * @return output of salt command
  */
-def generateNodeMetadata(master, target, host, classes, parameters) {
-    return runSaltCommand(master, 'local', target, 'reclass.node_create', [host, '_generated'], ['classes': classes, 'parameters': parameters])
+def generateNodeMetadata(saltId, target, host, classes, parameters) {
+    return runSaltCommand(saltId, 'local', target, 'reclass.node_create', [host, '_generated'], ['classes': classes, 'parameters': parameters])
 }
 
 /**
  * Run salt orchestrate on given targets
- * @param master Salt connection object
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Orchestration target
  * @param orchestrate Salt orchestrate params
  * @return output of salt command
  */
-def orchestrateSystem(master, target, orchestrate) {
-    return runSaltCommand(master, 'runner', target, 'state.orchestrate', [orchestrate])
+def orchestrateSystem(saltId, target, orchestrate) {
+    return runSaltCommand(saltId, 'runner', target, 'state.orchestrate', [orchestrate])
 }
 
 /**
  * Run salt process step
- * @param master Salt connection object
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param tgt Salt process step target
  * @param fun Salt process step function
  * @param arg process step arguments (optional, default [])
@@ -506,7 +472,7 @@ def orchestrateSystem(master, target, orchestrate) {
  * @param timeout  Additional argument salt api timeout
  * @return output of salt command
  */
-def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false, timeout = -1, kwargs = null) {
+def runSaltProcessStep(saltId, tgt, fun, arg = [], batch = null, output = false, timeout = -1, kwargs = null) {
     def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
     def out
@@ -514,9 +480,9 @@ def runSaltProcessStep(master, tgt, fun, arg = [], batch = null, output = false,
     common.infoMsg("Running step ${fun} ${arg} on ${tgt}")
 
     if (batch == true) {
-        out = runSaltCommand(master, 'local_batch', ['expression': tgt, 'type': 'compound'], fun, String.valueOf(batch), arg, kwargs, timeout)
+        out = runSaltCommand(saltId, 'local_batch', ['expression': tgt, 'type': 'compound'], fun, String.valueOf(batch), arg, kwargs, timeout)
     } else {
-        out = runSaltCommand(master, 'local', ['expression': tgt, 'type': 'compound'], fun, batch, arg, kwargs, timeout)
+        out = runSaltCommand(saltId, 'local', ['expression': tgt, 'type': 'compound'], fun, batch, arg, kwargs, timeout)
     }
 
     if (output == true) {
@@ -653,25 +619,25 @@ def printSaltCommandResult(result) {
 /**
  * Return content of file target
  *
- * @param master    Salt master object
+ * @param saltId    Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target    Compound target (should target only one host)
  * @param file      File path to read (/etc/hosts for example)
  */
 
-def getFileContent(master, target, file) {
-    result = cmdRun(master, target, "cat ${file}")
+def getFileContent(saltId, target, file) {
+    result = cmdRun(saltId, target, "cat ${file}")
     return result['return'][0].values()[0].replaceAll('Salt command execution success','')
 }
 
 /**
  * Set override parameters in Salt cluster metadata
  *
- * @param master         Salt master object
+ * @param saltId         Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param salt_overrides YAML formatted string containing key: value, one per line
  * @param reclass_dir    Directory where Reclass git repo is located
  */
 
-def setSaltOverrides(master, salt_overrides, reclass_dir="/srv/salt/reclass") {
+def setSaltOverrides(saltId, salt_overrides, reclass_dir="/srv/salt/reclass") {
     def common = new com.mirantis.mk.Common()
     def salt_overrides_map = readYaml text: salt_overrides
     for (entry in common.entries(salt_overrides_map)) {
@@ -679,9 +645,9 @@ def setSaltOverrides(master, salt_overrides, reclass_dir="/srv/salt/reclass") {
          def value = entry[1]
 
          common.debugMsg("Set salt override ${key}=${value}")
-         runSaltProcessStep(master, 'I@salt:master', 'reclass.cluster_meta_set', ["${key}", "${value}"], false)
+         runSaltProcessStep(saltId, 'I@salt:master', 'reclass.cluster_meta_set', ["${key}", "${value}"], false)
     }
-    runSaltProcessStep(master, 'I@salt:master', 'cmd.run', ["git -C ${reclass_dir} update-index --skip-worktree classes/cluster/overrides.yml"])
+    runSaltProcessStep(saltId, 'I@salt:master', 'cmd.run', ["git -C ${reclass_dir} update-index --skip-worktree classes/cluster/overrides.yml"])
 }
 
 /**
@@ -709,26 +675,4 @@ def runPepperCommand(data, venv)   {
     }
 
     return new groovy.json.JsonSlurperClassic().parseText(output)
-}
-
-/**
-* Create config file for pepper
-*
-* @param url            SALT_MASTER URL
-* @param credentialsId  credentials to SALT_API
-* @param path path to pepper env
-*/
-def createPepperEnv(url, credentialsId, path) {
-    def common = new com.mirantis.mk.Common()
-    rcFile = "${path}/pepperrc"
-    creds = common.getPasswordCredentials(credentialsId)
-    rc = """\
-[main]
-SALTAPI_EAUTH=pam
-SALTAPI_URL=${url}
-SALTAPI_USER=${creds.username}
-SALTAPI_PASS=${creds.password.toString()}
-"""
-    writeFile file: rcFile, text: rc
-    return rcFile
 }

@@ -291,8 +291,26 @@ def jinjaBuildTemplate (template, context, path = none) {
  * Install salt-pepper in isolated environment
  *
  * @param path        Path where virtualenv is created
+ * @param url         SALT_MASTER_URL
+ * @param credentialsId        Credentials to salt api
  */
-def setupPepperVirtualenv(path) {
+def setupPepperVirtualenv(path, url, credentialsId) {
+    def common = new com.mirantis.mk.Common()
+
+    // virtualenv setup
     requirements = ['salt-pepper']
     setupVirtualenv(path, 'python2', requirements)
+
+    // pepperrc creation
+    rcFile = "${path}/pepperrc"
+    creds = common.getPasswordCredentials(credentialsId)
+    rc = """\
+[main]
+SALTAPI_EAUTH=pam
+SALTAPI_URL=${url}
+SALTAPI_USER=${creds.username}
+SALTAPI_PASS=${creds.password.toString()}
+"""
+    writeFile file: rcFile, text: rc
+    return rcFile
 }
