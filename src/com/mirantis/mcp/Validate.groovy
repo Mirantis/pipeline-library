@@ -133,6 +133,24 @@ def getNodeList(master, filter = null) {
     return nodes
 }
 
+/**
+ * Execute mcp sanity tests
+ *
+ * @param salt_url          Salt master url
+ * @param salt_credentials  Salt credentials
+ * @param test_set          Test set for mcp sanity framework
+ * @param output_dir        Directory for results
+ */
+def runSanityTests(salt_url, salt_credentials, test_set, output_dir) {
+    def common = new com.mirantis.mk.Common()
+    creds = common.getCredentials(salt_credentials)
+    username = creds.username
+    password = creds.password
+    def script = ". ${env.WORKSPACE}/venv/bin/activate; pytest --junitxml ${output_dir}cvp_sanity.xml -sv ${env.WORKSPACE}/cvp-sanity-checks/cvp_checks/tests/${test_set}"
+    withEnv(["SALT_USERNAME=${username}", "SALT_PASSWORD=${password}", "SALT_URL=${salt_url}"]) {
+        def statusCode = sh script:script, returnStatus:true
+    }
+}
 
 /**
  * Execute tempest tests
@@ -293,6 +311,24 @@ def runCleanup(master, target, output_dir) {
     def salt = new com.mirantis.mk.Salt()
     if ( salt.cmdRun(master, target, "docker ps -f name=qa_tools -q", false, null, false)['return'][0].values()[0] ) {
         salt.cmdRun(master, target, "docker rm -f qa_tools")
+    }
+}
+
+/**
+ * Prepare venv for any python project
+ * Note: <repo_name>\/requirements.txt content will be used
+ * for this venv
+ *
+ * @param repo_url          Repository url to clone
+ * @param proxy             Proxy address to use
+ */
+def prepareVenv(repo_url, proxy) {
+    def python = new com.mirantis.mk.Python()
+    repo_name = "${repo_url}".tokenize("/").last()
+    sh "rm -rf ${repo_name}"
+    withEnv(["HTTPS_PROXY=${proxy}", "HTTP_PROXY=${proxy}", "https_proxy=${proxy}", "http_proxy=${proxy}"]) {
+        sh "git clone ${repo_url}"
+        python.setupVirtualenv("${env.WORKSPACE}/venv", "python2", [], "${env.WORKSPACE}/${repo_name}/requirements.txt", true)
     }
 }
 
