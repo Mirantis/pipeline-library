@@ -689,12 +689,14 @@ def installCephMon(master, target='I@ceph:mon') {
     // generate keyrings
     if (salt.testTarget(master, 'I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin')) {
         salt.enforceState(master, 'I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin', 'ceph.mon', true)
+        salt.runSaltProcessStep(master, 'I@ceph:mon', 'saltutil.sync_all', [], null, true)
         salt.runSaltProcessStep(master, 'I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin', 'mine.update', [], null, true)
+        sleep(5)
     }
     // install Ceph Mons
     salt.enforceState(master, target, 'ceph.mon', true)
     if (salt.testTarget(master, 'I@ceph:mgr')) {
-        salt.enforceState(master, 'I@ceph.mgr', 'ceph.mgr', true)
+        salt.enforceState(master, 'I@ceph:mgr', 'ceph.mgr', true)
     }
 }
 
