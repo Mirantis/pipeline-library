@@ -463,8 +463,8 @@ def installCicd(master) {
 
     //Install and Configure Docker
     salt.enforceState(master, 'I@aptly:publisher', 'aptly.publisher')
-    salt.enforceState(master, 'I@docker:swarm:role:master', 'docker.client', true)
-    sleep(300)
+    salt.enforceState(master, 'I@docker:swarm:role:master and I@jenkins:client', 'docker.client', true)
+    sleep(500)
     salt.enforceState(master, 'I@aptly:server', 'aptly', true)
     salt.enforceState(master, 'I@openldap:client', 'openldap', true)
 
@@ -496,6 +496,11 @@ def installStacklight(master) {
             salt.enforceState(master, 'I@glusterfs:client', 'glusterfs.client', true)
         }
     }
+
+    // Launch containers
+    salt.enforceState(master, 'I@docker:swarm:role:master and I@prometheus:server', 'docker.client', true)
+    salt.runSaltProcessStep(master, 'I@docker:swarm and I@prometheus:server', 'dockerng.ps', [], null, true)
+
     //Install Telegraf
     salt.enforceState(master, 'I@telegraf:agent or I@telegraf:remote_agent', 'telegraf', true)
 
@@ -543,8 +548,6 @@ def installStacklight(master) {
     else {
         salt.enforceState(master, 'I@docker:swarm and I@prometheus:server', ['prometheus', 'heka.remote_collector'], true, false)
     }
-    salt.enforceState(master, 'I@docker:swarm:role:master', 'docker', true)
-    salt.runSaltProcessStep(master, 'I@docker:swarm', 'dockerng.ps', [], null, true)
 
     //Configure Grafana
     def pillar = salt.getPillar(master, 'ctl01*', '_param:stacklight_monitor_address')
@@ -683,20 +686,26 @@ def installStacklightv1Client(master) {
 def installCephMon(master, target='I@ceph:mon') {
     def salt = new com.mirantis.mk.Salt()
 
+    // generate keyrings
+    if (salt.testTarget(master, 'I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin')) {
+        salt.enforceState(master, 'I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin', 'ceph.mon', true)
+        salt.runSaltProcessStep(master, 'I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin', 'mine.update', [], null, true)
+    }
     // install Ceph Mons
     salt.enforceState(master, target, 'ceph.mon', true)
+    if (salt.testTarget(master, 'I@ceph:mgr')) {
+        salt.enforceState(master, 'I@ceph.mgr', 'ceph.mgr', true)
+    }
 }
 
 def installCephOsd(master, target='I@ceph:osd', setup=true) {
     def salt = new com.mirantis.mk.Salt()
 
-    // Prapare filesystem on OSD drives
-    salt.enforceState(master, target, 'linux.storage', true)
-
     // install Ceph OSDs
     salt.enforceState(master, target, 'ceph.osd', true)
+    salt.enforceState(master, target, 'ceph.osd.custom', true)
 
-    // setup poools, keyrings and maybe crush
+    // setup pools, keyrings and maybe crush
     if (salt.testTarget(master, 'I@ceph:setup') && setup) {
         sleep(30)
         salt.enforceState(master, 'I@ceph:setup', 'ceph.setup', true)
@@ -709,5 +718,22 @@ def installCephClient(master) {
     // install Ceph Radosgw
     if (salt.testTarget(master, 'I@ceph:radosgw')) {
         salt.enforceState(master, 'I@ceph:radosgw', 'ceph.radosgw', true)
+    }
+}
+
+def connectCeph(master) {
+    def salt = new com.mirantis.mk.Salt()
+
+    // connect Ceph to the env
+    if (salt.testTarget(master, 'I@ceph:common and I@glance:server')) {
+        salt.enforceState(master, 'I@ceph:common and I@glance:server', ['ceph.common', 'ceph.setup.keyring', 'glance'], true)
+        salt.runSaltProcessStep(master, 'I@ceph:common and I@glance:server', 'service.restart', ['glance-api', 'glance-glare', 'glance-registry'])
+    }
+    if (salt.testTarget(master, 'I@ceph:common and I@cinder:controller')) {
+        salt.enforceState(master, 'I@ceph:common and I@cinder:controller', ['ceph.common', 'ceph.setup.keyring', 'cinder'], true)
+    }
+    if (salt.testTarget(master, 'I@ceph:common and I@nova:compute')) {
+        salt.enforceState(master, 'I@ceph:common and I@nova:compute', ['ceph.common', 'ceph.setup.keyring'], true)
+        salt.enforceState(master, 'I@ceph:common and I@nova:compute', ['nova'], true)
     }
 }
