@@ -689,7 +689,7 @@ def installCephMon(master, target='I@ceph:mon') {
     // generate keyrings
     if (salt.testTarget(master, 'I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin')) {
         salt.enforceState(master, 'I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin', 'ceph.mon', true)
-        salt.runSaltProcessStep(master, 'I@ceph:mon', 'saltutil.sync_all', [], null, true)
+        salt.runSaltProcessStep(master, 'I@ceph:mon', 'saltutil.sync_grains', [], null, true)
         salt.runSaltProcessStep(master, 'I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin', 'mine.update', [], null, true)
         sleep(5)
     }
@@ -705,11 +705,12 @@ def installCephOsd(master, target='I@ceph:osd', setup=true) {
 
     // install Ceph OSDs
     salt.enforceState(master, target, 'ceph.osd', true)
+    salt.runSaltProcessStep(master, 'I@ceph:osd', 'saltutil.sync_grains', [], null, true)
     salt.enforceState(master, target, 'ceph.osd.custom', true)
 
     // setup pools, keyrings and maybe crush
     if (salt.testTarget(master, 'I@ceph:setup') && setup) {
-        sleep(30)
+        sleep(5)
         salt.enforceState(master, 'I@ceph:setup', 'ceph.setup', true)
     }
 }
@@ -736,6 +737,7 @@ def connectCeph(master) {
     }
     if (salt.testTarget(master, 'I@ceph:common and I@nova:compute')) {
         salt.enforceState(master, 'I@ceph:common and I@nova:compute', ['ceph.common', 'ceph.setup.keyring'], true)
+        salt.runSaltProcessStep(master, 'I@ceph:common and I@nova:compute', 'saltutil.sync_grains', [], null, true)
         salt.enforceState(master, 'I@ceph:common and I@nova:compute', ['nova'], true)
     }
 }
