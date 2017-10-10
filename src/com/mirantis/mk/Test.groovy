@@ -68,7 +68,7 @@ def runTempestTests(master, dockerImageLink, target, pattern = "false", logDir =
                                          "-e SOURCE_FILE=keystonercv3 " +
                                          "-e LOG_DIR=${logDir} " +
                                          "-e DO_CLEANUP_RESOURCES=${doCleanupResources} " +
-                                         "-e CUSTOM='--pattern ${pattern}' " +
+                                         "-e CUSTOM=\"--pattern ${pattern}\" " +
                                          "-v /root/:/home/rally ${dockerImageLink} >> docker-tempest.log")
     }
 }
