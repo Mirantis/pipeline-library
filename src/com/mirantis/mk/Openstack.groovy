@@ -27,6 +27,8 @@ def setupOpenstackVirtualenv(path, version = 'latest') {
     python.setupDocutilsVirtualenv(path)
 
     def openstack_kilo_packages = [
+        //XXX: hack to fix https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1635463
+        'cliff==2.8',
         'python-cinderclient>=1.3.1,<1.4.0',
         'python-glanceclient>=0.19.0,<0.20.0',
         'python-heatclient>=0.6.0,<0.7.0',
@@ -43,6 +45,8 @@ def setupOpenstackVirtualenv(path, version = 'latest') {
     ]
 
     def openstack_latest_packages = [
+        //XXX: hack to fix https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1635463
+        'cliff==2.8',
         'python-openstackclient',
         'python-heatclient',
         'docutils'

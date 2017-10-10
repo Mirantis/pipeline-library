@@ -17,8 +17,7 @@ package com.mirantis.mk
 def setupVirtualenv(path, python = 'python2', reqs=[], reqs_path=null, clean=false) {
     def common = new com.mirantis.mk.Common()
 
-    //XXX: hack to fix https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1635463
-    def virtualenv_cmd = "virtualenv ${path} --python ${python} --no-setuptools"
+    def virtualenv_cmd = "virtualenv ${path} --python ${python}"
 
     if (clean) {
         common.infoMsg("Cleaning venv directory " + path)
@@ -35,8 +34,6 @@ def setupVirtualenv(path, python = 'python2', reqs=[], reqs_path=null, clean=fal
         writeFile file: "${path}/requirements.txt", text: args
         reqs_path = "${path}/requirements.txt"
     }
-    //XXX: hack to fix https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1635463
-    runVirtualenvCommand(path, "pip install setuptools")
     runVirtualenvCommand(path, "pip install -r ${reqs_path}")
 }
 
