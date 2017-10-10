@@ -295,8 +295,8 @@ def setupPepperVirtualenv(path, url, credentialsId) {
     def common = new com.mirantis.mk.Common()
 
     // virtualenv setup
-    requirements = ['salt-pepper']
-    setupVirtualenv(path, 'python2', requirements)
+    setupVirtualenv(path, 'python2')
+    runVirtualenvCommand(path, "pip install git+git://github.com/saltstack/pepper.git")
 
     // pepperrc creation
     rcFile = "${path}/pepperrc"
