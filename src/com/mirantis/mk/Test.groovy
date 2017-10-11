@@ -47,30 +47,37 @@ def copyTestsOutput(master, image) {
  * @param target            Host to run tests
  * @param pattern           If not false, will run only tests matched the pattern
  * @param logDir            Directory to store tempest/rally reports
+ * @param sourceFile        Path to the keystonerc file in the container
+ * @param set               Predefined set for tempest tests
+ * @param concurrency       How many processes to use to run Tempest tests
+ * @param tempestConf       A tempest.conf's file name
+ * @param skipList          A skip.list's file name
+ * @param localKeystone     Path to the keystonerc file in the local host
+ * @param localLogDir       Path to local destination folder for logs
  */
 def runTempestTests(master, dockerImageLink, target, pattern = "false", logDir = "/home/rally/rally_reports/",
+                    sourceFile="/home/rally/keystonercv3", set="full", concurrency="0", tempestConf="mcp.conf",
+                    skipList="mcp_skip.list", localKeystone="/root/keystonercv3" , localLogDir="/root/rally_reports",
                     doCleanupResources = "false") {
     def salt = new com.mirantis.mk.Salt()
-    salt.runSaltProcessStep(master, target, 'file.mkdir', ["/root/rally_reports"])
-    if (pattern == "false") {
-        salt.cmdRun(master, "${target}", "docker run --rm --net=host " +
-                                         "-e TEMPEST_CONF=mcp.conf " +
-                                         "-e SKIP_LIST=mcp_skip.list " +
-                                         "-e SOURCE_FILE=keystonercv3 " +
-                                         "-e LOG_DIR=${logDir} " +
-                                         "-e DO_CLEANUP_RESOURCES=${doCleanupResources} " +
-                                         "-v /root/:/home/rally ${dockerImageLink} >> docker-tempest.log")
+    salt.runSaltProcessStep(master, target, 'file.mkdir', ["${localLogDir}"])
+    def custom = ''
+    if (pattern != "false") {
+        custom = "--pattern " + pattern
     }
-    else {
-        salt.cmdRun(master, "${target}", "docker run --rm --net=host " +
-                                         "-e TEMPEST_CONF=mcp.conf " +
-                                         "-e SKIP_LIST=mcp_skip.list " +
-                                         "-e SOURCE_FILE=keystonercv3 " +
-                                         "-e LOG_DIR=${logDir} " +
-                                         "-e DO_CLEANUP_RESOURCES=${doCleanupResources} " +
-                                         "-e CUSTOM=\"--pattern ${pattern}\" " +
-                                         "-v /root/:/home/rally ${dockerImageLink} >> docker-tempest.log")
-    }
+    salt.cmdRun(master, "${target}", "docker run --rm --net=host " +
+                                    "-e SOURCE_FILE=${sourceFile} " +
+                                    "-e LOG_DIR=${logDir} " +
+                                    "-e SET=${set} " +
+                                    "-e CUSTOM=\"${custom}\" " +
+                                    "-e CONCURRENCY=${concurrency} " +
+                                    "-e TEMPEST_CONF=${tempestConf} " +
+                                    "-e SKIP_LIST=${skipList} " +
+                                    "-e DO_CLEANUP_RESOURCES=${doCleanupResources} " +
+                                    "-v ${localKeystone}:${sourceFile} " +
+                                    "-v ${localLogDir}:/home/rally/rally_reports " +
+                                    "-v /etc/ssl/certs/:/etc/ssl/certs/ " +
+                                    "${dockerImageLink} >> docker-tempest.log")
 }
 
 
