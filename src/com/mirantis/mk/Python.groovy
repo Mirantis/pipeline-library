@@ -296,7 +296,7 @@ def setupPepperVirtualenv(path, url, credentialsId) {
 
     // virtualenv setup
     setupVirtualenv(path, 'python2')
-    runVirtualenvCommand(path, "pip install git+git://github.com/saltstack/pepper.git")
+    runVirtualenvCommand(path, "pip install git+https://github.com/saltstack/pepper.git")
 
     // pepperrc creation
     rcFile = "${path}/pepperrc"
