@@ -707,6 +707,9 @@ def installCephOsd(master, target='I@ceph:osd', setup=true) {
     salt.enforceState(master, target, 'ceph.osd', true)
     salt.runSaltProcessStep(master, 'I@ceph:osd', 'saltutil.sync_grains', [], null, true)
     salt.enforceState(master, target, 'ceph.osd.custom', true)
+    salt.enforceState(master, target, 'salt.minion.grains', true)
+    salt.runSaltProcessStep(master, 'I@ceph:osd', 'saltutil.sync_grains', [], null, true)
+    salt.runSaltProcessStep(master, 'I@ceph:osd', 'mine.update', [], null, true)
 
     // setup pools, keyrings and maybe crush
     if (salt.testTarget(master, 'I@ceph:setup') && setup) {
