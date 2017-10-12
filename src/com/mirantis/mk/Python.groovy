@@ -17,7 +17,7 @@ package com.mirantis.mk
 def setupVirtualenv(path, python = 'python2', reqs=[], reqs_path=null, clean=false) {
     def common = new com.mirantis.mk.Common()
 
-    def virtualenv_cmd = "virtualenv ${path} --python ${python}"
+    def virtualenv_cmd = "[ -d ${path} ] || virtualenv ${path} --python ${python}"
 
     if (clean) {
         common.infoMsg("Cleaning venv directory " + path)
@@ -26,6 +26,11 @@ def setupVirtualenv(path, python = 'python2', reqs=[], reqs_path=null, clean=fal
 
     common.infoMsg("[Python ${path}] Setup ${python} environment")
     sh(returnStdout: true, script: virtualenv_cmd)
+    try {
+        runVirtualenvCommand(path, "pip install -U setuptools pip")
+    } catch(Exception e) {
+        common.warnMsg("Setuptools and pip cannot be updated, you might be offline")
+    }
     if (reqs_path==null) {
         def args = ""
         for (req in reqs) {
