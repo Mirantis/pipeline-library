@@ -686,6 +686,8 @@ def installStacklightv1Client(master) {
 def installCephMon(master, target='I@ceph:mon') {
     def salt = new com.mirantis.mk.Salt()
 
+    salt.enforceState(master, 'I@ceph:common', 'salt.minion.grains', true)
+
     // generate keyrings
     if (salt.testTarget(master, 'I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin')) {
         salt.enforceState(master, 'I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin', 'ceph.mon', true)
@@ -707,7 +709,6 @@ def installCephOsd(master, target='I@ceph:osd', setup=true) {
     salt.enforceState(master, target, 'ceph.osd', true)
     salt.runSaltProcessStep(master, 'I@ceph:osd', 'saltutil.sync_grains', [], null, true)
     salt.enforceState(master, target, 'ceph.osd.custom', true)
-    salt.enforceState(master, target, 'salt.minion.grains', true)
     salt.runSaltProcessStep(master, 'I@ceph:osd', 'saltutil.sync_grains', [], null, true)
     salt.runSaltProcessStep(master, 'I@ceph:osd', 'mine.update', [], null, true)
 
@@ -723,6 +724,7 @@ def installCephClient(master) {
 
     // install Ceph Radosgw
     if (salt.testTarget(master, 'I@ceph:radosgw')) {
+        salt.runSaltProcessStep(master, 'I@ceph:radosgw', 'saltutil.sync_grains', [], null, true)
         salt.enforceState(master, 'I@ceph:radosgw', 'ceph.radosgw', true)
     }
 }
