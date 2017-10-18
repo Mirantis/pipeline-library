@@ -29,7 +29,7 @@ def setupVirtualenv(path, python = 'python2', reqs=[], reqs_path=null, clean=fal
     try {
         runVirtualenvCommand(path, "pip install -U setuptools pip")
     } catch(Exception e) {
-        common.warnMsg("Setuptools and pip cannot be updated, you might be offline")
+        common.warningMsg("Setuptools and pip cannot be updated, you might be offline")
     }
     if (reqs_path==null) {
         def args = ""
