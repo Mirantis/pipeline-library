@@ -39,30 +39,49 @@ def runContainerConfiguration(master, dockerImageLink, target, output_dir, ext_v
 }
 
 /**
- * Get file content. Extended version
+ * Get file content (encoded). The content encoded by Base64.
  *
  * @param target            Compound target (should target only one host)
  * @param file              File path to read
- * @return                  The content of the file
+ * @return                  The encoded content of the file
  */
-def getFileContent(master, target, file) {
+def getFileContentEncoded(master, target, file) {
     def salt = new com.mirantis.mk.Salt()
-    def _result = null
-    def file_content = null
-    def result = salt.cmdRun(master, target, "if [ \$(wc -c <${file}) -gt 1048575 ]; then echo 1; fi", false, null, false)
-    def large_file = result['return'][0].values()[0]
-    if ( large_file ) {
-        salt.cmdRun(master, target, "split -b 1MB -d ${file} ${file}__", false, null, false)
-        def list_files = salt.cmdRun(master, target, "ls ${file}__*", false, null, false)
-        for ( item in list_files['return'][0].values()[0].tokenize() ) {
-            _result = salt.cmdRun(master, target, "cat ${item}", false, null, false)
-            file_content = file_content + _result['return'][0].values()[0].replaceAll('Salt command execution success','')
-        }
-        salt.cmdRun(master, target, "rm ${file}__*", false, null, false)
-        return file_content
-    } else {
-        _result = salt.cmdRun(master, target, "cat ${file}", false, null, false)
-        return _result['return'][0].values()[0].replaceAll('Salt command execution success','')
+    def file_content = ''
+    def cmd = "base64 -w0 ${file} > ${file}_encoded; " +
+              "split -b 1MB -d ${file}_encoded ${file}__; " +
+              "rm ${file}_encoded"
+    salt.cmdRun(master, target, cmd, false, null, false)
+    def filename = file.tokenize('/').last()
+    def folder = file - filename
+    def parts = salt.runSaltProcessStep(master, target, 'file.find', ["${folder}", "type=f", "name=${filename}__*"])
+    for ( part in parts['return'][0].values()[0]) {
+        def _result = salt.cmdRun(master, target, "cat ${part}", false, null, false)
+        file_content = file_content + _result['return'][0].values()[0].replaceAll('Salt command execution success','')
+    }
+    salt.runSaltProcessStep(master, target, 'file.find', ["${folder}", "type=f", "name=${filename}__*", "delete"])
+    return file_content
+}
+
+/**
+ * Copy files from remote to local directory. The content of files will be
+ * decoded by Base64.
+ *
+ * @param target            Compound target (should target only one host)
+ * @param folder            The path to remote folder.
+ * @param output_dir        The path to local folder.
+ */
+def addFiles(master, target, folder, output_dir) {
+    def salt = new com.mirantis.mk.Salt()
+    def _result = salt.runSaltProcessStep(master, target, 'file.find', ["${folder}", "type=f"])
+    def files = _result['return'][0].values()[0]
+    for (file in files) {
+        def file_content = getFileContentEncoded(master, target, "${file}")
+        def fileName = file.tokenize('/').last()
+        writeFile file: "${output_dir}${fileName}_encoded", text: file_content
+        def cmd = "base64 -d ${output_dir}${fileName}_encoded > ${output_dir}${fileName}; " +
+                  "rm ${output_dir}${fileName}_encoded"
+        sh(script: cmd)
     }
 }
 
@@ -77,12 +96,11 @@ def getReclassValue(master, target, filter) {
     def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
     def items = filter.tokenize('.')
-    def _result = salt.cmdRun(master, 'I@salt:master', "reclass-salt -o json -p ${target} | " +
-        "python -c 'import json,sys; print(json.dumps(json.loads(sys.stdin.read()).get(\"${items[0]}\")))'", false, null, false)
+    def _result = salt.cmdRun(master, 'I@salt:master', "reclass-salt -o json -p ${target}", false, null, false)
     _result = common.parseJSON(_result['return'][0].values()[0])
-    for ( item in items.tail()) {
+    for (int k = 0; k < items.size(); k++) {
         if ( _result ) {
-            _result = _result["${item}"]
+            _result = _result["${items[k]}"]
         }
     }
     return _result
@@ -97,40 +115,34 @@ def getReclassValue(master, target, filter) {
 def getNodeList(master, filter = null) {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
-    def builder = new groovy.json.JsonBuilder()
     def nodes = []
-    def n_counter = 0
     def filtered_list = null
     def controllers = salt.getMinions(master, 'I@nova:controller')
     def hw_nodes = salt.getMinions(master, 'G@virtual:physical')
-    def json = builder (ip: '', roles: '', id: '', network_data: [ builder (name: 'management', ip:  '')])
     if ( filter ) {
         filtered_list = salt.getMinions(master, filter)
-        filtered_list.addAll(controllers)
     }
     def _result = salt.cmdRun(master, 'I@salt:master', "reclass-salt -o json -t", false, null, false)
     def reclass_top = common.parseJSON(_result['return'][0].values()[0])
-    for (item in reclass_top.base) {
+    def nodesList = reclass_top['base'].keySet()
+    for (int i = 0; i < nodesList.size(); i++) {
         if ( filtered_list ) {
-            if ( ! filtered_list.contains(item.getKey()) ) {
+            if ( ! filtered_list.contains(nodesList[i]) ) {
                 continue
             }
         }
-        n_counter += 1
-        json.id = n_counter.toString()
-        json.ip = getReclassValue(master, item.getKey(), '_param.linux_single_interface.address')
-        json.network_data[0].ip = json.ip
-        json.roles = item.getKey().tokenize('.')[0]
-        if ( controllers.contains(item.getKey()) ) {
-            json.roles = "${json.roles}, controller"
+        def ip = getReclassValue(master, nodesList[i], '_param.linux_single_interface.address')
+        def network_data = [ip: ip, name: 'management']
+        def roles = [nodesList[i].tokenize('.')[0]]
+        if ( controllers.contains(nodesList[i]) ) {
+            roles.add('controller')
         }
-        if ( hw_nodes.contains(item.getKey()) ) {
-            json.roles = "${json.roles}, hw_node"
+        if ( hw_nodes.contains(nodesList[i]) ) {
+            roles.add('hw_node')
         }
-        def node = builder.toPrettyString().replace('"', '\\"')
-        nodes.add(node)
+        nodes.add([id: i+1, ip: ip, roles: roles, network_data: [network_data]])
     }
-    return nodes
+    return common.prettify(nodes)
 }
 
 /**
@@ -156,117 +168,120 @@ def runSanityTests(salt_url, salt_credentials, test_set, output_dir) {
  * Execute tempest tests
  *
  * @param target            Host to run tests
+ * @param dockerImageLink   Docker image link
  * @param pattern           If not false, will run only tests matched the pattern
  * @param output_dir        Directory for results
  */
-def runTempestTests(master, target, output_dir, pattern = "false") {
+def runTempestTests(master, target, dockerImageLink, output_dir, pattern = "false") {
     def salt = new com.mirantis.mk.Salt()
     def output_file = 'docker-tempest.log'
-    def path = '/opt/devops-qa-tools/generate_test_report/test_results'
-    def jsonfile = 'tempest_results.json'
-    def htmlfile = 'tempest_results.html'
-    if (pattern == "false") {
-        salt.cmdRun(master, target, "docker exec qa_tools rally verify start --pattern set=full " +
-                "--detailed > ${output_file}")
+    def results = '/root/qa_results'
+    def dest_folder = '/home/rally/qa_results'
+    salt.runSaltProcessStep(master, target, 'file.remove', ["${results}"])
+    salt.runSaltProcessStep(master, target, 'file.mkdir', ["${results}", "mode=777"])
+    def _pillar = salt.getPillar(master, 'I@keystone:server', 'keystone:server')
+    def keystone = _pillar['return'][0].values()[0]
+    def env_vars = ['tempest_version=15.0.0',
+                    "OS_USERNAME=${keystone.admin_name}",
+                    "OS_PASSWORD=${keystone.admin_password}",
+                    "OS_TENANT_NAME=${keystone.admin_tenant}",
+                    "OS_AUTH_URL=http://${keystone.bind.private_address}:${keystone.bind.private_port}/v2.0",
+                    "OS_REGION_NAME=${keystone.region}",
+                    'OS_ENDPOINT_TYPE=admin'].join(' -e ')
+    def cmd = '/opt/devops-qa-tools/deployment/configure.sh; '
+    if (pattern == 'false') {
+        cmd += 'rally verify start --pattern set=full --detailed; '
     }
     else {
-        salt.cmdRun(master, target, "docker exec qa_tools rally verify start --pattern ${pattern} " +
-                "--detailed > ${output_file}")
+        cmd += "rally verify start --pattern set=${pattern} --detailed; "
     }
-    salt.cmdRun(master, target, "docker exec qa_tools rally verify report --type json " +
-                "--to ${path}/report-tempest.json")
-    salt.cmdRun(master, target, "docker exec qa_tools rally verify report --type html " +
-                "--to ${path}/report-tempest.html")
-
-    salt.cmdRun(master, target, "docker cp qa_tools:${path}/report-tempest.json ${jsonfile}")
-    salt.cmdRun(master, target, "docker cp qa_tools:${path}/report-tempest.html ${htmlfile}")
-    def file_content = getFileContent(master, target, jsonfile)
-    writeFile file: "${output_dir}/report-tempest.json", text: file_content
-    file_content = getFileContent(master, target, htmlfile)
-    writeFile file: "${output_dir}/report-tempest.html", text: file_content
-    file_content = getFileContent(master, target, output_file)
-    writeFile file: "${output_dir}${output_file}", text: file_content
+    cmd += "rally verify report --type json --to ${dest_folder}/report-tempest.json; " +
+        "rally verify report --type html --to ${dest_folder}/report-tempest.html"
+    salt.cmdRun(master, target, "docker run -i --rm --net=host -e ${env_vars} " +
+        "-v ${results}:${dest_folder} ${dockerImageLink} " +
+        "/bin/bash -c \"${cmd}\" > ${results}/${output_file}")
+    addFiles(master, target, results, output_dir)
 }
 
 /**
  * Execute rally tests
  *
  * @param target            Host to run tests
+ * @param dockerImageLink   Docker image link
  * @param pattern           If not false, will run only tests matched the pattern
  * @param output_dir        Directory for results
+ * @param ext_variables     The list of external variables
  */
-def runRallyTests(master, target, output_dir, pattern = "false") {
+def runRallyTests(master, target, dockerImageLink, output_dir, ext_variables = []) {
     def salt = new com.mirantis.mk.Salt()
     def output_file = 'docker-rally.log'
-    def path = '/opt/devops-qa-tools/generate_test_report/test_results'
-    def xmlfile = 'rally_results.xml'
-    def htmlfile = 'rally_results.html'
-    salt.cmdRun(master, target, "docker exec qa_tools rally task start combined_scenario.yaml --task-args-file " +
-            "/opt/devops-qa-tools/rally-scenarios/task_arguments.yaml | tee ${output_file}")
-
-    salt.cmdRun(master, target, "docker exec qa_tools rally task export --type junit-xml " +
-                "--to ${path}/report-rally.xml")
-    salt.cmdRun(master, target, "docker exec qa_tools rally task report --out ${path}/report-rally.html")
-    salt.cmdRun(master, target, "docker cp qa_tools:${path}/report-rally.xml ${xmlfile}")
-    salt.cmdRun(master, target, "docker cp qa_tools:${path}/report-rally.html ${htmlfile}")
-
-    def file_content = getFileContent(master, target, xmlfile)
-    writeFile file: "${output_dir}/report-rally.xml", text: file_content
-    file_content = getFileContent(master, target, htmlfile)
-    writeFile file: "${output_dir}/report-rally.html", text: file_content
-    file_content = getFileContent(master, target, output_file)
-    writeFile file: "${output_dir}${output_file}", text: file_content
+    def results = '/root/qa_results'
+    def dest_folder = '/home/rally/qa_results'
+    salt.runSaltProcessStep(master, target, 'file.remove', ["${results}"])
+    salt.runSaltProcessStep(master, target, 'file.mkdir', ["${results}", "mode=777"])
+    def _pillar = salt.getPillar(master, 'I@keystone:server', 'keystone:server')
+    def keystone = _pillar['return'][0].values()[0]
+    def env_vars = ( ['tempest_version=15.0.0',
+                      "OS_USERNAME=${keystone.admin_name}",
+                      "OS_PASSWORD=${keystone.admin_password}",
+                      "OS_TENANT_NAME=${keystone.admin_tenant}",
+                      "OS_AUTH_URL=http://${keystone.bind.private_address}:${keystone.bind.private_port}/v2.0",
+                      "OS_REGION_NAME=${keystone.region}",
+                      'OS_ENDPOINT_TYPE=admin'] + ext_variables ).join(' -e ')
+    def cmd = '/opt/devops-qa-tools/deployment/configure.sh; ' +
+        'rally task start combined_scenario.yaml ' +
+        "--task-args-file /opt/devops-qa-tools/rally-scenarios/task_arguments.yaml; " +
+        "rally task export --type junit-xml --to ${dest_folder}/report-rally.xml; " +
+        "rally task report --out ${dest_folder}/report-rally.html"
+    salt.cmdRun(master, target, "docker run -i --rm --net=host -e ${env_vars} " +
+        "-v ${results}:${dest_folder} ${dockerImageLink} " +
+        "/bin/bash -c \"${cmd}\" > ${results}/${output_file}")
+    addFiles(master, target, results, output_dir)
 }
 
 /**
  * Generate test report
  *
  * @param target            Host to run script from
+ * @param dockerImageLink   Docker image link
  * @param output_dir        Directory for results
  */
-def generateTestReport(master, target, output_dir) {
+def generateTestReport(master, target, dockerImageLink, output_dir) {
     def report_file = 'jenkins_test_report.html'
-    def path = '/opt/devops-qa-tools/generate_test_report/'
-    def res_path = '/opt/devops-qa-tools/generate_test_report/test_results/'
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
-
-    // Create 'test_results' directory in case it doesn't exist in container
-    def test_results = salt.cmdRun(master, target, "docker exec qa_tools bash -c \"if [ ! -d ${res_path} ]; " +
-                "then echo Creating directory ${res_path}; mkdir ${res_path}; fi\"")
-
-    def reports = ['report-tempest.json', 'report-rally.xml', 'report-k8s-e2e-tests.txt', 'report-ha.json', 'report-spt.txt']
-
-    for (report in reports) {
-        def _result = salt.cmdRun(master, target, "docker exec qa_tools bash -c \"if [ -f ${res_path}${report} ]; then echo 1; fi\"", checkResponse=false)
-        res = _result['return'][0].values()[0]
-        if ( res ) {
-            common.infoMsg("File ${report} already exists in docker container")
-            continue
-        }
+    def results = '/root/qa_results'
+    def dest_folder = '/opt/devops-qa-tools/generate_test_report/test_results'
+    salt.runSaltProcessStep(master, target, 'file.remove', ["${results}"])
+    salt.runSaltProcessStep(master, target, 'file.mkdir', ["${results}", "mode=777"])
+    def reports = ['report-tempest.json',
+                   'report-rally.xml',
+                   'report-k8s-e2e-tests.txt',
+                   'report-ha.json',
+                   'report-spt.txt']
+    for ( report in reports ) {
         if ( fileExists("${output_dir}${report}") ) {
             common.infoMsg("Copying ${report} to docker container")
-            if ("${report}" == "report-tempest.json") {
-                def temp_file = readJSON file: "${output_dir}/${report}"
-                def tempest_cont = temp_file['verifications']
-                def json = common.prettify(["verifications":tempest_cont])
-                json = sh(script: "echo '${json}' | base64 -w 0", returnStdout: true)
-                salt.cmdRun(master, target, "docker exec qa_tools bash -c \"echo \"${json}\" | base64 -d | tee ${res_path}${report}\"", false, null, true)
+            def items = sh(script: "base64 -w0 ${output_dir}${report} > ${output_dir}${report}_encoded; " +
+                "split -b 100KB -d -a 4 ${output_dir}${report}_encoded ${output_dir}${report}__; " +
+                "rm ${output_dir}${report}_encoded; " +
+                "find ${output_dir} -type f -name ${report}__* -printf \'%f\\n\' | sort", returnStdout: true)
+            for ( item in items.tokenize() ) {
+                def content = sh(script: "cat ${output_dir}${item}", returnStdout: true)
+                salt.cmdRun(master, target, "echo \"${content}\" >> ${results}/${report}_encoded", false, null, false)
+                sh(script: "rm ${output_dir}${item}")
             }
-            else if ( "${report}" == "report-k8s-e2e-tests.txt" ) {
-                def k8s_content = sh(script: "cat ${output_dir}${report}| tail -20 | base64 -w 0", returnStdout: true)
-                salt.cmdRun(master, target, "docker exec qa_tools bash -c \"echo ${k8s_content} | base64 -d | tee ${res_path}${report}\"", false, null, true)
-            }
-            else {
-                def rep_content = sh(script: "cat ${output_dir}${report} | base64 -w 0", returnStdout: true)
-                salt.cmdRun(master, target, "docker exec qa_tools bash -c \"echo \"${rep_content}\" | base64 -d | tee ${res_path}${report}\"", false, null, true)
-            }
+            salt.cmdRun(master, target, "base64 -d ${results}/${report}_encoded > ${results}/${report}; " +
+                "rm ${results}/${report}_encoded", false, null, false)
         }
     }
-    salt.cmdRun(master, target, "docker exec qa_tools jenkins_report.py --path ${path}")
-    salt.cmdRun(master, target, "docker cp qa_tools:/home/rally/${report_file} ${report_file}")
 
-    def report_content = salt.getFileContent(master, target, report_file)
+    def cmd = "jenkins_report.py --path /opt/devops-qa-tools/generate_test_report/; " +
+        "cp ${report_file} ${dest_folder}/${report_file}"
+    salt.cmdRun(master, target, "docker run -i --rm --net=host " +
+        "-v ${results}:${dest_folder} ${dockerImageLink} " +
+        "/bin/bash -c \"${cmd}\"")
+    def report_content = salt.getFileContent(master, target, "${results}/${report_file}")
     writeFile file: "${output_dir}${report_file}", text: report_content
 }
 
@@ -274,40 +289,51 @@ def generateTestReport(master, target, output_dir) {
  * Execute SPT tests
  *
  * @param target            Host to run tests
+ * @param dockerImageLink   Docker image link
  * @param output_dir        Directory for results
+ * @param ext_variables     The list of external variables
  */
-def runSptTests(master, target, output_dir) {
+def runSptTests(master, target, dockerImageLink, output_dir, ext_variables = []) {
     def salt = new com.mirantis.mk.Salt()
-    def output_file = 'docker-spt.log'
-    def report_file = 'report-spt.txt'
-    def report_file_hw = 'report-spt-hw.txt'
-    def archive_file = 'results-spt.tar.gz'
-    def path = '/opt/devops-qa-tools/generate_test_report/test_results'
-
-    salt.cmdRun(master, target, "docker exec qa_tools sudo timmy -c simplified-performance-testing/config.yaml " +
-            "--nodes-json nodes.json --log-file ${output_file}")
-    salt.cmdRun(master, target, "docker exec qa_tools ./simplified-performance-testing/SPT_parser.sh > ${report_file}")
-    salt.cmdRun(master, target, "docker exec qa_tools custom_spt_parser.sh > ${report_file_hw}")
-
-    salt.cmdRun(master, target, "docker cp ${report_file} qa_tools:${path}/report-spt.txt")
-    salt.cmdRun(master, target, "docker cp qa_tools:/home/rally/${output_file} ${output_file}")
-    salt.cmdRun(master, target, "docker cp qa_tools:/tmp/timmy/archives/general.tar.gz ${archive_file}")
-
-    def file_content = getFileContent(master, target, output_file)
-    writeFile file: "${output_dir}${output_file}", text: file_content
-    file_content = getFileContent(master, target, report_file)
-    writeFile file: "${output_dir}${report_file}", text: file_content
-    file_content = getFileContent(master, target, report_file_hw)
-    writeFile file: "${output_dir}${report_file_hw}", text: file_content
+    def results = '/root/qa_results'
+    def dest_folder = '/home/rally/qa_results'
+    salt.runSaltProcessStep(master, target, 'file.remove', ["${results}"])
+    salt.runSaltProcessStep(master, target, 'file.mkdir', ["${results}", "mode=777"])
+    def nodes = getNodeList(master)
+    def nodes_hw = getNodeList(master, 'G@virtual:physical')
+    def _pillar = salt.getPillar(master, 'I@keystone:server', 'keystone:server')
+    def keystone = _pillar['return'][0].values()[0]
+    def ssh_key = salt.getFileContent(master, 'I@salt:master', '/root/.ssh/id_rsa')
+    def env_vars = ( ['tempest_version=15.0.0',
+                      "OS_USERNAME=${keystone.admin_name}",
+                      "OS_PASSWORD=${keystone.admin_password}",
+                      "OS_TENANT_NAME=${keystone.admin_tenant}",
+                      "OS_AUTH_URL=http://${keystone.bind.private_address}:${keystone.bind.private_port}/v2.0",
+                      "OS_REGION_NAME=${keystone.region}",
+                      'OS_ENDPOINT_TYPE=admin'] + ext_variables ).join(' -e ')
+    salt.runSaltProcessStep(master, target, 'file.write', ["${results}/nodes.json", nodes])
+    salt.runSaltProcessStep(master, target, 'file.write', ["${results}/nodes_hw.json", nodes_hw])
+    def cmd = '/opt/devops-qa-tools/deployment/configure.sh; ' +
+        'sudo mkdir -p /root/.ssh; sudo chmod 700 /root/.ssh; ' +
+        "echo \\\"${ssh_key}\\\" | sudo tee /root/.ssh/id_rsa > /dev/null; " +
+        'sudo chmod 600 /root/.ssh/id_rsa; ' +
+        "sudo timmy -c simplified-performance-testing/config.yaml " +
+        "--nodes-json ${dest_folder}/nodes.json --log-file ${dest_folder}/docker-spt2.log; " +
+        "./simplified-performance-testing/SPT_parser.sh > ${dest_folder}/report-spt.txt; " +
+        "custom_spt_parser.sh ${dest_folder}/nodes_hw.json > ${dest_folder}/report-spt-hw.txt; " +
+        "cp /tmp/timmy/archives/general.tar.gz ${dest_folder}/results-spt.tar.gz"
+    salt.cmdRun(master, target, "docker run -i --rm --net=host -e ${env_vars} " +
+        "-v ${results}:${dest_folder} ${dockerImageLink} /bin/bash -c " +
+        "\"${cmd}\" > ${results}/docker-spt.log")
+    addFiles(master, target, results, output_dir)
 }
 
 /**
  * Cleanup
  *
  * @param target            Host to run commands
- * @param output_dir        Directory for results
  */
-def runCleanup(master, target, output_dir) {
+def runCleanup(master, target) {
     def salt = new com.mirantis.mk.Salt()
     if ( salt.cmdRun(master, target, "docker ps -f name=qa_tools -q", false, null, false)['return'][0].values()[0] ) {
         salt.cmdRun(master, target, "docker rm -f qa_tools")
