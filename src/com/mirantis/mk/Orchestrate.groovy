@@ -33,6 +33,23 @@ def installFoundationInfra(master) {
     salt.enforceState(master, '*', ['linux.network.host'], true)
 }
 
+def installFoundationInfraOnTarget(master, target) {
+    def salt = new com.mirantis.mk.Salt()
+
+    salt.enforceState(master, 'I@salt:master', ['reclass'], true, false, null, false, 120, 2)
+
+    salt.runSaltProcessStep(master, target, 'saltutil.refresh_pillar', [], null, true)
+    salt.runSaltProcessStep(master, target, 'saltutil.sync_all', [], null, true)
+
+    salt.enforceState(master, target, ['linux.system'], true)
+    salt.enforceState(master, target, ['salt.minion'], true, false, null, false, 60, 2)
+    salt.enforceState(master, target, ['salt.minion'], true)
+
+    salt.enforceState(master, target, ['linux', 'openssh', 'ntp'], true)
+    sleep(5)
+    salt.enforceState(master, target, ['linux.network.host'], true)
+}
+
 def installInfraKvm(master) {
     def salt = new com.mirantis.mk.Salt()
 
