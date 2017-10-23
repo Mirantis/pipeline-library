@@ -13,9 +13,11 @@ package com.mirantis.mk
  * @param ignoreClassNotfound Ignore missing classes for reclass model
  * @param dockerMaxCpus       max cpus passed to docker (default 0, disabled)
  * @param legacyTestingMode   do you want to enable legacy testing mode (iterating through the nodes directory definitions instead of reading cluster models)
+ * @param aptRepoUrl          package repository with salt formulas
+ * @param aptRepoGPG          GPG key for apt repository with formulas
  */
 
-def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSource = 'pkg', formulasRevision = 'stable', dockerMaxCpus = 0, ignoreClassNotfound = false, legacyTestingMode = false) {
+def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSource = 'pkg', formulasRevision = 'stable', dockerMaxCpus = 0, ignoreClassNotfound = false, legacyTestingMode = false, aptRepoUrl='', aptRepoGPG='') {
 
   def saltOpts = "--retcode-passthrough --force-color"
   def common = new com.mirantis.mk.Common()
@@ -50,7 +52,7 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
     sh("git config --global user.name || git config --global user.name 'CI'")
     sh("git clone https://github.com/salt-formulas/salt-formulas-scripts /srv/salt/scripts")
 
-    withEnv(["FORMULAS_SOURCE=${formulasSource}", "EXTRA_FORMULAS=${extraFormulas}", "DISTRIB_REVISION=${formulasRevision}", "DEBUG=1", "MASTER_HOSTNAME=${masterName}", "CLUSTER_NAME=${clusterName}", "MINION_ID=${masterName}", "HOSTNAME=cfg01", "DOMAIN=mk-ci.local", "RECLASS_IGNORE_CLASS_NOTFOUND=${ignoreClassNotfound}" ]){
+    withEnv(["FORMULAS_SOURCE=${formulasSource}", "EXTRA_FORMULAS=${extraFormulas}", "DISTRIB_REVISION=${formulasRevision}", "DEBUG=1", "MASTER_HOSTNAME=${masterName}", "CLUSTER_NAME=${clusterName}", "MINION_ID=${masterName}", "HOSTNAME=cfg01", "DOMAIN=mk-ci.local", "RECLASS_IGNORE_CLASS_NOTFOUND=${ignoreClassNotfound}", "APT_REPOSITORY=${aptRepoUrl}", "APT_REPOSITORY_GPG=${aptRepoGPG}"]){
         sh("bash -c 'echo $MASTER_HOSTNAME'")
         sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && system_config_master'")
         sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && saltmaster_bootstrap'")
