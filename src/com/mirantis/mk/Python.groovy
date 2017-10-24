@@ -14,11 +14,13 @@ package com.mirantis.mk
  * @param reqs          Environment requirements in list format
  * @param reqs_path     Environment requirements path in str format
  */
-def setupVirtualenv(path, python = 'python2', reqs=[], reqs_path=null, clean=false) {
+def setupVirtualenv(path, python = 'python2', reqs=[], reqs_path=null, clean=false, useSystemPackages=false) {
     def common = new com.mirantis.mk.Common()
 
     def virtualenv_cmd = "[ -d ${path} ] || virtualenv ${path} --python ${python}"
-
+    if (useSystemPackages){
+        virtualenv_cmd += " --system-site-packages"
+    }
     if (clean) {
         common.infoMsg("Cleaning venv directory " + path)
         sh("rm -rf \"${path}\"")
@@ -301,7 +303,7 @@ def setupPepperVirtualenv(path, url, credentialsId) {
 
     // virtualenv setup
     requirements = ['salt-pepper']
-    setupVirtualenv(path, 'python2', requirements)
+    setupVirtualenv(path, 'python2', requirements, null, false, true)
 
     // pepperrc creation
     rcFile = "${path}/pepperrc"
