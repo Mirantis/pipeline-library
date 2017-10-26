@@ -318,3 +318,14 @@ SALTAPI_PASS=${creds.password.toString()}
     writeFile file: rcFile, text: rc
     return rcFile
 }
+
+/**
+ * Install devops in isolated environment
+ *
+ * @param path        Path where virtualenv is created
+ * @param clean       Define to true is the venv have to cleaned up before install a new one
+ */
+def setupDevOpsVenv(venv, clean=false) {
+    requirements = ['git+https://github.com/openstack/fuel-devops.git']
+    setupVirtualenv(venv, 'python2', requirements, null, false, clean)
+}
