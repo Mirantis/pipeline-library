@@ -42,7 +42,6 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
   img.inside("-u root:root --hostname=${masterName} --ulimit nofile=4096:8192 ${dockerMaxCpusOption}") {
     if (!imageFound) {
       sh("apt-get update && apt-get install -y curl git python-pip sudo python-pip python-dev zlib1g-dev git")
-      sh("pip install git+https://github.com/salt-formulas/reclass.git --upgrade")
     }
     sh("mkdir -p /srv/salt/scripts/ || true")
     sh("cp -r ${testDir} /srv/salt/reclass")
@@ -52,6 +51,7 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
 
     withEnv(["FORMULAS_SOURCE=${formulasSource}", "EXTRA_FORMULAS=${extraFormulas}", "DISTRIB_REVISION=${formulasRevision}", "DEBUG=1", "MASTER_HOSTNAME=${masterName}", "CLUSTER_NAME=${clusterName}", "MINION_ID=${masterName}", "HOSTNAME=cfg01", "DOMAIN=mk-ci.local", "RECLASS_IGNORE_CLASS_NOTFOUND=${ignoreClassNotfound}" ]){
         sh("bash -c 'echo $MASTER_HOSTNAME'")
+        sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && install_reclass'")
         sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && system_config_master'")
         sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && saltmaster_bootstrap'")
         sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && saltmaster_init'")
