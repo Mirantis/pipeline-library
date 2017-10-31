@@ -235,8 +235,7 @@ def removeReports(master, target, reports_dir_name = 'rally_reports', archive_ar
  * @param target              Target node to remove Docker container
  * @param image_link          The link of the Docker image that was used for the container
  */
-def removeDockerContainer(master, target, image_link) {
+def removeDockerContainer(master, target, containerName) {
     def salt = new com.mirantis.mk.Salt()
-    salt.cmdRun(master, target, "docker stop \$(docker ps -a | grep ${image_link} | awk '{print \$1}')")
-    salt.cmdRun(master, target, "docker rm \$(docker ps -a | grep ${image_link} | awk '{print \$1}')")
+    salt.cmdRun(master, target, "docker rm -f ${containerName}")
 }
