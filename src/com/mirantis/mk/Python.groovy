@@ -17,7 +17,7 @@ package com.mirantis.mk
 def setupVirtualenv(path, python = 'python2', reqs=[], reqs_path=null, clean=false, useSystemPackages=false) {
     def common = new com.mirantis.mk.Common()
 
-    def virtualenv_cmd = "[ -d ${path} ] || virtualenv ${path} --python ${python}"
+    def virtualenv_cmd = "virtualenv ${path} --python ${python}"
     if (useSystemPackages){
         virtualenv_cmd += " --system-site-packages"
     }
