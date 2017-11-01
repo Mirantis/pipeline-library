@@ -160,14 +160,16 @@ def enforceState(saltId, target, state, output = true, failOnError = true, batch
     }
 
     if (optional == false || testTarget(saltId, target)){
-        if (retries != -1){
+        if (retries > 0){
+            failOnError = true
             retry(retries){
                 out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states], kwargs, -1, read_timeout)
+                checkResult(out, failOnError, output)
             }
         } else {
             out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states], kwargs, -1, read_timeout)
+            checkResult(out, failOnError, output)
         }
-        checkResult(out, failOnError, output)
         return out
     } else {
         common.infoMsg("No Minions matched the target given, but 'optional' param was set to true - Pipeline continues. ")
