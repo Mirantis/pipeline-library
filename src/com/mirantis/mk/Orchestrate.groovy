@@ -168,6 +168,7 @@ def installOpenstackControl(master) {
         salt.enforceState(master, 'I@horizon:server', 'horizon', true)
     }
     if (salt.testTarget(master, 'I@nginx:server')) {
+        salt.enforceState(master, 'I@nginx:server', 'salt.minion', true)
         salt.enforceState(master, 'I@nginx:server', 'nginx', true)
     }
 
