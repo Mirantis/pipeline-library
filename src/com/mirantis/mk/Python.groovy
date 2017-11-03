@@ -29,7 +29,7 @@ def setupVirtualenv(path, python = 'python2', reqs=[], reqs_path=null, clean=fal
     common.infoMsg("[Python ${path}] Setup ${python} environment")
     sh(returnStdout: true, script: virtualenv_cmd)
     try {
-        runVirtualenvCommand(path, "pip install -U setuptools pip")
+        runVirtualenvCommand(path, "wget -q -T 3 --spider http://google.com && pip install -U setuptools pip")
     } catch(Exception e) {
         common.warningMsg("Setuptools and pip cannot be updated, you might be offline")
     }
