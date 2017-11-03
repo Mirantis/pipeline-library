@@ -290,6 +290,7 @@ def installOpenstackControl(master) {
 
     // Install barbican server service
     if (salt.testTarget(master, 'I@barbican:server')) {
+        salt.enforceState(master, 'I@barbican:server and *01*', 'barbican.server', true)
         salt.enforceState(master, 'I@barbican:server', 'barbican.server', true)
     }
     // Install barbican client
