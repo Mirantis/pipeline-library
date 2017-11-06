@@ -21,8 +21,8 @@ def ensureRubyEnv(rubyVersion="2.4.1"){
  * Install kitchen tools
  */
 def installKitchen(kitchenInit=""){
-    sh """rbenv exec gem install bundler -v '~> 1.15.4';
-          rbenv exec gem install test-kitchen;"""
+    sh """rbenv exec gem install bundler -v '~> 1.15.4' --conservative;
+          rbenv exec gem install test-kitchen --conservative;"""
     if(kitchenInit!=""){
         sh kitchenInit
     }else{
