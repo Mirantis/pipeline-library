@@ -160,12 +160,17 @@ def runSanityTests(salt_url, salt_credentials, test_set, output_dir) {
  * @param dockerImageLink   Docker image link
  * @param pattern           If not false, will run only tests matched the pattern
  * @param output_dir        Directory for results
+ * @param confRepository    Git repository with configuration files for Tempest
+ * @param confBranch        Git branch which will be used during the checkout
+ * @param repository        Git repository with Tempest
+ * @param version           Version of Tempest (tag, branch or commit)
  */
-def runTempestTests(master, target, dockerImageLink, output_dir, pattern = "false") {
+def runTempestTests(master, target, dockerImageLink, output_dir, confRepository, confBranch, repository, version, pattern = "false") {
     def salt = new com.mirantis.mk.Salt()
     def output_file = 'docker-tempest.log'
     def results = '/root/qa_results'
     def dest_folder = '/home/rally/qa_results'
+    def skip_list = '--skip-list /opt/devops-qa-tools/deployment/skip_contrail.list'
     salt.runSaltProcessStep(master, target, 'file.remove', ["${results}"])
     salt.runSaltProcessStep(master, target, 'file.mkdir', ["${results}", "mode=777"])
     def _pillar = salt.getPillar(master, 'I@keystone:server', 'keystone:server')
@@ -178,11 +183,19 @@ def runTempestTests(master, target, dockerImageLink, output_dir, pattern = "fals
                     "OS_REGION_NAME=${keystone.region}",
                     'OS_ENDPOINT_TYPE=admin'].join(' -e ')
     def cmd = '/opt/devops-qa-tools/deployment/configure.sh; '
+    if (confRepository != '' ) {
+        cmd = "git clone -b ${confBranch ?: 'master'} ${confRepository} test_config; " +
+            'rally deployment create --fromenv --name=tempest; rally deployment config; ' +
+            'rally verify create-verifier --name tempest_verifier --type tempest ' +
+            "--source ${repository ?: '/tmp/tempest/'} --version ${version: '15.0.0'}; " +
+            'rally verify configure-verifier --extend test_config/tempest/tempest.conf --show; '
+        skip_list = '--skip-list test_config/tempest/skip-list.yaml'
+    }
     if (pattern == 'false') {
-        cmd += 'rally verify start --pattern set=full --detailed; '
+        cmd += "rally verify start --pattern set=full ${skip_list} --detailed; "
     }
     else {
-        cmd += "rally verify start --pattern set=${pattern} --detailed; "
+        cmd += "rally verify start --pattern set=${pattern} ${skip_list} --detailed; "
     }
     cmd += "rally verify report --type json --to ${dest_folder}/report-tempest.json; " +
         "rally verify report --type html --to ${dest_folder}/report-tempest.html"
@@ -197,11 +210,12 @@ def runTempestTests(master, target, dockerImageLink, output_dir, pattern = "fals
  *
  * @param target            Host to run tests
  * @param dockerImageLink   Docker image link
- * @param pattern           If not false, will run only tests matched the pattern
  * @param output_dir        Directory for results
+ * @param repository        Git repository with files for Rally
+ * @param branch            Git branch which will be used during the checkout
  * @param ext_variables     The list of external variables
  */
-def runRallyTests(master, target, dockerImageLink, output_dir, ext_variables = []) {
+def runRallyTests(master, target, dockerImageLink, output_dir, repository, branch, ext_variables = []) {
     def salt = new com.mirantis.mk.Salt()
     def output_file = 'docker-rally.log'
     def results = '/root/qa_results'
@@ -219,8 +233,15 @@ def runRallyTests(master, target, dockerImageLink, output_dir, ext_variables = [
                       'OS_ENDPOINT_TYPE=admin'] + ext_variables ).join(' -e ')
     def cmd = '/opt/devops-qa-tools/deployment/configure.sh; ' +
         'rally task start combined_scenario.yaml ' +
-        "--task-args-file /opt/devops-qa-tools/rally-scenarios/task_arguments.yaml; " +
-        "rally task export --type junit-xml --to ${dest_folder}/report-rally.xml; " +
+        '--task-args-file /opt/devops-qa-tools/rally-scenarios/task_arguments.yaml; '
+    if (repository != '' ) {
+        cmd = "git clone -b ${branch ?: 'master'} ${repository} test_config; " +
+            'rally deployment create --file=test_config/rally/existing.json --name=existing; ' +
+            'rally deployment config; ' +
+            'rally task start test_config/rally/scenario.yaml ' +
+            '--task-args-file test_config/rally/task_arguments.yaml; '
+    }
+    cmd += "rally task export --type junit-xml --to ${dest_folder}/report-rally.xml; " +
         "rally task report --out ${dest_folder}/report-rally.html"
     salt.cmdRun(master, target, "docker run -i --rm --net=host -e ${env_vars} " +
         "-v ${results}:${dest_folder} ${dockerImageLink} " +
