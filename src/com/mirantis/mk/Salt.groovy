@@ -664,7 +664,7 @@ def runPepperCommand(data, venv)   {
     def python = new com.mirantis.mk.Python()
     def dataStr = new groovy.json.JsonBuilder(data).toString()
 
-    def pepperCmd = "pepper -c ${venv}/pepperrc --make-token -x ${venv}/.peppercache --json \'${dataStr}\'"
+    def pepperCmd = "pepper -c ${venv}/pepperrc --make-token -x ${venv}/.peppercache --json '${dataStr}'"
 
     if (venv) {
         output = python.runVirtualenvCommand(venv, pepperCmd)
