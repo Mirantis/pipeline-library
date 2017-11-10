@@ -140,14 +140,22 @@ def getNodeList(master, filter = null) {
  * @param salt_url          Salt master url
  * @param salt_credentials  Salt credentials
  * @param test_set          Test set for mcp sanity framework
+ * @param env_vars          Additional environment variables for cvp-sanity-checks
  * @param output_dir        Directory for results
  */
-def runSanityTests(salt_url, salt_credentials, test_set, output_dir) {
+def runSanityTests(salt_url, salt_credentials, test_set="", output_dir="validation_artifacts/", env_vars="") {
     def common = new com.mirantis.mk.Common()
-    creds = common.getCredentials(salt_credentials)
-    username = creds.username
-    password = creds.password
-    def script = ". ${env.WORKSPACE}/venv/bin/activate; pytest --junitxml ${output_dir}cvp_sanity.xml -sv ${env.WORKSPACE}/cvp-sanity-checks/cvp_checks/tests/${test_set}"
+    def creds = common.getCredentials(salt_credentials)
+    def username = creds.username
+    def password = creds.password
+    def settings = ""
+    if ( env_vars != "" ) {
+        for (var in env_vars.tokenize(";")) {
+            settings += "export ${var}; "
+        }
+    }
+    def script = ". ${env.WORKSPACE}/venv/bin/activate; ${settings}" +
+                 "pytest --junitxml ${output_dir}cvp_sanity.xml -sv ${env.WORKSPACE}/cvp-sanity-checks/cvp_checks/tests/${test_set}"
     withEnv(["SALT_USERNAME=${username}", "SALT_PASSWORD=${password}", "SALT_URL=${salt_url}"]) {
         def statusCode = sh script:script, returnStatus:true
     }
