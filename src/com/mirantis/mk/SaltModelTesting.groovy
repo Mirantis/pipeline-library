@@ -25,7 +25,7 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
   def imageFound = true
   def img
   try {
-    img = docker.image("tcpcloud/salt-models-testing")
+    img = docker.image("tcpcloud/salt-models-testing:${formulasRevision}")
     img.pull()
   } catch (Throwable e) {
     img = docker.image("ubuntu:latest")
@@ -53,9 +53,16 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
     sh("git clone https://github.com/salt-formulas/salt-formulas-scripts /srv/salt/scripts")
 
     withEnv(["FORMULAS_SOURCE=${formulasSource}", "EXTRA_FORMULAS=${extraFormulas}", "DISTRIB_REVISION=${formulasRevision}", "DEBUG=1", "MASTER_HOSTNAME=${masterName}", "CLUSTER_NAME=${clusterName}", "MINION_ID=${masterName}", "HOSTNAME=cfg01", "DOMAIN=mk-ci.local", "RECLASS_IGNORE_CLASS_NOTFOUND=${ignoreClassNotfound}", "APT_REPOSITORY=${aptRepoUrl}", "APT_REPOSITORY_GPG=${aptRepoGPG}"]){
-        sh("bash -c 'echo $MASTER_HOSTNAME'")
-        sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && system_config_master'")
-        sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && saltmaster_bootstrap'")
+        if (!imageFound) {
+          sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && system_config_master'")
+          sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && saltmaster_bootstrap'")
+        } else {
+          sh("cp -r ${testDir}/* /srv/salt/reclass && echo '127.0.1.2  salt' >> /etc/hosts")
+          sh("service salt-master restart && service salt-minion restart && sleep 2")
+          sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && configure_salt_master && configure_salt_minion'")
+          sh("service salt-master restart && service salt-minion restart && sleep 2")
+        }
+
         sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && saltmaster_init'")
 
         if (!legacyTestingMode) {
