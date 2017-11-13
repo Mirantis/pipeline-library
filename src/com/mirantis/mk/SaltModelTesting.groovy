@@ -45,12 +45,12 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
     if (!imageFound) {
       sh("apt-get update && apt-get install -y curl git python-pip sudo python-pip python-dev zlib1g-dev git")
       sh("pip install git+https://github.com/salt-formulas/reclass.git --upgrade")
+      sh("mkdir -p /srv/salt/scripts/ || true")
+      sh("cp -r ${testDir} /srv/salt/reclass")
+      sh("git config --global user.email || git config --global user.email 'ci@ci.local'")
+      sh("git config --global user.name || git config --global user.name 'CI'")
+      sh("git clone https://github.com/salt-formulas/salt-formulas-scripts /srv/salt/scripts")
     }
-    sh("mkdir -p /srv/salt/scripts/ || true")
-    sh("cp -r ${testDir} /srv/salt/reclass")
-    sh("git config --global user.email || git config --global user.email 'ci@ci.local'")
-    sh("git config --global user.name || git config --global user.name 'CI'")
-    sh("git clone https://github.com/salt-formulas/salt-formulas-scripts /srv/salt/scripts")
 
     withEnv(["FORMULAS_SOURCE=${formulasSource}", "EXTRA_FORMULAS=${extraFormulas}", "DISTRIB_REVISION=${formulasRevision}", "DEBUG=1", "MASTER_HOSTNAME=${masterName}", "CLUSTER_NAME=${clusterName}", "MINION_ID=${masterName}", "HOSTNAME=cfg01", "DOMAIN=mk-ci.local", "RECLASS_IGNORE_CLASS_NOTFOUND=${ignoreClassNotfound}", "APT_REPOSITORY=${aptRepoUrl}", "APT_REPOSITORY_GPG=${aptRepoGPG}"]){
         if (!imageFound) {
