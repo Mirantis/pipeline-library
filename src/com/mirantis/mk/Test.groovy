@@ -69,7 +69,7 @@ def runTempestTests(master, dockerImageLink, target, pattern = "false", logDir =
                                     "-e SOURCE_FILE=${sourceFile} " +
                                     "-e LOG_DIR=${logDir} " +
                                     "-e SET=${set} " +
-                                    "-e CUSTOM=\"${custom}\" " +
+                                    "-e CUSTOM='${custom}' " +
                                     "-e CONCURRENCY=${concurrency} " +
                                     "-e TEMPEST_CONF=${tempestConf} " +
                                     "-e SKIP_LIST=${skipList} " +
