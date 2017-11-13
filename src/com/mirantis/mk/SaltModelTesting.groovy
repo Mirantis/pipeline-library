@@ -62,7 +62,7 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
           sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && saltmaster_bootstrap'")
         } else {
           sh("cp -r ${testDir}/* /srv/salt/reclass && echo '127.0.1.2  salt' >> /etc/hosts")
-          sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && configure_salt_master && configure_salt_minion' && install_salt_formula_pkg")
+          sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && configure_salt_master && configure_salt_minion && install_salt_formula_pkg'")
           sh("(pgrep salt-master | sed /\$\$/d | xargs --no-run-if-empty -i{} kill -9 {} || true) && pkill -9 salt-minion || true")
           sh("service salt-master restart && service salt-minion restart && sleep 15")
         }
