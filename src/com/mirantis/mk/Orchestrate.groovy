@@ -148,7 +148,7 @@ def installInfra(master) {
     // Install etcd
     if (salt.testTarget(master, 'I@etcd:server')) {
         salt.enforceState(master, 'I@etcd:server', 'etcd.server.service')
-        salt.cmdRun(master, 'I@etcd:server', 'bash -c "source /var/lib/etcd/configenv && etcdctl cluster-health"')
+        salt.cmdRun(master, 'I@etcd:server', '. /var/lib/etcd/configenv && etcdctl cluster-health')
     }
 }
 
