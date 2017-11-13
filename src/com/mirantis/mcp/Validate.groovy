@@ -7,35 +7,24 @@ package com.mirantis.mcp
  */
 
 /**
- * Configure docker image with tests
+ * Run docker container with basic (keystone) parameters
  *
- * @param dockerImageLink   Docker image link with rally and tempest
- * @param target            Host to run tests
- * @param output_dir        Directory for results
- * @param ext_variables     The set of external variables
+ * @param target            Host to run container
+ * @param dockerImageLink   Docker image link. May be custom or default rally image
  */
-def runContainerConfiguration(master, dockerImageLink, target, output_dir, ext_variables){
+def runBasicContainer(master, target, dockerImageLink="rallyforge/rally"){
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
-    def output_file = 'docker.log'
-    def nodes = getNodeList(master)
-    def nodes_hw = getNodeList(master, 'G@virtual:physical')
     def _pillar = salt.getPillar(master, 'I@keystone:server', 'keystone:server')
     def keystone = _pillar['return'][0].values()[0]
-    def ssh_key = getFileContent(master, 'I@salt:master', '/root/.ssh/id_rsa')
-    salt.cmdRun(master, target, "docker run -tid --net=host --name=qa_tools " +
-            " ${ext_variables} " +
-            "-e tempest_version=15.0.0 -e OS_USERNAME=${keystone.admin_name} " +
+    if ( salt.cmdRun(master, target, "docker ps -f name=cvp -q", false, null, false)['return'][0].values()[0] ) {
+        salt.cmdRun(master, target, "docker rm -f cvp")
+    }
+    salt.cmdRun(master, target, "docker run -tid --net=host --name=cvp " +
+            "-u root -e OS_USERNAME=${keystone.admin_name} " +
             "-e OS_PASSWORD=${keystone.admin_password} -e OS_TENANT_NAME=${keystone.admin_tenant} " +
             "-e OS_AUTH_URL=http://${keystone.bind.private_address}:${keystone.bind.private_port}/v2.0 " +
-            "-e OS_REGION_NAME=${keystone.region} -e OS_ENDPOINT_TYPE=admin ${dockerImageLink} /bin/bash")
-    salt.cmdRun(master, target, "docker exec qa_tools bash -c \"sudo mkdir -p /root/.ssh; " +
-            "echo \'${ssh_key}\' | sudo tee /root/.ssh/id_rsa > /dev/null; " +
-            "sudo chmod 700 /root/.ssh; sudo chmod 600 /root/.ssh/id_rsa; " +
-            "echo -e '${nodes}' > nodes.json; echo -e '${nodes_hw}' > nodes_hw.json\"")
-    salt.cmdRun(master, target, "docker exec qa_tools bash -c /opt/devops-qa-tools/deployment/configure.sh > ${output_file}")
-    def file_content = getFileContent(master, target, output_file)
-    writeFile file: "${output_dir}${output_file}", text: file_content
+            "-e OS_REGION_NAME=${keystone.region} -e OS_ENDPOINT_TYPE=admin  ${dockerImageLink} /bin/bash")
 }
 
 /**
@@ -329,6 +318,185 @@ def runSptTests(master, target, dockerImageLink, output_dir, ext_variables = [])
 }
 
 /**
+ * Configure docker container
+ *
+ * @param target            		Host to run container
+ * @param proxy            		Proxy for accessing github and pip
+ * @param testing_tools_repo    	Repo with testing tools: configuration script, skip-list, etc.
+ * @param tempest_repo         		Url to tempest for cloning. Can be github or internal gerrit. If not specified, tempest will not be configured.
+ * @param tempest_endpoint_type         internalURL or adminURL or publicURL
+ * @param tempest_version	        Version of tempest to use
+ */
+def configureContainer(master, target, proxy, testing_tools_repo, tempest_repo,
+                       tempest_endpoint_type="internalURL", tempest_version="15.0.0",
+                       configure_script="/home/rally/testing-stuff/configure.sh", ext_variables = []) {
+    def salt = new com.mirantis.mk.Salt()
+    if (testing_tools_repo != "" ) {
+        salt.cmdRun(master, target, "docker exec cvp git clone ${testing_tools_repo}")
+    }
+    salt.cmdRun(master, target, "docker exec -e tempest_version=${tempest_version} -e PROXY=${proxy} " +
+                                " -e TEMPEST_ENDPOINT=${tempest_repo} -e TEMPEST_ENDPOINT_TYPE=${tempest_endpoint_type} " +
+                                ext_variables.join(' -e ') +
+                                " cvp bash -c ${configure_script}")
+}
+
+/**
+ * Run Tempest
+ *
+ * @param target                        Host to run container
+ * @param test_pattern                  Test pattern to run
+ * @param skip_list                     Path to skip-list
+ * @param output_dir                    Directory on target host for storing results (containers is not a good place)
+ */
+def runCVPtempest(master, target, test_pattern="set=smoke", skip_list="", output_dir, output_filename="docker-tempest") {
+    def salt = new com.mirantis.mk.Salt()
+    def xml_file = "${output_filename}.xml"
+    def log_file = "${output_filename}.log"
+    skip_list_cmd = ''
+    if (skip_list != '') {
+        skip_list_cmd = "--skip-list ${skip_list}"
+    }
+    salt.cmdRun(master, target, "docker exec cvp rally verify start --pattern ${test_pattern} ${skip_list_cmd} " +
+                                "--detailed > ${log_file}", false)
+    salt.cmdRun(master, target, "cat ${log_file}")
+    salt.cmdRun(master, target, "docker exec cvp rally verify report --type junit-xml --to /home/rally/${xml_file}")
+    salt.cmdRun(master, target, "docker cp cvp:/home/rally/${xml_file} ${output_dir}")
+    return salt.cmdRun(master, target, "docker exec cvp rally verify list | tail -n 2 | grep -v '+' | awk '{print \$16}'")['return'][0].values()[0].split()[0]
+}
+
+/**
+ * Run Rally
+ *
+ * @param target                        Host to run container
+ * @param test_pattern                  Test pattern to run
+ * @param scenarios_path                Path to Rally scenarios
+ * @param output_dir                    Directory on target host for storing results (containers is not a good place)
+ */
+def runCVPrally(master, target, scenarios_path, output_dir, output_filename="docker-rally") {
+    def salt = new com.mirantis.mk.Salt()
+    def xml_file = "${output_filename}.xml"
+    def log_file = "${output_filename}.log"
+    def html_file = "${output_filename}.html"
+    salt.cmdRun(master, target, "docker exec cvp rally task start ${scenarios_path} > ${log_file}", false)
+    salt.cmdRun(master, target, "cat ${log_file}")
+    salt.cmdRun(master, target, "docker exec cvp rally task report --out ${html_file}")
+    salt.cmdRun(master, target, "docker exec cvp rally task export --type junit-xml --to ${xml_file}")
+    salt.cmdRun(master, target, "docker cp cvp:/home/rally/${xml_file} ${output_dir}")
+    salt.cmdRun(master, target, "docker cp cvp:/home/rally/${html_file} ${output_dir}")
+}
+
+
+/**
+ * Shutdown node
+ *
+ * @param target          Host to run command
+ * @param mode            How to shutdown node
+ * @param retries         # of retries to make to check node status
+ */
+def shutdown_vm_node(master, target, mode, retries=200) {
+    def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+    if (mode == 'reboot') {
+        try {
+            def out = salt.runSaltCommand(master, 'local', ['expression': target, 'type': 'compound'], 'cmd.run', null, ['reboot'], null, 3, 3)
+        } catch (Exception e) {
+            common.warningMsg('Timeout from minion: node must be rebooting now')
+        }
+        common.warningMsg("Checking that minion is down")
+        status = "True"
+        for (i = 0; i < retries; i++) {
+            status = salt.minionsReachable(master, 'I@salt:master', target, null, 5, 1)
+            if (status != "True") {
+                break
+            }
+        }
+        if (status == "True") {
+            throw new Exception("Tired to wait for minion ${target} to stop responding")
+        }
+    }
+    if (mode == 'hard_shutdown' || mode == 'soft_shutdown') {
+        kvm = locate_node_on_kvm(master, target)
+        if (mode == 'soft_shutdown') {
+            salt.cmdRun(master, target, "shutdown -h 0")
+        }
+        if (mode == 'hard_shutdown') {
+            salt.cmdRun(master, kvm, "virsh destroy ${target}")
+        }
+        common.warningMsg("Checking that vm on kvm is in power off state")
+        status = 'running'
+        for (i = 0; i < retries; i++) {
+            status = check_vm_status(master, target, kvm)
+            echo "Current status - ${status}"
+            if (status != 'running') {
+                break
+            }
+            sleep (1)
+        }
+        if (status == 'running') {
+            throw new Exception("Tired to wait for node ${target} to shutdown")
+        }
+    }
+}
+
+
+/**
+ * Locate kvm where target host is located
+ *
+ * @param target          Host to check
+ */
+def locate_node_on_kvm(master, target) {
+    def salt = new com.mirantis.mk.Salt()
+    def list = salt.runSaltProcessStep(master, "I@salt:control", 'cmd.run', ["virsh list --all | grep ' ${target}'"])['return'][0]
+    for (item in list.keySet()) {
+        if (list[item]) {
+            return item
+        }
+    }
+}
+
+/**
+ * Check target host status
+ *
+ * @param target          Host to check
+ * @param kvm             KVM node where target host is located
+ */
+def check_vm_status(master, target, kvm) {
+    def salt = new com.mirantis.mk.Salt()
+    def list = salt.runSaltProcessStep(master, "${kvm}", 'cmd.run', ["virsh list --all | grep ' ${target}'"])['return'][0]
+    for (item in list.keySet()) {
+        if (list[item]) {
+            return list[item].split()[2]
+        }
+    }
+}
+
+/**
+ * Find vip on nodes
+ *
+ * @param target          Pattern, e.g. ctl*
+ */
+def get_vip_node(master, target) {
+    def salt = new com.mirantis.mk.Salt()
+    def list = salt.runSaltProcessStep(master, "${target}", 'cmd.run', ["ip a | grep global | grep -v brd"])['return'][0]
+    for (item in list.keySet()) {
+        if (list[item]) {
+            return item
+        }
+    }
+}
+
+/**
+ * Find vip on nodes
+ *
+ * @param target          Host with cvp container
+ */
+def openstack_cleanup(master, target, script_path="/home/rally/testing-stuff/clean.sh") {
+    def salt = new com.mirantis.mk.Salt()
+    salt.runSaltProcessStep(master, "${target}", 'cmd.run', ["docker exec cvp bash -c ${script_path}"])
+}
+
+
+/**
  * Cleanup
  *
  * @param target            Host to run commands
@@ -338,8 +506,10 @@ def runCleanup(master, target) {
     if ( salt.cmdRun(master, target, "docker ps -f name=qa_tools -q", false, null, false)['return'][0].values()[0] ) {
         salt.cmdRun(master, target, "docker rm -f qa_tools")
     }
+    if ( salt.cmdRun(master, target, "docker ps -f name=cvp -q", false, null, false)['return'][0].values()[0] ) {
+        salt.cmdRun(master, target, "docker rm -f cvp")
+    }
 }
-
 /**
  * Prepare venv for any python project
  * Note: <repo_name>\/requirements.txt content will be used
