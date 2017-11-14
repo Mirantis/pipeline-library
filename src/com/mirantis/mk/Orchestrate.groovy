@@ -419,8 +419,10 @@ def installKubernetesControl(master) {
     salt.enforceState(master, 'I@kubernetes:master', 'kubernetes.master.kube-addons')
     salt.enforceState(master, 'I@kubernetes:pool', 'kubernetes.pool')
 
-    // Setup etcd server
-    salt.enforceState(master, 'I@kubernetes:master and *01*', 'etcd.server.setup')
+    if (salt.testTarget(master, 'I@etcd:server:setup')) {
+        // Setup etcd server
+        salt.enforceState(master, 'I@kubernetes:master and *01*', 'etcd.server.setup')
+    }
 
     // Run k8s without master.setup
     salt.runSaltProcessStep(master, 'I@kubernetes:master', 'state.sls', ['kubernetes', 'exclude=kubernetes.master.setup'])
