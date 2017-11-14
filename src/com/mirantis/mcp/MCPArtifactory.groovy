@@ -224,7 +224,7 @@ def uploadImageToArtifactory (ArtifactoryServer server, String registry, String 
  */
 def uploadBinariesToArtifactory (ArtifactoryServer server, BuildInfo buildInfo, String uploadSpec,
                                  Boolean publishInfo = false) {
-    buildInfo.append(server.upload(uploadSpec))
+    server.upload(uploadSpec, buildInfo)
 
     if ( publishInfo ) {
         buildInfo.env.capture = true
