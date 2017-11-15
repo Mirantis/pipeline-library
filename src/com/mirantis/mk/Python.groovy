@@ -298,14 +298,14 @@ def jinjaBuildTemplate (template, context, path = none) {
  * @param url         SALT_MASTER_URL
  * @param credentialsId        Credentials to salt api
  */
-def setupPepperVirtualenv(path, url, credentialsId) {
+def setupPepperVirtualenv(path, url, credentialsId, clean = false) {
     def common = new com.mirantis.mk.Common()
 
     // virtualenv setup
     // TODO: once pepper changes are in pypi, reenable these lines
     // requirements = ['salt-pepper']
     requirements = []
-    setupVirtualenv(path, 'python2', requirements, null, false, true)
+    setupVirtualenv(path, 'python2', requirements, null, clean, true)
     runVirtualenvCommand(path, "pip install git+https://github.com/chnyda/pepper.git")
 
     // pepperrc creation
