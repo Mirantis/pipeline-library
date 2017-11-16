@@ -647,7 +647,7 @@ def setSaltOverrides(saltId, salt_overrides, reclass_dir="/srv/salt/reclass") {
          def value = entry[1]
 
          common.debugMsg("Set salt override ${key}=${value}")
-         runSaltProcessStep(saltId, 'I@salt:master', 'reclass.cluster_meta_set', ["${key}", "${value}"], false)
+         runSaltProcessStep(saltId, 'I@salt:master', 'reclass.cluster_meta_set', [key, value], false)
     }
     runSaltProcessStep(saltId, 'I@salt:master', 'cmd.run', ["git -C ${reclass_dir} update-index --skip-worktree classes/cluster/overrides.yml"])
 }
