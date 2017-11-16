@@ -663,8 +663,10 @@ def setSaltOverrides(saltId, salt_overrides, reclass_dir="/srv/salt/reclass") {
 def runPepperCommand(data, venv)   {
     def python = new com.mirantis.mk.Python()
     def dataStr = new groovy.json.JsonBuilder(data).toString()
-    dataStr = dataStr.replaceAll('"', '\\\\\"').replaceAll('\\$','\\\\\\$');
-    def pepperCmd = "pepper -c ${venv}/pepperrc --make-token -x ${venv}/.peppercache --json \"" + dataStr + "\""
+
+    pepperCmdFile = "${venv}/pepper-cmd.json"
+    writeFile file: pepperCmdFile, text: dataStr
+    def pepperCmd = "pepper -c ${venv}/pepperrc --make-token -x ${venv}/.peppercache --json-file ${pepperCmdFile}"
 
     if (venv) {
         output = python.runVirtualenvCommand(venv, pepperCmd)
