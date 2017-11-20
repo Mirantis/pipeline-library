@@ -486,17 +486,17 @@ def installCicd(master) {
     salt.runSaltProcessStep(master, 'I@jenkins:client or I@gerrit:client', 'saltutil.refresh_pillar', [], null, true)
     salt.runSaltProcessStep(master, 'I@jenkins:client or I@gerrit:client', 'saltutil.sync_all', [], null, true)
 
-    salt.enforceState(master, 'I@aptly:publisher', 'aptly.publisher',true, null, false, -1, 1)
-    salt.enforceState(master, 'I@docker:swarm:role:master and I@jenkins:client', 'docker.client', true, true, null, false, -1, 1)
+    salt.enforceState(master, 'I@aptly:publisher', 'aptly.publisher',true, null, false, -1, 2)
+    salt.enforceState(master, 'I@docker:swarm:role:master and I@jenkins:client', 'docker.client', true, true, null, false, -1, 2)
     sleep(500)
-    salt.enforceState(master, 'I@aptly:server', 'aptly', true, true, null, false, -1, 1)
-    salt.enforceState(master, 'I@openldap:client', 'openldap', true, true, null, false, -1, 1)
+    salt.enforceState(master, 'I@aptly:server', 'aptly', true, true, null, false, -1, 2)
+    salt.enforceState(master, 'I@openldap:client', 'openldap', true, true, null, false, -1, 2)
 
     if (salt.testTarget(master, 'I@python:environment')) {
         salt.enforceState(master, 'I@python:environment', 'python', true)
     }
-    salt.enforceState(master, 'I@gerrit:client', 'gerrit', true, true, null, false, -1, 1)
-    salt.enforceState(master, 'I@jenkins:client', 'jenkins', true, true, null, false, -1, 1)
+    salt.enforceState(master, 'I@gerrit:client', 'gerrit', true, true, null, false, -1, 2)
+    salt.enforceState(master, 'I@jenkins:client', 'jenkins', true, true, null, false, -1, 2)
 }
 
 
