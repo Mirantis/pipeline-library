@@ -375,8 +375,9 @@ def installContrailNetwork(master) {
     salt.runSaltProcessStep(master, 'I@opencontrail:control', 'state.sls', ['opencontrail', 'exclude=opencontrail.client'])
     salt.runSaltProcessStep(master, 'I@opencontrail:collector', 'state.sls', ['opencontrail', 'exclude=opencontrail.client'])
 
-    // Test opencontrail
-    salt.runSaltProcessStep(master, 'I@opencontrail:control', 'cmd.run', ['contrail-status'], null, true)
+    if (salt.testTarget(master, 'I@docker:client and I@opencontrail:control')) {
+        salt.enforceState(master, 'I@opencontrail:control or I@opencontrail:collector', 'docker.client', true)
+    }
 }
 
 
@@ -390,7 +391,7 @@ def installContrailCompute(master) {
 
     // Generate script /usr/lib/contrail/if-vhost0 for up vhost0
     try {
-        salt.enforceState(master, 'I@opencontrail:compute', 'opencontrail', true)
+        salt.runSaltProcessStep(master, 'I@opencontrail:compute', 'state.sls', ['opencontrail', 'exclude=opencontrail.client'])
     } catch (Exception e) {
         common.warningMsg('Exception in state opencontrail on I@opencontrail:compute')
     }
