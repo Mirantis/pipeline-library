@@ -448,3 +448,28 @@ def validInputParam(paramName){
 def countHashMapEquals(lm, param, eq) {
     return lm.stream().filter{i -> i[param].equals(eq)}.collect(java.util.stream.Collectors.counting())
 }
+
+/**
+ * Execute shell command and return stdout, stderr and status
+ *
+ * @param cmd Command to execute
+ * @return map with stdout, stderr, status keys
+ */
+
+def shCmdStatus(cmd) {
+    def res = [:]
+    def stderr = sh(script: 'mktemp', returnStdout: true).trim()
+    def stdout = sh(script: 'mktemp', returnStdout: true).trim()
+
+    try {
+        def status = sh(script:"${cmd} 1>${stdout} 2>${stderr}", returnStatus: true)
+        res['stderr'] = sh(script: "cat ${stderr}", returnStdout: true)
+        res['stdout'] = sh(script: "cat ${stdout}", returnStdout: true)
+        res['status'] = status
+    } finally {
+        sh(script: "rm ${stderr}", returnStdout: true)
+        sh(script: "rm ${stdout}", returnStdout: true)
+    }
+
+    return res
+}
