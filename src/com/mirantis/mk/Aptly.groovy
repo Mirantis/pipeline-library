@@ -98,11 +98,17 @@ def promotePublish(server, source, target, recreate=false, components=null, pack
 
 }
 
-def publish(server, config='/etc/aptly-publisher.yaml', recreate=false, opts='-d --timeout 600') {
+def publish(server, config='/etc/aptly-publisher.yaml', recreate=false, only_latest=true, force_overwrite=true, opts='-d --timeout 600') {
     if (recreate == true) {
         opts = "${opts} --recreate"
     }
-    sh("aptly-publisher --url ${server} -c ${config} ${opts} --force-overwrite publish")
+    if (only_latest == true) {
+        opts = "${opts} --only-latest"
+    }
+    if (force_overwrite == true) {
+        opts = "${opts} --force-overwrite"
+    }
+    sh("aptly-publisher --url ${server} -c ${config} ${opts} publish")
 }
 
 /**
