@@ -170,6 +170,7 @@ def enforceState(saltId, target, state, output = true, failOnError = true, batch
             out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states], kwargs, -1, read_timeout)
             checkResult(out, failOnError, output)
         }
+        waitForMinion(out)
         return out
     } else {
         common.infoMsg("No Minions matched the target given, but 'optional' param was set to true - Pipeline continues. ")
@@ -588,6 +589,30 @@ def checkResult(result, failOnError = true, printResults = true, printOnlyChange
         }
     }else{
         common.errorMsg("Cannot check salt result, given result is null")
+    }
+}
+
+/**
+* Parse salt API output to check minion restart and wait some time to be sure minion is up.
+* See https://mirantis.jira.com/browse/PROD-16258 for more details
+* TODO: change sleep to more tricky procedure.
+*
+* @param result    Parsed response of Salt API
+*/
+def waitForMinion(result) {
+    def common = new com.mirantis.mk.Common()
+    def matcher = result =~ /(?s).*salt_minion_service_restart.*?(changes:\[.*?\])/
+    def isMinionRestarted = false
+    while (matcher.find()) {
+        if (matcher.group(1) != null && matcher.group(1).contains("pid")) {
+            isMinionRestarted = true
+        }
+    }
+    // There is an exception when use sleep after defined Matcher. Therefore destroy the matcher.
+    matcher = null
+    if (isMinionRestarted){
+        common.infoMsg("Salt minion service restart detected. Sleep 10 seconds to wait minion restart")
+        sleep(10)
     }
 }
 
