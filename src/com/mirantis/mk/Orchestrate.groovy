@@ -357,16 +357,20 @@ def installContrailNetwork(master) {
 
     // Install opencontrail database services
     //runSaltProcessStep(master, 'I@opencontrail:database', 'state.sls', ['opencontrail.database'], 1)
-    try {
+    if(env["ASK_ON_ERROR"] && env["ASK_ON_ERROR"] == "true"){
         salt.enforceState(master, 'I@opencontrail:database and *01*', 'opencontrail.database', true)
-    } catch (Exception e) {
-        common.warningMsg('Exception in state opencontrail.database on I@opencontrail:database and *01*')
-    }
-
-    try {
         salt.enforceState(master, 'I@opencontrail:database', 'opencontrail.database', true)
-    } catch (Exception e) {
-        common.warningMsg('Exception in state opencontrail.database on I@opencontrail:database')
+    }else{
+        try {
+            salt.enforceState(master, 'I@opencontrail:database and *01*', 'opencontrail.database', true)
+        } catch (Exception e) {
+            common.warningMsg('Exception in state opencontrail.database on I@opencontrail:database and *01*')
+        }
+        try {
+            salt.enforceState(master, 'I@opencontrail:database and *01*', 'opencontrail.database', true)
+        } catch (Exception e) {
+            common.warningMsg('Exception in state opencontrail.database on I@opencontrail:database')
+        }
     }
 
     // Install opencontrail control services
@@ -390,10 +394,14 @@ def installContrailCompute(master) {
     // Provision opencontrail virtual routers
 
     // Generate script /usr/lib/contrail/if-vhost0 for up vhost0
-    try {
+    if(env["ASK_ON_ERROR"] && env["ASK_ON_ERROR"] == "true"){
         salt.runSaltProcessStep(master, 'I@opencontrail:compute', 'state.sls', ['opencontrail', 'exclude=opencontrail.client'])
-    } catch (Exception e) {
-        common.warningMsg('Exception in state opencontrail on I@opencontrail:compute')
+    }else{
+        try {
+            salt.runSaltProcessStep(master, 'I@opencontrail:compute', 'state.sls', ['opencontrail', 'exclude=opencontrail.client'])
+        } catch (Exception e) {
+            common.warningMsg('Exception in state opencontrail on I@opencontrail:compute')
+        }
     }
 
     salt.runSaltProcessStep(master, 'I@nova:compute', 'cmd.run', ['exec 0>&-; exec 1>&-; exec 2>&-; nohup bash -c "ip link | grep vhost && echo no_reboot || sleep 5 && reboot & "'], null, true)
