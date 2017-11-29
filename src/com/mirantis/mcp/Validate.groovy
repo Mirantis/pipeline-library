@@ -200,8 +200,8 @@ def runTempestTests(master, target, dockerImageLink, output_dir, confRepository,
     cmd += "rally verify report --type json --to ${dest_folder}/report-tempest.json; " +
         "rally verify report --type html --to ${dest_folder}/report-tempest.html"
     salt.cmdRun(master, target, "docker run -i --rm --net=host -e ${env_vars} " +
-        "-v ${results}:${dest_folder} ${dockerImageLink} " +
-        "/bin/bash -c \"${cmd}\" > ${results}/${output_file}")
+        "-v ${results}:${dest_folder} --entrypoint /bin/bash ${dockerImageLink} " +
+        "-c \"${cmd}\" > ${results}/${output_file}")
     addFiles(master, target, results, output_dir)
 }
 
@@ -236,7 +236,7 @@ def runRallyTests(master, target, dockerImageLink, output_dir, repository, branc
         '--task-args-file /opt/devops-qa-tools/rally-scenarios/task_arguments.yaml; '
     if (repository != '' ) {
         cmd = "git clone -b ${branch ?: 'master'} ${repository} test_config; " +
-            'rally deployment create --file=test_config/rally/existing.json --name=existing; ' +
+            'rally deployment create --fromenv --name=existing; ' +
             'rally deployment config; ' +
             'rally task start test_config/rally/scenario.yaml ' +
             '--task-args-file test_config/rally/task_arguments.yaml; '
@@ -244,8 +244,8 @@ def runRallyTests(master, target, dockerImageLink, output_dir, repository, branc
     cmd += "rally task export --type junit-xml --to ${dest_folder}/report-rally.xml; " +
         "rally task report --out ${dest_folder}/report-rally.html"
     salt.cmdRun(master, target, "docker run -i --rm --net=host -e ${env_vars} " +
-        "-v ${results}:${dest_folder} ${dockerImageLink} " +
-        "/bin/bash -c \"${cmd}\" > ${results}/${output_file}")
+        "-v ${results}:${dest_folder} --entrypoint /bin/bash ${dockerImageLink} " +
+        "-c \"${cmd}\" > ${results}/${output_file}")
     addFiles(master, target, results, output_dir)
 }
 
