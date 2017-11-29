@@ -680,7 +680,7 @@ def runPepperCommand(data, venv)   {
         writeFile file: pepperCmdFile, text: dataStr
         pepperCmd = "pepper -c ${venv}/pepperrc --make-token -x ${venv}/.peppercache --json-file ${pepperCmdFile}"
     } else {
-        pepperCmd = "pepper -c ${venv}/pepperrc --make-token -x ${venv}/.peppercache --json \\\"" + dataStr.replaceAll('"', '\\\\\\\\\\\\\"') + "\\\"" // yeah, really 13 backslashes, don't ask why
+        pepperCmd = "pepper -c ${venv}/pepperrc --make-token -x ${venv}/.peppercache --json \"" + dataStr.replaceAll('"', '\\\\\\\"') + "\"" // yeah, really 7 backslashes, don't ask why
     }
 
     if (venv) {
