@@ -664,7 +664,7 @@ def runPepperCommand(data, venv)   {
     def python = new com.mirantis.mk.Python()
     def dataStr = new groovy.json.JsonBuilder(data).toString()
 
-    def offlineDeployment = false
+    def offlineDeployment = env.getEnvironment().containsKey("OFFLINE_DEPLOYMENT") && env["OFFLINE_DEPLOYMENT"].toBoolean()
     try {
         offlineDeployment = sh(script: "wget -q -T 3 --spider http://google.com", returnStatus: true) != 0
     } catch(Exception e) {
