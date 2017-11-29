@@ -28,10 +28,13 @@ def setupVirtualenv(path, python = 'python2', reqs=[], reqs_path=null, clean=fal
 
     common.infoMsg("[Python ${path}] Setup ${python} environment")
     sh(returnStdout: true, script: virtualenv_cmd)
-    try {
-        runVirtualenvCommand(path, "wget -q -T 3 --spider http://google.com && pip install -U setuptools pip")
-    } catch(Exception e) {
-        common.warningMsg("Setuptools and pip cannot be updated, you might be offline")
+    if(!env.getEnvironment().containsKey("OFFLINE_DEPLOYMENT") || !env["OFFLINE_DEPLOYMENT"].toBoolean()){
+      try {
+          //TODO: remove wget after global env prop enforcments
+          runVirtualenvCommand(path, "wget -q -T 3 --spider http://google.com && pip install -U setuptools pip")
+      } catch(Exception e) {
+          common.warningMsg("Setuptools and pip cannot be updated, you might be offline")
+      }
     }
     if (reqs_path==null) {
         def args = ""
