@@ -678,7 +678,7 @@ def runPepperCommand(data, venv)   {
         writeFile file: pepperCmdFile, text: dataStr
         pepperCmd = "pepper -c ${venv}/pepperrc --make-token -x ${venv}/.peppercache --json-file ${pepperCmdFile}"
     } else {
-        pepperCmd = "pepper -c ${venv}/pepperrc --make-token -x ${venv}/.peppercache --json \"" + dataStr + "\""
+        pepperCmd = "pepper -c ${venv}/pepperrc --make-token -x ${venv}/.peppercache --json \\\"" + dataStr + "\\\""
     }
 
     if (venv) {
