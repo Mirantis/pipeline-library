@@ -215,7 +215,7 @@ def runTempestTests(master, target, dockerImageLink, output_dir, confRepository,
  * @param branch            Git branch which will be used during the checkout
  * @param ext_variables     The list of external variables
  */
-def runRallyTests(master, target, dockerImageLink, output_dir, repository, branch, ext_variables = []) {
+def runRallyTests(master, target, dockerImageLink, output_dir, repository, branch, scenarios, tasks_args_file, ext_variables = []) {
     def salt = new com.mirantis.mk.Salt()
     def output_file = 'docker-rally.log'
     def results = '/root/qa_results'
@@ -237,9 +237,23 @@ def runRallyTests(master, target, dockerImageLink, output_dir, repository, branc
     if (repository != '' ) {
         cmd = "git clone -b ${branch ?: 'master'} ${repository} test_config; " +
             'rally deployment create --fromenv --name=existing; ' +
-            'rally deployment config; ' +
-            'rally task start test_config/rally/scenario.yaml ' +
-            '--task-args-file test_config/rally/task_arguments.yaml; '
+            'rally deployment config; '
+        if (scenarios == '') {
+          cmd += 'rally task start test_config/rally/scenario.yaml '
+        } else {
+          cmd += "rally task start ${scenarios} "
+        }
+        switch(tasks_args_file) {
+          case 'none':
+            cmd += '; '
+            break
+          case '':
+            cmd += '--task-args-file test_config/rally/task_arguments.yaml; '
+            break
+          default:
+            cmd += "--task-args-file ${tasks_args_file}; "
+          break
+        }
     }
     cmd += "rally task export --type junit-xml --to ${dest_folder}/report-rally.xml; " +
         "rally task report --out ${dest_folder}/report-rally.html"
