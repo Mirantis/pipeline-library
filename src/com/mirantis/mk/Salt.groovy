@@ -664,9 +664,22 @@ def runPepperCommand(data, venv)   {
     def python = new com.mirantis.mk.Python()
     def dataStr = new groovy.json.JsonBuilder(data).toString()
 
-    pepperCmdFile = "${venv}/pepper-cmd.json"
-    writeFile file: pepperCmdFile, text: dataStr
-    def pepperCmd = "pepper -c ${venv}/pepperrc --make-token -x ${venv}/.peppercache --json-file ${pepperCmdFile}"
+    def offlineDeployment = false
+    try {
+        offlineDeployment = sh(script: "wget -q -T 3 --spider http://google.com", returnStatus: true) != 0
+    } catch(Exception e) {
+        common.warningMsg("You might be offline, will use pepper with option --json instead of option --json-file")
+    }
+
+    def pepperCmd
+
+    if (!offlineDeployment) {
+        def pepperCmdFile = "${venv}/pepper-cmd.json"
+        writeFile file: pepperCmdFile, text: dataStr
+        pepperCmd = "pepper -c ${venv}/pepperrc --make-token -x ${venv}/.peppercache --json-file ${pepperCmdFile}"
+    } else {
+        pepperCmd = "pepper -c ${venv}/pepperrc --make-token -x ${venv}/.peppercache --json \"" + dataStr + "\""
+    }
 
     if (venv) {
         output = python.runVirtualenvCommand(venv, pepperCmd)
