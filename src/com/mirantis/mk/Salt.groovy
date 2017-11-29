@@ -665,13 +665,14 @@ def runPepperCommand(data, venv)   {
     def dataStr = new groovy.json.JsonBuilder(data).toString()
 
     def offlineDeployment = env.getEnvironment().containsKey("OFFLINE_DEPLOYMENT") && env["OFFLINE_DEPLOYMENT"].toBoolean()
-    try {
+    if(!offlineDeployment){
+      try {
         //TODO: remove wget after global env prop enforcments
         offlineDeployment = sh(script: "wget -q -T 3 --spider http://google.com", returnStatus: true) != 0
-    } catch(Exception e) {
+      } catch(Exception e) {
         common.warningMsg("You might be offline, will use pepper with option --json instead of option --json-file")
+      }
     }
-
     def pepperCmd
 
     if (!offlineDeployment) {
