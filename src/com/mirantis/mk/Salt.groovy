@@ -668,7 +668,7 @@ def runPepperCommand(data, venv)   {
     if(!offlineDeployment){
       try {
         //TODO: remove wget after global env prop enforcments
-        offlineDeployment = sh(script: "wget -q -T 3 --spider http://google.com", returnStatus: true) != 0
+        offlineDeployment = sh(script: "wget -q -T 10 --spider http://google.com", returnStatus: true) != 0
       } catch(Exception e) {
         def common = new com.mirantis.mk.Common()
         common.warningMsg("You might be offline, will use pepper with option --json instead of option --json-file")
