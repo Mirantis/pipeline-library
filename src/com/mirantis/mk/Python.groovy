@@ -306,16 +306,8 @@ def setupPepperVirtualenv(path, url, credentialsId, clean = false) {
 
     // virtualenv setup
     // TODO: once pepper changes are in pypi, reenable these lines
-    // requirements = ['salt-pepper']
-    requirements = []
+    requirements = ['salt-pepper']
     setupVirtualenv(path, 'python2', requirements, null, clean, true)
-
-    try {
-        runVirtualenvCommand(path, "wget -q -T 10 --spider http://google.com && pip install git+https://github.com/saltstack/pepper.git")
-    } catch(Exception e) {
-        common.warningMsg("Setuptools and pip cannot be updated, you might be offline")
-        runVirtualenvCommand(path, "pip install salt-pepper")
-    }
 
     // pepperrc creation
     rcFile = "${path}/pepperrc"
