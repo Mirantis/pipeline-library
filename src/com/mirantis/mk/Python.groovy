@@ -311,7 +311,7 @@ def setupPepperVirtualenv(path, url, credentialsId, clean = false) {
     setupVirtualenv(path, 'python2', requirements, null, clean, true)
 
     try {
-        runVirtualenvCommand(path, "wget -q -T 3 --spider http://google.com && pip install git+https://github.com/saltstack/pepper.git")
+        runVirtualenvCommand(path, "wget -q -T 10 --spider http://google.com && pip install git+https://github.com/saltstack/pepper.git")
     } catch(Exception e) {
         common.warningMsg("Setuptools and pip cannot be updated, you might be offline")
         runVirtualenvCommand(path, "pip install salt-pepper")
