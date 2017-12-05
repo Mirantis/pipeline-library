@@ -764,7 +764,9 @@ def installCephClient(master) {
     if (salt.testTarget(master, 'I@ceph:radosgw')) {
         salt.runSaltProcessStep(master, 'I@ceph:radosgw', 'saltutil.sync_grains', [], null, true)
         salt.enforceState(master, 'I@ceph:radosgw', 'ceph.radosgw', true)
-        // setup Keystone service and endpoints for swift or / and S3
+    }
+    // setup Keystone service and endpoints for swift or / and S3
+    if (salt.testTarget(master, 'I@keystone:client')) {
         salt.enforceState(master, 'I@keystone:client', 'keystone.client', true)
     }
 }
