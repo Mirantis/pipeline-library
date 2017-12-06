@@ -124,22 +124,39 @@ def gerritPatchsetCheckout(LinkedHashMap config, List extraScmExtensions = []) {
  * @param gerritRef gerrit ref spec
  * @param gerritBranch gerrit branch
  * @param credentialsId jenkins credentials id
+ * @param path checkout path, optional, default is empty string which means workspace root
  * @return boolean result
  */
-def gerritPatchsetCheckout(gerritUrl, gerritRef, gerritBranch, credentialsId) {
+def gerritPatchsetCheckout(gerritUrl, gerritRef, gerritBranch, credentialsId, path="") {
     def gerritParams = _getGerritParamsFromUrl(gerritUrl)
     if(gerritParams.size() == 5){
-        gerritPatchsetCheckout([
-          credentialsId : credentialsId,
-          gerritBranch: gerritBranch,
-          gerritRefSpec: gerritRef,
-          gerritScheme: gerritParams[0],
-          gerritName: gerritParams[1],
-          gerritHost: gerritParams[2],
-          gerritPort: gerritParams[3],
-          gerritProject: gerritParams[4]
-        ])
-        return true
+        if (path==""){
+            gerritPatchsetCheckout([
+              credentialsId : credentialsId,
+              gerritBranch: gerritBranch,
+              gerritRefSpec: gerritRef,
+              gerritScheme: gerritParams[0],
+              gerritName: gerritParams[1],
+              gerritHost: gerritParams[2],
+              gerritPort: gerritParams[3],
+              gerritProject: gerritParams[4]
+            ])
+            return true
+        } else {
+            dir(path) {
+                gerritPatchsetCheckout([
+                  credentialsId : credentialsId,
+                  gerritBranch: gerritBranch,
+                  gerritRefSpec: gerritRef,
+                  gerritScheme: gerritParams[0],
+                  gerritName: gerritParams[1],
+                  gerritHost: gerritParams[2],
+                  gerritPort: gerritParams[3],
+                  gerritProject: gerritParams[4]
+                ])
+                return true
+            }
+        }
     }
     return false
 }
