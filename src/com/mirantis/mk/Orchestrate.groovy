@@ -806,3 +806,65 @@ def connectCeph(master) {
         salt.enforceState(master, 'I@ceph:common and I@nova:compute', ['nova'], true)
     }
 }
+
+def installOssInfra(master) {
+  def common = new com.mirantis.mk.Common()
+  def salt = new com.mirantis.mk.Salt()
+
+  if (!common.checkContains('STACK_INSTALL', 'k8s')) or (!common.checkContains('STACK_INSTALL', 'openstack')) {
+    def orchestrate = new com.mirantis.mk.Orchestrate()
+    orchestrate.installInfra(master)
+  }
+
+  if (salt.testTarget(master, 'I@devops_portal:config')) {
+    salt.enforceState(master, 'I@devops_portal:config', 'devops_portal.config', true)
+    salt.enforceState(master, 'I@rundeck:client', ['linux.system.user', 'openssh'], true)
+    salt.enforceState(master, 'I@rundeck:server', 'rundeck.server', true)
+  }
+}
+
+def installOss(master) {
+  def common = new com.mirantis.mk.Common()
+  def salt = new com.mirantis.mk.Salt()
+
+  //Get oss VIP address
+  def pillar = salt.getPillar(master, 'cfg01*', '_param:stacklight_monitor_address')
+  common.prettyPrint(pillar)
+
+  def oss_vip
+  if(!pillar['return'].isEmpty()) {
+      oss_vip = pillar['return'][0].values()[0]
+  } else {
+      common.errorMsg('[ERROR] Oss VIP address could not be retrieved')
+  }
+
+  // Postgres client - initialize OSS services databases
+  timeout(120){
+    common.infoMsg("Waiting for postgresql database to come up..")
+    salt.cmdRun(master, 'I@postgresql:client', 'while true; do if docker service logs postgresql_postgresql-db | grep "ready to accept"; then break; else sleep 5; fi; done')
+  }
+  // XXX: first run usually fails on some inserts, but we need to create databases at first
+  salt.enforceState(master, 'I@postgresql:client', 'postgresql.client', true, false)
+
+  // Setup postgres database with integration between
+  // Pushkin notification service and Security Monkey security audit service
+  timeout(10) {
+    common.infoMsg("Waiting for Pushkin to come up..")
+    salt.cmdRun(master, 'I@postgresql:client', "while true; do curl -sf ${oss_vip}:8887/apps >/dev/null && break; done")
+  }
+  salt.enforceState(master, 'I@postgresql:client', 'postgresql.client', true)
+
+  // Rundeck
+  timeout(10) {
+    common.infoMsg("Waiting for Rundeck to come up..")
+    salt.cmdRun(master, 'I@rundeck:client', "while true; do curl -sf ${oss_vip}:4440 >/dev/null && break; done")
+  }
+  salt.enforceState(master, 'I@rundeck:client', 'rundeck.client', true)
+
+  // Elasticsearch
+  timeout(10) {
+    common.infoMsg('Waiting for Elasticsearch to come up..')
+    salt.cmdRun(master, 'I@elasticsearch:client', "while true; do curl -sf ${oss_vip}:9200 >/dev/null && break; done")
+  }
+  salt.enforceState(master, 'I@elasticsearch:client', 'elasticsearch.client', true)
+}
