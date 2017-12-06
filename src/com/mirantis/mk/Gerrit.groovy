@@ -49,7 +49,8 @@ def gerritPatchsetCheckout(LinkedHashMap config, List extraScmExtensions = []) {
     def depth = config.get('depth', 0)
     def timeout = config.get('timeout', 20)
 
-    if(_validGerritConfig(config)){
+    def invalidParams = _getInvalidGerritParams(config)
+    if (invalidParams.isEmpty()) {
         // default parameters
         def scmExtensions = [
             [$class: 'CleanCheckout'],
@@ -112,7 +113,7 @@ def gerritPatchsetCheckout(LinkedHashMap config, List extraScmExtensions = []) {
         }
         return true
     }else{
-        throw new Exception("Cannot perform gerrit checkout, given config file is not valid")
+        throw new Exception("Cannot perform gerrit checkout, missed config options: " + invalidParams)
     }
     return false
 }
@@ -240,11 +241,9 @@ def _getGerritParamsFromUrl(gitUrl){
     return []
 }
 
-def _validGerritConfig(LinkedHashMap config){
-    return config.get("gerritScheme","") != null && config.get("gerritScheme","") != "" &&
-           config.get("gerritName","") != null && config.get("gerritName","") != "" &&
-           config.get("gerritHost","") != null && config.get("gerritHost","") != "" &&
-           config.get("gerritPort","") != null && config.get("gerritPort","") != "" &&
-           config.get("gerritProject","") != null && config.get("gerritProject","") != "" &&
-           config.get("gerritBranch","") != null && config.get("gerritBranch","") != ""
+def _getInvalidGerritParams(LinkedHashMap config){
+    def requiredParams = ["gerritScheme", "gerritName", "gerritHost", "gerritPort", "gerritProject", "gerritBranch"]
+    def missedParams = requiredParams - config.keySet()
+    def badParams = config.subMap(requiredParams).findAll{it.value in [null, '']}.keySet()
+    return badParams + missedParams
 }
