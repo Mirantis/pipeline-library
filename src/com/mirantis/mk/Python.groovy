@@ -305,8 +305,7 @@ def setupPepperVirtualenv(path, url, credentialsId, clean = false) {
     def common = new com.mirantis.mk.Common()
 
     // virtualenv setup
-    // TODO: once pepper changes are in pypi, reenable these lines
-    requirements = ['salt-pepper']
+    requirements = ['salt-pepper==0.5.2']
     setupVirtualenv(path, 'python2', requirements, null, clean, true)
 
     // pepperrc creation
