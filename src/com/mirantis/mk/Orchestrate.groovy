@@ -510,8 +510,26 @@ def installCicd(master) {
     if (salt.testTarget(master, 'I@python:environment')) {
         salt.enforceState(master, 'I@python:environment', 'python', true)
     }
-    salt.enforceState(master, 'I@gerrit:client', 'gerrit', true, true, null, false, -1, 2)
-    salt.enforceState(master, 'I@jenkins:client', 'jenkins', true, true, null, false, -1, 2)
+    withEnv(['ASK_ON_ERROR=false']){
+        retry(2){
+            try{
+                salt.enforceState(master, 'I@gerrit:client', 'gerrit', true)
+            }catch(e){
+                salt.runSaltProcessStep(master, 'I@gerrit:client', 'saltutil.refresh_pillar', [], null, true)
+                salt.runSaltProcessStep(master, 'I@gerrit:client', 'saltutil.sync_all', [], null, true)
+                throw e //rethrow for retry handler
+            }
+        }
+        retry(2){
+            try{
+                salt.enforceState(master, 'I@jenkins:client', 'jenkins', true)
+            }catch(e){
+                salt.runSaltProcessStep(master, 'I@jenkins:client', 'saltutil.refresh_pillar', [], null, true)
+                salt.runSaltProcessStep(master, 'I@jenkins:client', 'saltutil.sync_all', [], null, true)
+                throw e //rethrow for retry handler
+            }
+        }
+    }
 }
 
 
