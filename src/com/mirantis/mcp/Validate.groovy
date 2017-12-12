@@ -401,6 +401,7 @@ def configureContainer(master, target, proxy, testing_tools_repo, tempest_repo,
 def runCVPtempest(master, target, test_pattern="set=smoke", skip_list="", output_dir, output_filename="docker-tempest") {
     def salt = new com.mirantis.mk.Salt()
     def xml_file = "${output_filename}.xml"
+    def html_file = "${output_filename}.html"
     def log_file = "${output_filename}.log"
     skip_list_cmd = ''
     if (skip_list != '') {
@@ -410,7 +411,9 @@ def runCVPtempest(master, target, test_pattern="set=smoke", skip_list="", output
                                 "--detailed > ${log_file}", false)
     salt.cmdRun(master, target, "cat ${log_file}")
     salt.cmdRun(master, target, "docker exec cvp rally verify report --type junit-xml --to /home/rally/${xml_file}")
+    salt.cmdRun(master, target, "docker exec cvp rally verify report --type html --to /home/rally/${html_file}")
     salt.cmdRun(master, target, "docker cp cvp:/home/rally/${xml_file} ${output_dir}")
+    salt.cmdRun(master, target, "docker cp cvp:/home/rally/${html_file} ${output_dir}")
     return salt.cmdRun(master, target, "docker exec cvp rally verify list | tail -n 2 | grep -v '+' | awk '{print \$16}'")['return'][0].values()[0].split()[0]
 }
 
