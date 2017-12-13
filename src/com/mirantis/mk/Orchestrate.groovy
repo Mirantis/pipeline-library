@@ -14,7 +14,7 @@ def validateFoundationInfra(master) {
     salt.runSaltProcessStep(master, 'I@salt:minion', 'state.show_top', [], null, true)
 }
 
-def installFoundationInfra(master) {
+def installFoundationInfra(master, staticMgmtNet=false) {
     def salt = new com.mirantis.mk.Salt()
 
     // NOTE(vsaienko) Apply reclass first, it may update cluster model
@@ -33,13 +33,16 @@ def installFoundationInfra(master) {
     salt.runSaltProcessStep(master, '*', 'saltutil.sync_all', [], null, true)
 
     salt.enforceState(master, '*', ['linux.system'], true)
+    if (staticMgmtNet) {
+        salt.runSaltProcessStep(master, '*', 'cmd.shell', ["salt-call state.sls linux.network; salt-call service.restart salt-minion"], null, true, 60)
+    }
     salt.enforceState(master, 'I@linux:system', ['linux', 'openssh', 'ntp'], true)
     salt.enforceState(master, '*', ['salt.minion'], true, false, null, false, 60, 2)
     sleep(5)
     salt.enforceState(master, '*', ['linux.network.host'], true)
 }
 
-def installFoundationInfraOnTarget(master, target) {
+def installFoundationInfraOnTarget(master, target, staticMgmtNet=false) {
     def salt = new com.mirantis.mk.Salt()
 
     salt.enforceState(master, 'I@salt:master', ['reclass'], true, false, null, false, 120, 2)
@@ -48,6 +51,9 @@ def installFoundationInfraOnTarget(master, target) {
     salt.runSaltProcessStep(master, target, 'saltutil.sync_all', [], null, true)
 
     salt.enforceState(master, target, ['linux.system'], true)
+    if (staticMgmtNet) {
+        salt.runSaltProcessStep(master, target, 'cmd.shell', ["salt-call state.sls linux.network; salt-call service.restart salt-minion"], null, true, 60)
+    }
     salt.enforceState(master, target, ['salt.minion'], true, false, null, false, 60, 2)
     salt.enforceState(master, target, ['salt.minion'], true)
 
