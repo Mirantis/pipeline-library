@@ -373,21 +373,26 @@ def runSptTests(master, target, dockerImageLink, output_dir, ext_variables = [])
  * @param target            		Host to run container
  * @param proxy            		Proxy for accessing github and pip
  * @param testing_tools_repo    	Repo with testing tools: configuration script, skip-list, etc.
- * @param tempest_repo         		Url to tempest for cloning. Can be github or internal gerrit. If not specified, tempest will not be configured.
- * @param tempest_endpoint_type         internalURL or adminURL or publicURL
+ * @param tempest_repo         		Tempest repo to clone. Can be upstream tempest (default, recommended), your customized tempest in local/remote repo or path inside container. If not specified, tempest will not be configured.
+ * @param tempest_endpoint_type         internalURL or adminURL or publicURL to use in tests
  * @param tempest_version	        Version of tempest to use
+ * @param conf_script_path              Path to configuration script.
+ * @param ext_variables                 Some custom extra variables to add into container
  */
 def configureContainer(master, target, proxy, testing_tools_repo, tempest_repo,
                        tempest_endpoint_type="internalURL", tempest_version="15.0.0",
-                       configure_script="/home/rally/testing-stuff/configure.sh", ext_variables = []) {
+                       conf_script_path="", ext_variables = []) {
     def salt = new com.mirantis.mk.Salt()
     if (testing_tools_repo != "" ) {
-        salt.cmdRun(master, target, "docker exec cvp git clone ${testing_tools_repo}")
+        salt.cmdRun(master, target, "docker exec cvp git clone ${testing_tools_repo} cvp-configuration")
+        configure_script = conf_script_path != "" ? conf_script_path : "/home/rally/cvp-configuration/configure.sh"
+    } else {
+        configure_script = conf_script_path != "" ? conf_script_path : "/opt/devops-qa-tools/deployment/configure.sh"
     }
-    salt.cmdRun(master, target, "docker exec -e tempest_version=${tempest_version} -e PROXY=${proxy} " +
-                                " -e TEMPEST_ENDPOINT=${tempest_repo} -e TEMPEST_ENDPOINT_TYPE=${tempest_endpoint_type} " +
-                                ext_variables.join(' -e ') +
-                                " cvp bash -c ${configure_script}")
+    ext_variables.addAll("PROXY=${proxy}", "TEMPEST_REPO=${tempest_repo}",
+                         "TEMPEST_ENDPOINT_TYPE=${tempest_endpoint_type}",
+                         "tempest_version=${tempest_version}")
+    salt.cmdRun(master, target, "docker exec -e " + ext_variables.join(' -e ') + " cvp bash -c ${configure_script}")
 }
 
 /**
