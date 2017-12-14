@@ -55,14 +55,14 @@ def copyTestsOutput(master, image) {
  * @param localKeystone     Path to the keystonerc file in the local host
  * @param localLogDir       Path to local destination folder for logs
  */
-def runTempestTests(master, dockerImageLink, target, pattern = "false", logDir = "/home/rally/rally_reports/",
+def runTempestTests(master, dockerImageLink, target, pattern = "", logDir = "/home/rally/rally_reports/",
                     sourceFile="/home/rally/keystonercv3", set="full", concurrency="0", tempestConf="mcp.conf",
                     skipList="mcp_skip.list", localKeystone="/root/keystonercv3" , localLogDir="/root/rally_reports",
                     doCleanupResources = "false") {
     def salt = new com.mirantis.mk.Salt()
     salt.runSaltProcessStep(master, target, 'file.mkdir', ["${localLogDir}"])
     def custom = ''
-    if (pattern != "false") {
+    if (pattern) {
         custom = "--pattern " + pattern
     }
     salt.cmdRun(master, "${target}", "docker run --rm --net=host " +
