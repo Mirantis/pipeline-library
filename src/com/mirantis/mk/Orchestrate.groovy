@@ -300,6 +300,12 @@ def installOpenstackControl(master) {
         salt.enforceState(master, 'I@octavia:api', 'octavia', true)
     }
 
+    // Install DogTag server service
+    if (salt.testTarget(master, 'I@dogtag:server')) {
+        salt.enforceState(master, 'I@dogtag:server and *01*', 'dogtag.server', true)
+        salt.enforceState(master, 'I@dogtag:server', 'dogtag.server', true)
+    }
+
     // Install barbican server service
     if (salt.testTarget(master, 'I@barbican:server')) {
         salt.enforceState(master, 'I@barbican:server and *01*', 'barbican.server', true)
