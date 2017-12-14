@@ -543,7 +543,7 @@ def get_vip_node(master, target) {
  *
  * @param target          Host with cvp container
  */
-def openstack_cleanup(master, target, script_path="/home/rally/testing-stuff/clean.sh") {
+def openstack_cleanup(master, target, script_path="/home/rally/cvp-configuration/clean.sh") {
     def salt = new com.mirantis.mk.Salt()
     salt.runSaltProcessStep(master, "${target}", 'cmd.run', ["docker exec cvp bash -c ${script_path}"])
 }
