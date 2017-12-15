@@ -811,7 +811,7 @@ def installOssInfra(master) {
   def common = new com.mirantis.mk.Common()
   def salt = new com.mirantis.mk.Salt()
 
-  if (!common.checkContains('STACK_INSTALL', 'k8s')) or (!common.checkContains('STACK_INSTALL', 'openstack')) {
+  if (!common.checkContains('STACK_INSTALL', 'k8s') || !common.checkContains('STACK_INSTALL', 'openstack')) {
     def orchestrate = new com.mirantis.mk.Orchestrate()
     orchestrate.installInfra(master)
   }
