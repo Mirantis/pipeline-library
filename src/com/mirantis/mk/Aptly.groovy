@@ -97,7 +97,7 @@ def promotePublish(server, source, target, recreate=false, components=null, pack
         dumpTarget = target
         def timestamp = now.format("yyyyMMddHHmmss", TimeZone.getTimeZone('UTC'));
 
-        if (target.contains(')') || target.contains('*')) {
+        if (source.contains(')') || source.contains('*')) {
             sourceTarget = source.split('/')
             dumpTarget = target.split('/')[-1]
             sourceTarget[-1] = dumpTarget
