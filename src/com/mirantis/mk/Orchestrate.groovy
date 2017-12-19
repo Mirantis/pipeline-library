@@ -874,9 +874,17 @@ def installOss(master) {
   salt.enforceState(master, 'I@rundeck:client', 'rundeck.client', true)
 
   // Elasticsearch
+  pillar = salt.getPillar(master, 'I@elasticsearch:client', 'elasticsearch:client:server:host')
+  def elasticsearch_vip
+  if(!pillar['return'].isEmpty()) {
+    elasticsearch_vip = pillar['return'][0].values()[0]
+  } else {
+    common.errorMsg('[ERROR] Elasticsearch VIP address could not be retrieved')
+  }
+
   timeout(10) {
     common.infoMsg('Waiting for Elasticsearch to come up..')
-    salt.cmdRun(master, 'I@elasticsearch:client', "while true; do curl -sf ${oss_vip}:9200 >/dev/null && break; done")
+    salt.cmdRun(master, 'I@elasticsearch:client', "while true; do curl -sf ${elasticsearch_vip}:9200 >/dev/null && break; done")
   }
   salt.enforceState(master, 'I@elasticsearch:client', 'elasticsearch.client', true)
 }
