@@ -79,11 +79,8 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
           sh("(pgrep salt-master | sed /\$\$/d | xargs --no-run-if-empty -I {} kill -9 {} || true) && pkill -9 salt-minion || true")
           sh("service salt-master restart && service salt-minion restart && sleep 15")
         }
-        def lockFile = "/var/lock/salt_master_running"
-        // Dirty hack to make sure salt-master service will run permanently
-        sh("timeout ${testTimeout} bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && \
-            source_local_envs && touch ${lockFile} && (((saltmaster_init || exit 1); rm ${lockFile}) & \
-            (while [ -f ${lockFile} ] ; do service salt-master start && sleep 60 ; done))'")
+
+        sh("timeout ${testTimeout} bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && saltmaster_init'")
 
         if (!legacyTestingMode) {
            sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && verify_salt_minions'")
