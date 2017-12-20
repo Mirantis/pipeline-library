@@ -79,26 +79,7 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
           sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && saltservice_restart'")
         }
 
-        def jobFinished = false
-        def branches = [:]
-
-        branches["DEBUG"] = {
-          while (!jobFinished) {
-            sh("(service salt-master start || true) && sleep 30")
-          }
-        }
-
-        branches["TESTING"] = {
-          try {
-            sh("timeout ${testTimeout} bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && saltmaster_init'")
-            jobFinished = true
-          } catch (Exception e) {
-            jobFinished = true
-            throw e
-          }
-        }
-
-        parallel branches
+        sh("timeout ${testTimeout} bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && saltmaster_init'")
 
         if (!legacyTestingMode) {
            sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && verify_salt_minions'")
