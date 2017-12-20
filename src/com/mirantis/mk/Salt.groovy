@@ -719,11 +719,14 @@ def runPepperCommand(data, venv)   {
     def python = new com.mirantis.mk.Python()
     def dataStr = new groovy.json.JsonBuilder(data).toString()
 
-    def offlineDeployment = env.getEnvironment().containsKey("OFFLINE_DEPLOYMENT") && env["OFFLINE_DEPLOYMENT"].toBoolean()
+    //def offlineDeployment = env.getEnvironment().containsKey("OFFLINE_DEPLOYMENT") && env["OFFLINE_DEPLOYMENT"].toBoolean()
+    def offlineDeployment = env.getEnvironment().containsKey("OFFLINE_DEPLOYMENT")
     if(!offlineDeployment){
       //TODO: remove wget after global env prop enforcments
       def netcheckResult = sh(script: "wget -q -T 10 --spider http://google.com", returnStatus: true)
       offlineDeployment = netcheckResult != 0 && netcheckResult <= 5
+    }else{
+       offlineDeployment = env["OFFLINE_DEPLOYMENT"].toBoolean()
     }
     def pepperCmd
 
