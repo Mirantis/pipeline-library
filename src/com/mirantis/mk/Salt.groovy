@@ -715,19 +715,15 @@ def setSaltOverrides(saltId, salt_overrides, reclass_dir="/srv/salt/reclass") {
 */
 
 def runPepperCommand(data, venv)   {
+    def common = new com.mirantis.mk.Common()
     def python = new com.mirantis.mk.Python()
     def dataStr = new groovy.json.JsonBuilder(data).toString()
 
     def offlineDeployment = env.getEnvironment().containsKey("OFFLINE_DEPLOYMENT") && env["OFFLINE_DEPLOYMENT"].toBoolean()
     if(!offlineDeployment){
-      try {
-        //TODO: remove wget after global env prop enforcments
-        def netcheckResult = sh(script: "wget -q -T 10 --spider http://google.com", returnStatus: true)
-        offlineDeployment = netcheckResult != 0 && netcheckResult <= 5
-      } catch(Exception e) {
-        def common = new com.mirantis.mk.Common()
-        common.warningMsg("You might be offline, will use pepper with option --json instead of option --json-file")
-      }
+      //TODO: remove wget after global env prop enforcments
+      def netcheckResult = sh(script: "wget -q -T 10 --spider http://google.com", returnStatus: true)
+      offlineDeployment = netcheckResult != 0 && netcheckResult <= 5
     }
     def pepperCmd
 
@@ -736,6 +732,7 @@ def runPepperCommand(data, venv)   {
         writeFile file: pepperCmdFile, text: dataStr
         pepperCmd = "pepper -c ${venv}/pepperrc --make-token -x ${venv}/.peppercache --json-file ${pepperCmdFile}"
     } else {
+        common.warningMsg("You might be offline, will use pepper with option --json instead of option --json-file, some complex commands like complicated cmd.runs may not work!")
         pepperCmd = "pepper -c ${venv}/pepperrc --make-token -x ${venv}/.peppercache --json \"" + dataStr.replaceAll('"', '\\\\\\\"') + "\"" // yeah, really 7 backslashes, don't ask why
     }
 
