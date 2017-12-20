@@ -76,8 +76,7 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
                       -t \"\$s\" git+https://github.com/salt-formulas/reclass.git;
                   done""")
           sh("timeout ${testTimeout} bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && configure_salt_master && configure_salt_minion && install_salt_formula_pkg'")
-          sh("(pgrep salt-master | sed /\$\$/d | xargs --no-run-if-empty -I {} kill -9 {} || true) && pkill -9 salt-minion || true")
-          sh("service salt-master restart && service salt-minion restart && sleep 15")
+          sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && saltservice_restart'")
         }
 
         def jobFinished = false
