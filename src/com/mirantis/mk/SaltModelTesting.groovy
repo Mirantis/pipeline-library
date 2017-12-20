@@ -85,7 +85,7 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
 
         branches["DEBUG"] = {
           while (!jobFinished) {
-            sh("service salt-master start && sleep 30")
+            sh("(service salt-master start || true) && sleep 30")
           }
         }
 
