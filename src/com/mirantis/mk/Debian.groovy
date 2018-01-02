@@ -61,7 +61,7 @@ def buildBinary(file, image="debian:sid", extraRepoUrl=null, extraRepoKeyUrl=nul
  * @param image Image name to use for build (default debian:sid)
  * @param snapshot Generate snapshot version (default false)
  */
-def buildSource(dir, image="debian:sid", snapshot=false, gitEmail='jenkins@dummy.org', gitName='Jenkins', revisionPostfix="") {
+def buildSource(dir, image="debian:sid", snapshot=false, gitEmail='jenkins@dummy.org', gitName='Jenkins', revisionPostfix="", remote="origin/") {
     def isGit
     try {
         sh("test -d ${dir}/.git")
@@ -71,7 +71,7 @@ def buildSource(dir, image="debian:sid", snapshot=false, gitEmail='jenkins@dummy
     }
 
     if (isGit == true) {
-        buildSourceGbp(dir, image, snapshot, gitEmail, gitName, revisionPostfix)
+        buildSourceGbp(dir, image, snapshot, gitEmail, gitName, revisionPostfix, remote)
     } else {
         buildSourceUscan(dir, image)
     }
@@ -106,7 +106,7 @@ def buildSourceUscan(dir, image="debian:sid") {
  * @param image Image name to use for build (default debian:sid)
  * @param snapshot Generate snapshot version (default false)
  */
-def buildSourceGbp(dir, image="debian:sid", snapshot=false, gitName='Jenkins', gitEmail='jenkins@dummy.org', revisionPostfix="") {
+def buildSourceGbp(dir, image="debian:sid", snapshot=false, gitName='Jenkins', gitEmail='jenkins@dummy.org', revisionPostfix="", remote="origin/") {
     def common = new com.mirantis.mk.Common()
     def jenkinsUID = common.getJenkinsUid()
     def jenkinsGID = common.getJenkinsGid()
@@ -142,12 +142,12 @@ def buildSourceGbp(dir, image="debian:sid", snapshot=false, gitName='Jenkins', g
                 TIMESTAMP=`date +%Y%m%d%H%M` &&
                 if [[ "`cat debian/source/format`" = *quilt* ]]; then
                     UPSTREAM_BRANCH=`(grep upstream-branch debian/gbp.conf || echo master) | cut -d = -f 2 | tr -d " "` &&
-                    UPSTREAM_REV=`git rev-parse --short origin/\$UPSTREAM_BRANCH` &&
+                    UPSTREAM_REV=`git rev-parse --short ${remote}\$UPSTREAM_BRANCH` &&
                     NEW_UPSTREAM_VERSION="\$UPSTREAM_VERSION+\$TIMESTAMP.\$UPSTREAM_REV" &&
                     NEW_UPSTREAM_VERSION_TAG=`echo \$NEW_UPSTREAM_VERSION | sed 's/.*://'` &&
                     NEW_VERSION=\$NEW_UPSTREAM_VERSION-\$REVISION$revisionPostfix &&
                     echo "Generating new upstream version \$NEW_UPSTREAM_VERSION_TAG" &&
-                    sudo -H -E -u jenkins git tag \$NEW_UPSTREAM_VERSION_TAG origin/\$UPSTREAM_BRANCH &&
+                    sudo -H -E -u jenkins git tag \$NEW_UPSTREAM_VERSION_TAG ${remote}\$UPSTREAM_BRANCH &&
                     sudo -H -E -u jenkins git merge -X theirs \$NEW_UPSTREAM_VERSION_TAG
                 else
                     NEW_VERSION=\$VERSION+\$TIMESTAMP.`git rev-parse --short HEAD`$revisionPostfix
