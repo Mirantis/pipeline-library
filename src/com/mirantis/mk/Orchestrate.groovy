@@ -513,15 +513,25 @@ def installCicd(master) {
     salt.runSaltProcessStep(master, 'I@jenkins:client or I@gerrit:client', 'saltutil.refresh_pillar', [], null, true)
     salt.runSaltProcessStep(master, 'I@jenkins:client or I@gerrit:client', 'saltutil.sync_all', [], null, true)
 
-    salt.enforceState(master, 'I@aptly:publisher', 'aptly.publisher',true, null, false, -1, 2)
+    if (salt.testTarget(master, 'I@aptly:publisher')) {
+        salt.enforceState(master, 'I@aptly:publisher', 'aptly.publisher',true, null, false, -1, 2)
+    }
+
     salt.enforceState(master, 'I@docker:swarm:role:master and I@jenkins:client', 'docker.client', true, true, null, false, -1, 2)
     sleep(500)
-    salt.enforceState(master, 'I@aptly:server', 'aptly', true, true, null, false, -1, 2)
-    salt.enforceState(master, 'I@openldap:client', 'openldap', true, true, null, false, -1, 2)
+
+    if (salt.testTarget(master, 'I@aptly:server')) {
+        salt.enforceState(master, 'I@aptly:server', 'aptly', true, true, null, false, -1, 2)
+    }
+
+    if (salt.testTarget(master, 'I@openldap:client')) {
+        salt.enforceState(master, 'I@openldap:client', 'openldap', true, true, null, false, -1, 2)
+    }
 
     if (salt.testTarget(master, 'I@python:environment')) {
         salt.enforceState(master, 'I@python:environment', 'python', true)
     }
+
     withEnv(['ASK_ON_ERROR=false']){
         retry(2){
             try{
