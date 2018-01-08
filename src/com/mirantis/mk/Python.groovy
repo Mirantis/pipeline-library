@@ -56,7 +56,7 @@ def setupVirtualenv(path, python = 'python2', reqs=[], reqs_path=null, clean=fal
 def runVirtualenvCommand(path, cmd) {
     def common = new com.mirantis.mk.Common()
 
-    virtualenv_cmd = ". ${path}/bin/activate > /dev/null; ${cmd}"
+    virtualenv_cmd = "set +x; . ${path}/bin/activate; ${cmd}"
     common.infoMsg("[Python ${path}] Run command ${cmd}")
     output = sh(
         returnStdout: true,
