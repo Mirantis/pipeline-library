@@ -315,6 +315,16 @@ def installOpenstackControl(master) {
     if (salt.testTarget(master, 'I@barbican:client')) {
         salt.enforceState(master, 'I@barbican:client', 'barbican.client', true)
     }
+
+    // Install ceilometer server
+    if (salt.testTarget(master, 'I@ceilometer:server')) {
+        salt.enforceState(master, 'I@ceilometer:server', 'ceilometer', true)
+    }
+
+    // Install aodh server
+    if (salt.testTarget(master, 'I@aodh:server')) {
+        salt.enforceState(master, 'I@aodh:server', 'aodh', true)
+    }
 }
 
 
@@ -598,6 +608,12 @@ def installStacklight(master) {
     salt.enforceState(master, 'I@influxdb:server', 'influxdb', true)
 
     salt.enforceState(master, 'I@heka:log_collector', 'heka.log_collector')
+
+    // Install heka ceilometer collector
+    if (salt.testTarget(master, 'I@heka:ceilometer_collector:enabled')) {
+        salt.enforceState(master, 'I@heka:ceilometer_collector:enabled', 'heka.ceilometer_collector', true)
+        salt.runSaltProcessStep(master, 'I@heka:ceilometer_collector:enabled', 'service.restart', ['ceilometer_collector'], null, true)
+    }
 
     // Install galera
     if (common.checkContains('STACK_INSTALL', 'k8s')) {
