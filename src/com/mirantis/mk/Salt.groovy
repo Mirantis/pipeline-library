@@ -185,16 +185,20 @@ def enforceState(saltId, target, state, output = true, failOnError = true, batch
  * @param checkResponse test command success execution (default true)
  * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
  * @param output do you want to print output
+ * @param saltArgs additional salt args eq. ["runas=aptly"]
  * @return output of salt command
  */
-def cmdRun(saltId, target, cmd, checkResponse = true, batch=null, output = true) {
+def cmdRun(saltId, target, cmd, checkResponse = true, batch=null, output = true, saltArgs = []) {
     def common = new com.mirantis.mk.Common()
     def originalCmd = cmd
     common.infoMsg("Running command ${cmd} on ${target}")
     if (checkResponse) {
       cmd = cmd + " && echo Salt command execution success"
     }
-    def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'cmd.run', batch, [cmd])
+
+    saltArgs << cmd
+
+    def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'cmd.run', batch, saltArgs.reverse())
     if (checkResponse) {
         // iterate over all affected nodes and check success return code
         if (out["return"]){
