@@ -239,17 +239,22 @@ def runRallyTests(master, target, dockerImageLink, output_dir, repository, branc
                       "OS_AUTH_URL=http://${keystone.bind.private_address}:${keystone.bind.private_port}/v2.0",
                       "OS_REGION_NAME=${keystone.region}",
                       'OS_ENDPOINT_TYPE=admin'] + ext_variables ).join(' -e ')
+    def cmd0 = ''
     def cmd = '/opt/devops-qa-tools/deployment/configure.sh; ' +
         'rally task start combined_scenario.yaml ' +
         '--task-args-file /opt/devops-qa-tools/rally-scenarios/task_arguments.yaml; '
     if (repository != '' ) {
-        cmd = "git clone -b ${branch ?: 'master'} ${repository} test_config; " +
-            'rally deployment create --fromenv --name=existing; ' +
+        cmd = 'rally deployment create --fromenv --name=existing; ' +
             'rally deployment config; '
         if (scenarios == '') {
           cmd += 'rally task start test_config/rally/scenario.yaml '
         } else {
-          cmd += "rally task start ${scenarios} "
+          cmd += "rally task start scenarios.yaml "
+          cmd0 = "git clone -b ${branch ?: 'master'} ${repository} test_config; " +
+                 "if [ -f ${scenarios} ]; then cp ${scenarios} scenarios.yaml; " +
+                 "else " +
+                 "find ${scenarios} -name '*.yaml' -exec cat {} >> scenarios.yaml \\; ; " +
+                 "sed -i '/---/d' scenarios.yaml; fi; "
         }
         switch(tasks_args_file) {
           case 'none':
@@ -265,9 +270,11 @@ def runRallyTests(master, target, dockerImageLink, output_dir, repository, branc
     }
     cmd += "rally task export --type junit-xml --to ${dest_folder}/report-rally.xml; " +
         "rally task report --out ${dest_folder}/report-rally.html"
+    full_cmd = cmd0 + cmd
     salt.cmdRun(master, target, "docker run -i --rm --net=host -e ${env_vars} " +
-        "-v ${results}:${dest_folder} --entrypoint /bin/bash ${dockerImageLink} " +
-        "-c \"${cmd}\" > ${results}/${output_file}")
+        "-v ${results}:${dest_folder} " +
+        "--entrypoint /bin/bash ${dockerImageLink} " +
+        "-c \"${full_cmd}\" > ${results}/${output_file}")
     addFiles(master, target, results, output_dir)
 }
 
