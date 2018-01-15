@@ -744,7 +744,7 @@ def runPepperCommand(data, venv)   {
     }
 
     if (venv) {
-        output = python.runVirtualenvCommand(venv, pepperCmd)
+        output = python.runVirtualenvCommand(venv, pepperCmd, true)
     } else {
         echo("[Command]: ${pepperCmd}")
         output = sh (
