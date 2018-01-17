@@ -26,9 +26,15 @@ def getDatetime(format="yyyyMMddHHmmss") {
  * Currently implemented by calling pwd so it won't return relevant result in
  * dir context
  */
-def getWorkspace() {
+def getWorkspace(includeBuildNum=false) {
     def workspace = sh script: 'pwd', returnStdout: true
     workspace = workspace.trim()
+    if(includeBuildNum){
+       if(!workspace.endsWith("/")){
+          workspace += "/"
+       }
+       workspace += env.BUILD_NUMBER
+    }
     return workspace
 }
 
