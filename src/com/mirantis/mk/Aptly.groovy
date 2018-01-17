@@ -107,7 +107,7 @@ def promotePublish(server, source, target, recreate=false, components=null, pack
         dumpPublishes(server, timestamp, dumpTarget)
     }
 
-    sh("aptly-publisher --url ${server} promote --source '${source}' --target '${target}' --force-overwrite ${opts}")
+    sh("aptly-publisher --url ${server} promote --acquire-by-hash --source '${source}' --target '${target}' --force-overwrite ${opts}")
 
 }
 
@@ -121,7 +121,7 @@ def publish(server, config='/etc/aptly-publisher.yaml', recreate=false, only_lat
     if (force_overwrite == true) {
         opts = "${opts} --force-overwrite"
     }
-    sh("aptly-publisher --url ${server} -c ${config} ${opts} publish")
+    sh("aptly-publisher --url ${server} -c ${config} ${opts} --acquire-by-hash publish")
 }
 
 /**
