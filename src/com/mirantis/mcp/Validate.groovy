@@ -253,7 +253,7 @@ def runRallyTests(master, target, dockerImageLink, output_dir, repository, branc
           cmd0 = "git clone -b ${branch ?: 'master'} ${repository} test_config; " +
                  "if [ -f ${scenarios} ]; then cp ${scenarios} scenarios.yaml; " +
                  "else " +
-                 "find ${scenarios} -name '*.yaml' -exec cat {} >> scenarios.yaml \\; ; " +
+                 "find -L ${scenarios} -name '*.yaml' -exec cat {} >> scenarios.yaml \\; ; " +
                  "sed -i '/---/d' scenarios.yaml; fi; "
         }
         switch(tasks_args_file) {
