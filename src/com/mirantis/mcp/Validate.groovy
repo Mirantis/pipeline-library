@@ -12,7 +12,7 @@ package com.mirantis.mcp
  * @param target            Host to run container
  * @param dockerImageLink   Docker image link. May be custom or default rally image
  */
-def runBasicContainer(master, target, dockerImageLink="rallyforge/rally"){
+def runBasicContainer(master, target, dockerImageLink="xrally/xrally-openstack:0.9.1"){
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
     def _pillar = salt.getPillar(master, 'I@keystone:server', 'keystone:server')
@@ -24,7 +24,7 @@ def runBasicContainer(master, target, dockerImageLink="rallyforge/rally"){
             "-u root -e OS_USERNAME=${keystone.admin_name} " +
             "-e OS_PASSWORD=${keystone.admin_password} -e OS_TENANT_NAME=${keystone.admin_tenant} " +
             "-e OS_AUTH_URL=http://${keystone.bind.private_address}:${keystone.bind.private_port}/v2.0 " +
-            "-e OS_REGION_NAME=${keystone.region} -e OS_ENDPOINT_TYPE=admin  ${dockerImageLink} /bin/bash")
+            "-e OS_REGION_NAME=${keystone.region} -e OS_ENDPOINT_TYPE=admin --entrypoint /bin/bash ${dockerImageLink}")
 }
 
 /**
@@ -385,7 +385,7 @@ def configureContainer(master, target, proxy, testing_tools_repo, tempest_repo,
     def salt = new com.mirantis.mk.Salt()
     if (testing_tools_repo != "" ) {
         salt.cmdRun(master, target, "docker exec cvp git clone ${testing_tools_repo} cvp-configuration")
-        configure_script = conf_script_path != "" ? conf_script_path : "/home/rally/cvp-configuration/configure.sh"
+        configure_script = conf_script_path != "" ? conf_script_path : "cvp-configuration/configure.sh"
     } else {
         configure_script = conf_script_path != "" ? conf_script_path : "/opt/devops-qa-tools/deployment/configure.sh"
     }
@@ -419,7 +419,7 @@ def runCVPtempest(master, target, test_pattern="set=smoke", skip_list="", output
     salt.cmdRun(master, target, "docker exec cvp rally verify report --type html --to /home/rally/${html_file}")
     salt.cmdRun(master, target, "docker cp cvp:/home/rally/${xml_file} ${output_dir}")
     salt.cmdRun(master, target, "docker cp cvp:/home/rally/${html_file} ${output_dir}")
-    return salt.cmdRun(master, target, "docker exec cvp rally verify list | tail -n 2 | grep -v '+' | awk '{print \$16}'")['return'][0].values()[0].split()[0]
+    return salt.cmdRun(master, target, "docker exec cvp rally verify show | head -5 | tail -1 | awk '{print \$4}'")['return'][0].values()[0].split()[0]
 }
 
 /**
@@ -438,7 +438,7 @@ def runCVPrally(master, target, scenarios_path, output_dir, output_filename="doc
     salt.cmdRun(master, target, "docker exec cvp rally task start ${scenarios_path} > ${log_file}", false)
     salt.cmdRun(master, target, "cat ${log_file}")
     salt.cmdRun(master, target, "docker exec cvp rally task report --out ${html_file}")
-    salt.cmdRun(master, target, "docker exec cvp rally task export --type junit-xml --to ${xml_file}")
+    salt.cmdRun(master, target, "docker exec cvp rally task report --junit --out ${xml_file}")
     salt.cmdRun(master, target, "docker cp cvp:/home/rally/${xml_file} ${output_dir}")
     salt.cmdRun(master, target, "docker cp cvp:/home/rally/${html_file} ${output_dir}")
 }
