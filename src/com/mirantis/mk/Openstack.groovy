@@ -67,14 +67,15 @@ def setupOpenstackVirtualenv(path, version = 'latest') {
 /**
  * create connection to OpenStack API endpoint
  *
+ * @param path            Path to created venv
  * @param url             OpenStack API endpoint address
  * @param credentialsId   Credentials to the OpenStack API
  * @param project         OpenStack project to connect to
  */
-def createOpenstackEnv(url, credentialsId, project, project_domain="default",
+def createOpenstackEnv(path, url, credentialsId, project, project_domain="default",
     project_id="", user_domain="default", api_ver="2", cacert="/etc/ssl/certs/ca-certificates.crt") {
     def common = new com.mirantis.mk.Common()
-    rcFile = "${env.WORKSPACE}/keystonerc"
+    rcFile = "${path}/keystonerc"
     creds = common.getPasswordCredentials(credentialsId)
     rc = """set +x
 export OS_USERNAME=${creds.username}
