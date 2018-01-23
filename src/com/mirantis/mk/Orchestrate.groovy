@@ -30,6 +30,7 @@ def installFoundationInfra(master, staticMgmtNet=false) {
     salt.enforceState(master, 'I@salt:master', ['salt.minion'], true, false, null, false, 60, 2)
     salt.enforceState(master, 'I@salt:master', ['salt.minion'], true)
     salt.runSaltProcessStep(master, '*', 'saltutil.refresh_pillar', [], null, true)
+    salt.runSaltProcessStep(master, '*', 'saltutil.refresh_grains', [], null, true)
     salt.runSaltProcessStep(master, '*', 'saltutil.sync_all', [], null, true)
 
     salt.enforceState(master, '*', ['linux.system'], true)
