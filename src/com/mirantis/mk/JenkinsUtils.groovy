@@ -8,6 +8,25 @@ import com.cloudbees.groovy.cps.NonCPS
  */
 
 /**
+ * Tests if current user belongs to given group
+ * @param groupName name of the group you want to verify user presence
+ * @return boolean result
+ */
+def currentUserInGroup(groupName){
+    def hasAccess = false
+    wrap([$class: 'BuildUser']) {
+        def authorities = Jenkins.instance.securityRealm.loadUserByUsername(BUILD_USER).getAuthorities()
+        for(int i=0;i < authorities.size();i++){
+            if(authorities[i].equals(groupName)){
+                hasAccess=true
+                break
+            }
+        }
+    }
+    return hasAccess
+}
+
+/**
  * Get Jenkins job running builds
  * @param jobName job name
  * @return list of running builds
