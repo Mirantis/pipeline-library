@@ -479,3 +479,29 @@ def shCmdStatus(cmd) {
 
     return res
 }
+
+
+/**
+ * Retry commands passed to body
+ *
+ * @param times Number of retries
+ * @param delay Delay between retries
+ * @param body Commands to be in retry block
+ * @return calling commands in body
+ * @example retry(3,5){ function body }
+ *          retry{ function body }
+ */
+
+def retry(int times = 5, int delay = 0, Closure body) {
+    int retries = 0
+    def exceptions = []
+    while(retries++ < times) {
+        try {
+            return body.call()
+        } catch(e) {
+            sleep(delay)
+        }
+    }
+    currentBuild.result = "FAILURE"
+    throw new Exception("Failed after $times retries")
+}
