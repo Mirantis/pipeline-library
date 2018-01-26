@@ -17,6 +17,7 @@ package com.mirantis.mk
 def setupVirtualenv(path, python = 'python2', reqs=[], reqs_path=null, clean=false, useSystemPackages=false) {
     def common = new com.mirantis.mk.Common()
 
+    def offlineDeployment = env.getEnvironment().containsKey("OFFLINE_DEPLOYMENT") && env["OFFLINE_DEPLOYMENT"].toBoolean()
     def virtualenv_cmd = "virtualenv ${path} --python ${python}"
     if (useSystemPackages){
         virtualenv_cmd += " --system-site-packages"
@@ -26,9 +27,12 @@ def setupVirtualenv(path, python = 'python2', reqs=[], reqs_path=null, clean=fal
         sh("rm -rf \"${path}\"")
     }
 
+    if(offlineDeployment){
+       virtualenv_cmd+=" --no-download"
+    }
     common.infoMsg("[Python ${path}] Setup ${python} environment")
     sh(returnStdout: true, script: virtualenv_cmd)
-    if(!env.getEnvironment().containsKey("OFFLINE_DEPLOYMENT") || !env["OFFLINE_DEPLOYMENT"].toBoolean()){
+    if(!offlineDeployment){
       try {
           runVirtualenvCommand(path, "pip install -U setuptools pip")
       } catch(Exception e) {
