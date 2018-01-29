@@ -311,7 +311,7 @@ def setupPepperVirtualenv(path, url, credentialsId, clean = false) {
     def common = new com.mirantis.mk.Common()
 
     // virtualenv setup
-    requirements = ['salt-pepper==0.5.2']
+    requirements = ['salt-pepper==0.5.*']
     setupVirtualenv(path, 'python2', requirements, null, clean, true)
 
     // pepperrc creation
