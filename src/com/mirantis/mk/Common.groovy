@@ -61,6 +61,14 @@ def getJenkinsGid() {
 }
 
 /**
+ * Returns Jenkins user uid and gid in one list (in that order)
+ * Must be run from context of node
+ */
+def getJenkinsUserIds(){
+    return sh(script: "id -u && id -g", returnStdout: true).tokenize("\n")
+}
+
+/**
  *
  * Find credentials by ID
  *
