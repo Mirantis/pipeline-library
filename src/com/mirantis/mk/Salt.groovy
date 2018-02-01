@@ -737,5 +737,12 @@ def runPepperCommand(data, venv)   {
         ).trim()
     }
 
-    return new groovy.json.JsonSlurperClassic().parseText(output)
+    def outputObj
+    try {
+       outputObj = new groovy.json.JsonSlurperClassic().parseText(output)
+    } catch(Exception e) {
+       common.errorMsg("Parsing Salt API JSON response failed! Response: " + output)
+       throw e
+    }
+    return outputObj
 }
