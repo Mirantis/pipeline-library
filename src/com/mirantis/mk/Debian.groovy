@@ -31,9 +31,11 @@ def buildBinary(file, image="debian:sid", extraRepoUrl=null, extraRepoKeyUrl=nul
     def dist = imageArray[1]
     def img = dockerLib.getImage("tcpcloud/debian-build-${os}-${dist}:latest", image)
     def workspace = common.getWorkspace()
+    def debug = env.getEnvironment().containsKey("DEBUG") && env["DEBUG"].toBoolean() ? "true" : ""
 
     img.inside("-u root:root" ) {
         sh("""bash -c 'cd ${workspace} && (which eatmydata || (apt-get update && apt-get install -y eatmydata)) &&
+            export DEBUG="${debug}" &&
             export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}/usr/lib/libeatmydata &&
             export LD_PRELOAD=\${LD_PRELOAD:+"\$LD_PRELOAD "}libeatmydata.so &&
             [[ -z "${extraRepoUrl}" && "${extraRepoUrl}" != "null" ]] || echo "${extraRepoUrl}" >/etc/apt/sources.list.d/extra.list &&
