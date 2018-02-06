@@ -817,7 +817,7 @@ def installOss(master) {
   // Postgres client - initialize OSS services databases
   timeout(120){
     common.infoMsg("Waiting for postgresql database to come up..")
-    salt.cmdRun(master, 'I@postgresql:client', 'while true; do if docker service logs postgresql_postgresql-db | grep "ready to accept"; then break; else sleep 5; fi; done')
+    salt.cmdRun(master, 'I@postgresql:client', 'while true; do if docker service logs postgresql_postgresql-db 2>&1 | grep "ready to accept"; then break; else sleep 5; fi; done')
   }
   // XXX: first run usually fails on some inserts, but we need to create databases at first
   salt.enforceState(master, 'I@postgresql:client', 'postgresql.client', true, false)
