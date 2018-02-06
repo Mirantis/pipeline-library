@@ -143,8 +143,7 @@ def runRallyScenarios(master, dockerImageLink, target, scenario, logDir = "/home
 def copyTempestResults(master, target) {
     def salt = new com.mirantis.mk.Salt()
     if (! target.contains('cfg')) {
-        salt.runSaltProcessStep(master, "${target}", 'cmd.run', ["mkdir /root/rally_reports/ && " +
-                                                                 "rsync -av /root/rally_reports/ cfg01:/root/rally_reports/"])
+        salt.cmdRun(master, target, "mkdir /root/rally_reports/ && rsync -av /root/rally_reports/ cfg01:/root/rally_reports/")
     }
 }
 
@@ -155,7 +154,7 @@ def copyTempestResults(master, target) {
  */
 def catTestsOutput(master, image) {
     def salt = new com.mirantis.mk.Salt()
-    salt.runSaltProcessStep(master, 'cfg01*', 'cmd.run', ["cat /home/ubuntu/${image}.output"])
+    salt.cmdRun(master, 'cfg01*', "cat /home/ubuntu/${image}.output")
 }
 
 
@@ -165,7 +164,7 @@ def catTestsOutput(master, image) {
  */
 def install_docker(master, target) {
     def salt = new com.mirantis.mk.Salt()
-    salt.runSaltProcessStep(master, "${target}", 'pkg.install', ["docker.io"])
+    salt.runSaltProcessStep(master, target, 'pkg.install', ["docker.io"])
 }
 
 
@@ -197,9 +196,9 @@ def uploadResultsTestrail(report, image, testGroup, credentialsId, plan, milesto
                            "-e TEST_GROUP=${testGroup} " +
                            "${image}"
     if (master == null) {
-      sh("${command}")
+      sh(command)
     } else {
-      salt.cmdRun(master, "${target}", "${command}")
+      salt.cmdRun(master, target, command)
     }
 }
 
@@ -216,7 +215,7 @@ def archiveRallyArtifacts(master, target, reports_dir='/root/rally_reports') {
     def artifacts_dir = '_artifacts/'
     def output_file = 'rally_reports.tar'
 
-    salt.runSaltProcessStep(master, "${target}", 'cmd.run', ["tar -cf /root/${output_file} -C ${reports_dir} ."])
+    salt.cmdRun(master, target, "tar -cf /root/${output_file} -C ${reports_dir} .")
     sh "mkdir -p ${artifacts_dir}"
 
     encoded = salt.cmdRun(master, target, "cat /root/${output_file}", true, null, false)['return'][0].values()[0].replaceAll('Salt command execution success','')

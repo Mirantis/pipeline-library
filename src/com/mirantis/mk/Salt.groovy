@@ -128,27 +128,49 @@ def getGrain(saltId, target, grain = null) {
     }
 }
 
+
 /**
  * Enforces state on given saltId and target
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
+ * @param target State enforcing target
+ * @param state Salt state
+ * @param excludedStates states which will be excluded from main state (default empty string)
+ * @param output print output (optional, default true)
+ * @param failOnError throw exception on salt state result:false (optional, default true)
+ * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
+ * @param optional Optional flag (if true pipeline will continue even if no minions for target found)
+ * @param read_timeout http session read timeout (optional, default -1 - disabled)
+ * @param retries Retry count for salt state. (optional, default -1 - no retries)
+ * @param queue salt queue parameter for state.sls calls (optional, default true) - CANNOT BE USED WITH BATCH
+ * @param saltArgs additional salt args eq. ["runas=aptly"]
+ * @return output of salt command
+ */
+def enforceStateWithExclude(saltId, target, state, excludedStates = "", output = true, failOnError = true, batch = null, optional = false, read_timeout=-1, retries=-1, queue=true, saltArgs=[]) {
+    saltArgs << "exclude=${excludedStates}"
+    return enforceState(saltId, target, state, output, failOnError, batch, optional, read_timeout, retries, queue, saltArgs)
+}
+
+/* Enforces state on given saltId and target
  * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target State enforcing target
  * @param state Salt state
  * @param output print output (optional, default true)
  * @param failOnError throw exception on salt state result:false (optional, default true)
  * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
+ * @param optional Optional flag (if true pipeline will continue even if no minions for target found)
  * @param read_timeout http session read timeout (optional, default -1 - disabled)
  * @param retries Retry count for salt state. (optional, default -1 - no retries)
  * @param queue salt queue parameter for state.sls calls (optional, default true) - CANNOT BE USED WITH BATCH
+ * @param saltArgs additional salt args eq. ["runas=aptly", exclude="opencontrail.database"]
  * @return output of salt command
  */
-def enforceState(saltId, target, state, output = true, failOnError = true, batch = null, optional = false, read_timeout=-1, retries=-1, queue=true) {
+def enforceState(saltId, target, state, output = true, failOnError = true, batch = null, optional = false, read_timeout=-1, retries=-1, queue=true, saltArgs = []) {
     def common = new com.mirantis.mk.Common()
-    def run_states
-
+    // add state to salt args
     if (state instanceof String) {
-        run_states = state
+        saltArgs << state
     } else {
-        run_states = state.join(',')
+        saltArgs << state.join(',')
     }
 
     common.infoMsg("Running state ${run_states} on ${target}")
@@ -161,13 +183,15 @@ def enforceState(saltId, target, state, output = true, failOnError = true, batch
 
     if (optional == false || testTarget(saltId, target)){
         if (retries > 0){
-            failOnError = true
             retry(retries){
-                out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states], kwargs, -1, read_timeout)
-                checkResult(out, failOnError, output)
+                // we have to reverse order in saltArgs because salt state have to be first
+                out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, saltArgs.reverse(), kwargs, -1, read_timeout)
+                // failOnError should be passed as true because we need to throw exception for retry block handler
+                checkResult(out, true, output, true, true) //disable ask on error because we are using retry here
             }
         } else {
-            out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, [run_states], kwargs, -1, read_timeout)
+            // we have to reverse order in saltArgs because salt state have to be first
+            out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, saltArgs.reverse(), kwargs, -1, read_timeout)
             checkResult(out, failOnError, output)
         }
         waitForMinion(out)
@@ -196,6 +220,7 @@ def cmdRun(saltId, target, cmd, checkResponse = true, batch=null, output = true,
       cmd = cmd + " && echo Salt command execution success"
     }
 
+    // add cmd name to salt args list
     saltArgs << cmd
 
     def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'cmd.run', batch, saltArgs.reverse())
@@ -391,6 +416,34 @@ def syncAll(saltId, target) {
 }
 
 /**
+ * Perform complete salt refresh between master and target
+ * Method will call saltutil.refresh_pillar, saltutil.refresh_grains and saltutil.sync_all
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
+ * @param target Get pillar target
+ * @return output of salt command
+ */
+def fullRefresh(saltId, target){
+    runSaltProcessStep(saltId, target, 'saltutil.refresh_pillar', [], null, true)
+    runSaltProcessStep(saltId, target, 'saltutil.refresh_grains', [], null, true)
+    runSaltProcessStep(saltId, target, 'saltutil.sync_all', [], null, true)
+}
+
+/**
+ * Enforce highstate on given targets
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
+ * @param target Highstate enforcing target
+ * @param excludedStates states which will be excluded from main state (default empty string)
+ * @param output print output (optional, default true)
+ * @param failOnError throw exception on salt state result:false (optional, default true)
+ * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
+ * @param saltArgs additional salt args eq. ["runas=aptly", exclude="opencontrail.database"]
+ * @return output of salt command
+ */
+def enforceHighstateWithExclude(saltId, target, excludedStates = "", output = false, failOnError = true, batch = null, saltArgs = []) {
+    saltArgs << "exclude=${excludedStates}"
+    return enforceHighstate(saltId, target, output, failOnError, batch, saltArgs)
+}
+/**
  * Enforce highstate on given targets
  * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Highstate enforcing target
@@ -399,7 +452,7 @@ def syncAll(saltId, target) {
  * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
  * @return output of salt command
  */
-def enforceHighstate(saltId, target, output = false, failOnError = true, batch = null) {
+def enforceHighstate(saltId, target, output = false, failOnError = true, batch = null, saltArgs = []) {
     def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'state.highstate', batch)
     def common = new com.mirantis.mk.Common()
 
@@ -475,11 +528,11 @@ def orchestrateSystem(saltId, target, orchestrate) {
  * @param fun Salt process step function
  * @param arg process step arguments (optional, default [])
  * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
- * @param output print output (optional, default false)
+ * @param output print output (optional, default true)
  * @param timeout  Additional argument salt api timeout
  * @return output of salt command
  */
-def runSaltProcessStep(saltId, tgt, fun, arg = [], batch = null, output = false, timeout = -1, kwargs = null) {
+def runSaltProcessStep(saltId, tgt, fun, arg = [], batch = null, output = true, timeout = -1, kwargs = null) {
     def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
     def out
@@ -505,8 +558,9 @@ def runSaltProcessStep(saltId, tgt, fun, arg = [], batch = null, output = false,
  * @param failOnError Do you want to throw exception if salt-call fails (optional, default true)
  * @param printResults Do you want to print salt results (optional, default true)
  * @param printOnlyChanges If true (default), print only changed resources
+ * @param disableAskOnError Flag for disabling ASK_ON_ERROR feature (optional, default false)
  */
-def checkResult(result, failOnError = true, printResults = true, printOnlyChanges = true) {
+def checkResult(result, failOnError = true, printResults = true, printOnlyChanges = true, disableAskOnError = false) {
     def common = new com.mirantis.mk.Common()
     if(result != null){
         if(result['return']){
@@ -565,7 +619,7 @@ def checkResult(result, failOnError = true, printResults = true, printOnlyChange
                             common.debugMsg("checkResult: checking resource: ${resource}")
                             if(resource instanceof String || (resource["result"] != null && !resource["result"]) || (resource["result"] instanceof String && resource["result"] == "false")){
                                 def prettyResource = common.prettify(resource)
-                                if(env["ASK_ON_ERROR"] && env["ASK_ON_ERROR"] == "true"){
+                                if(!disableAskOnError && env["ASK_ON_ERROR"] && env["ASK_ON_ERROR"] == "true"){
                                     timeout(time:1, unit:'HOURS') {
                                        input message: "False result on ${nodeKey} found, resource ${prettyResource}. \nDo you want to continue?"
                                     }
