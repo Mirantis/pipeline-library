@@ -34,7 +34,7 @@ def buildBinary(file, image="debian:sid", extraRepoUrl=null, extraRepoKeyUrl=nul
     def debug = env.getEnvironment().containsKey("DEBUG") && env["DEBUG"].toBoolean() ? "true" : ""
 
     img.inside("-u root:root" ) {
-        sh("""bash -c 'cd ${workspace} && (which eatmydata || (apt-get update && apt-get install -y eatmydata)) &&
+        sh("""bash -x -c 'cd ${workspace} && (which eatmydata || (apt-get update && apt-get install -y eatmydata)) &&
             export DEBUG="${debug}" &&
             export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}/usr/lib/libeatmydata &&
             export LD_PRELOAD=\${LD_PRELOAD:+"\$LD_PRELOAD "}libeatmydata.so &&
@@ -127,7 +127,7 @@ def buildSourceGbp(dir, image="debian:sid", snapshot=false, gitName='Jenkins', g
     img.inside("-u root:root") {
 
         withEnv(["DEBIAN_FRONTEND=noninteractive", "DEBFULLNAME='${gitName}'", "DEBEMAIL='${gitEmail}'"]) {
-            sh("""bash -c 'cd ${workspace} && (which eatmydata || (apt-get update && apt-get install -y eatmydata)) &&
+            sh("""bash -x -c 'cd ${workspace} && (which eatmydata || (apt-get update && apt-get install -y eatmydata)) &&
             export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}/usr/lib/libeatmydata &&
             export LD_PRELOAD=\${LD_PRELOAD:+"\$LD_PRELOAD "}libeatmydata.so &&
             apt-get update && apt-get install -y build-essential git-buildpackage dpkg-dev sudo &&
