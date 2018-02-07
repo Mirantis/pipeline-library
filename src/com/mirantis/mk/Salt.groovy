@@ -173,7 +173,7 @@ def enforceState(saltId, target, state, output = true, failOnError = true, batch
         saltArgs << state.join(',')
     }
 
-    common.infoMsg("Running state ${run_states} on ${target}")
+    common.infoMsg("Running state ${state} on ${target}")
     def out
     def kwargs = [:]
 
