@@ -242,7 +242,7 @@ def installOpenstackControl(master) {
         salt.enforceState(master, 'I@heat:server and *01*', 'heat')
         salt.enforceState(master, 'I@heat:server', 'heat')
         if (salt.testTarget(master, 'I@keystone:server')) {
-            salt.cmdRun(master, 'I@keystone:server', '. /root/keystonerc; heat resource-type-list')
+            salt.cmdRun(master, 'I@keystone:server', '. /root/keystonerc; heat resource-type-list', false)
         }
     }
 
@@ -383,7 +383,7 @@ def installContrailCompute(master) {
     // Generate script /usr/lib/contrail/if-vhost0 for up vhost0
     salt.enforceStateWithExclude(master, "I@opencontrail:compute", "opencontrail", "opencontrail.client")
 
-    salt.cmdRun(master, 'I@nova:compute', 'exec 0>&-; exec 1>&-; exec 2>&-; nohup bash -c "ip link | grep vhost && echo no_reboot || sleep 5 && reboot & "')
+    salt.cmdRun(master, 'I@nova:compute', 'exec 0>&-; exec 1>&-; exec 2>&-; nohup bash -c "ip link | grep vhost && echo no_reboot || sleep 5 && reboot & "', false)
 
     if (salt.testTarget(master, 'I@opencontrail:compute')) {
         sleep(300)
