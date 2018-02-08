@@ -271,6 +271,7 @@ def installOpenstackControl(master) {
 
     // Install octavia api service
     if (salt.testTarget(master, 'I@octavia:api')) {
+        salt.enforceState(master, 'I@octavia:api and *01*', 'octavia')
         salt.enforceState(master, 'I@octavia:api', 'octavia')
     }
 
