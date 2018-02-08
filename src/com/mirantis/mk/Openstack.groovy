@@ -298,10 +298,12 @@ def getHeatStackOutputParam(env, name, outputParam, path = null) {
  * @param env          Connection parameters for OpenStack API endpoint
  * @param name         Name of the managed Heat stack instance
  * @param path         Optional path to the custom virtualenv
+ * @param depth        Optional depth of stack for listing resources,
+ *                     0 - do not list nested resources
  */
-def getHeatStackResources(env, name, path = null) {
+def getHeatStackResources(env, name, path = null, depth = 0) {
     def python = new com.mirantis.mk.Python()
-    cmd = "heat resource-list ${name}"
+    cmd = "heat resource-list --nested-depth ${depth} ${name}"
     outputTable = runOpenstackCommand(cmd, env, path)
     output = python.parseTextTable(outputTable, 'list', 'prettytable', path)
     return output
@@ -350,20 +352,20 @@ def deleteHeatStack(env, name, path = null) {
 }
 
 /**
- * Return list of servers from OpenStack Heat stack
+ * Return hashmap of hashes server_id:server_name of servers from OpenStack Heat stack
  *
  * @param env          Connection parameters for OpenStack API endpoint
  * @param name         Name of the managed Heat stack instance
  * @param path         Optional path to the custom virtualenv
  */
 def getHeatStackServers(env, name, path = null) {
-    resources = heatGetStackResources(env, name, path)
-    servers = []
+    // set depth to 1000 to ensure all nested resources are shown
+    resources = getHeatStackResources(env, name, path, 1000)
+    servers = [:]
     for (resource in resources) {
         if (resource.resource_type == 'OS::Nova::Server') {
-            resourceName = resource.resource_name
-            server = heatGetStackResourceInfo(env, name, resourceName, path)
-            servers.add(server.attributes.name)
+            server = openstack.getHeatStackResourceInfo(env, resource.stack_name, resource.resource_name, path)
+            servers[server.attributes.id] = server.attributes.name
         }
     }
     echo("[Stack ${name}] Servers: ${servers}")
