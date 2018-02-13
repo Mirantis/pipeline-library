@@ -172,11 +172,11 @@ def runSanityTests(salt_url, salt_credentials, test_set="", output_dir="validati
  * @param confBranch        Git branch which will be used during the checkout
  * @param repository        Git repository with Tempest
  * @param version           Version of Tempest (tag, branch or commit)
+ * @param results           The reports directory
  */
-def runTempestTests(master, target, dockerImageLink, output_dir, confRepository, confBranch, repository, version, pattern = "false") {
+def runTempestTests(master, target, dockerImageLink, output_dir, confRepository, confBranch, repository, version, pattern = "false", results = '/root/qa_results') {
     def salt = new com.mirantis.mk.Salt()
     def output_file = 'docker-tempest.log'
-    def results = '/root/qa_results'
     def dest_folder = '/home/rally/qa_results'
     def skip_list = '--skip-list /opt/devops-qa-tools/deployment/skip_contrail.list'
     salt.runSaltProcessStep(master, target, 'file.remove', ["${results}"])
@@ -222,11 +222,11 @@ def runTempestTests(master, target, dockerImageLink, output_dir, confRepository,
  * @param repository        Git repository with files for Rally
  * @param branch            Git branch which will be used during the checkout
  * @param ext_variables     The list of external variables
+ * @param results           The reports directory
  */
-def runRallyTests(master, target, dockerImageLink, output_dir, repository, branch, scenarios, tasks_args_file, ext_variables = []) {
+def runRallyTests(master, target, dockerImageLink, output_dir, repository, branch, scenarios, tasks_args_file, ext_variables = [], results = '/root/qa_results') {
     def salt = new com.mirantis.mk.Salt()
     def output_file = 'docker-rally.log'
-    def results = '/root/qa_results'
     def dest_folder = '/home/rally/qa_results'
     salt.runSaltProcessStep(master, target, 'file.remove', ["${results}"])
     salt.runSaltProcessStep(master, target, 'file.mkdir', ["${results}", "mode=777"])
@@ -284,12 +284,12 @@ def runRallyTests(master, target, dockerImageLink, output_dir, repository, branc
  * @param target            Host to run script from
  * @param dockerImageLink   Docker image link
  * @param output_dir        Directory for results
+ * @param results           The reports directory
  */
-def generateTestReport(master, target, dockerImageLink, output_dir) {
+def generateTestReport(master, target, dockerImageLink, output_dir, results = '/root/qa_results') {
     def report_file = 'jenkins_test_report.html'
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
-    def results = '/root/qa_results'
     def dest_folder = '/opt/devops-qa-tools/generate_test_report/test_results'
     salt.runSaltProcessStep(master, target, 'file.remove', ["${results}"])
     salt.runSaltProcessStep(master, target, 'file.mkdir', ["${results}", "mode=777"])
@@ -331,10 +331,10 @@ def generateTestReport(master, target, dockerImageLink, output_dir) {
  * @param dockerImageLink   Docker image link
  * @param output_dir        Directory for results
  * @param ext_variables     The list of external variables
+ * @param results           The reports directory
  */
-def runSptTests(master, target, dockerImageLink, output_dir, ext_variables = []) {
+def runSptTests(master, target, dockerImageLink, output_dir, ext_variables = [], results = '/root/qa_results') {
     def salt = new com.mirantis.mk.Salt()
-    def results = '/root/qa_results'
     def dest_folder = '/home/rally/qa_results'
     salt.runSaltProcessStep(master, target, 'file.remove', ["${results}"])
     salt.runSaltProcessStep(master, target, 'file.mkdir', ["${results}", "mode=777"])
