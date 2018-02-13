@@ -72,6 +72,7 @@ def installInfraKvm(master) {
 }
 
 def installInfra(master) {
+    def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
 
     // Install glusterfs
@@ -79,6 +80,7 @@ def installInfra(master) {
         salt.enforceState(master, 'I@glusterfs:server', 'glusterfs.server.service')
 
         salt.enforceState(master, 'I@glusterfs:server and *01*', 'glusterfs.server.setup', true, true, null, false, -1, 5)
+        sleep(10)
         salt.cmdRun(master, 'I@glusterfs:server', "gluster peer status; gluster volume status")
     }
 
@@ -119,7 +121,9 @@ def installInfra(master) {
         salt.enforceState(master, 'I@rabbitmq:server', 'rabbitmq', true, true, null, false, -1, 2)
 
         // Check the rabbitmq status
-        salt.cmdRun(master, 'I@rabbitmq:server', 'rabbitmqctl cluster_status')
+        common.retry(3,5){
+             salt.cmdRun(master, 'I@rabbitmq:server', 'rabbitmqctl cluster_status')
+        }
     }
 
     // Install haproxy
@@ -137,7 +141,9 @@ def installInfra(master) {
     // Install etcd
     if (salt.testTarget(master, 'I@etcd:server')) {
         salt.enforceState(master, 'I@etcd:server', 'etcd.server.service')
-        salt.cmdRun(master, 'I@etcd:server', '. /var/lib/etcd/configenv && etcdctl cluster-health')
+        common.retry(3,5){
+            salt.cmdRun(master, 'I@etcd:server', '. /var/lib/etcd/configenv && etcdctl cluster-health')
+        }
     }
 }
 
@@ -150,6 +156,7 @@ def installOpenstackInfra(master) {
 
 def installOpenstackControl(master) {
     def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
 
     // Install horizon dashboard
     if (salt.testTarget(master, 'I@horizon:server')) {
@@ -176,7 +183,9 @@ def installOpenstackControl(master) {
         salt.enforceState(master, 'I@keystone:client', 'keystone.client')
     }
     if (salt.testTarget(master, 'I@keystone:server')) {
-        salt.cmdRun(master, 'I@keystone:server', '. /root/keystonercv3; openstack service list')
+        common.retry(3,5){
+            salt.cmdRun(master, 'I@keystone:server', '. /root/keystonercv3; openstack service list')
+        }
     }
 
     // Install glance
@@ -188,7 +197,9 @@ def installOpenstackControl(master) {
 
     // Check glance service
     if (salt.testTarget(master, 'I@glance:server')){
-        salt.cmdRun(master, 'I@keystone:server','. /root/keystonerc; glance image-list')
+        common.retry(3,5){
+            salt.cmdRun(master, 'I@keystone:server','. /root/keystonerc; glance image-list')
+        }
     }
 
     // Create glance resources
@@ -202,7 +213,9 @@ def installOpenstackControl(master) {
         salt.enforceState(master, 'I@nova:controller and *01*', 'nova.controller')
         salt.enforceState(master, 'I@nova:controller', 'nova.controller')
         if (salt.testTarget(master, 'I@keystone:server')) {
-            salt.cmdRun(master, 'I@keystone:server', '. /root/keystonerc; nova service-list')
+           common.retry(3,5){
+               salt.cmdRun(master, 'I@keystone:server', '. /root/keystonerc; nova service-list')
+           }
         }
     }
 
@@ -217,7 +230,9 @@ def installOpenstackControl(master) {
         salt.enforceState(master, 'I@cinder:controller and *01*', 'cinder')
         salt.enforceState(master, 'I@cinder:controller', 'cinder')
         if (salt.testTarget(master, 'I@keystone:server')) {
-            salt.cmdRun(master, 'I@keystone:server', '. /root/keystonerc; cinder list')
+            common.retry(3,5){
+                salt.cmdRun(master, 'I@keystone:server', '. /root/keystonerc; cinder list')
+            }
         }
     }
 
@@ -227,7 +242,9 @@ def installOpenstackControl(master) {
         salt.enforceState(master, 'I@neutron:server and *01*', 'neutron.server')
         salt.enforceState(master, 'I@neutron:server', 'neutron.server')
         if (salt.testTarget(master, 'I@keystone:server')) {
-            salt.cmdRun(master, 'I@keystone:server','. /root/keystonerc; neutron agent-list')
+            common.retry(3,5){
+                salt.cmdRun(master, 'I@keystone:server','. /root/keystonerc; neutron agent-list')
+            }
         }
     }
 
@@ -242,7 +259,9 @@ def installOpenstackControl(master) {
         salt.enforceState(master, 'I@heat:server and *01*', 'heat')
         salt.enforceState(master, 'I@heat:server', 'heat')
         if (salt.testTarget(master, 'I@keystone:server')) {
-            salt.cmdRun(master, 'I@keystone:server', '. /root/keystonerc; heat resource-type-list', false)
+            common.retry(3,5){
+                salt.cmdRun(master, 'I@keystone:server', '. /root/keystonerc; heat resource-type-list')
+            }
         }
     }
 
@@ -391,8 +410,8 @@ def installContrailCompute(master) {
         salt.cmdRun(master, 'I@nova:compute', 'exec 0>&-; exec 1>&-; exec 2>&-; nohup bash -c "ip link | grep vhost && echo no_reboot || sleep 5 && reboot & "', false)
     }
 
+    sleep(300)
     if (salt.testTarget(master, 'I@opencontrail:compute')) {
-        sleep(300)
         salt.enforceState(master, 'I@opencontrail:compute', 'opencontrail.client')
         salt.enforceState(master, 'I@opencontrail:compute', 'opencontrail')
     }
@@ -466,6 +485,7 @@ def installDockerSwarm(master) {
     sleep(5)
     salt.enforceState(master, 'I@docker:swarm:role:master', 'docker.swarm')
     salt.enforceState(master, 'I@docker:swarm:role:manager', 'docker.swarm')
+    sleep(10)
     salt.cmdRun(master, 'I@docker:swarm:role:master', 'docker node ls')
 }
 

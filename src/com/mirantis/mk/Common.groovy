@@ -493,7 +493,7 @@ def shCmdStatus(cmd) {
  * Retry commands passed to body
  *
  * @param times Number of retries
- * @param delay Delay between retries
+ * @param delay Delay between retries (in seconds)
  * @param body Commands to be in retry block
  * @return calling commands in body
  * @example retry(3,5){ function body }
