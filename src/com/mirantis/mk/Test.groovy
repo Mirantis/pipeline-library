@@ -143,7 +143,7 @@ def runRallyScenarios(master, dockerImageLink, target, scenario, logDir = "/home
 def copyTempestResults(master, target) {
     def salt = new com.mirantis.mk.Salt()
     if (! target.contains('cfg')) {
-        salt.cmdRun(master, target, "mkdir /root/rally_reports/ && rsync -av /root/rally_reports/ cfg01:/root/rally_reports/")
+        salt.cmdRun(master, target, "mkdir -p /root/rally_reports/ && rsync -av /root/rally_reports/ cfg01:/root/rally_reports/")
     }
 }
 
