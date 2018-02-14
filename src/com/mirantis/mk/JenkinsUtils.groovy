@@ -13,11 +13,19 @@ import com.cloudbees.groovy.cps.NonCPS
  * @return boolean result
  */
 def currentUserInGroup(groupName){
+    return currentUserInGroups([groupName])
+}
+/**
+ * Tests if current user belongs to at least one of given groups
+ * @param groups list of group names you want to verify user presence
+ * @return boolean result
+ */
+def currentUserInGroups(groups){
     def hasAccess = false
     wrap([$class: 'BuildUser']) {
         def authorities = Jenkins.instance.securityRealm.loadUserByUsername(BUILD_USER).getAuthorities()
         for(int i=0;i < authorities.size();i++){
-            if(authorities[i].equals(groupName)){
+            if(groups.contains(authorities[i])){
                 hasAccess=true
                 break
             }
