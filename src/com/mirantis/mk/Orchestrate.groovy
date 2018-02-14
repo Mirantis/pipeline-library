@@ -576,7 +576,12 @@ def installStacklight(master) {
     salt.enforceState(master, '*01* and I@influxdb:server', 'influxdb')
     salt.enforceState(master, 'I@influxdb:server', 'influxdb')
 
-    salt.enforceState(master, 'I@heka:log_collector', 'heka.log_collector')
+    // Install service for the log collection
+    if (salt.testTarget(master, 'I@fluentd:agent')) {
+        salt.enforceState(master, 'I@fluentd:agent', 'fluentd')
+    } else {
+        salt.enforceState(master, 'I@heka:log_collector', 'heka.log_collector')
+    }
 
     // Install heka ceilometer collector
     if (salt.testTarget(master, 'I@heka:ceilometer_collector:enabled')) {
@@ -600,11 +605,14 @@ def installStacklight(master) {
     salt.runSaltProcessStep(master, 'I@salt:minion', 'mine.update')
     sleep(5)
 
-    //Configure services in Docker Swarm
-    if (common.checkContains('STACK_INSTALL', 'k8s')) {
-       salt.enforceState(master, 'I@docker:swarm and I@prometheus:server', 'prometheus', true, false)
-    } else {
-       salt.enforceState(master, 'I@docker:swarm and I@prometheus:server', ['prometheus', 'heka.remote_collector'], true, false)
+    // Configure Prometheus in Docker Swarm
+    salt.enforceState(master, 'I@docker:swarm and I@prometheus:server', 'prometheus', true, false)
+
+    //Configure Remote Collector in Docker Swarm for Openstack deployments without fluentd
+    if (!common.checkContains('STACK_INSTALL', 'k8s')) {
+        if (!salt.testTarget(master, 'I@fluentd:agent')) {
+            salt.enforceState(master, 'I@docker:swarm and I@prometheus:server', 'heka.remote_collector', true, false)
+        }
     }
 
     //Configure Grafana
