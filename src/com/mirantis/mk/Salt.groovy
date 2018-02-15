@@ -294,6 +294,27 @@ def minionPresent(saltId, target, minion_name, waitUntilPresent = true, batch=nu
 }
 
 /**
+ * Checks if salt minion is in a list of salt master's accepted keys
+ * @usage minionPresent(saltId, 'I@salt:master', 'I@salt:minion', true, null, true, 200, 3)
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
+ * @param target Performs tests on this target node
+ * @param target_minions all targeted minions to test (for ex. I@salt:minion)
+ * @param waitUntilPresent return after the minion becomes present (default true)
+ * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
+ * @param output print salt command (default true)
+ * @param maxRetries finite number of iterations to check status of a command (default 200)
+ * @param answers how many minions should return (optional, default 1)
+ * @return output of salt command
+ */
+def minionsPresent(saltId, target = 'I@salt:master', target_minions = '', waitUntilPresent = true, batch=null, output = true, maxRetries = 200, answers = 1) {
+    def target_hosts = getMinionsSorted(pepperEnv, target_minions)
+    for (t in target_hosts) {
+        def tgt = salt.stripDomainName(t)
+        salt.minionPresent(pepperEnv, target, tgt, waitUntilPresent, batch, output, maxRetries, answers)
+    }
+}
+
+/**
  * You can call this function when salt-master already contains salt keys of the target_nodes
  * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Should always be salt-master
@@ -471,6 +492,90 @@ def enforceHighstate(saltId, target, output = false, failOnError = true, batch =
 def getMinions(saltId, target) {
     def minionsRaw = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'test.ping')
     return new ArrayList<String>(minionsRaw['return'][0].keySet())
+}
+
+/**
+ * Get sorted running minions IDs according to the target
+ * @param saltId Salt Connection object or pepperEnv
+ * @param target Get minions target
+ * @return list of sorted active minions fitin
+ */
+def getMinionsSorted(saltId, target) {
+    return getMinions(saltId, target).sort()
+}
+
+/**
+ * Get first out of running minions IDs according to the target
+ * @param saltId Salt Connection object or pepperEnv
+ * @param target Get minions target
+ * @return first of active minions fitin
+ */
+def getFirstMinion(saltId, target) {
+    def minionsSorted = getMinionsSorted(saltId, target)
+    return minionsSorted[0].split("\\.")[0]
+}
+
+/**
+ * Get running salt minions IDs without it's domain name part and its numbering identifications
+ * @param saltId Salt Connection object or pepperEnv
+ * @param target Get minions target
+ * @return list of active minions fitin without it's domain name part name numbering
+ */
+def getMinionsGeneralName(saltId, target) {
+    def minionsSorted = getMinionsSorted(saltId, target)
+    return stripDomainName(minionsSorted[0]).replaceAll('\\d+$', "")
+}
+
+/**
+ * Get domain name of the env
+ * @param saltId Salt Connection object or pepperEnv
+ * @return domain name
+ */
+def getDomainName(saltId) {
+    return getReturnValues(getPillar(saltId, 'I@salt:master', '_param:cluster_domain'))
+}
+
+/**
+ * Remove domain name from Salt minion ID
+ * @param name String of Salt minion ID
+ * @return Salt minion ID without its domain name
+ */
+def stripDomainName(name) {
+    return name.split("\\.")[0]
+}
+
+/**
+ * Gets return values of a salt command
+ * @param output String of Salt minion ID
+ * @return Return values of a salt command
+ */
+def getReturnValues(output) {
+    if(output.containsKey("return") && !output.get("return").isEmpty()) {
+        return output['return'][0].values()[0]
+    }
+    def common = new com.mirantis.mk.Common()
+    common.errorMsg('output does not contain return key')
+    return ''
+}
+
+/**
+ * Get minion ID of one of KVM nodes
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
+ * @return Salt minion ID of one of KVM nodes in env
+ */
+def getKvmMinionId(saltId) {
+    return getReturnValues(getGrain(saltId, 'I@salt:control', 'id')).values()[0]
+}
+
+/**
+ * Get Salt minion ID of KVM node hosting 'name' VM
+ * @param saltId Salt Connection object or pepperEnv
+ * @param name Name of the VM (for ex. ctl01)
+ * @return Salt minion ID of KVM node hosting 'name' VM
+ */
+def getNodeProvider(saltId, name) {
+    def kvm = getKvmMinionId(saltId)
+    return getReturnValues(getPillar(saltId, "${kvm}", "salt:control:cluster:internal:node:${name}:provider"))
 }
 
 

@@ -371,3 +371,80 @@ def getHeatStackServers(env, name, path = null) {
     echo("[Stack ${name}] Servers: ${servers}")
     return servers
 }
+
+/**
+ * Stops all services that contain specific string (for example nova,heat, etc.)
+ * @param env Salt Connection object or pepperEnv
+ * @param probe single node on which to list service names
+ * @param target all targeted nodes
+ * @param services  lists of type of services to be stopped
+ * @return output of salt commands
+ */
+def stopServices(env, probe, target, services=[]) {
+    def salt = new com.mirantis.mk.Salt()
+    for (s in services) {
+        def outputServicesStr = salt.getReturnValues(salt.cmdRun(env, "${probe}*", "service --status-all | grep ${s} | awk \'{print \$4}\'"))
+        def servicesList = outputServicesStr.tokenize("\n")
+        for (name in servicesList) {
+            if (!name.contains('Salt command')) {
+                runSaltProcessStep(env, "${target}*", 'service.stop', ["${name}"])
+            }
+        }
+    }
+}
+
+/**
+ * Restores Galera database
+ * @param env Salt Connection object or pepperEnv
+ * @return output of salt commands
+ */
+def restoreGaleraDb(env) {
+    def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+    try {
+        salt.runSaltProcessStep(env, 'I@galera:slave', 'service.stop', ['mysql'])
+    } catch (Exception er) {
+        common.warningMsg('Mysql service already stopped')
+    }
+    try {
+        salt.runSaltProcessStep(env, 'I@galera:master', 'service.stop', ['mysql'])
+    } catch (Exception er) {
+        common.warningMsg('Mysql service already stopped')
+    }
+    try {
+        salt.cmdRun(env, 'I@galera:slave', "rm /var/lib/mysql/ib_logfile*")
+    } catch (Exception er) {
+        common.warningMsg('Files are not present')
+    }
+    try {
+        salt.cmdRun(env, 'I@galera:master', "mkdir /root/mysql/mysql.bak")
+    } catch (Exception er) {
+        common.warningMsg('Directory already exists')
+    }
+    try {
+        salt.cmdRun(env, 'I@galera:master', "rm -rf /root/mysql/mysql.bak/*")
+    } catch (Exception er) {
+        common.warningMsg('Directory already empty')
+    }
+    try {
+        salt.cmdRun(env, 'I@galera:master', "mv /var/lib/mysql/* /root/mysql/mysql.bak")
+    } catch (Exception er) {
+        common.warningMsg('Files were already moved')
+    }
+    try {
+        salt.runSaltProcessStep(env, 'I@galera:master', 'file.remove', ["/var/lib/mysql/.galera_bootstrap"])
+    } catch (Exception er) {
+        common.warningMsg('File is not present')
+    }
+    salt.cmdRun(env, 'I@galera:master', "sed -i '/gcomm/c\\wsrep_cluster_address=\"gcomm://\"' /etc/mysql/my.cnf")
+    def backup_dir = salt.getReturnValues(salt.getPillar(env, "I@galera:master", 'xtrabackup:client:backup_dir'))
+    if(backup_dir == null || backup_dir.isEmpty()) { backup_dir='/var/backups/mysql/xtrabackup' }
+    salt.runSaltProcessStep(env, 'I@galera:master', 'file.remove', ["${backup_dir}/dbrestored"])
+    salt.cmdRun(env, 'I@xtrabackup:client', "su root -c 'salt-call state.sls xtrabackup'")
+    salt.runSaltProcessStep(env, 'I@galera:master', 'service.start', ['mysql'])
+
+    // wait until mysql service on galera master is up
+    salt.commandStatus(env, 'I@galera:master', 'service mysql status', 'running')
+
+    salt.runSaltProcessStep(env, 'I@galera:slave', 'service.start', ['mysql'])
+}
