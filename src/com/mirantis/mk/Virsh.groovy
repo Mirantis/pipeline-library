@@ -80,10 +80,10 @@ def liveSnapshotRollback(master, nodeProvider, target, snapshotName, path='/var/
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
     def domain = salt.getDomainName(master)
-    salt.runSaltProcessStep(pepperEnv, "${nodeProvider}*", 'virt.destroy', ["${target}.${domain}"], null, true)
-    salt.cmdRun(pepperEnv, "${nodeProvider}*", "virsh define ${path}/${target}.${domain}.xml")
+    salt.runSaltProcessStep(master, "${nodeProvider}*", 'virt.destroy', ["${target}.${domain}"], null, true)
+    salt.cmdRun(master, "${nodeProvider}*", "virsh define ${path}/${target}.${domain}.xml")
     liveSnapshotAbsent(master, nodeProvider, target, snapshotName, path)
-    salt.runSaltProcessStep(pepperEnv, "${nodeProvider}*", 'virt.start', ["${target}.${domain}"], null, true)
+    salt.runSaltProcessStep(master, "${nodeProvider}*", 'virt.start', ["${target}.${domain}"], null, true)
 }
 
 /**
@@ -100,19 +100,19 @@ def liveSnapshotMerge(master, nodeProvider, target, snapshotName, path='/var/lib
     def common = new com.mirantis.mk.Common()
     def domain = salt.getDomainName(master)
     try {
-        salt.cmdRun(pepperEnv, "${nodeProvider}*", "virsh blockcommit ${target}.${domain} ${diskName} --active --verbose --pivot")
+        salt.cmdRun(master, "${nodeProvider}*", "virsh blockcommit ${target}.${domain} ${diskName} --active --verbose --pivot")
         try {
-            salt.cmdRun(pepperEnv, "${nodeProvider}*", "virsh snapshot-delete ${target}.${domain} --metadata ${snapshotName}")
+            salt.cmdRun(master, "${nodeProvider}*", "virsh snapshot-delete ${target}.${domain} --metadata ${snapshotName}")
         } catch (Exception e) {
             common.warningMsg('Snapshot ${snapshotName} for ${target}.${domain} does not exist or failed to be removed')
         }
         try {
-            salt.runSaltProcessStep(pepperEnv, "${nodeProvider}*", 'file.remove', ["${path}/${target}.${domain}.${snapshotName}.qcow2"], null, true)
+            salt.runSaltProcessStep(master, "${nodeProvider}*", 'file.remove', ["${path}/${target}.${domain}.${snapshotName}.qcow2"], null, true)
         } catch (Exception e) {
             common.warningMsg('Snapshot ${snapshotName} qcow2 file for ${target}.${domain} does not exist or failed to be removed')
         }
         try {
-            salt.runSaltProcessStep(pepperEnv, "${nodeProvider}*", 'file.remove', ["${path}/${target}.${domain}.xml"], null, true)
+            salt.runSaltProcessStep(master, "${nodeProvider}*", 'file.remove', ["${path}/${target}.${domain}.xml"], null, true)
         } catch (Exception e) {
             common.warningMsg('Dumpxml file for ${target}.${domain} does not exist or failed to be removed')
         }
@@ -135,9 +135,9 @@ def liveSnapshotMerge(master, nodeProvider, target, snapshotName, path='/var/lib
 def checkLiveSnapshotMerge(master, nodeProvider, target, snapshotName, path='/var/lib/libvirt/images', diskName='vda') {
     def salt = new com.mirantis.mk.Salt()
     def domain = salt.getDomainName(master)
-    def out =  salt.getReturnValues(salt.cmdRun(pepperEnv, "${nodeProvider}*", "virsh blockjob ${target}.${domain} ${diskName} --info"))
+    def out =  salt.getReturnValues(salt.cmdRun(master, "${nodeProvider}*", "virsh blockjob ${target}.${domain} ${diskName} --info"))
     if (out.contains('Block Commit')) {
-        def blockJobs = salt.getReturnValues(salt.cmdRun(pepperEnv, "{nodeProvider}*", "virsh qemu-monitor-command ${target}.${domain} --pretty -- '{ \"execute\": \"query-block-jobs\" }'"))
+        def blockJobs = salt.getReturnValues(salt.cmdRun(master, "{nodeProvider}*", "virsh qemu-monitor-command ${target}.${domain} --pretty -- '{ \"execute\": \"query-block-jobs\" }'"))
         if (blockJobs.contains('offset')) {
             // if Block Commit hangs on 100 and check offset - len = 0, then it is safe to merge the image
             input message: "Please check if offset - len = 0, If so run: virsh qemu-monitor-command ${target}.${domain} --pretty -- '{ \"execute\": \"block-job-complete\", \"arguments\": { \"device\": \"drive-virtio-disk0\" } }', then virsh define ${path}/${target}.${domain}.xml, then virsh snapshot-delete ${target}.${domain} --metadata ${snapshotName} and remove ${path}/${target}.${domain}.${snapshotName}.qcow2 file. When you resolve this issue click on PROCEED."
