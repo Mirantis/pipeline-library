@@ -387,7 +387,7 @@ def stopServices(env, probe, target, services=[]) {
         def servicesList = outputServicesStr.tokenize("\n")
         for (name in servicesList) {
             if (!name.contains('Salt command')) {
-                runSaltProcessStep(env, "${target}*", 'service.stop', ["${name}"])
+                salt.runSaltProcessStep(env, "${target}*", 'service.stop', ["${name}"])
             }
         }
     }
