@@ -184,6 +184,16 @@ def restPost(master, uri, data = null) {
 }
 
 /**
+ * Make DELETE request using Salt REST API and return parsed JSON
+ *
+ * @param master   Salt connection object
+ * @param uri   URI which will be appended to Salt server base URL
+ */
+def restDelete(master, uri, data = null) {
+    return restCall(master, uri, 'DELETE', data)
+}
+
+/**
  * Set HTTP and HTTPS proxy for running JVM
  * @param host HTTP proxy host
  * @param port HTTP proxy port
