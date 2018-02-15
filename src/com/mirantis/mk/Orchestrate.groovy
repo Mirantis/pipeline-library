@@ -608,11 +608,9 @@ def installStacklight(master) {
     // Configure Prometheus in Docker Swarm
     salt.enforceState(master, 'I@docker:swarm and I@prometheus:server', 'prometheus', true, false)
 
-    //Configure Remote Collector in Docker Swarm for Openstack deployments without fluentd
+    //Configure Remote Collector in Docker Swarm for Openstack deployments
     if (!common.checkContains('STACK_INSTALL', 'k8s')) {
-        if (!salt.testTarget(master, 'I@fluentd:agent')) {
-            salt.enforceState(master, 'I@docker:swarm and I@prometheus:server', 'heka.remote_collector', true, false)
-        }
+        salt.enforceState(master, 'I@docker:swarm and I@prometheus:server', 'heka.remote_collector', true, false)
     }
 
     //Configure Grafana
