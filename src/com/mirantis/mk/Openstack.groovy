@@ -444,7 +444,11 @@ def restoreGaleraDb(env) {
     salt.runSaltProcessStep(env, 'I@galera:master', 'service.start', ['mysql'])
 
     // wait until mysql service on galera master is up
-    salt.commandStatus(env, 'I@galera:master', 'service mysql status', 'running')
+    try {
+        salt.commandStatus(env, 'I@galera:master', 'service mysql status', 'running')
+    } catch (Exception er) {
+        input message: "Database is not running please fix it first and only then click on PROCEED."
+    }
 
     salt.runSaltProcessStep(env, 'I@galera:slave', 'service.start', ['mysql'])
 }
