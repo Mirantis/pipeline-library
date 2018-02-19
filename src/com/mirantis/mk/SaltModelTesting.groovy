@@ -44,13 +44,13 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
 
   img.inside("-u root:root --hostname=${masterName} --ulimit nofile=4096:8192 ${dockerMaxCpusOption}") {
     if (!imageFound) {
-      sh("apt-get update && apt-get install -y curl git python-pip sudo python-pip python-dev zlib1g-dev git")
-      sh("pip install git+https://github.com/salt-formulas/reclass.git --upgrade")
-      sh("mkdir -p /srv/salt/scripts/ || true")
-      sh("cp -r ${testDir} /srv/salt/reclass")
-      sh("git config --global user.email || git config --global user.email 'ci@ci.local'")
-      sh("git config --global user.name || git config --global user.name 'CI'")
-      sh("git clone https://github.com/salt-formulas/salt-formulas-scripts /srv/salt/scripts")
+      sh("""apt-get update && apt-get install -y curl git python-pip sudo python-pip python-dev zlib1g-dev git
+            pip install git+https://github.com/salt-formulas/reclass.git --upgrade
+            mkdir -p /srv/salt/scripts/ || true
+            cp -r ${testDir} /srv/salt/reclass
+            git config --global user.email || git config --global user.email 'ci@ci.local'
+            git config --global user.name || git config --global user.name 'CI'
+            git clone https://github.com/salt-formulas/salt-formulas-scripts /srv/salt/scripts""")
     }
 
     withEnv(["FORMULAS_SOURCE=${formulasSource}", "EXTRA_FORMULAS=${extraFormulas}", "DISTRIB_REVISION=${formulasRevision}",
@@ -59,24 +59,24 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
             "APT_REPOSITORY_GPG=${aptRepoGPG}"]){
 
         if (!imageFound) {
-          sh("cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt-mk.mirantis.com/apt.mirantis.net:8085/g' {} \\;")
-          sh("cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt.mirantis.com/apt.mirantis.net:8085/g' {} \\;")
-          sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && system_config_master'")
-          sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && saltmaster_bootstrap'")
+          sh("""cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt-mk.mirantis.com/apt.mirantis.net:8085/g' {} \\;
+                cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt.mirantis.com/apt.mirantis.net:8085/g' {} \\;
+                bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && system_config_master'
+                bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && saltmaster_bootstrap'""")
           sh("""for s in \$(python -c \"import site; print(' '.join(site.getsitepackages()))\"); do
                     sudo -H pip install --install-option=\"--prefix=\" --upgrade --force-reinstall -I \
                       -t \"\$s\" git+https://github.com/salt-formulas/reclass.git;
                   done""")
         } else {
-          sh("cp -r ${testDir}/* /srv/salt/reclass && echo '127.0.1.2  salt' >> /etc/hosts")
-          sh("cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt-mk.mirantis.com/apt.mirantis.net:8085/g' {} \\;")
-          sh("cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt.mirantis.com/apt.mirantis.net:8085/g' {} \\;")
+          sh("""cp -r ${testDir}/* /srv/salt/reclass && echo '127.0.1.2  salt' >> /etc/hosts
+                cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt-mk.mirantis.com/apt.mirantis.net:8085/g' {} \\;
+                cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt.mirantis.com/apt.mirantis.net:8085/g' {} \\;""")
           sh("""for s in \$(python -c \"import site; print(' '.join(site.getsitepackages()))\"); do
                     sudo -H pip install --install-option=\"--prefix=\" --upgrade --force-reinstall -I \
                       -t \"\$s\" git+https://github.com/salt-formulas/reclass.git;
                   done""")
-          sh("timeout ${testTimeout} bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && configure_salt_master && configure_salt_minion && install_salt_formula_pkg'")
-          sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && saltservice_restart'")
+          sh("""timeout ${testTimeout} bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && configure_salt_master && configure_salt_minion && install_salt_formula_pkg'
+                bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && saltservice_restart'""")
         }
 
         sh("timeout ${testTimeout} bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && saltmaster_init'")
@@ -90,7 +90,7 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
       common.infoMsg("Running legacy mode test for master hostname ${masterName}")
       def nodes = sh script: "find /srv/salt/reclass/nodes -name '*.yml' | grep -v 'cfg*.yml'", returnStdout: true
       for (minion in nodes.tokenize()) {
-        def basename = sh script: "basename ${minion} .yml", returnStdout: true
+        def basename = sh script: "set +x;basename ${minion} .yml", returnStdout: true
         if (!basename.trim().contains(masterName)) {
           testMinion(basename.trim())
         }
