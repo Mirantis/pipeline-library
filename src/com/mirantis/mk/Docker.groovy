@@ -22,6 +22,7 @@ def buildDockerImage(img, baseImg, dockerFile, timestamp, params=[]) {
         sh "git checkout -f ${dockerFile}; sed -i -e 's,^FROM.*,FROM ${baseImg},g' ${dockerFile}"
     }
 
+    params << "--no-cache"
     params << "-f ${dockerFile}"
     params << imageDir
 
