@@ -276,6 +276,15 @@ def installOpenstackControl(master) {
         salt.enforceState(master, 'I@ironic:api', 'ironic.api')
     }
 
+    // Install manila service
+    if (salt.testTarget(master, 'I@manila:api')) {
+        salt.enforceState(master, 'I@manila:api and *01*', 'manila.api')
+        salt.enforceState(master, 'I@manila:api', 'manila.api')
+    }
+    if (salt.testTarget(master, 'I@manila:scheduler')) {
+        salt.enforceState(master, 'I@manila:scheduler', 'manila.scheduler')
+    }
+
     // Install designate service
     if (salt.testTarget(master, 'I@designate:server:enabled')) {
         if (salt.testTarget(master, 'I@designate:server:backend:bind9')) {
@@ -345,6 +354,20 @@ def installIronicConductor(master){
     }
 }
 
+def installManilaShare(master){
+    def salt = new com.mirantis.mk.Salt()
+
+    if (salt.testTarget(master, 'I@manila:share')) {
+        salt.enforceState(master, 'I@manila:share', 'manila.share')
+    }
+    if (salt.testTarget(master, 'I@manila:data')) {
+        salt.enforceState(master, 'I@manila:data', 'manila.data')
+    }
+
+    if (salt.testTarget(master, 'I@manila:client')) {
+        salt.enforceState(master, 'I@manila:client', 'manila.client')
+    }
+}
 
 
 def installOpenstackNetwork(master, physical = "false") {
