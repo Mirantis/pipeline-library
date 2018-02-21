@@ -307,12 +307,12 @@ def jinjaBuildTemplate (template, context, path = none) {
  * @param url         SALT_MASTER_URL
  * @param credentialsId        Credentials to salt api
  */
-def setupPepperVirtualenv(path, url, credentialsId, clean = false) {
+def setupPepperVirtualenv(path, url, credentialsId) {
     def common = new com.mirantis.mk.Common()
 
     // virtualenv setup
     requirements = ['salt-pepper>=0.5.2']
-    setupVirtualenv(path, 'python2', requirements, null, clean, true)
+    setupVirtualenv(path, 'python2', requirements, null, true, true)
 
     // pepperrc creation
     rcFile = "${path}/pepperrc"
