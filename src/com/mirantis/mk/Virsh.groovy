@@ -80,10 +80,15 @@ def liveSnapshotRollback(master, nodeProvider, target, snapshotName, path='/var/
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
     def domain = salt.getDomainName(master)
-    salt.runSaltProcessStep(master, "${nodeProvider}*", 'virt.destroy', ["${target}.${domain}"], null, true)
-    salt.cmdRun(master, "${nodeProvider}*", "virsh define ${path}/${target}.${domain}.xml")
-    liveSnapshotAbsent(master, nodeProvider, target, snapshotName, path)
-    salt.runSaltProcessStep(master, "${nodeProvider}*", 'virt.start', ["${target}.${domain}"], null, true)
+    try {
+        salt.getReturnValues(salt.cmdRun(master, "${nodeProvider}*", "ls -la ${path}/${target}.${domain}.xml"))
+        salt.runSaltProcessStep(master, "${nodeProvider}*", 'virt.destroy', ["${target}.${domain}"], null, true)
+        salt.cmdRun(master, "${nodeProvider}*", "virsh define ${path}/${target}.${domain}.xml")
+        liveSnapshotAbsent(master, nodeProvider, target, snapshotName, path)
+        salt.runSaltProcessStep(master, "${nodeProvider}*", 'virt.start', ["${target}.${domain}"], null, true)
+    } catch (Exception er) {
+        common.infoMsg('No rollback for ${target}.${domain} was executed. Dumpxml file not present.')
+    }
 }
 
 /**
