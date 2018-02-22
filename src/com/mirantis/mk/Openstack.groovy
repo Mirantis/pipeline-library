@@ -364,7 +364,7 @@ def getHeatStackServers(env, name, path = null) {
     servers = [:]
     for (resource in resources) {
         if (resource.resource_type == 'OS::Nova::Server') {
-            server = openstack.getHeatStackResourceInfo(env, resource.stack_name, resource.resource_name, path)
+            server = getHeatStackResourceInfo(env, resource.stack_name, resource.resource_name, path)
             servers[server.attributes.id] = server.attributes.name
         }
     }
