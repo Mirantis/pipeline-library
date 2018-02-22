@@ -206,7 +206,7 @@ def installOpenstackControl(master) {
     // Check glance service
     if (salt.testTarget(master, 'I@glance:server')){
         common.retry(3,5){
-            salt.cmdRun(master, 'I@keystone:server','. /root/keystonerc; glance image-list')
+            salt.cmdRun(master, 'I@keystone:server','. /root/keystonercv3; glance image-list')
         }
     }
 
@@ -222,7 +222,7 @@ def installOpenstackControl(master) {
         salt.enforceState(master, 'I@nova:controller', 'nova.controller')
         if (salt.testTarget(master, 'I@keystone:server')) {
            common.retry(3,5){
-               salt.cmdRun(master, 'I@keystone:server', '. /root/keystonerc; nova service-list')
+               salt.cmdRun(master, 'I@keystone:server', '. /root/keystonercv3; nova service-list')
            }
         }
     }
@@ -239,7 +239,7 @@ def installOpenstackControl(master) {
         salt.enforceState(master, 'I@cinder:controller', 'cinder')
         if (salt.testTarget(master, 'I@keystone:server')) {
             common.retry(3,5){
-                salt.cmdRun(master, 'I@keystone:server', '. /root/keystonerc; cinder list')
+                salt.cmdRun(master, 'I@keystone:server', '. /root/keystonercv3; cinder list')
             }
         }
     }
@@ -251,7 +251,7 @@ def installOpenstackControl(master) {
         salt.enforceState(master, 'I@neutron:server', 'neutron.server')
         if (salt.testTarget(master, 'I@keystone:server')) {
             common.retry(3,5){
-                salt.cmdRun(master, 'I@keystone:server','. /root/keystonerc; neutron agent-list')
+                salt.cmdRun(master, 'I@keystone:server','. /root/keystonercv3; neutron agent-list')
             }
         }
     }
@@ -268,7 +268,7 @@ def installOpenstackControl(master) {
         salt.enforceState(master, 'I@heat:server', 'heat')
         if (salt.testTarget(master, 'I@keystone:server')) {
             common.retry(3,5){
-                salt.cmdRun(master, 'I@keystone:server', '. /root/keystonerc; heat resource-type-list')
+                salt.cmdRun(master, 'I@keystone:server', '. /root/keystonercv3; heat resource-type-list')
             }
         }
     }
