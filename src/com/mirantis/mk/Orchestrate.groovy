@@ -145,6 +145,14 @@ def installInfra(master) {
             salt.cmdRun(master, 'I@etcd:server', '. /var/lib/etcd/configenv && etcdctl cluster-health')
         }
     }
+
+    // Install redis
+    if (salt.testTarget(master, 'I@redis:server')) {
+        if (salt.testTarget(master, 'I@redis:cluster:role:master')) {
+            salt.enforceState(master, 'I@redis:cluster:role:master', 'redis')
+        }
+        salt.enforceState(master, 'I@redis:server', 'redis')
+    }
 }
 
 def installOpenstackInfra(master) {
@@ -317,6 +325,21 @@ def installOpenstackControl(master) {
     // Install barbican client
     if (salt.testTarget(master, 'I@barbican:client')) {
         salt.enforceState(master, 'I@barbican:client', 'barbican.client')
+    }
+
+    // Install gnocchi server
+    if (salt.testTarget(master, 'I@gnocchi:server')) {
+        salt.enforceState(master, 'I@gnocchi:server', 'gnocchi.server')
+    }
+
+    // Install gnocchi statsd
+    if (salt.testTarget(master, 'I@gnocchi:statsd')) {
+        salt.enforceState(master, 'I@gnocchi:statsd', 'gnocchi.statsd')
+    }
+
+    // Install panko server
+    if (salt.testTarget(master, 'I@panko:server')) {
+        salt.enforceState(master, 'I@panko:server', 'panko')
     }
 
     // Install ceilometer server
