@@ -34,7 +34,7 @@ def installFoundationInfra(master, staticMgmtNet=false) {
     if (staticMgmtNet) {
         salt.runSaltProcessStep(master, '*', 'cmd.shell', ["salt-call state.sls linux.network; salt-call service.restart salt-minion"], null, true, 60)
     }
-    salt.enforceState(master, 'I@linux:system', ['linux', 'openssh', 'ntp'])
+    salt.enforceState(master, 'I@linux:system', ['linux', 'openssh', 'ntp', 'rsyslog'])
     salt.enforceState(master, '*', ['salt.minion'], true, false, null, false, 60, 2)
     sleep(5)
     salt.enforceState(master, '*', ['linux.network.host'])
@@ -52,7 +52,7 @@ def installFoundationInfraOnTarget(master, target, staticMgmtNet=false) {
     salt.enforceState(master, target, ['salt.minion'], true, false, null, false, 60, 2)
     salt.enforceState(master, target, ['salt.minion'])
 
-    salt.enforceState(master, target, ['linux', 'openssh', 'ntp'])
+    salt.enforceState(master, target, ['linux', 'openssh', 'ntp', 'rsyslog'])
     sleep(5)
     salt.enforceState(master, target, ['linux.network.host'])
 }
@@ -62,7 +62,7 @@ def installInfraKvm(master) {
     salt.fullRefresh(master, 'I@linux:system')
 
     salt.enforceState(master, 'I@salt:control', ['salt.minion'], true, false, null, false, 60, 2)
-    salt.enforceState(master, 'I@salt:control', ['linux.system', 'linux.network', 'ntp'])
+    salt.enforceState(master, 'I@salt:control', ['linux.system', 'linux.network', 'ntp', 'rsyslog'])
     salt.enforceState(master, 'I@salt:control', 'libvirt')
     salt.enforceState(master, 'I@salt:control', 'salt.control')
 
@@ -103,6 +103,7 @@ def installInfra(master) {
             salt.enforceState(master, 'I@mysql:client', 'mysql.client')
         }
     }
+    installBackup(master, 'mysql')
 
     // Install docker
     if (salt.testTarget(master, 'I@docker:host')) {
@@ -153,6 +154,7 @@ def installInfra(master) {
         }
         salt.enforceState(master, 'I@redis:server', 'redis')
     }
+    installBackup(master, 'common')
 }
 
 def installOpenstackInfra(master) {
@@ -169,6 +171,10 @@ def installOpenstackControl(master) {
     // Install horizon dashboard
     if (salt.testTarget(master, 'I@horizon:server')) {
         salt.enforceState(master, 'I@horizon:server', 'horizon')
+    }
+    // Install sphinx server
+    if (salt.testTarget(master, 'I@sphinx:server')) {
+        salt.enforceState(master, 'I@sphinx:server', 'sphinx')
     }
     if (salt.testTarget(master, 'I@nginx:server')) {
         salt.enforceState(master, 'I@nginx:server', 'salt.minion')
@@ -436,6 +442,7 @@ def installContrailNetwork(master) {
     if (salt.testTarget(master, 'I@docker:client and I@opencontrail:control')) {
         salt.enforceState(master, 'I@opencontrail:control or I@opencontrail:collector', 'docker.client')
     }
+    installBackup(master, 'contrail')
 }
 
 
@@ -659,6 +666,11 @@ def installStacklight(master) {
         salt.enforceState(master, 'I@docker:swarm and I@prometheus:server', 'heka.remote_collector', true, false)
     }
 
+    // Install sphinx server
+    if (salt.testTarget(master, 'I@sphinx:server')) {
+        salt.enforceState(master, 'I@sphinx:server', 'sphinx')
+    }
+
     //Configure Grafana
     def pillar = salt.getPillar(master, 'ctl01*', '_param:stacklight_monitor_address')
     common.prettyPrint(pillar)
@@ -788,6 +800,70 @@ def installStacklightv1Client(master) {
     }
 }
 
+//
+// backups
+//
+
+def installBackup(master, component='common') {
+    def salt = new com.mirantis.mk.Salt()
+    if (component == 'common') {
+        // Install Backupninja
+        if (salt.testTarget(master, 'I@backupninja:client')) {
+            salt.enforceState(master, 'I@backupninja:client', 'salt.minion.grains')
+            salt.runSaltProcessStep(master, 'I@backupninja:client', 'saltutil.sync_grains')
+            salt.runSaltProcessStep(master, 'I@backupninja:client', 'mine.update')
+            salt.enforceState(master, 'I@backupninja:client', 'xtrabackup')
+        }
+        if (salt.testTarget(master, 'I@backupninja:server')) {
+            salt.enforceState(master, 'I@backupninja:server', 'xtrabackup')
+        }
+    } else if (component == 'mysql') {
+        // Install Xtrabackup
+        if (salt.testTarget(master, 'I@xtrabackup:client')) {
+            salt.enforceState(master, 'I@xtrabackup:client', 'salt.minion.grains')
+            salt.runSaltProcessStep(master, 'I@xtrabackup:client', 'saltutil.sync_grains')
+            salt.runSaltProcessStep(master, 'I@xtrabackup:client', 'mine.update')
+            salt.enforceState(master, 'I@xtrabackup:client', 'xtrabackup')
+        }
+        if (salt.testTarget(master, 'I@xtrabackup:server')) {
+            salt.enforceState(master, 'I@xtrabackup:server', 'xtrabackup')
+        }
+    } else if (component == 'contrail') {
+
+        // Install Cassandra backup
+        if (salt.testTarget(master, 'I@cassandra:backup:client')) {
+            salt.enforceState(master, 'I@cassandra:backup:client', 'salt.minion.grains')
+            salt.runSaltProcessStep(master, 'I@cassandra:backup:client', 'saltutil.sync_grains')
+            salt.runSaltProcessStep(master, 'I@cassandra:backup:client', 'mine.update')
+            salt.enforceState(master, 'I@cassandra:backup:client', 'cassandra.backup')
+        }
+        if (salt.testTarget(master, 'I@cassandra:backup:server')) {
+            salt.enforceState(master, 'I@cassandra:backup:server', 'cassandra.backup')
+        }
+        // Install Zookeeper backup
+        if (salt.testTarget(master, 'I@zookeeper:backup:client')) {
+            salt.enforceState(master, 'I@zookeeper:backup:client', 'salt.minion.grains')
+            salt.runSaltProcessStep(master, 'I@zookeeper:backup:client', 'saltutil.sync_grains')
+            salt.runSaltProcessStep(master, 'I@zookeeper:backup:client', 'mine.update')
+            salt.enforceState(master, 'I@zookeeper:backup:client', 'zookeeper.backup')
+        }
+        if (salt.testTarget(master, 'I@zookeeper:backup:server')) {
+            salt.enforceState(master, 'I@zookeeper:backup:server', 'zookeeper.backup')
+        }
+    } else if (component == 'ceph') {
+        // Install Ceph backup
+        if (salt.testTarget(master, 'I@ceph:backup:client')) {
+            salt.enforceState(master, 'I@ceph:backup:client', 'salt.minion.grains')
+            salt.runSaltProcessStep(master, 'I@ceph:backup:client', 'saltutil.sync_grains')
+            salt.runSaltProcessStep(master, 'I@ceph:backup:client', 'mine.update')
+            salt.enforceState(master, 'I@ceph:backup:client', 'zookeeper.backup')
+        }
+        if (salt.testTarget(master, 'I@ceph:backup:server')) {
+            salt.enforceState(master, 'I@ceph:backup:server', 'zookeeper.backup')
+        }
+    }
+
+}
 
 //
 // Ceph
@@ -821,6 +897,7 @@ def installCephOsd(master, target='I@ceph:osd', setup=true) {
     salt.enforceState(master, target, 'ceph.osd.custom')
     salt.runSaltProcessStep(master, 'I@ceph:osd', 'saltutil.sync_grains')
     salt.runSaltProcessStep(master, 'I@ceph:osd', 'mine.update')
+    installBackup(master, 'ceph')
 
     // setup pools, keyrings and maybe crush
     if (salt.testTarget(master, 'I@ceph:setup') && setup) {
