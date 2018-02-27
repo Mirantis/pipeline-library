@@ -56,7 +56,7 @@ def getGitCommit() {
 def changeGitBranch(path, branch) {
     dir(path) {
         git_cmd = sh (
-            script: "git checkout -b ${branch}",
+            script: "git checkout ${branch}",
             returnStdout: true
         ).trim()
     }
