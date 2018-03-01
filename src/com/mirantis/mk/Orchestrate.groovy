@@ -812,10 +812,10 @@ def installBackup(master, component='common') {
             salt.enforceState(master, 'I@backupninja:client', 'salt.minion.grains')
             salt.runSaltProcessStep(master, 'I@backupninja:client', 'saltutil.sync_grains')
             salt.runSaltProcessStep(master, 'I@backupninja:client', 'mine.update')
-            salt.enforceState(master, 'I@backupninja:client', 'xtrabackup')
+            salt.enforceState(master, 'I@backupninja:client', 'backupninja')
         }
         if (salt.testTarget(master, 'I@backupninja:server')) {
-            salt.enforceState(master, 'I@backupninja:server', 'xtrabackup')
+            salt.enforceState(master, 'I@backupninja:server', 'backupninja')
         }
     } else if (component == 'mysql') {
         // Install Xtrabackup
@@ -856,10 +856,10 @@ def installBackup(master, component='common') {
             salt.enforceState(master, 'I@ceph:backup:client', 'salt.minion.grains')
             salt.runSaltProcessStep(master, 'I@ceph:backup:client', 'saltutil.sync_grains')
             salt.runSaltProcessStep(master, 'I@ceph:backup:client', 'mine.update')
-            salt.enforceState(master, 'I@ceph:backup:client', 'zookeeper.backup')
+            salt.enforceState(master, 'I@ceph:backup:client', 'ceph.backup')
         }
         if (salt.testTarget(master, 'I@ceph:backup:server')) {
-            salt.enforceState(master, 'I@ceph:backup:server', 'zookeeper.backup')
+            salt.enforceState(master, 'I@ceph:backup:server', 'ceph.backup')
         }
     }
 
