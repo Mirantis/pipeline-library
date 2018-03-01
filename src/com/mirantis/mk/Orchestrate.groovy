@@ -811,10 +811,12 @@ def installBackup(master, component='common') {
         if (salt.testTarget(master, 'I@backupninja:client')) {
             salt.enforceState(master, 'I@backupninja:client', 'salt.minion.grains')
             salt.runSaltProcessStep(master, 'I@backupninja:client', 'saltutil.sync_grains')
+            salt.runSaltProcessStep(master, 'I@backupninja:client', 'mine.flush')
             salt.runSaltProcessStep(master, 'I@backupninja:client', 'mine.update')
             salt.enforceState(master, 'I@backupninja:client', 'backupninja')
         }
         if (salt.testTarget(master, 'I@backupninja:server')) {
+            salt.enforceState(master, 'I@backupninja:server', 'salt.minion.grains')
             salt.enforceState(master, 'I@backupninja:server', 'backupninja')
         }
     } else if (component == 'mysql') {
@@ -822,6 +824,7 @@ def installBackup(master, component='common') {
         if (salt.testTarget(master, 'I@xtrabackup:client')) {
             salt.enforceState(master, 'I@xtrabackup:client', 'salt.minion.grains')
             salt.runSaltProcessStep(master, 'I@xtrabackup:client', 'saltutil.sync_grains')
+            salt.runSaltProcessStep(master, 'I@xtrabackup:client', 'mine.flush')
             salt.runSaltProcessStep(master, 'I@xtrabackup:client', 'mine.update')
             salt.enforceState(master, 'I@xtrabackup:client', 'xtrabackup')
         }
@@ -834,6 +837,7 @@ def installBackup(master, component='common') {
         if (salt.testTarget(master, 'I@cassandra:backup:client')) {
             salt.enforceState(master, 'I@cassandra:backup:client', 'salt.minion.grains')
             salt.runSaltProcessStep(master, 'I@cassandra:backup:client', 'saltutil.sync_grains')
+            salt.runSaltProcessStep(master, 'I@cassandra:backup:client', 'mine.flush')
             salt.runSaltProcessStep(master, 'I@cassandra:backup:client', 'mine.update')
             salt.enforceState(master, 'I@cassandra:backup:client', 'cassandra.backup')
         }
@@ -844,6 +848,7 @@ def installBackup(master, component='common') {
         if (salt.testTarget(master, 'I@zookeeper:backup:client')) {
             salt.enforceState(master, 'I@zookeeper:backup:client', 'salt.minion.grains')
             salt.runSaltProcessStep(master, 'I@zookeeper:backup:client', 'saltutil.sync_grains')
+            salt.runSaltProcessStep(master, 'I@zookeeper:backup:client', 'mine.flush')
             salt.runSaltProcessStep(master, 'I@zookeeper:backup:client', 'mine.update')
             salt.enforceState(master, 'I@zookeeper:backup:client', 'zookeeper.backup')
         }
@@ -855,6 +860,7 @@ def installBackup(master, component='common') {
         if (salt.testTarget(master, 'I@ceph:backup:client')) {
             salt.enforceState(master, 'I@ceph:backup:client', 'salt.minion.grains')
             salt.runSaltProcessStep(master, 'I@ceph:backup:client', 'saltutil.sync_grains')
+            salt.runSaltProcessStep(master, 'I@ceph:backup:client', 'mine.flush')
             salt.runSaltProcessStep(master, 'I@ceph:backup:client', 'mine.update')
             salt.enforceState(master, 'I@ceph:backup:client', 'ceph.backup')
         }
