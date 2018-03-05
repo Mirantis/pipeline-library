@@ -92,6 +92,7 @@ def installInfra(master) {
     // Install galera
     if (salt.testTarget(master, 'I@galera:master') || salt.testTarget(master, 'I@galera:slave')) {
         salt.enforceState(master, 'I@galera:master', 'galera', true, true, null, false, -1, 2)
+        salt.enforceState(master, 'I@galera:slave', 'galera', true, true, null, false, -1, 2)
 
         // Check galera status
         salt.runSaltProcessStep(master, 'I@galera:master', 'mysql.status')
@@ -645,7 +646,7 @@ def installStacklight(master) {
     // Install galera
     if (common.checkContains('STACK_INSTALL', 'k8s')) {
         salt.enforceState(master, 'I@galera:master', 'galera', true, true, null, false, -1, 2)
-        salt.enforceState(master, 'I@galera:slave', 'galera')
+        salt.enforceState(master, 'I@galera:slave', 'galera', true, true, null, false, -1, 2)
 
         // Check galera status
         salt.runSaltProcessStep(master, 'I@galera:master', 'mysql.status')
