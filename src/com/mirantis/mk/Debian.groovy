@@ -38,10 +38,11 @@ def buildBinary(file, image="debian:sid", extraRepoUrl=null, extraRepoKeyUrl=nul
             export DEBUG="${debug}" &&
             export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH:+"\$LD_LIBRARY_PATH:"}/usr/lib/libeatmydata &&
             export LD_PRELOAD=\${LD_PRELOAD:+"\$LD_PRELOAD "}libeatmydata.so &&
-            [[ -z "${extraRepoUrl}" && "${extraRepoUrl}" != "null" ]] || echo "${extraRepoUrl}" >/etc/apt/sources.list.d/extra.list &&
+            [[ -z "${extraRepoUrl}" && "${extraRepoUrl}" != "null" ]] || echo "${extraRepoUrl}" | tr ";" "\\\\n" >/etc/apt/sources.list.d/extra.list &&
             [[ -z "${extraRepoKeyUrl}" && "${extraRepoKeyUrl}" != "null" ]] || (
                 which curl || (apt-get update && apt-get install -y curl) &&
-                curl --insecure -ss -f "${extraRepoKeyUrl}" | apt-key add -
+                EXTRAKEY=`echo "${extraRepoKeyUrl}" | tr ";" " "` &&
+                for RepoKey in \${EXTRAKEY}; do curl --insecure -ss -f "\${RepoKey}" | apt-key add - ; done
             ) &&
             apt-get update && apt-get install -y build-essential devscripts equivs sudo &&
             groupadd -g ${jenkinsGID} jenkins &&
@@ -52,7 +53,6 @@ def buildBinary(file, image="debian:sid", extraRepoUrl=null, extraRepoKeyUrl=nul
             mk-build-deps -t "apt-get -o Debug::pkgProblemResolver=yes -y" -i debian/control &&
             sudo -H -E -u jenkins debuild --preserve-envvar DEBUG --no-lintian -uc -us -b'""")
     }
-
 
 }
 
