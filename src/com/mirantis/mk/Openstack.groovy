@@ -380,14 +380,27 @@ def getHeatStackServers(env, name, path = null) {
  * @param services  lists of type of services to be stopped
  * @return output of salt commands
  */
-def stopServices(env, probe, target, services=[]) {
+def stopServices(env, probe, target, services=[], confirm=false) {
     def salt = new com.mirantis.mk.Salt()
     for (s in services) {
         def outputServicesStr = salt.getReturnValues(salt.cmdRun(env, "${probe}*", "service --status-all | grep ${s} | awk \'{print \$4}\'"))
         def servicesList = outputServicesStr.tokenize("\n")
-        for (name in servicesList) {
-            if (!name.contains('Salt command')) {
-                salt.runSaltProcessStep(env, "${target}*", 'service.stop', ["${name}"])
+        if (confirm) {
+            try {
+                input message: "Click PROCEED to stop ${servicesList}. Otherwise click ABORT to skip stopping them."
+                for (name in servicesList) {
+                    if (!name.contains('Salt command')) {
+                        salt.runSaltProcessStep(env, "${target}*", 'service.stop', ["${name}"])
+                    }
+                }
+            } catch (Exception er) {
+                common.infoMsg("skipping stopping ${servicesList} services")
+            }
+        } else {
+            for (name in servicesList) {
+                if (!name.contains('Salt command')) {
+                    salt.runSaltProcessStep(env, "${target}*", 'service.stop', ["${name}"])
+                }
             }
         }
     }
