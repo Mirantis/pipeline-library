@@ -378,28 +378,34 @@ def getHeatStackServers(env, name, path = null) {
  * @param probe single node on which to list service names
  * @param target all targeted nodes
  * @param services  lists of type of services to be stopped
+ * @param confirm enable/disable manual service stop confirmation
  * @return output of salt commands
  */
 def stopServices(env, probe, target, services=[], confirm=false) {
     def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
     for (s in services) {
         def outputServicesStr = salt.getReturnValues(salt.cmdRun(env, "${probe}*", "service --status-all | grep ${s} | awk \'{print \$4}\'"))
-        def servicesList = outputServicesStr.tokenize("\n")
+        def servicesList = outputServicesStr.tokenize("\n").init()
         if (confirm) {
-            try {
-                input message: "Click PROCEED to stop ${servicesList}. Otherwise click ABORT to skip stopping them."
+            if (servicesList) {
+                try {
+                    input message: "Click PROCEED to stop ${servicesList}. Otherwise click ABORT to skip stopping them."
+                    for (name in servicesList) {
+                        if (!name.contains('Salt command')) {
+                            salt.runSaltProcessStep(env, "${target}*", 'service.stop', ["${name}"])
+                        }
+                    }
+                } catch (Exception er) {
+                    common.infoMsg("skipping stopping ${servicesList} services")
+                }
+            }
+        } else {
+            if (servicesList) {
                 for (name in servicesList) {
                     if (!name.contains('Salt command')) {
                         salt.runSaltProcessStep(env, "${target}*", 'service.stop', ["${name}"])
                     }
-                }
-            } catch (Exception er) {
-                common.infoMsg("skipping stopping ${servicesList} services")
-            }
-        } else {
-            for (name in servicesList) {
-                if (!name.contains('Salt command')) {
-                    salt.runSaltProcessStep(env, "${target}*", 'service.stop', ["${name}"])
                 }
             }
         }
