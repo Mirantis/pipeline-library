@@ -660,7 +660,7 @@ def installStacklight(master) {
     sleep(5)
 
     // Configure Prometheus in Docker Swarm
-    salt.enforceState(master, 'I@docker:swarm and I@prometheus:server', 'prometheus', true, false)
+    salt.enforceState(master, 'I@docker:swarm and I@prometheus:server', 'prometheus')
 
     //Configure Remote Collector in Docker Swarm for Openstack deployments
     if (!common.checkContains('STACK_INSTALL', 'k8s')) {
