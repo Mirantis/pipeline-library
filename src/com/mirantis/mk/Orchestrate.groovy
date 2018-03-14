@@ -336,26 +336,31 @@ def installOpenstackControl(master) {
 
     // Install gnocchi server
     if (salt.testTarget(master, 'I@gnocchi:server')) {
+        salt.enforceState(master, 'I@gnocchi:server and *01*', 'gnocchi.server')
         salt.enforceState(master, 'I@gnocchi:server', 'gnocchi.server')
     }
 
     // Install gnocchi statsd
     if (salt.testTarget(master, 'I@gnocchi:statsd')) {
+        salt.enforceState(master, 'I@gnocchi:statsd and *01*', 'gnocchi.statsd')
         salt.enforceState(master, 'I@gnocchi:statsd', 'gnocchi.statsd')
     }
 
     // Install panko server
     if (salt.testTarget(master, 'I@panko:server')) {
+        salt.enforceState(master, 'I@panko:server and *01*', 'panko')
         salt.enforceState(master, 'I@panko:server', 'panko')
     }
 
     // Install ceilometer server
     if (salt.testTarget(master, 'I@ceilometer:server')) {
+        salt.enforceState(master, 'I@ceilometer:server and *01*', 'ceilometer')
         salt.enforceState(master, 'I@ceilometer:server', 'ceilometer')
     }
 
     // Install aodh server
     if (salt.testTarget(master, 'I@aodh:server')) {
+        salt.enforceState(master, 'I@aodh:server and *01*', 'aodh')
         salt.enforceState(master, 'I@aodh:server', 'aodh')
     }
 }
