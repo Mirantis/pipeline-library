@@ -300,7 +300,7 @@ def installOpenstackControl(master) {
         salt.enforceState(master, 'I@manila:scheduler', 'manila.scheduler')
     }
 
-    // Install designate service
+    // Install designate services
     if (salt.testTarget(master, 'I@designate:server:enabled')) {
         if (salt.testTarget(master, 'I@designate:server:backend:bind9')) {
             salt.enforceState(master, 'I@bind:server', 'bind.server')
@@ -309,7 +309,7 @@ def installOpenstackControl(master) {
             salt.enforceState(master, 'I@powerdns:server', 'powerdns.server')
         }
         salt.enforceState(master, 'I@designate:server and *01*', 'designate.server')
-        salt.enforceState(master, 'I@designate:server', 'designate.server')
+        salt.enforceState(master, 'I@designate:server', 'designate')
     }
 
     // Install octavia api service
