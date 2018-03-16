@@ -634,8 +634,17 @@ def installStacklight(master) {
     salt.enforceState(master, 'I@kibana:server', 'kibana.server')
     salt.enforceState(master, 'I@elasticsearch:client', 'elasticsearch.client')
     salt.enforceState(master, 'I@kibana:client', 'kibana.client')
-    salt.enforceState(master, '*01* and I@influxdb:server', 'influxdb')
-    salt.enforceState(master, 'I@influxdb:server', 'influxdb')
+
+    //Install InfluxDB
+    if (salt.testTarget(master, 'I@influxdb:server')) {
+        salt.enforceState(master, '*01* and I@influxdb:server', 'influxdb')
+        salt.enforceState(master, 'I@influxdb:server', 'influxdb')
+    }
+
+    //Install Prometheus LTS
+    if (salt.testTarget(master, 'I@prometheus:relay')) {
+        salt.enforceState(master, 'I@prometheus:relay', 'prometheus')
+    }
 
     // Install service for the log collection
     if (salt.testTarget(master, 'I@fluentd:agent')) {
