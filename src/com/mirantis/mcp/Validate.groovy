@@ -244,7 +244,8 @@ def runRallyTests(master, target, dockerImageLink, output_dir, repository, branc
         'rally task start combined_scenario.yaml ' +
         '--task-args-file /opt/devops-qa-tools/rally-scenarios/task_arguments.yaml; '
     if (repository != '' ) {
-        cmd = 'rally deployment create --fromenv --name=existing; ' +
+        cmd = 'rally db create; ' +
+            'rally deployment create --fromenv --name=existing; ' +
             'rally deployment config; '
         if (scenarios == '') {
           cmd += 'rally task start test_config/rally/scenario.yaml '
@@ -271,8 +272,11 @@ def runRallyTests(master, target, dockerImageLink, output_dir, repository, branc
     cmd += "rally task export --type junit-xml --to ${dest_folder}/report-rally.xml; " +
         "rally task report --out ${dest_folder}/report-rally.html"
     full_cmd = cmd0 + cmd
+    salt.runSaltProcessStep(master, target, 'file.touch', ["${results}/rally.db"])
+    salt.cmdRun(master, target, "chmod 666 ${results}/rally.db")
     salt.cmdRun(master, target, "docker run -i --rm --net=host -e ${env_vars} " +
         "-v ${results}:${dest_folder} " +
+        "-v ${results}/rally.db:/home/rally/.rally/rally.db " +
         "--entrypoint /bin/bash ${dockerImageLink} " +
         "-c \"${full_cmd}\" > ${results}/${output_file}")
     addFiles(master, target, results, output_dir)
