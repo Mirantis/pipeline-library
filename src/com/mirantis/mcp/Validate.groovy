@@ -155,7 +155,7 @@ def runSanityTests(salt_url, salt_credentials, test_set="", output_dir="validati
         }
     }
     def script = ". ${env.WORKSPACE}/venv/bin/activate; ${settings}" +
-                 "pytest --junitxml ${output_dir}cvp_sanity.xml -sv ${env.WORKSPACE}/cvp-sanity-checks/cvp_checks/tests/${test_set}"
+                 "pytest --junitxml ${output_dir}cvp_sanity.xml --tb=short -sv ${env.WORKSPACE}/cvp-sanity-checks/cvp_checks/tests/${test_set}"
     withEnv(["SALT_USERNAME=${username}", "SALT_PASSWORD=${password}", "SALT_URL=${salt_url}"]) {
         def statusCode = sh script:script, returnStatus:true
     }
@@ -548,7 +548,7 @@ def get_vip_node(master, target) {
  *
  * @param target          Host with cvp container
  */
-def openstack_cleanup(master, target, script_path="/home/rally/cvp-configuration/clean.sh") {
+def openstack_cleanup(master, target, script_path="/home/rally/cvp-configuration/cleanup.sh") {
     def salt = new com.mirantis.mk.Salt()
     salt.runSaltProcessStep(master, "${target}", 'cmd.run', ["docker exec cvp bash -c ${script_path}"])
 }
