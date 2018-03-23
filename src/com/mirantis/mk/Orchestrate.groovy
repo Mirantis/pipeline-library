@@ -425,9 +425,25 @@ def installOpenstackNetwork(master, physical = "false") {
 def installOpenstackCompute(master) {
     def salt = new com.mirantis.mk.Salt()
     // Configure compute nodes
-    if (salt.testTarget(master, 'I@nova:compute')) {
+    def compute_compound = 'I@nova:compute'
+    if (salt.testTarget(master, compute_compound)) {
+        // In case if infrastructure nodes are used as nova computes too
+        def gluster_compound = 'I@glusterfs:server'
+        // Enforce highstate asynchronous only on compute nodes which are not glusterfs servers
         retry(2) {
-            salt.enforceHighstateWithExclude(master, 'I@nova:compute', 'opencontrail.client')
+            salt.enforceHighstateWithExclude(master, compute_compound + ' and not ' + gluster_compound, 'opencontrail.client')
+        }
+        // Iterate through glusterfs servers and check if they have compute role
+        // TODO: switch to batch once salt 2017.7+ would be used
+        for ( target in salt.getMinionsSorted(master, gluster_compound) ) {
+            for ( cmp_target in salt.getMinionsSorted(master, compute_compound) ) {
+                if ( target == cmp_target ) {
+                    // Enforce highstate one by one on glusterfs servers which are compute nodes
+                    retry(2) {
+                        salt.enforceHighstateWithExclude(master, target, 'opencontrail.client')
+                    }
+                }
+            }
         }
     }
 }
