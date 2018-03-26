@@ -24,7 +24,7 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
   def saltOpts = "--retcode-passthrough --force-color"
   def common = new com.mirantis.mk.Common()
   def workspace = common.getWorkspace()
-  def img = docker.image("tcpcloud/salt-models-testing:${formulasRevision}")
+  def img = docker.image("tcpcloud/salt-models-testing:nightly")
   img.pull()
 
   if (!extraFormulas || extraFormulas == "") {
