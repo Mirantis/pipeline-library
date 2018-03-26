@@ -60,8 +60,14 @@ def snapshotRepo(server, repo, timestamp = null) {
     sh("curl -f -X POST -H 'Content-Type: application/json' --data '{\"Name\":\"$snapshot\"}' ${server}/api/repos/${repo}/snapshots")
 }
 
-def cleanupSnapshots(server, config='/etc/aptly-publisher.yaml', opts='-d --timeout 600') {
-    sh("aptly-publisher -c ${config} ${opts} --url ${server} cleanup")
+/**
+ * Cleanup snapshots
+ *
+ * @param server        Server host
+ * @param opts          Options: debug, timeout, ...
+ */
+def cleanupSnapshots(server, opts='-d'){
+    sh("aptly-publisher --url ${server} ${opts} cleanup")
 }
 
 def diffPublish(server, source, target, components=null, opts='--timeout 600') {
