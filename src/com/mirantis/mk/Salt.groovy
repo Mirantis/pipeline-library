@@ -682,6 +682,7 @@ def checkResult(result, failOnError = true, printResults = true, printOnlyChange
                     def nodeKey = entry.keySet()[j]
                     def node=entry[nodeKey]
                     def outputResources = []
+                    def errorResources = []
                     common.infoMsg("Node ${nodeKey} changes:")
                     if(node instanceof Map || node instanceof List){
                         for (int k=0;k<node.size();k++) {
@@ -723,27 +724,31 @@ def checkResult(result, failOnError = true, printResults = true, printOnlyChange
                             }
                             common.debugMsg("checkResult: checking resource: ${resource}")
                             if(resource instanceof String || (resource["result"] != null && !resource["result"]) || (resource["result"] instanceof String && resource["result"] == "false")){
-                                def prettyResource = common.prettify(resource)
-                                if(!disableAskOnError && env["ASK_ON_ERROR"] && env["ASK_ON_ERROR"] == "true"){
-                                    timeout(time:1, unit:'HOURS') {
-                                       input message: "False result on ${nodeKey} found, resource ${prettyResource}. \nDo you want to continue?"
-                                    }
-                                }else{
-                                    common.errorMsg(String.format("Resource: %s\n%s", resKey, prettyResource))
-                                    def errorMsg = "Salt state on node ${nodeKey} failed: ${prettyResource}."
-                                    if (failOnError) {
-                                        throw new Exception(errorMsg)
-                                    } else {
-                                        common.errorMsg(errorMsg)
-                                    }
-                                }
+                                errorResources.add(resource)
                             }
                         }
                     }else if(node!=null && node!=""){
                         outputResources.add(String.format("Resource: %s\n\u001B[36m%s\u001B[0m", nodeKey, common.prettify(node)))
                     }
                     if(printResults && !outputResources.isEmpty()){
-                        print outputResources.stream().collect(Collectors.joining("\n"))
+                        println outputResources.stream().collect(Collectors.joining("\n"))
+                    }
+                    if(!errorResources.isEmpty()){
+                        for(resource in errorResources){
+                            def prettyResource = common.prettify(resource)
+                            if (!disableAskOnError && env["ASK_ON_ERROR"] && env["ASK_ON_ERROR"] == "true") {
+                                timeout(time:1, unit:'HOURS') {
+                                   input message: "False result on ${nodeKey} found, resource ${prettyResource}. \nDo you want to continue?"
+                                }
+                            } else {
+                                def errorMsg = "Salt state on node ${nodeKey} failed. Resource: ${prettyResource}"
+                                if (failOnError) {
+                                    throw new Exception(errorMsg)
+                                } else {
+                                    common.errorMsg(errorMsg)
+                                }
+                            }
+                        }
                     }
                 }
             }
