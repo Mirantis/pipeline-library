@@ -162,6 +162,33 @@ def runSanityTests(salt_url, salt_credentials, test_set="", output_dir="validati
 }
 
 /**
+ * Execute pytest framework tests
+ *
+ * @param salt_url          Salt master url
+ * @param salt_credentials  Salt credentials
+ * @param test_set          Test set to run
+ * @param env_vars          Additional environment variables for cvp-sanity-checks
+ * @param output_dir        Directory for results
+ */
+def runTests(salt_url, salt_credentials, test_set="", output_dir="validation_artifacts/", env_vars="") {
+    def common = new com.mirantis.mk.Common()
+    def creds = common.getCredentials(salt_credentials)
+    def username = creds.username
+    def password = creds.password
+    def settings = ""
+    if ( env_vars != "" ) {
+        for (var in env_vars.tokenize(";")) {
+            settings += "export ${var}; "
+        }
+    }
+    def script = ". ${env.WORKSPACE}/venv/bin/activate; ${settings}" +
+                 "pytest --junitxml ${output_dir}report.xml --tb=short -sv ${env.WORKSPACE}/${test_set}"
+    withEnv(["SALT_USERNAME=${username}", "SALT_PASSWORD=${password}", "SALT_URL=${salt_url}"]) {
+        def statusCode = sh script:script, returnStatus:true
+    }
+}
+
+/**
  * Execute tempest tests
  *
  * @param target            Host to run tests
