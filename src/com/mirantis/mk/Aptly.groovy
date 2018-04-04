@@ -141,7 +141,11 @@ def publish(server, config='/etc/aptly-publisher.yaml', recreate=false, only_lat
  */
 def dumpPublishes(server, prefix, publishes='all', opts='-d --timeout 600') {
     sh("aptly-publisher dump --url ${server} --save-dir . --prefix ${prefix} -p '${publishes}' ${opts}")
-    archiveArtifacts artifacts: "${prefix}*"
+    if (findFiles(glob: "${prefix}*")) {
+       archiveArtifacts artifacts: "${prefix}*"
+    } else {
+       throw new Exception("Aptly dump publishes for a prefix ${prefix}* failed. No dump files found!")
+    }
 }
 
 /**
