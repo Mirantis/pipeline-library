@@ -183,11 +183,13 @@ def enforceState(saltId, target, state, output = true, failOnError = true, batch
 
     if (optional == false || testTarget(saltId, target)){
         if (retries > 0){
+            def retriesCounter = 0
             retry(retries){
+                retriesCounter++
                 // we have to reverse order in saltArgs because salt state have to be first
                 out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, saltArgs.reverse(), kwargs, -1, read_timeout)
                 // failOnError should be passed as true because we need to throw exception for retry block handler
-                checkResult(out, true, output, true, true) //disable ask on error because we are using retry here
+                checkResult(out, true, output, true, retriesCounter < retries) //disable ask on error for every interation except last one
             }
         } else {
             // we have to reverse order in saltArgs because salt state have to be first
