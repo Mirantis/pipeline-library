@@ -113,7 +113,7 @@ def promotePublish(server, source, target, recreate=false, components=null, pack
         dumpPublishes(server, timestamp, dumpTarget)
     }
 
-    sh("aptly-publisher --url ${server} promote --acquire-by-hash --source '${source}' --target '${target}' --force-overwrite ${opts}")
+    sh("aptly-publisher --url ${server} promote --source '${source}' --target '${target}' --force-overwrite ${opts}")
 
 }
 
