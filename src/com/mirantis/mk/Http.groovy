@@ -220,3 +220,138 @@ def disableHttpProxy(){
     System.getProperties().remove("http.nonProxyHosts")
     System.getProperties().remove("https.nonProxyHosts")
 }
+
+/**
+ * Make HTTP request to the specified URL
+ *
+ * @param url       URL to do HTTP request to
+ * @param method    HTTP method to execute (`GET` by default)
+ * @param credsId   Jenkins credentials ID to use for authorization
+ * @param pushData  Data to send
+ * @param pushType  MIME-type of pushData
+ * @param params    Custom HTTP-headers
+ *
+ * @return          Array containing return code and text
+ *
+ * @exception       org.jenkinsci.plugins.scriptsecurity.sandbox.RejectedAccessException
+ */
+def call(String url, String method = 'GET', String credsId = '',
+         String pushData = '', String pushType = '', Map params = [:]) {
+
+    // Connection object
+    def httpReq = new URI(url).normalize().toURL().openConnection()
+    httpReq.setRequestMethod(method)
+
+    // Timeouts
+    httpReq.setConnectTimeout(10*1000) // milliseconds
+    httpReq.setReadTimeout(600*1000)   // milliseconds
+
+    // Add authentication data
+    if (credsId) {
+        String authHeader = ''
+        def cred = com.cloudbees.plugins.credentials.CredentialsProvider.lookupCredentials(
+            com.cloudbees.plugins.credentials.impl.BaseStandardCredentials.class,
+            jenkins.model.Jenkins.instance).findAll {it.id == credsId}[0]
+        if (cred.class == com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl.class) {
+            authHeader = 'Basic ' + "${cred.getUsername()}:${cred.getPassword()}".getBytes('UTF-8').encodeBase64().toString()
+        } else if (cred.class == org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl.class) {
+            authHeader = 'Bearer ' + cred.getSecret()
+            //params << ['X-JFrog-Art-Api': cred.getSecret()]
+        }
+        params << ['Authorization': authHeader]
+    }
+
+    // Add custom headers if any
+    for (param in params) {
+        httpReq.setRequestProperty(param.key, param.value.toString())
+    }
+
+    // Do request
+    try {
+        if (pushData) {
+            httpReq.setRequestProperty('Content-Type', pushType ?: 'application/x-www-form-urlencoded')
+            if (method == 'GET') { // override incorrect method if pushData is passed
+                httpReq.setRequestMethod('POST')
+            }
+            httpReq.setDoOutput(true)
+            httpReq.getOutputStream().write(pushData.getBytes('UTF-8'))
+        } else {
+            httpReq.connect()
+        }
+    } catch (org.jenkinsci.plugins.scriptsecurity.sandbox.RejectedAccessException e) {
+        throw e // show sandbox errors
+    } catch (Exception e) {
+        echo "Cauhgt '${e.class.name}' error: ${e.getMessage()}"
+        return [ -1, e.getMessage() ]
+    }
+
+    // Handle return data
+    int respCode = httpReq.getResponseCode()
+    String respText = ''
+    if (respCode >= 400) {
+        respText = httpReq.getErrorStream().getText() ?: httpReq.getResponseMessage()
+    } else {
+        respText = httpReq.getInputStream().getText()
+    }
+
+    // Return result as a tuple of response code and text
+    return [respCode, respText]
+}
+
+/**
+ * Make HTTP GET request to the specified URL
+ *
+ * @param url       URL to do HTTP request to
+ * @param credsId   Jenkins credentials ID to use for authorization
+ * @param params    Custom HTTP-headers
+ *
+ * @return          Array containing return code and text
+ */
+def get(String url, String credsId = '', Map params = [:]) {
+    return Call(url, 'GET', credsId, null, null, params)
+}
+
+/**
+ * Make HTTP POST request to the specified URL
+ *
+ * @param url       URL to do HTTP request to
+ * @param credsId   Jenkins credentials ID to use for authorization
+ * @param pushData  Data to send
+ * @param pushType  MIME-type of pushData
+ * @param params    Custom HTTP-headers
+ *
+ * @return          Array containing return code and text
+ */
+def post(String url, String credsId = '',
+         String pushData = '', String pushType = '', Map params = [:]) {
+    return Call(url, 'POST', credsId, pushData, pushType, params)
+}
+
+/**
+ * Make HTTP PUT request to the specified URL
+ *
+ * @param url       URL to do HTTP request to
+ * @param credsId   Jenkins credentials ID to use for authorization
+ * @param pushData  Data to send
+ * @param pushType  MIME-type of pushData
+ * @param params    Custom HTTP-headers
+ *
+ * @return          Array containing return code and text
+ */
+def put(String url, String credsId = '',
+        String pushData = '', String pushType = '', Map params = [:]) {
+    return Call(url, 'PUT', credsId, pushData, pushType, params)
+}
+
+/**
+ * Make HTTP DELETE request to the specified URL
+ *
+ * @param url       URL to do HTTP request to
+ * @param credsId   Jenkins credentials ID to use for authorization
+ * @param params    Custom HTTP-headers
+ *
+ * @return          Array containing return code and text
+ */
+def delete(String url, String credsId = '', Map params = [:]) {
+    return Call(url, 'DELETE', credsId, null, null, params)
+}
