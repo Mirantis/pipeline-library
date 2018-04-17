@@ -308,7 +308,7 @@ def call(String url, String method = 'GET', String credsId = '',
  * @return          Array containing return code and text
  */
 def get(String url, String credsId = '', Map params = [:]) {
-    return call(url, 'GET', credsId, null, null, params)
+    return Call(url, 'GET', credsId, null, null, params)
 }
 
 /**
@@ -324,7 +324,7 @@ def get(String url, String credsId = '', Map params = [:]) {
  */
 def post(String url, String credsId = '',
          String pushData = '', String pushType = '', Map params = [:]) {
-    return call(url, 'POST', credsId, pushData, pushType, params)
+    return Call(url, 'POST', credsId, pushData, pushType, params)
 }
 
 /**
@@ -340,7 +340,7 @@ def post(String url, String credsId = '',
  */
 def put(String url, String credsId = '',
         String pushData = '', String pushType = '', Map params = [:]) {
-    return call(url, 'PUT', credsId, pushData, pushType, params)
+    return Call(url, 'PUT', credsId, pushData, pushType, params)
 }
 
 /**
@@ -353,5 +353,5 @@ def put(String url, String credsId = '',
  * @return          Array containing return code and text
  */
 def delete(String url, String credsId = '', Map params = [:]) {
-    return call(url, 'DELETE', credsId, null, null, params)
+    return Call(url, 'DELETE', credsId, null, null, params)
 }
