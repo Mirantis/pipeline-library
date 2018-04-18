@@ -205,6 +205,32 @@ def getSnapshotByAPI(server, distribution, prefix, component) {
 }
 
 /**
+ * Returns list of the packages from specified Aptly repo  by REST API
+ *
+ * @param server            URI of the server insluding port and protocol
+ * @param repo              Local repo name
+ **/
+def listPackagesFromRepoByAPI(server, repo){
+    http = new com.mirantis.mk.Http()
+    def packageList = http.restGet(server, "/api/repos/${repo}/packages")
+    return packageList
+}
+
+/**
+ * Deletes packages from specified Aptly repo by REST API
+ *
+ * @param server            URI of the server insluding port and protocol
+ * @param repo              Local repo name
+ * @param packageRefs       Package list specified by packageRefs
+ **/
+def deletePackagesFromRepoByAPI(server, repo, packageRefs){
+    http = new com.mirantis.mk.Http()
+    def data  = [:]
+    data['PackageRefs'] = packageRefs
+    http.restDelete(server, "/api/repos/${repo}/packages", data)
+}
+
+/**
  * Returns list of the packages matched to pattern and
  * belonged to particular snapshot by REST API
  *
@@ -247,7 +273,7 @@ def snapshotCreateByAPI(server, repo, snapshotName, snapshotDescription = null, 
         data['PackageRefs'] = packageRefs
         http.restPost(server, '/api/snapshots', data)
     } else {
-        http.restPost(server + "/api/repos/${repo}/snapshots", data)
+        http.restPost(server, "/api/repos/${repo}/snapshots", data)
     }
 }
 
