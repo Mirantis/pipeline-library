@@ -356,16 +356,8 @@ def installOpenstackControl(master) {
 
     // Install ceilometer server
     if (salt.testTarget(master, 'I@ceilometer:server')) {
-        common.retry(3,5){
-            salt.enforceState(master, 'I@ceilometer:server and *01*', 'ceilometer')
-            salt.runSaltProcessStep(master, 'I@ceilometer:server and *01*', 'service.restart', ['apache2'])
-            sleep(30)
-        }
-        common.retry(3,5){
-            salt.enforceState(master, 'I@ceilometer:server and not *01*', 'ceilometer')
-            salt.runSaltProcessStep(master, 'I@ceilometer:server and not *01*', 'service.restart', ['apache2'])
-            sleep(30)
-        }
+        salt.enforceState(master, 'I@ceilometer:server and *01*', 'ceilometer')
+        salt.enforceState(master, 'I@ceilometer:server', 'ceilometer')
     }
 
     // Install aodh server
