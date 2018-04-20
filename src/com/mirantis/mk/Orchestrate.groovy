@@ -30,8 +30,12 @@ def installFoundationInfra(master, staticMgmtNet=false) {
     salt.enforceState(master, 'I@salt:master', ['salt.minion'])
     salt.fullRefresh(master, "*")
     salt.enforceState(master, '*', ['linux.network.proxy'], true, false, null, false, 60, 2)
-    salt.enforceState(master, '*', ['salt.minion'], true, false, null, false, 60, 2)
-    sleep(5)
+    try {
+        salt.enforceState(master, '*', ['salt.minion.base'], true, false, null, false, 60, 2)
+        sleep(5)
+    } catch (Throwable e) {
+        common.warningMsg('Salt state salt.minion.base is not present in the Salt-formula yet.')
+    }
     salt.enforceState(master, '*', ['linux.system'])
     if (staticMgmtNet) {
         salt.runSaltProcessStep(master, '*', 'cmd.shell', ["salt-call state.sls linux.network; salt-call service.restart salt-minion"], null, true, 60)
@@ -49,8 +53,12 @@ def installFoundationInfraOnTarget(master, target, staticMgmtNet=false) {
     salt.enforceState(master, 'I@salt:master', ['reclass'], true, false, null, false, 120, 2)
     salt.fullRefresh(master, target)
     salt.enforceState(master, target, ['linux.network.proxy'], true, false, null, false, 60, 2)
-    salt.enforceState(master, target, ['salt.minion'], true, false, null, false, 60, 2)
-    sleep(5)
+    try {
+        salt.enforceState(master, target, ['salt.minion.base'], true, false, null, false, 60, 2)
+        sleep(5)
+    } catch (Throwable e) {
+        common.warningMsg('Salt state salt.minion.base is not present in the Salt-formula yet.')
+    }
     salt.enforceState(master, target, ['linux.system'])
     if (staticMgmtNet) {
         salt.runSaltProcessStep(master, target, 'cmd.shell', ["salt-call state.sls linux.network; salt-call service.restart salt-minion"], null, true, 60)
