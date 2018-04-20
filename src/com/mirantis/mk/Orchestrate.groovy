@@ -265,11 +265,6 @@ def installOpenstackControl(master) {
         }
     }
 
-    // Create neutron resources
-    if (salt.testTarget(master, 'I@neutron:client')) {
-        salt.enforceState(master, 'I@neutron:client', 'neutron.client')
-    }
-
     // Install heat service
     if (salt.testTarget(master, 'I@heat:server')) {
         // run on first node first
@@ -409,6 +404,20 @@ def installManilaShare(master){
 
 def installOpenstackNetwork(master, physical = "false") {
     def salt = new com.mirantis.mk.Salt()
+    //run full neutron state on neutron.gateway - this will install
+    //neutron agents in addition to neutron server. Once neutron agents
+    //are up neutron resources can be created without hitting the situation when neutron resources are created
+    //prior to neutron agents which results in creating ports in non-usable state
+    if (salt.testTarget(master, 'I@neutron:gateway')) {
+            salt.enforceState(master, 'I@neutron:gateway', 'neutron')
+    }
+
+    // Create neutron resources - this step was moved here to ensure that
+    //neutron resources are created after neutron agens are up. In this case neutron ports will be in
+    //usable state. More information: https://bugs.launchpad.net/neutron/+bug/1399249
+    if (salt.testTarget(master, 'I@neutron:client')) {
+        salt.enforceState(master, 'I@neutron:client', 'neutron.client')
+    }
 
     salt.enforceHighstate(master, 'I@neutron:gateway')
 
