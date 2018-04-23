@@ -50,6 +50,7 @@ def installFoundationInfra(master, staticMgmtNet=false) {
 
 def installFoundationInfraOnTarget(master, target, staticMgmtNet=false) {
     def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
 
     salt.enforceState(master, 'I@salt:master', ['reclass'], true, false, null, false, 120, 2)
     salt.fullRefresh(master, target)
