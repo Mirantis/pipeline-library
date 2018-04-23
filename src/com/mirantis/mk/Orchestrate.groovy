@@ -16,6 +16,7 @@ def validateFoundationInfra(master) {
 
 def installFoundationInfra(master, staticMgmtNet=false) {
     def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
 
     // NOTE(vsaienko) Apply reclass first, it may update cluster model
     // apply linux and salt.master salt.minion states afterwards to make sure
