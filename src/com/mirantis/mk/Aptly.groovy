@@ -144,7 +144,8 @@ def dumpPublishes(server, prefix, publishes='all', opts='-d --timeout 600') {
     if (findFiles(glob: "${prefix}*")) {
        archiveArtifacts artifacts: "${prefix}*"
     } else {
-       throw new Exception("Aptly dump publishes for a prefix ${prefix}* failed. No dump files found!")
+       def common = new com.mirantis.mk.Common()
+       common.warningMsg("Aptly dump publishes for a prefix ${prefix}* failed. No dump files found! This can be OK in case of your creating new publish")
     }
 }
 
