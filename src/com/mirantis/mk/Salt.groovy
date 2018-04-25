@@ -575,11 +575,21 @@ def getKvmMinionId(saltId) {
  * @param name Name of the VM (for ex. ctl01)
  * @return Salt minion ID of KVM node hosting 'name' VM
  */
-def getNodeProvider(saltId, name) {
-    def kvm = getKvmMinionId(saltId)
-    return getReturnValues(getPillar(saltId, "${kvm}", "salt:control:cluster:internal:node:${name}:provider"))
+def getNodeProvider(saltId, nodeName) {
+    def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+    def kvms = salt.getMinions(saltId, 'I@salt:control')
+    for (kvm in kvms) {
+        try {
+            vms = salt.getReturnValues(salt.runSaltProcessStep(saltId, kvm, 'virt.list_domains', [], null, true))
+            if (vms.toString().contains(nodeName)) {
+                return kvm
+            }
+        } catch (Exception er) {
+            common.infoMsg("${nodeName} not present on ${kvm}")
+        }
+    }
 }
-
 
 /**
  * Test if there are any minions to target

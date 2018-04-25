@@ -54,17 +54,17 @@ def liveSnapshotAbsent(master, nodeProvider, target, snapshotName, path='/var/li
     try {
         salt.cmdRun(master, "${nodeProvider}*", "virsh snapshot-delete ${target}.${domain} --metadata ${snapshotName}")
     } catch (Exception e) {
-        common.warningMsg('Snapshot ${snapshotName} for ${target}.${domain} does not exist or failed to be removed')
+        common.warningMsg("Snapshot ${snapshotName} for ${target}.${domain} does not exist or failed to be removed")
     }
     try {
         salt.runSaltProcessStep(master, "${nodeProvider}*", 'file.remove', ["${path}/${target}.${domain}.${snapshotName}.qcow2"], null, true)
     } catch (Exception e) {
-        common.warningMsg('Snapshot ${snapshotName} qcow2 file for ${target}.${domain} does not exist or failed to be removed')
+        common.warningMsg("Snapshot ${snapshotName} qcow2 file for ${target}.${domain} does not exist or failed to be removed")
     }
     try {
         salt.runSaltProcessStep(master, "${nodeProvider}*", 'file.remove', ["${path}/${target}.${domain}.xml"], null, true)
     } catch (Exception e) {
-        common.warningMsg('Dumpxml file for ${target}.${domain} does not exist or failed to be removed')
+        common.warningMsg("Dumpxml file for ${target}.${domain} does not exist or failed to be removed")
     }
 }
 
@@ -87,7 +87,7 @@ def liveSnapshotRollback(master, nodeProvider, target, snapshotName, path='/var/
         liveSnapshotAbsent(master, nodeProvider, target, snapshotName, path)
         salt.runSaltProcessStep(master, "${nodeProvider}*", 'virt.start', ["${target}.${domain}"], null, true)
     } catch (Exception er) {
-        common.infoMsg('No rollback for ${target}.${domain} was executed. Dumpxml file not present.')
+        common.infoMsg("No rollback for ${target}.${domain} was executed. Dumpxml file not present.")
     }
 }
 
@@ -109,17 +109,17 @@ def liveSnapshotMerge(master, nodeProvider, target, snapshotName, path='/var/lib
         try {
             salt.cmdRun(master, "${nodeProvider}*", "virsh snapshot-delete ${target}.${domain} --metadata ${snapshotName}")
         } catch (Exception e) {
-            common.warningMsg('Snapshot ${snapshotName} for ${target}.${domain} does not exist or failed to be removed')
+            common.warningMsg("Snapshot ${snapshotName} for ${target}.${domain} does not exist or failed to be removed")
         }
         try {
             salt.runSaltProcessStep(master, "${nodeProvider}*", 'file.remove', ["${path}/${target}.${domain}.${snapshotName}.qcow2"], null, true)
         } catch (Exception e) {
-            common.warningMsg('Snapshot ${snapshotName} qcow2 file for ${target}.${domain} does not exist or failed to be removed')
+            common.warningMsg("Snapshot ${snapshotName} qcow2 file for ${target}.${domain} does not exist or failed to be removed")
         }
         try {
             salt.runSaltProcessStep(master, "${nodeProvider}*", 'file.remove', ["${path}/${target}.${domain}.xml"], null, true)
         } catch (Exception e) {
-            common.warningMsg('Dumpxml file for ${target}.${domain} does not exist or failed to be removed')
+            common.warningMsg("Dumpxml file for ${target}.${domain} does not exist or failed to be removed")
         }
     } catch (Exception e) {
         common.errorMsg("The live snapshoted VM ${target}.${domain} failed to be merged, trying to fix it")
