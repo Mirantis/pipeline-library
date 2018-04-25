@@ -437,9 +437,22 @@ def installOpenstackCompute(master) {
     if (salt.testTarget(master, compute_compound)) {
         // In case if infrastructure nodes are used as nova computes too
         def gluster_compound = 'I@glusterfs:server'
-        // Enforce highstate asynchronous only on compute nodes which are not glusterfs servers
+        def salt_ca_compound = 'I@salt:minion:ca:salt_master_ca'
+        // Enforce highstate asynchronous only on compute nodes which are not glusterfs and not salt ca servers
         retry(2) {
-            salt.enforceHighstateWithExclude(master, compute_compound + ' and not ' + gluster_compound, 'opencontrail.client')
+            salt.enforceHighstateWithExclude(master, compute_compound + ' and not ' + gluster_compound + ' and not ' + salt_ca_compound, 'opencontrail.client')
+        }
+        // Iterate through salt ca servers and check if they have compute role
+        // TODO: switch to batch once salt 2017.7+ would be used
+        for ( target in salt.getMinionsSorted(master, salt_ca_compound) ) {
+            for ( cmp_target in salt.getMinionsSorted(master, compute_compound) ) {
+                if ( target == cmp_target ) {
+                    // Enforce highstate one by one on salt ca servers which are compute nodes
+                    retry(2) {
+                        salt.enforceHighstateWithExclude(master, target, 'opencontrail.client')
+                    }
+                }
+            }
         }
         // Iterate through glusterfs servers and check if they have compute role
         // TODO: switch to batch once salt 2017.7+ would be used
