@@ -47,6 +47,11 @@ def installFoundationInfra(master, staticMgmtNet=false) {
     sleep(5)
     salt.runSaltProcessStep(master, '*', 'mine.update', [], null, true)
     salt.enforceState(master, '*', ['linux.network.host'])
+
+    // Install and configure iptables
+    if (salt.testTarget(master, 'I@iptables:service')) {
+        salt.enforceState(master, 'I@iptables:service', 'iptables')
+    }
 }
 
 def installFoundationInfraOnTarget(master, target, staticMgmtNet=false) {
