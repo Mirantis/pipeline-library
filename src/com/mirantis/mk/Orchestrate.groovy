@@ -81,17 +81,59 @@ def installFoundationInfraOnTarget(master, target, staticMgmtNet=false) {
 }
 
 def installInfraKvm(master) {
+    def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
     salt.fullRefresh(master, 'I@linux:system')
+    def infra_conpund = 'I@salt:control'
+    def minions = []
+    def wait_timeout = 10
+    def retries = wait_timeout * 30
 
     salt.enforceState(master, 'I@salt:control', ['salt.minion'], true, false, null, false, 60, 2)
     salt.enforceState(master, 'I@salt:control', ['linux.system', 'linux.network', 'ntp', 'rsyslog'])
     salt.enforceState(master, 'I@salt:control', 'libvirt')
     salt.enforceState(master, 'I@salt:control', 'salt.control')
 
-    sleep(600)
+    timeout(wait_timeout) {
+        common.infoMsg("Waiting for minions to come up...")
+        if (salt.testTarget(master, infra_conpund)) {
+            // Gathering minions
+            for ( infra_node in salt.getMinionsSorted(master, infra_conpund) ) {
+                def pillar = salt.getPillar(master, infra_node, 'salt:control:cluster')
+                if ( !pillar['return'].isEmpty() ) {
+                    for ( cluster in pillar['return'][0].values() ) {
+                        def engine = cluster.values()[0]['engine']
+                        def domain = cluster.values()[0]['domain']
+                        def node = cluster.values()[0]['node']
+                        if ( engine == "virt" ) {
+                            def nodes = node.values()
+                            if ( !nodes.isEmpty() ) {
+                                for ( vm in nodes ) {
+                                    if ( vm['name'] != null ) {
+                                        def vm_fqdn = vm['name'] + '.' + domain
+                                        if ( !minions.contains(vm_fqdn) ) {
+                                            minions.add(vm_fqdn)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
+        def minions_compound = minions.join(' or ')
+        common.infoMsg('Waiting for next minions to register: ' + minions_compound,)
+        salt.minionsPresentFromList(master, 'I@salt:master', minions, true, null, true, retries, 1)
+        common.infoMsg('Waiting for minions to respond')
+        salt.minionsReachable(master, 'I@salt:master', minions_compound )
+
+    }
+
+    common.infoMsg("All minions are up.")
     salt.fullRefresh(master, '* and not kvm*')
+
 }
 
 def installInfra(master) {

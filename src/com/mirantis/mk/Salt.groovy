@@ -264,6 +264,7 @@ def cmdRun(saltId, target, cmd, checkResponse = true, batch=null, output = true,
 def minionPresent(saltId, target, minion_name, waitUntilPresent = true, batch=null, output = true, maxRetries = 200, answers = 1) {
     minion_name = minion_name.replace("*", "")
     def common = new com.mirantis.mk.Common()
+    common.infoMsg("Looking for minion: " + minion_name)
     def cmd = 'salt-key | grep ' + minion_name
     if (waitUntilPresent){
         def count = 0
@@ -296,8 +297,8 @@ def minionPresent(saltId, target, minion_name, waitUntilPresent = true, batch=nu
 }
 
 /**
- * Checks if salt minion is in a list of salt master's accepted keys
- * @usage minionPresent(saltId, 'I@salt:master', 'I@salt:minion', true, null, true, 200, 3)
+ * Checks if salt minions are in a list of salt master's accepted keys by matching compound
+ * @usage minionsPresent(saltId, 'I@salt:master', 'I@salt:minion', true, null, true, 200, 3)
  * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Performs tests on this target node
  * @param target_minions all targeted minions to test (for ex. I@salt:minion)
@@ -309,10 +310,31 @@ def minionPresent(saltId, target, minion_name, waitUntilPresent = true, batch=nu
  * @return output of salt command
  */
 def minionsPresent(saltId, target = 'I@salt:master', target_minions = '', waitUntilPresent = true, batch=null, output = true, maxRetries = 200, answers = 1) {
-    def target_hosts = getMinionsSorted(pepperEnv, target_minions)
+    def target_hosts = getMinionsSorted(saltId, target_minions)
     for (t in target_hosts) {
-        def tgt = salt.stripDomainName(t)
-        salt.minionPresent(pepperEnv, target, tgt, waitUntilPresent, batch, output, maxRetries, answers)
+        def tgt = stripDomainName(t)
+        minionPresent(saltId, target, tgt, waitUntilPresent, batch, output, maxRetries, answers)
+    }
+}
+
+/**
+ * Checks if salt minions are in a list of salt master's accepted keys by matching a list
+ * @usage minionsPresentFromList(saltId, 'I@salt:master', ["cfg01.example.com", "bmk01.example.com"], true, null, true, 200, 3)
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
+ * @param target Performs tests on this target node
+ * @param target_minions list to test (for ex. ["cfg01.example.com", "bmk01.example.com"])
+ * @param waitUntilPresent return after the minion becomes present (default true)
+ * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
+ * @param output print salt command (default true)
+ * @param maxRetries finite number of iterations to check status of a command (default 200)
+ * @param answers how many minions should return (optional, default 1)
+ * @return output of salt command
+ */
+def minionsPresentFromList(saltId, target = 'I@salt:master', target_minions = [], waitUntilPresent = true, batch=null, output = true, maxRetries = 200, answers = 1) {
+    def common = new com.mirantis.mk.Common()
+    for (tgt in target_minions) {
+        common.infoMsg("Checking if minion " + tgt + " is present")
+        minionPresent(saltId, target, tgt, waitUntilPresent, batch, output, maxRetries, answers)
     }
 }
 
