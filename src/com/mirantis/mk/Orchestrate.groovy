@@ -503,8 +503,11 @@ def installOpenstackCompute(master) {
         def gluster_compound = 'I@glusterfs:server'
         def salt_ca_compound = 'I@salt:minion:ca:salt_master_ca'
         // Enforce highstate asynchronous only on compute nodes which are not glusterfs and not salt ca servers
-        retry(2) {
-            salt.enforceHighstateWithExclude(master, compute_compound + ' and not ' + gluster_compound + ' and not ' + salt_ca_compound, 'opencontrail.client')
+        def hightstateTarget = "${compute_compound} and not ${gluster_compound} and not ${salt_ca_compound}"
+        if (salt.testTarget(master, hightstateTarget)) {
+            retry(2) {
+                salt.enforceHighstateWithExclude(master, hightstateTarget, 'opencontrail.client')
+            }
         }
         // Iterate through salt ca servers and check if they have compute role
         // TODO: switch to batch once salt 2017.7+ would be used
