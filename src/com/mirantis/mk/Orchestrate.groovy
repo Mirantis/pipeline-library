@@ -52,6 +52,11 @@ def installFoundationInfra(master, staticMgmtNet=false) {
     if (salt.testTarget(master, 'I@iptables:service')) {
         salt.enforceState(master, 'I@iptables:service', 'iptables')
     }
+
+    // Install and configure logrotate
+    if (salt.testTarget(master, 'I@logrotate:server')) {
+        salt.enforceState(master, 'I@logrotate:server', 'logrotate')
+    }
 }
 
 def installFoundationInfraOnTarget(master, target, staticMgmtNet=false) {
