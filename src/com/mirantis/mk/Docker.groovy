@@ -35,7 +35,7 @@ def buildDockerImage(img, baseImg, dockerFile, timestamp, params=[]) {
 /**
  * Build step to build docker image.
  *
- * @param dockerHubImg     Name of image on dockerhub (ie: tcpcloud/salt-models-testing)
+ * @param dockerHubImg     Name of image on dockerhub (ie: mirantis/salt-models-testing)
  * @param defaultImg       Image to use if dockerHubImg is not found
  * @return img             Docker image
  */
