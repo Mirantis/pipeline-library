@@ -51,15 +51,14 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
                 done""")
         sh("""timeout ${testTimeout} bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && configure_salt_master && configure_salt_minion && install_salt_formula_pkg'
               bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && saltservice_restart'""")
-
         sh("timeout ${testTimeout} bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && saltmaster_init'")
 
-        if (!legacyTestingMode) {
+        if (!legacyTestingMode.toBoolean()) {
            sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && verify_salt_minions'")
         }
     }
 
-    if (legacyTestingMode) {
+    if (legacyTestingMode.toBoolean()) {
       common.infoMsg("Running legacy mode test for master hostname ${masterName}")
       def nodes = sh script: "find /srv/salt/reclass/nodes -name '*.yml' | grep -v 'cfg*.yml'", returnStdout: true
       for (minion in nodes.tokenize()) {
