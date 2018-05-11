@@ -42,6 +42,7 @@ def installFoundationInfra(master, staticMgmtNet=false) {
         salt.runSaltProcessStep(master, '*', 'cmd.shell', ["salt-call state.sls linux.network; salt-call service.restart salt-minion"], null, true, 60)
     }
     salt.enforceState(master, 'I@linux:network:interface', ['linux.network.interface'])
+    sleep(5)
     salt.enforceState(master, 'I@linux:system', ['linux', 'openssh', 'ntp', 'rsyslog'])
     salt.enforceState(master, '*', ['salt.minion'], true, false, null, false, 60, 2)
     sleep(5)
@@ -79,6 +80,7 @@ def installFoundationInfraOnTarget(master, target, staticMgmtNet=false) {
     salt.enforceState(master, target, ['salt.minion'], true, false, null, false, 60, 2)
     salt.enforceState(master, target, ['salt.minion'])
     salt.enforceState(master, target, ['linux.network.interface'])
+    sleep(5)
     salt.enforceState(master, target, ['linux', 'openssh', 'ntp', 'rsyslog'])
     sleep(5)
     salt.runSaltProcessStep(master, target, 'mine.update', [], null, true)
