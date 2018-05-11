@@ -42,7 +42,7 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
             "RECLASS_VERSION=${reclassVersion}", "RECLASS_IGNORE_CLASS_NOTFOUND=${ignoreClassNotfound}", "APT_REPOSITORY=${aptRepoUrl}",
             "APT_REPOSITORY_GPG=${aptRepoGPG}"]){
         sh("git clone https://github.com/salt-formulas/salt-formulas-scripts /srv/salt/scripts")
-        sh("""rsync -avh ${testDir}/* /srv/salt/reclass && echo '127.0.1.2  salt' >> /etc/hosts
+        sh("""rsync -ah ${testDir}/* /srv/salt/reclass && echo '127.0.1.2  salt' >> /etc/hosts
               cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt-mk.mirantis.com/apt.mirantis.net:8085/g' {} \\;
               cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt.mirantis.com/apt.mirantis.net:8085/g' {} \\;""")
         sh("""for s in \$(python -c \"import site; print(' '.join(site.getsitepackages()))\"); do
