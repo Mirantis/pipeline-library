@@ -123,14 +123,14 @@ def waitForStatus(venv_path, env_vars, stack_name, state, state_failed = ['ROLLB
 
                 // check for desired state
                 if (stack_info['StackStatus'] == state) {
-                    common.successMsg("Stack ${stack_name} in in state ${state}")
+                    common.successMsg("Stack ${stack_name} is in state ${state}")
                     common.prettyPrint(stack_info)
                     break
                 }
 
                 // check for failed state
                 if (state_failed.contains(stack_info['StackStatus'])) {
-                    throw new Exception("Stack ${stack_name} in in failed state")
+                    throw new Exception("Stack ${stack_name} is in failed state")
                 }
 
                 // print stack resources
