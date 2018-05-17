@@ -1064,15 +1064,17 @@ def connectCeph(master) {
     // connect Ceph to the env
     if (salt.testTarget(master, 'I@ceph:common and I@glance:server')) {
         salt.enforceState(master, 'I@ceph:common and I@glance:server', ['ceph.common', 'ceph.setup.keyring', 'glance'])
-        salt.runSaltProcessStep(master, 'I@ceph:common and I@glance:server', 'service.restart', ['glance-api', 'glance-glare', 'glance-registry'])
+        salt.runSaltProcessStep(master, 'I@ceph:common and I@glance:server', 'service.restart', ['glance-api'])
     }
     if (salt.testTarget(master, 'I@ceph:common and I@cinder:controller')) {
         salt.enforceState(master, 'I@ceph:common and I@cinder:controller', ['ceph.common', 'ceph.setup.keyring', 'cinder'])
+        salt.runSaltProcessStep(master, 'I@ceph:common and I@cinder:controller', 'service.restart', ['cinder-volume'])
     }
     if (salt.testTarget(master, 'I@ceph:common and I@nova:compute')) {
         salt.enforceState(master, 'I@ceph:common and I@nova:compute', ['ceph.common', 'ceph.setup.keyring'])
         salt.runSaltProcessStep(master, 'I@ceph:common and I@nova:compute', 'saltutil.sync_grains')
         salt.enforceState(master, 'I@ceph:common and I@nova:compute', ['nova'])
+        salt.runSaltProcessStep(master, 'I@ceph:common and I@nova:compute', 'service.restart', ['nova-compute'])
     }
 }
 
