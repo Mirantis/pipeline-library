@@ -30,9 +30,9 @@ def sendPostRequest(String urlString, String paramString){
  * @param channel param, default is '#mk-ci'
  * @param credentialsId slack hook url credential, default is 'SLACK_WEBHOOK_URL'
  */
-def jobResultNotification(String buildStatusParam, String jobName=null,
+def jobResultNotification(String buildStatusParam, String channel = "#mk-ci",
+                          String jobName=null,
                           Number buildNumber=null, String buildUrl=null,
-                          String channel = "#mk-ci",
                           String credentialsId="SLACK_WEBHOOK_URL") {
     def jobNameParam = jobName != null && jobName != "" ? jobName : env.JOB_NAME
     def buildUrlParam = buildUrl != null && buildUrl != "" ? buildUrl : env.BUILD_URL
@@ -68,9 +68,9 @@ def jobResultNotification(String buildStatusParam, String jobName=null,
 node {
     jobResultNotification(
             "success",
+            "#test_reclass_notify",
             "test-reclass-system",
             44,
-            "https://ci.mcp.mirantis.net/",
-            "#test_reclass_notify")
+            "https://ci.mcp.mirantis.net/",)
 }
 */
