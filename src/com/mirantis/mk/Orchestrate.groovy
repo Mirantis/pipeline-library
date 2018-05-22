@@ -613,6 +613,9 @@ def installKubernetesControl(master) {
         salt.enforceState(master, 'I@kubernetes:master and *01*', 'etcd.server.setup')
     }
 
+    // Run k8s master at *01* to simplify namespaces creation
+    salt.enforceStateWithExclude(master, 'I@kubernetes:master and *01*', "kubernetes.master", "kubernetes.master.setup")
+
     // Run k8s without master.setup
     salt.enforceStateWithExclude(master, 'I@kubernetes:master', "kubernetes", "kubernetes.master.setup")
 
