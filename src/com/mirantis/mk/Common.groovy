@@ -513,3 +513,29 @@ def retry(int times = 5, int delay = 0, Closure body) {
     currentBuild.result = "FAILURE"
     throw new Exception("Failed after $times retries")
 }
+
+
+/**
+ * Wait for user input with timeout
+ *
+ * @param timeoutInSeconds Timeout
+ * @param options Options for input widget
+ */
+def waitForInputThenPass(timeoutInSeconds, options=[message: 'Ready to go?']) {
+  def userInput = true
+  try {
+    timeout(time: timeoutInSeconds, unit: 'SECONDS') {
+      userInput = input options
+    }
+  } catch(err) { // timeout reached or input false
+    def user = err.getCauses()[0].getUser()
+    if('SYSTEM' == user.toString()) { // SYSTEM means timeout.
+      println("Timeout, proceeding")
+    } else {
+      userInput = false
+      println("Aborted by: [${user}]")
+      throw err
+    }
+  }
+  return userInput
+}
