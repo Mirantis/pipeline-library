@@ -671,14 +671,69 @@ def installDockerSwarm(master) {
 
 def installCicd(master) {
     def salt = new com.mirantis.mk.Salt()
-    salt.fullRefresh(master, 'I@jenkins:client or I@gerrit:client')
+    def common = new com.mirantis.mk.Common()
+    def gerrit_compound = 'I@gerrit:client and ci*'
+    def jenkins_compound = 'I@jenkins:client and ci*'
+
+    salt.fullRefresh(master, gerrit_compound)
+    salt.fullRefresh(master, jenkins_compound)
 
     if (salt.testTarget(master, 'I@aptly:publisher')) {
         salt.enforceState(master, 'I@aptly:publisher', 'aptly.publisher',true, null, false, -1, 2)
     }
 
     salt.enforceState(master, 'I@docker:swarm:role:master and I@jenkins:client', 'docker.client', true, true, null, false, -1, 2)
-    sleep(500)
+
+    // API timeout in minutes
+    def wait_timeout = 10
+
+    // Gerrit
+    def gerrit_master_url = salt.getPillar(master, gerrit_compound, '_param:gerrit_master_url')
+
+    if(!gerrit_master_url['return'].isEmpty()) {
+      gerrit_master_url = gerrit_master_url['return'][0].values()[0]
+    } else {
+      gerrit_master_url = ''
+    }
+
+    if (gerrit_master_url != '') {
+      common.infoMsg('Gerrit master url "' + gerrit_master_url + '" retrieved at _param:gerrit_master_url')
+    } else {
+
+      common.infoMsg('Gerrit master url could not be retrieved at _param:gerrit_master_url. Falling back to gerrit pillar')
+
+      def gerrit_host
+      def gerrit_http_port
+      def gerrit_http_scheme
+
+      def host_pillar = salt.getPillar(master, gerrit_compound, 'gerrit:client:server:host')
+      gerrit_host = salt.getReturnValues(host_pillar)
+
+      def port_pillar = salt.getPillar(master, gerrit_compound, 'gerrit:client:server:http_port')
+      gerrit_http_port = salt.getReturnValues(port_pillar)
+
+      def scheme_pillar = salt.getPillar(master, gerrit_compound, 'gerrit:client:server:protocol')
+      gerrit_http_scheme = salt.getReturnValues(scheme_pillar)
+
+      gerrit_master_url = gerrit_http_scheme + '://' + gerrit_host + ':' + gerrit_http_port
+
+    }
+
+    timeout(wait_timeout) {
+      common.infoMsg('Waiting for Gerrit to come up..')
+      def check_gerrit_cmd = 'while [ `curl -sI -m 3 -o /dev/null -w' + " '" + '%{http_code}' + "' " + gerrit_master_url + '/` -ne 200 ]; do sleep 0.5; done'
+      salt.cmdRun(master, gerrit_compound, 'timeout ' + (wait_timeout*60+3) + ' /bin/sh -c ' + '"' + check_gerrit_cmd + '"')
+    }
+
+    // Jenkins
+    def jenkins_master_url_pillar = salt.getPillar(master, jenkins_compound, '_param:jenkins_master_url')
+    jenkins_master_url = salt.getReturnValues(jenkins_master_url_pillar)
+
+    timeout(wait_timeout) {
+      common.infoMsg('Waiting for Jenkins to come up..')
+      def check_jenkins_cmd = 'while [ `curl -sI -m 3 -o /dev/null -w' + " '" + '%{http_code}' + "' " + jenkins_master_url + '/whoAmI/` -ne 200 ]; do sleep 0.5; done'
+      salt.cmdRun(master, jenkins_compound, 'timeout ' + (wait_timeout*60+3) + ' /bin/sh -c ' + '"' + check_jenkins_cmd + '"')
+    }
 
     if (salt.testTarget(master, 'I@aptly:server')) {
         salt.enforceState(master, 'I@aptly:server', 'aptly', true, true, null, false, -1, 2)
