@@ -498,7 +498,7 @@ def enforceHighstateWithExclude(saltId, target, excludedStates = "", output = fa
  * @return output of salt command
  */
 def enforceHighstate(saltId, target, output = false, failOnError = true, batch = null, saltArgs = []) {
-    def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'state.highstate', batch)
+    def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'state.highstate', batch, saltArgs)
     def common = new com.mirantis.mk.Common()
 
     common.infoMsg("Running state highstate on ${target}")
