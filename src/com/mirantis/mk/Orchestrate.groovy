@@ -788,6 +788,11 @@ def installStacklight(master) {
         }
     }
 
+    // Install MongoDB for Alerta
+    if (salt.testTarget(master, 'I@mongodb:server')) {
+        salt.enforceState(master, 'I@mongodb:server', 'mongodb')
+    }
+
     // Launch containers
     salt.enforceState(master, 'I@docker:swarm:role:master and I@prometheus:server', 'docker.client')
     salt.runSaltProcessStep(master, 'I@docker:swarm and I@prometheus:server', 'dockerng.ps')
