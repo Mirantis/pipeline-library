@@ -721,8 +721,8 @@ def installCicd(master) {
 
     timeout(wait_timeout) {
       common.infoMsg('Waiting for Gerrit to come up..')
-      def check_gerrit_cmd = 'while [ `curl -sI -m 3 -o /dev/null -w' + " '" + '%{http_code}' + "' " + gerrit_master_url + '/` -ne 200 ]; do sleep 0.5; done'
-      salt.cmdRun(master, gerrit_compound, 'timeout ' + (wait_timeout*60+3) + ' /bin/sh -c ' + '"' + check_gerrit_cmd + '"')
+      def check_gerrit_cmd = 'while true; do curl -sI -m 3 -o /dev/null -w' + " '" + '%{http_code}' + "' " + gerrit_master_url + '/ | grep 200 && break || sleep 1; done'
+      salt.cmdRun(master, gerrit_compound, 'timeout ' + (wait_timeout*60+3) + ' /bin/sh -c -- ' + '"' + check_gerrit_cmd + '"')
     }
 
     // Jenkins
@@ -731,8 +731,8 @@ def installCicd(master) {
 
     timeout(wait_timeout) {
       common.infoMsg('Waiting for Jenkins to come up..')
-      def check_jenkins_cmd = 'while [ `curl -sI -m 3 -o /dev/null -w' + " '" + '%{http_code}' + "' " + jenkins_master_url + '/whoAmI/` -ne 200 ]; do sleep 0.5; done'
-      salt.cmdRun(master, jenkins_compound, 'timeout ' + (wait_timeout*60+3) + ' /bin/sh -c ' + '"' + check_jenkins_cmd + '"')
+      def check_jenkins_cmd = 'while true; do curl -sI -m 3 -o /dev/null -w' + " '" + '%{http_code}' + "' " + jenkins_master_url + '/whoAmI/ | grep 200 && break || sleep 1; done'
+      salt.cmdRun(master, jenkins_compound, 'timeout ' + (wait_timeout*60+3) + ' /bin/sh -c -- ' + '"' + check_jenkins_cmd + '"')
     }
 
     if (salt.testTarget(master, 'I@aptly:server')) {
