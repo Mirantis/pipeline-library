@@ -261,7 +261,7 @@ def cmdRun(saltId, target, cmd, checkResponse = true, batch=null, output = true,
  * @param answers how many minions should return (optional, default 1)
  * @return output of salt command
  */
-def minionPresent(saltId, target, minion_name, waitUntilPresent = true, batch=null, output = true, maxRetries = 200, answers = 1) {
+def minionPresent(saltId, target, minion_name, waitUntilPresent = true, batch=null, output = true, maxRetries = 180, answers = 1) {
     minion_name = minion_name.replace("*", "")
     def common = new com.mirantis.mk.Common()
     common.infoMsg("Looking for minion: " + minion_name)
@@ -281,7 +281,7 @@ def minionPresent(saltId, target, minion_name, waitUntilPresent = true, batch=nu
                 return out
             }
             count++
-            sleep(time: 500, unit: 'MILLISECONDS')
+            sleep(time: 1000, unit: 'MILLISECONDS')
             common.infoMsg("Waiting for ${cmd} on ${target} to be in correct state")
         }
     } else {
