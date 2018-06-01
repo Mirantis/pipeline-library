@@ -471,3 +471,31 @@ def restoreGaleraDb(env) {
 
     salt.runSaltProcessStep(env, 'I@galera:slave', 'service.start', ['mysql'])
 }
+
+/**
+ * Recovers
+ * @param master Salt master
+ * @param recoverHost Hostname of the node to be recovered
+ * @param healthyHost Hostname of healthy node from the same cluster
+ * @return output of salt commands
+ */
+def recoverGluster(master, recoverHost, healthyHost) {
+    def salt = new com.mirantis.mk.Salt()
+
+    // Recover glusterfs
+    if (salt.testTarget(master, 'I@glusterfs:server')) {
+        salt.enforceState(master, 'I@glusterfs:server', 'glusterfs.server.service')
+        if (healthyHost != 'none' && recoverHost != 'none') {
+            salt.runSaltCommand(master, 'local', ['expression': "E@${healthyHost}", 'type': 'compound'], "cp.push /var/lib/glusterd/vols/ upload_path='/tmp/'")
+            salt.runSaltCommand(master, 'local', ['expression': "E@${recoverHost}", 'type': 'compound'], "get_dir salt://tmp/vols/ /var/lib/glusterd/")
+        }
+        salt.enforceState(master, 'I@glusterfs:server and *01*', 'glusterfs.server.setup', true, true, null, false, -1, 5)
+        sleep(10)
+        salt.cmdRun(master, 'I@glusterfs:server', "gluster peer status; gluster volume status")
+    }
+
+    // Ensure glusterfs clusters is ready
+    if (salt.testTarget(master, 'I@glusterfs:client')) {
+        salt.enforceState(master, 'I@glusterfs:client', 'glusterfs.client')
+    }
+}
