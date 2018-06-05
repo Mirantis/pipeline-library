@@ -790,7 +790,12 @@ def installStacklight(master) {
 
     // Install MongoDB for Alerta
     if (salt.testTarget(master, 'I@mongodb:server')) {
-        salt.enforceState(master, 'I@mongodb:server', 'mongodb')
+        salt.enforceState(master, 'I@mongodb:server', 'mongodb.server')
+
+        // Initialize mongodb replica set
+        common.retry(5,20){
+             salt.enforceState(master, 'I@mongodb:server', 'mongodb.cluster')
+        }
     }
 
     // Configure Alerta
