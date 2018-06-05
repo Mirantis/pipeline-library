@@ -117,7 +117,7 @@ def promotePublish(server, source, target, recreate=false, components=null, pack
 
 }
 
-def publish(server, config='/etc/aptly-publisher.yaml', recreate=false, only_latest=true, force_overwrite=true, opts='-d --timeout 3600') {
+def publish(server, config='/etc/aptly/publisher.yaml', recreate=false, only_latest=true, force_overwrite=true, opts='-d --timeout 3600') {
     if (recreate == true) {
         opts = "${opts} --recreate"
     }
