@@ -771,6 +771,8 @@ def installCicd(master) {
 def installStacklight(master) {
     def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
+    def retries_wait = 20
+    def retries = 15
 
     // Install core services for K8S environments:
     // HAProxy, Nginx and lusterFS clients
@@ -815,7 +817,29 @@ def installStacklight(master) {
     salt.enforceState(master, 'I@elasticsearch:server', 'elasticsearch.server')
     salt.enforceState(master, '*01* and I@kibana:server', 'kibana.server')
     salt.enforceState(master, 'I@kibana:server', 'kibana.server')
+
+    // Check ES health cluster status
+    def pillar = salt.getPillar(master, 'I@elasticsearch:client', 'elasticsearch:client:server:host')
+    def elasticsearch_vip
+    if(!pillar['return'].isEmpty()) {
+        elasticsearch_vip = pillar['return'][0].values()[0]
+    } else {
+        common.errorMsg('[ERROR] Elasticsearch VIP address could not be retrieved')
+    }
+    pillar = salt.getPillar(master, 'I@elasticsearch:client', 'elasticsearch:client:server:port')
+    def elasticsearch_port
+    if(!pillar['return'].isEmpty()) {
+        elasticsearch_port = pillar['return'][0].values()[0]
+    } else {
+        common.errorMsg('[ERROR] Elasticsearch VIP port could not be retrieved')
+    }
+    common.retry(retries,retries_wait) {
+        common.infoMsg('Waiting for Elasticsearch to become green..')
+        salt.cmdRun(master, 'I@elasticsearch:client', "curl -sf ${elasticsearch_vip}:${elasticsearch_port}/_cat/health | awk '{print \$4}' | grep green")
+    }
+
     salt.enforceState(master, 'I@elasticsearch:client', 'elasticsearch.client')
+
     salt.enforceState(master, 'I@kibana:client', 'kibana.client')
 
     //Install InfluxDB
@@ -872,7 +896,7 @@ def installStacklight(master) {
     }
 
     //Configure Grafana
-    def pillar = salt.getPillar(master, 'ctl01*', '_param:stacklight_monitor_address')
+    pillar = salt.getPillar(master, 'ctl01*', '_param:stacklight_monitor_address')
     common.prettyPrint(pillar)
 
     def stacklight_vip
