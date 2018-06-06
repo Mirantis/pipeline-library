@@ -798,15 +798,6 @@ def installStacklight(master) {
         }
     }
 
-    // Configure Alerta
-    if (salt.testTarget(master, 'I@prometheus:alerta')) {
-        salt.enforceState(master, 'I@docker:swarm and I@prometheus:alerta', 'prometheus.alerta')
-    }
-
-    // Launch containers
-    salt.enforceState(master, 'I@docker:swarm:role:master and I@prometheus:server', 'docker.client')
-    salt.runSaltProcessStep(master, 'I@docker:swarm and I@prometheus:server', 'dockerng.ps')
-
     //Install Telegraf
     salt.enforceState(master, 'I@telegraf:agent or I@telegraf:remote_agent', 'telegraf')
 
@@ -827,11 +818,6 @@ def installStacklight(master) {
     if (salt.testTarget(master, 'I@influxdb:server')) {
         salt.enforceState(master, '*01* and I@influxdb:server', 'influxdb')
         salt.enforceState(master, 'I@influxdb:server', 'influxdb')
-    }
-
-    //Install Prometheus LTS
-    if (salt.testTarget(master, 'I@prometheus:relay')) {
-        salt.enforceState(master, 'I@prometheus:relay', 'prometheus')
     }
 
     // Install service for the log collection
@@ -869,6 +855,15 @@ def installStacklight(master) {
     //Configure Remote Collector in Docker Swarm for Openstack deployments
     if (!common.checkContains('STACK_INSTALL', 'k8s')) {
         salt.enforceState(master, 'I@docker:swarm and I@prometheus:server', 'heka.remote_collector', true, false)
+    }
+
+    // Launch containers
+    salt.enforceState(master, 'I@docker:swarm:role:master and I@prometheus:server', 'docker.client')
+    salt.runSaltProcessStep(master, 'I@docker:swarm and I@prometheus:server', 'dockerng.ps')
+
+    //Install Prometheus LTS
+    if (salt.testTarget(master, 'I@prometheus:relay')) {
+        salt.enforceState(master, 'I@prometheus:relay', 'prometheus')
     }
 
     // Install sphinx server
