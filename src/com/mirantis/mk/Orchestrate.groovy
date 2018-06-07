@@ -834,9 +834,13 @@ def installStacklight(master) {
         salt.cmdRun(master, 'I@elasticsearch:client', "curl -sf ${elasticsearch_vip}:${elasticsearch_port}/_cat/health | awk '{print \$4}' | grep green")
     }
 
-    salt.enforceState(master, 'I@elasticsearch:client', 'elasticsearch.client')
+    common.retry(retries,retries_wait) {
+        salt.enforceState(master, 'I@elasticsearch:client', 'elasticsearch.client', true, true, 1)
+    }
 
-    salt.enforceState(master, 'I@kibana:client', 'kibana.client')
+    common.retry(retries,retries_wait) {
+        salt.enforceState(master, 'I@kibana:client', 'kibana.client', true, true, 1)
+    }
 
     //Install InfluxDB
     if (salt.testTarget(master, 'I@influxdb:server')) {
