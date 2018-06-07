@@ -37,7 +37,9 @@ def installFoundationInfra(master, staticMgmtNet=false) {
     } catch (Throwable e) {
         common.warningMsg('Salt state salt.minion.base is not present in the Salt-formula yet.')
     }
-    salt.enforceState(master, '*', ['linux.system'])
+    common.retry(2,5){
+        salt.enforceState(master, '*', ['linux.system'])
+    }
     if (staticMgmtNet) {
         salt.runSaltProcessStep(master, '*', 'cmd.shell', ["salt-call state.sls linux.network; salt-call service.restart salt-minion"], null, true, 60)
     }
@@ -75,7 +77,9 @@ def installFoundationInfraOnTarget(master, target, staticMgmtNet=false) {
     } catch (Throwable e) {
         common.warningMsg('Salt state salt.minion.base is not present in the Salt-formula yet.')
     }
-    salt.enforceState(master, target, ['linux.system'])
+    common.retry(2,5){
+        salt.enforceState(master, target, ['linux.system'])
+    }
     if (staticMgmtNet) {
         salt.runSaltProcessStep(master, target, 'cmd.shell', ["salt-call state.sls linux.network; salt-call service.restart salt-minion"], null, true, 60)
     }
