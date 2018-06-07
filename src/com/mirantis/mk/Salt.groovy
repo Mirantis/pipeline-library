@@ -269,27 +269,35 @@ def minionPresent(saltId, target, minion_name, waitUntilPresent = true, batch=nu
     if (waitUntilPresent){
         def count = 0
         while(count < maxRetries) {
+            try {
+                def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd], null, 5)
+                if (output) {
+                    printSaltCommandResult(out)
+                }
+                def valueMap = out["return"][0]
+                def result = valueMap.get(valueMap.keySet()[0])
+                def resultsArray = result.tokenize("\n")
+                def size = resultsArray.size()
+                if (size >= answers) {
+                    return out
+                }
+                count++
+                sleep(time: 1000, unit: 'MILLISECONDS')
+                common.infoMsg("Waiting for ${cmd} on ${target} to be in correct state")
+            } catch (Exception er) {
+                common.infoMsg('[WARNING]: runSaltCommand command read timeout within 5 seconds. You have very slow or broken environment')
+            }
+        }
+    } else {
+        try {
             def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd], null, 5)
             if (output) {
                 printSaltCommandResult(out)
             }
-            def valueMap = out["return"][0]
-            def result = valueMap.get(valueMap.keySet()[0])
-            def resultsArray = result.tokenize("\n")
-            def size = resultsArray.size()
-            if (size >= answers) {
-                return out
-            }
-            count++
-            sleep(time: 1000, unit: 'MILLISECONDS')
-            common.infoMsg("Waiting for ${cmd} on ${target} to be in correct state")
+            return out
+        } catch (Exception er) {
+            common.infoMsg('[WARNING]: runSaltCommand command read timeout within 5 seconds. You have very slow or broken environment')
         }
-    } else {
-        def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd], null, 5)
-        if (output) {
-            printSaltCommandResult(out)
-        }
-        return out
     }
     // otherwise throw exception
     common.errorMsg("Status of command ${cmd} on ${target} failed, please check it.")
