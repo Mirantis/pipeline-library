@@ -162,9 +162,10 @@ def enforceStateWithExclude(saltId, target, state, excludedStates = "", output =
  * @param retries Retry count for salt state. (optional, default -1 - no retries)
  * @param queue salt queue parameter for state.sls calls (optional, default true) - CANNOT BE USED WITH BATCH
  * @param saltArgs additional salt args eq. ["runas=aptly", exclude="opencontrail.database"]
+ * @param minionRestartWaitTimeout specifies timeout that we should wait after minion restart.
  * @return output of salt command
  */
-def enforceState(saltId, target, state, output = true, failOnError = true, batch = null, optional = false, read_timeout=-1, retries=-1, queue=true, saltArgs = []) {
+def enforceState(saltId, target, state, output = true, failOnError = true, batch = null, optional = false, read_timeout=-1, retries=-1, queue=true, saltArgs = [], minionRestartWaitTimeout=10) {
     def common = new com.mirantis.mk.Common()
     // add state to salt args
     if (state instanceof String) {
@@ -196,7 +197,7 @@ def enforceState(saltId, target, state, output = true, failOnError = true, batch
             out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, saltArgs.reverse(), kwargs, -1, read_timeout)
             checkResult(out, failOnError, output)
         }
-        waitForMinion(out)
+        waitForMinion(out, minionRestartWaitTimeout)
         return out
     } else {
         common.infoMsg("No Minions matched the target given, but 'optional' param was set to true - Pipeline continues. ")
@@ -809,7 +810,7 @@ def checkResult(result, failOnError = true, printResults = true, printOnlyChange
 *
 * @param result    Parsed response of Salt API
 */
-def waitForMinion(result) {
+def waitForMinion(result, minionRestartWaitTimeout=10) {
     def common = new com.mirantis.mk.Common()
     //In order to prevent multiple sleeps use bool variable to catch restart for any minion.
     def isMinionRestarted = false
@@ -851,8 +852,8 @@ def waitForMinion(result) {
         }
     }
     if (isMinionRestarted){
-        common.infoMsg("Salt minion service restart detected. Sleep 10 seconds to wait minion restart")
-        sleep(10)
+      common.infoMsg("Salt minion service restart detected. Sleep ${minionRestartWaitTimeout} seconds to wait minion restart")
+        sleep(minionRestartWaitTimeout)
     }
 }
 
