@@ -842,11 +842,11 @@ def installStacklight(master) {
     }
 
     common.retry(retries,retries_wait) {
-        salt.enforceState(master, 'I@elasticsearch:client', 'elasticsearch.client', true, true, 1)
+        salt.enforceState(master, 'I@elasticsearch:client', 'elasticsearch.client')
     }
 
     common.retry(retries,retries_wait) {
-        salt.enforceState(master, 'I@kibana:client', 'kibana.client', true, true, 1)
+        salt.enforceState(master, 'I@kibana:client', 'kibana.client')
     }
 
     //Install InfluxDB
