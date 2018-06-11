@@ -198,10 +198,10 @@ def mirrorGit(sourceUrl, targetUrl, credentialsId, branches, followTags = false,
         }
     }
     if (followTags == true) {
-        ssh.agentSh "git push target --tags"
+        ssh.agentSh "git push -f target --tags"
 
         if (pushSourceTags == true) {
-            ssh.agentSh "git push origin --tags"
+            ssh.agentSh "git push -f origin --tags"
         }
     }
     sh "git remote rm target"
