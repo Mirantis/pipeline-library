@@ -428,6 +428,13 @@ def installOpenstackControl(master, extra_tgt = '') {
         salt.enforceState(master, "I@gnocchi:server ${extra_tgt}", 'gnocchi.server')
     }
 
+    // Apply gnocchi client state to create gnocchi archive policies, due to possible
+    // races, apply on the first node initially
+    if (salt.testTarget(master, "I@gnocchi:client ${extra_tgt}")) {
+        salt.enforceState(master, "I@gnocchi:client and *01* ${extra_tgt}", 'gnocchi.client')
+        salt.enforceState(master, "I@gnocchi:client ${extra_tgt}", 'gnocchi.client')
+    }
+
     // Install gnocchi statsd
     if (salt.testTarget(master, "I@gnocchi:statsd ${extra_tgt}")) {
         salt.enforceState(master, "I@gnocchi:statsd and *01* ${extra_tgt}", 'gnocchi.statsd')
