@@ -75,3 +75,33 @@ def killStuckBuilds(maxSeconds, job){
   }
   return result
 }
+
+/**
+ * Get Jenkins job object
+ * @param jobName job name
+ * @return job object that matches jobName
+ */
+def getJobByName(jobName){
+    for(item in Hudson.instance.items) {
+        if(item.name == jobName){
+            return item
+        }
+    }
+}
+
+/**
+ * Get Jenkins job parameters
+ * @param jobName job name
+ * @return HashMap with parameter names as keys and their values as values
+ */
+def getJobParameters(jobName){
+    def job = getJobByName(jobName)
+    def prop = job.getProperty(ParametersDefinitionProperty.class)
+    def params = new java.util.HashMap<String,String>()
+    if(prop != null) {
+        for(param in prop.getParameterDefinitions()) {
+            params.put(param.name, param.defaultValue)
+        }
+    }
+    return params
+}
