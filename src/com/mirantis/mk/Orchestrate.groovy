@@ -685,10 +685,6 @@ def installCicd(master) {
     salt.fullRefresh(master, gerrit_compound)
     salt.fullRefresh(master, jenkins_compound)
 
-    if (salt.testTarget(master, 'I@aptly:publisher')) {
-        salt.enforceState(master, 'I@aptly:publisher', 'aptly.publisher',true, null, false, -1, 2)
-    }
-
     salt.enforceState(master, 'I@docker:swarm:role:master and I@jenkins:client', 'docker.client', true, true, null, false, -1, 2)
 
     // API timeout in minutes
@@ -740,10 +736,6 @@ def installCicd(master) {
       common.infoMsg('Waiting for Jenkins to come up..')
       def check_jenkins_cmd = 'while true; do curl -sI -m 3 -o /dev/null -w' + " '" + '%{http_code}' + "' " + jenkins_master_url + '/whoAmI/ | grep 200 && break || sleep 1; done'
       salt.cmdRun(master, jenkins_compound, 'timeout ' + (wait_timeout*60+3) + ' /bin/sh -c -- ' + '"' + check_jenkins_cmd + '"')
-    }
-
-    if (salt.testTarget(master, 'I@aptly:server')) {
-        salt.enforceState(master, 'I@aptly:server', 'aptly', true, true, null, false, -1, 2)
     }
 
     if (salt.testTarget(master, 'I@openldap:client')) {
