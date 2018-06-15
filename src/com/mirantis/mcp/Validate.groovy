@@ -315,7 +315,7 @@ def runRallyTests(master, target, dockerImageLink, platform, output_dir, reposit
       writeFile file: "${tmp_dir}/kube.config", text: kube_config
       salt.cmdRun(master, target, "mv ${tmp_dir}/* ${results}/")
       salt.runSaltProcessStep(master, target, 'file.rmdir', ["${tmp_dir}"])
-      cmd_rally_init = 'set -x; if [ ! -w ~/.rally ]; then sudo chown rally:rally ~/.rally ; fi; cd /tmp/; ' +
+      cmd_rally_init = 'set -e ; set -x; if [ ! -w ~/.rally ]; then sudo chown rally:rally ~/.rally ; fi; cd /tmp/; ' +
           "git clone -b ${plugins_branch ?: 'master'} ${plugins_repo} plugins; " +
           "sudo pip install --upgrade ./plugins; " +
           "rally env create --name k8s --spec ${dest_folder}/kubespec.yaml; " +
