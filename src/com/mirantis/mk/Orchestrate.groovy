@@ -552,6 +552,11 @@ def installOpenstackCompute(master) {
             }
         }
     }
+
+    // Run nova:controller to map cmp with cells
+    if (salt.testTarget(master, 'I@nova:controller')) {
+      salt.enforceState(master, 'I@nova:controller and *01*', 'nova.controller')
+    }
 }
 
 
