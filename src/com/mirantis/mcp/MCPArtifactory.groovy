@@ -32,14 +32,17 @@ def getBinaryBuildProperties(ArrayList customProperties) {
 }
 
 /**
- * Get URL to artifact by properties
- * Returns String with URL to found artifact or null if nothing
+ * Get URL to artifact(s) by properties
+ * Returns String(s) with URL to found artifact or null if nothing
  *
  * @param artifactoryURL String, an URL to Artifactory
  * @param properties LinkedHashMap, a Hash of properties (key-value) which
  *        which should determine artifact in Artifactory
+ * @param onlyLastItem Boolean, return only last URL if true(by default),
+ *        else return list of all found artifact URLS
+ *
  */
-def uriByProperties(String artifactoryURL, LinkedHashMap properties) {
+def uriByProperties(String artifactoryURL, LinkedHashMap properties, Boolean onlyLastItem=true) {
     def key, value
     def properties_str = ''
     for (int i = 0; i < properties.size(); i++) {
@@ -55,11 +58,20 @@ def uriByProperties(String artifactoryURL, LinkedHashMap properties) {
     def content = new groovy.json.JsonSlurperClassic().parseText(result)
     def uri = content.get("results")
     if (uri) {
-        return uri.last().get("uri")
+        if (onlyLastItem) {
+            return uri.last().get("uri")
+        } else {
+            res = []
+            uri.each {it ->
+                res.add(it.get("uri"))
+            }
+            return res
+        }
     } else {
         return null
     }
 }
+
 
 /**
  * Set properties for artifact in Artifactory repo
