@@ -573,6 +573,7 @@ def installContrailNetwork(master) {
     salt.enforceStateWithExclude(master, "I@opencontrail:control and *01*", "opencontrail", "opencontrail.client")
     salt.enforceStateWithExclude(master, "I@opencontrail:control", "opencontrail", "opencontrail.client")
     salt.enforceStateWithExclude(master, "I@opencontrail:collector and *01*", "opencontrail", "opencontrail.client")
+    salt.enforceStateWithExclude(master, "I@opencontrail:collector", "opencontrail", "opencontrail.client")
 
     if (salt.testTarget(master, 'I@docker:client and I@opencontrail:control')) {
         salt.enforceState(master, 'I@opencontrail:control or I@opencontrail:collector', 'docker.client')
