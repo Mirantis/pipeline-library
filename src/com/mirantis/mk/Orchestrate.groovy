@@ -793,7 +793,7 @@ def installStacklight(master) {
         }
 
         if (salt.testTarget(master, 'I@glusterfs:client')) {
-            salt.enforceState(master, 'I@glusterfs:client', 'glusterfs.client')
+            salt.enforceState(master, 'I@glusterfs:client', 'glusterfs.client', true, true, null, false, -1, 2)
         }
     }
 
