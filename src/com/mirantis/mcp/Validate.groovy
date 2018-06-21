@@ -664,6 +664,11 @@ def runCleanup(master, target) {
 def prepareVenv(repo_url, proxy) {
     def python = new com.mirantis.mk.Python()
     repo_name = "${repo_url}".tokenize("/").last()
+    if (repo_url.tokenize().size() > 1){
+        if (repo_url.tokenize()[1] == '-b'){
+            repo_name = repo_url.tokenize()[0].tokenize("/").last()
+        }
+    }
     sh "rm -rf ${repo_name}"
     withEnv(["HTTPS_PROXY=${proxy}", "HTTP_PROXY=${proxy}", "https_proxy=${proxy}", "http_proxy=${proxy}"]) {
         sh "git clone ${repo_url}"
