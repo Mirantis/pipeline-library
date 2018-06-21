@@ -18,9 +18,12 @@ package com.mirantis.mk
  * @param aptRepoGPG          GPG key for apt repository with formulas
  */
 
-def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSource = 'pkg', formulasRevision = 'stable', reclassVersion = "master", dockerMaxCpus = 0, ignoreClassNotfound = false, legacyTestingMode = false, aptRepoUrl='', aptRepoGPG='') {
+def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSource = 'pkg',
+                     formulasRevision = 'stable', reclassVersion = "master", dockerMaxCpus = 0,
+                     ignoreClassNotfound = false, legacyTestingMode = false, aptRepoUrl = '', aptRepoGPG = '') {
   // timeout for test execution (40min)
   def testTimeout = 40 * 60
+  def dockerContainerName = "${env.JOB_NAME.toLowerCase()}_${env.BUILD_TAG.toLowerCase()}"
   def saltOpts = "--retcode-passthrough --force-color"
   def common = new com.mirantis.mk.Common()
   def workspace = common.getWorkspace()
@@ -31,32 +34,57 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
     extraFormulas = "linux"
   }
 
-  def dockerMaxCpusOption = ""
+  def dockerMaxCpusOpt = "--cpus=4"
   if (dockerMaxCpus > 0) {
-    dockerMaxCpusOption = "--cpus=${dockerMaxCpus}"
+    dockerMaxCpusOpt = "--cpus=${dockerMaxCpus}"
   }
-
-  img.inside("-u root:root --hostname=${masterName} --ulimit nofile=4096:8192 ${dockerMaxCpusOption}") {
-    withEnv(["FORMULAS_SOURCE=${formulasSource}", "EXTRA_FORMULAS=${extraFormulas}", "DISTRIB_REVISION=${formulasRevision}",
-            "DEBUG=1", "MASTER_HOSTNAME=${masterName}", "CLUSTER_NAME=${clusterName}", "MINION_ID=${masterName}",
-            "RECLASS_VERSION=${reclassVersion}", "RECLASS_IGNORE_CLASS_NOTFOUND=${ignoreClassNotfound}", "APT_REPOSITORY=${aptRepoUrl}",
-            "APT_REPOSITORY_GPG=${aptRepoGPG}"]){
+  try {
+    img.inside("-u root:root --hostname=${masterName} --ulimit nofile=4096:8192 ${dockerMaxCpusOpt} --name=${dockerContainerName}") {
+      withEnv(["FORMULAS_SOURCE=${formulasSource}", "EXTRA_FORMULAS=${extraFormulas}", "DISTRIB_REVISION=${formulasRevision}",
+               "DEBUG=1", "MASTER_HOSTNAME=${masterName}", "CLUSTER_NAME=${clusterName}", "MINION_ID=${masterName}",
+               "RECLASS_VERSION=${reclassVersion}", "RECLASS_IGNORE_CLASS_NOTFOUND=${ignoreClassNotfound}", "APT_REPOSITORY=${aptRepoUrl}",
+               "APT_REPOSITORY_GPG=${aptRepoGPG}", "SALT_STOPSTART_WAIT=10"]) {
+        // To be sure that we actually re-run
+        sh("rm -v ${env.WORKSPACE}/.test_finished || true")
         sh("git clone https://github.com/salt-formulas/salt-formulas-scripts /srv/salt/scripts")
         sh("""rsync -ah ${testDir}/* /srv/salt/reclass && echo '127.0.1.2  salt' >> /etc/hosts
               cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt-mk.mirantis.com/apt.mirantis.net:8085/g' {} \\;
               cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt.mirantis.com/apt.mirantis.net:8085/g' {} \\;""")
         sh("""for s in \$(python -c \"import site; print(' '.join(site.getsitepackages()))\"); do
-                  sudo -H pip install --install-option=\"--prefix=\" --upgrade --force-reinstall -I \
+                sudo -H pip install --install-option=\"--prefix=\" --upgrade --force-reinstall -I \
                     -t \"\$s\" git+https://github.com/salt-formulas/reclass.git@${reclassVersion};
                 done""")
-        sh("""timeout ${testTimeout} bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && configure_salt_master && configure_salt_minion && install_salt_formula_pkg'
-              bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && saltservice_restart'""")
-        sh("timeout ${testTimeout} bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && source_local_envs && saltmaster_init'")
+        timeout(time: testTimeout, unit: 'SECONDS') {
+          sh('''#!/bin/bash
+                source /srv/salt/scripts/bootstrap.sh
+                cd /srv/salt/scripts
+                source_local_envs
+                configure_salt_master
+                configure_salt_minion
+                install_salt_formula_pkg
+                source /srv/salt/scripts/bootstrap.sh
+                cd /srv/salt/scripts
+                saltservice_restart''')
+          sh('''#!/bin/bash
+                source /srv/salt/scripts/bootstrap.sh
+                cd /srv/salt/scripts
+                source_local_envs
+                saltmaster_init''')
 
-        if (!legacyTestingMode.toBoolean()) {
-           sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && verify_salt_minions'")
+          if (!legacyTestingMode.toBoolean()) {
+            sh('''#!/bin/bash
+                  source /srv/salt/scripts/bootstrap.sh
+                  cd /srv/salt/scripts
+                  verify_salt_minions''')
+          }
         }
+
+        // If we didn't dropped for now - test has been passed.
+        sh("touch ${env.WORKSPACE}/.test_finished")
+      }
     }
+  }
+  finally {
 
     if (legacyTestingMode.toBoolean()) {
       common.infoMsg("Running legacy mode test for master hostname ${masterName}")
@@ -68,16 +96,34 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
         }
       }
     }
+
+    if (fileExists("${env.WORKSPACE}/.test_finished")) {
+      common.infoMsg("Test finished")
+      currentBuild.result = 'SUCCESS'
+    } else {
+      common.infoMsg("Test failed to finish!")
+      currentBuild.result = 'FAILURE'
+    }
+    try {
+      timeout(time: 10, unit: 'SECONDS') {
+        common.infoMsg("Cleanup slave...Ignore docker-daemon errors")
+        sh("set -x; docker kill ${dockerContainerName} || true")
+        sh("set -x; docker rm --force ${dockerContainerName} || true")
+      }
+    }
+    catch (Exception er) {
+      common.infoMsg("Timeout to delete test docker container!Continue...")
+    }
   }
+
 }
 
 /**
  * Test salt-minion
  *
- * @param minion          salt minion
+ * @param minion salt minion
  */
 
-def testMinion(minionName)
-{
+def testMinion(minionName) {
   sh("bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && verify_salt_minion ${minionName}'")
 }
