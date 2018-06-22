@@ -62,6 +62,11 @@ def installFoundationInfra(master, staticMgmtNet=false) {
     if (salt.testTarget(master, 'I@logrotate:server')) {
         salt.enforceState(master, 'I@logrotate:server', 'logrotate')
     }
+
+    // Install and configure auditd
+    if (salt.testTarget(master, 'I@auditd:service')) {
+        salt.enforceState(master, 'I@auditd:service', 'auditd')
+    }
 }
 
 def installFoundationInfraOnTarget(master, target, staticMgmtNet=false) {
