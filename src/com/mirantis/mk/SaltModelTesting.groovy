@@ -84,9 +84,6 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
       }
     }
   }
-  catch (Exception er) {
-    common.infoMsg("Timeout to delete test docker container!Message:" + er.toString())
-  }
   finally {
 
     if (legacyTestingMode.toBoolean()) {
@@ -115,7 +112,7 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
       }
     }
     catch (Exception er) {
-      common.infoMsg("Timeout to delete test docker container even with force!Continue...")
+      common.infoMsg("Timeout to delete test docker container!Continue...")
     }
   }
 
