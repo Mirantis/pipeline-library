@@ -8,11 +8,13 @@ package com.mirantis.mcp
 
 /**
  * Run docker container with basic (keystone) parameters
+ * For backward compatibility. Deprecated.
+ * Will be removed soon.
  *
  * @param target            Host to run container
  * @param dockerImageLink   Docker image link. May be custom or default rally image
  */
-def runBasicContainer(master, target, dockerImageLink="xrally/xrally-openstack:0.9.1"){
+def runBasicContainer(master, target, dockerImageLink="xrally/xrally-openstack:0.10.1"){
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
     def _pillar = salt.getPillar(master, 'I@keystone:server', 'keystone:server')
@@ -26,6 +28,37 @@ def runBasicContainer(master, target, dockerImageLink="xrally/xrally-openstack:0
             "-e OS_AUTH_URL=http://${keystone.bind.private_address}:${keystone.bind.private_port}/v2.0 " +
             "-e OS_REGION_NAME=${keystone.region} -e OS_ENDPOINT_TYPE=admin --entrypoint /bin/bash ${dockerImageLink}")
 }
+
+
+/**
+ * Run docker container with parameters
+ *
+ * @param target            Host to run container
+ * @param dockerImageLink   Docker image link. May be custom or default rally image
+ * @param name              Name for container
+ * @param env_var           Environment variables to set in container
+ * @param entrypoint        Set entrypoint to /bin/bash or leave default
+**/
+
+
+def runContainer(master, target, dockerImageLink, name='cvp', env_var=[], entrypoint=true){
+    def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+    def variables = ''
+    def entry_point = ''
+    if ( salt.cmdRun(master, target, "docker ps -f name=${name} -q", false, null, false)['return'][0].values()[0] ) {
+        salt.cmdRun(master, target, "docker rm -f ${name}")
+    }
+    if (env_var.size() > 0) {
+        variables = ' -e ' + env_var.join(' -e ')
+    }
+    if (entrypoint) {
+        entry_point = '--entrypoint /bin/bash'
+    }
+    salt.cmdRun(master, target, "docker run -tid --net=host --name=${name} " +
+                                "-u root ${entry_point} ${variables} ${dockerImageLink}")
+}
+
 
 /**
  * Get file content (encoded). The content encoded by Base64.
@@ -136,6 +169,7 @@ def getNodeList(master, filter = null) {
 
 /**
  * Execute mcp sanity tests
+ * Deprecated. Will be removed soon
  *
  * @param salt_url          Salt master url
  * @param salt_credentials  Salt credentials
@@ -163,6 +197,47 @@ def runSanityTests(salt_url, salt_credentials, test_set="", output_dir="validati
 
 /**
  * Execute pytest framework tests
+ *
+ * @param salt_url          Salt master url
+ * @param salt_credentials  Salt credentials
+ * @param test_set          Test set to run
+ * @param env_vars          Additional environment variables for cvp-sanity-checks
+ * @param output_dir        Directory for results
+ */
+def runPyTests(salt_url, salt_credentials, test_set="", env_vars="", name='cvp', container_node="", remote_dir='/root/qa_results/', artifacts_dir='validation_artifacts/') {
+    def xml_file = "${name}_report.xml"
+    def common = new com.mirantis.mk.Common()
+    def salt = new com.mirantis.mk.Salt()
+    def creds = common.getCredentials(salt_credentials)
+    def username = creds.username
+    def password = creds.password
+    if (container_node != "") {
+        def saltMaster
+        saltMaster = salt.connection(salt_url, salt_credentials)
+        def script = "pytest --junitxml ${xml_file} --tb=short -sv ${test_set}"
+        env_vars.addAll("SALT_USERNAME=${username}", "SALT_PASSWORD=${password}",
+                        "SALT_URL=${salt_url}")
+        variables = ' -e ' + env_vars.join(' -e ')
+        salt.cmdRun(saltMaster, container_node, "docker exec ${variables} ${name} bash -c '${script}'", false)
+        salt.cmdRun(saltMaster, container_node, "docker cp ${name}:/var/lib/${xml_file} ${remote_dir}${xml_file}")
+        addFiles(saltMaster, container_node, remote_dir+xml_file, artifacts_dir)
+    }
+    else {
+        if (env_vars.size() > 0) {
+        variables = 'export ' + env_vars.join(';export ')
+        }
+        def script = ". ${env.WORKSPACE}/venv/bin/activate; ${variables}; " +
+                     "pytest --junitxml ${artifacts_dir}${xml_file} --tb=short -sv ${env.WORKSPACE}/${test_set}"
+        withEnv(["SALT_USERNAME=${username}", "SALT_PASSWORD=${password}", "SALT_URL=${salt_url}"]) {
+            def statusCode = sh script:script, returnStatus:true
+        }
+    }
+}
+
+/**
+ * Execute pytest framework tests
+ * For backward compatibility
+ * Will be removed soon
  *
  * @param salt_url          Salt master url
  * @param salt_credentials  Salt credentials
@@ -661,14 +736,12 @@ def openstack_cleanup(master, target, script_path="/home/rally/cvp-configuration
  * Cleanup
  *
  * @param target            Host to run commands
+ * @param name              Name of container to remove
  */
-def runCleanup(master, target) {
+def runCleanup(master, target, name='cvp') {
     def salt = new com.mirantis.mk.Salt()
-    if ( salt.cmdRun(master, target, "docker ps -f name=qa_tools -q", false, null, false)['return'][0].values()[0] ) {
-        salt.cmdRun(master, target, "docker rm -f qa_tools")
-    }
-    if ( salt.cmdRun(master, target, "docker ps -f name=cvp -q", false, null, false)['return'][0].values()[0] ) {
-        salt.cmdRun(master, target, "docker rm -f cvp")
+    if ( salt.cmdRun(master, target, "docker ps -f name=${name} -q", false, null, false)['return'][0].values()[0] ) {
+        salt.cmdRun(master, target, "docker rm -f ${name}")
     }
 }
 /**
