@@ -675,10 +675,22 @@ def prepareVenv(repo_url, proxy) {
             repo_name = repo_url.tokenize()[0].tokenize("/").last()
         }
     }
+    path_venv = "${env.WORKSPACE}/venv"
+    path_req = "${env.WORKSPACE}/${repo_name}/requirements.txt"
     sh "rm -rf ${repo_name}"
-    withEnv(["HTTPS_PROXY=${proxy}", "HTTP_PROXY=${proxy}", "https_proxy=${proxy}", "http_proxy=${proxy}"]) {
+    // this is temporary W/A for offline deployments
+    // Jenkins slave image has /opt/pip-mirror/ folder
+    // where pip wheels for cvp projects are located
+    if (proxy != 'offline') {
+        withEnv(["HTTPS_PROXY=${proxy}", "HTTP_PROXY=${proxy}", "https_proxy=${proxy}", "http_proxy=${proxy}"]) {
+            sh "git clone ${repo_url}"
+            python.setupVirtualenv(path_venv, "python2", [], path_req, true)
+        }
+    }
+    else {
         sh "git clone ${repo_url}"
-        python.setupVirtualenv("${env.WORKSPACE}/venv", "python2", [], "${env.WORKSPACE}/${repo_name}/requirements.txt", true)
+        sh "virtualenv ${path_venv} --python python2"
+        python.runVirtualenvCommand(path_venv, "pip install --no-index --find-links=/opt/pip-mirror/ -r ${path_req}", true)
     }
 }
 
