@@ -280,7 +280,7 @@ def promoteDockerArtifact(String artifactoryURL, String artifactoryDevRepo,
              passwordVariable: 'ARTIFACTORY_PASSWORD',
              usernameVariable: 'ARTIFACTORY_LOGIN']
     ]) {
-        sh "bash -c \"curl  -u ${ARTIFACTORY_LOGIN}:${ARTIFACTORY_PASSWORD} -H \"Content-Type:application/json\" -X POST -d @${queryFile} ${url}\""
+        sh "bash -c \"curl --fail -u ${ARTIFACTORY_LOGIN}:${ARTIFACTORY_PASSWORD} -H \"Content-Type:application/json\" -X POST -d @${queryFile} ${url}\""
     }
     sh "rm -v ${queryFile}"
 }
