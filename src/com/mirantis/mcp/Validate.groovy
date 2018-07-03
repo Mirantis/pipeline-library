@@ -301,33 +301,45 @@ def runRallyTests(master, target, dockerImageLink, platform, output_dir, reposit
       }
     } else if (platform == 'k8s') {
       rally_extra_args = "--debug --log-file ${dest_folder}/task.log"
-      env_vars = ( ['tempest_version=15.0.0','KUBE_CONF=local']).join(' -e ')
       def plugins_repo = ext_variables.plugins_repo
       def plugins_branch = ext_variables.plugins_branch
-      def kubespec = 'existing@kubernetes:\n  config_file: ' +
-                     "${dest_folder}/kube.config\n"
-      def kube_config = salt.getReturnValues(salt.runSaltProcessStep(master,
+      def _pillar = salt.getPillar(master, 'I@kubernetes:master and *01*', 'kubernetes:master')
+      def kubernetes = _pillar['return'][0].values()[0]
+      env_vars = [
+          "KUBERNETES_HOST=${kubernetes.apiserver.vip_address}" +
+          ":${kubernetes.apiserver.insecure_port}",
+          "KUBERNETES_CERT_AUTH=${dest_folder}/k8s-ca.crt",
+          "KUBERNETES_CLIENT_KEY=${dest_folder}/k8s-client.key",
+          "KUBERNETES_CLIENT_CERT=${dest_folder}/k8s-client.crt"].join(' -e ')
+      def k8s_ca = salt.getReturnValues(salt.runSaltProcessStep(master,
                         'I@kubernetes:master and *01*', 'cmd.run',
-                        ["cat /etc/kubernetes/admin-kube-config"]))
+                        ["cat /etc/kubernetes/ssl/ca-kubernetes.crt"]))
+      def k8s_client_key = salt.getReturnValues(salt.runSaltProcessStep(master,
+                        'I@kubernetes:master and *01*', 'cmd.run',
+                        ["cat /etc/kubernetes/ssl/kubelet-client.key"]))
+      def k8s_client_crt = salt.getReturnValues(salt.runSaltProcessStep(master,
+                        'I@kubernetes:master and *01*', 'cmd.run',
+                        ["cat /etc/kubernetes/ssl/kubelet-client.crt"]))
       def tmp_dir = '/tmp/kube'
       salt.runSaltProcessStep(master, target, 'file.mkdir', ["${tmp_dir}", "mode=777"])
-      writeFile file: "${tmp_dir}/kubespec.yaml", text: kubespec
-      writeFile file: "${tmp_dir}/kube.config", text: kube_config
+      writeFile file: "${tmp_dir}/k8s-ca.crt", text: k8s_ca
+      writeFile file: "${tmp_dir}/k8s-client.key", text: k8s_client_key
+      writeFile file: "${tmp_dir}/k8s-client.crt", text: k8s_client_crt
       salt.cmdRun(master, target, "mv ${tmp_dir}/* ${results}/")
       salt.runSaltProcessStep(master, target, 'file.rmdir', ["${tmp_dir}"])
       cmd_rally_init = 'set -e ; set -x; if [ ! -w ~/.rally ]; then sudo chown rally:rally ~/.rally ; fi; cd /tmp/; ' +
           "git clone -b ${plugins_branch ?: 'master'} ${plugins_repo} plugins; " +
           "sudo pip install --upgrade ./plugins; " +
-          "rally env create --name k8s --spec ${dest_folder}/kubespec.yaml; " +
+          "rally env create --name k8s --from-sysenv; " +
           "rally env check k8s; "
       if (repository == '' ) {
         cmd_rally_start = "rally $rally_extra_args task start " +
-            "./plugins/samples/scenarios/kubernetes/run-namespaced-pod.yaml; "
+            "./plugins/samples/scenarios/kubernetes/create-and-delete-pod.yaml; "
         cmd_rally_checkout = ''
       } else {
         cmd_rally_checkout = "git clone -b ${branch ?: 'master'} ${repository} test_config; "
         if (scenarios == '') {
-          cmd_rally_start = "rally $rally_extra_args task start test_config/rally-k8s/run-namespaced-pod.yaml "
+          cmd_rally_start = "rally $rally_extra_args task start test_config/rally-k8s/create-and-delete-pod.yaml "
         } else {
           cmd_rally_start = "rally $rally_extra_args task start scenarios.yaml "
           cmd_rally_checkout += "if [ -f ${scenarios} ]; then cp ${scenarios} scenarios.yaml; " +
