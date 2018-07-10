@@ -531,6 +531,7 @@ def installOpenstackNetwork(master, physical = "false", extra_tgt = '') {
 
 def installOpenstackCompute(master, extra_tgt = '') {
     def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
     // Configure compute nodes
     def compute_compound = "I@nova:compute ${extra_tgt}"
     if (salt.testTarget(master, compute_compound)) {
