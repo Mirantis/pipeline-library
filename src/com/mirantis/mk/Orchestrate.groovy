@@ -538,14 +538,17 @@ def installOpenstackCompute(master, extra_tgt = '') {
         def gluster_compound = "I@glusterfs:server ${extra_tgt}"
         def salt_ca_compound = "I@salt:minion:ca:salt_master_ca ${extra_tgt}"
         // Enforce highstate asynchronous only on compute nodes which are not glusterfs and not salt ca servers
-        def hightstateTarget = "${compute_compound} and not (${gluster_compound}) and not (${salt_ca_compound})"
+        def hightstateTarget = "${compute_compound} and not ${gluster_compound} and not ${salt_ca_compound}"
         if (salt.testTarget(master, hightstateTarget)) {
             retry(2) {
                 salt.enforceHighstateWithExclude(master, hightstateTarget, 'opencontrail.client')
             }
+        } else {
+            common.infoMsg("No minions matching highstate target found for target ${hightstateTarget}")
         }
         // Iterate through salt ca servers and check if they have compute role
         // TODO: switch to batch once salt 2017.7+ would be used
+        common.infoMsg("Checking whether ${salt_ca_compound} minions have ${compute_compound} compound")
         for ( target in salt.getMinionsSorted(master, salt_ca_compound) ) {
             for ( cmp_target in salt.getMinionsSorted(master, compute_compound) ) {
                 if ( target == cmp_target ) {
@@ -558,6 +561,7 @@ def installOpenstackCompute(master, extra_tgt = '') {
         }
         // Iterate through glusterfs servers and check if they have compute role
         // TODO: switch to batch once salt 2017.7+ would be used
+        common.infoMsg("Checking whether ${gluster_compound} minions have ${compute_compound} compound")
         for ( target in salt.getMinionsSorted(master, gluster_compound) ) {
             for ( cmp_target in salt.getMinionsSorted(master, compute_compound) ) {
                 if ( target == cmp_target ) {
