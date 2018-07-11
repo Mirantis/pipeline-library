@@ -500,7 +500,7 @@ def installManilaShare(master, extra_tgt = ''){
 }
 
 
-def installOpenstackNetwork(master, physical = "false", extra_tgt = '') {
+def installOpenstackNetwork(master, extra_tgt = '') {
     def salt = new com.mirantis.mk.Salt()
     //run full neutron state on neutron.gateway - this will install
     //neutron agents in addition to neutron server. Once neutron agents
