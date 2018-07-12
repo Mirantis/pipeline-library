@@ -234,7 +234,7 @@ def runTempestTests(master, target, dockerImageLink, output_dir, confRepository,
     }
     cmd += "rally verify report --type json --to ${dest_folder}/report-tempest.json; " +
         "rally verify report --type html --to ${dest_folder}/report-tempest.html"
-    salt.cmdRun(master, target, "docker run -i --rm --net=host -e ${env_vars} " +
+    salt.cmdRun(master, target, "docker run -w /home/rally -i --rm --net=host -e ${env_vars} " +
         "-v ${results}:${dest_folder} --entrypoint /bin/bash ${dockerImageLink} " +
         "-c \"${cmd}\" > ${results}/${output_file}")
     addFiles(master, target, results, output_dir)
@@ -355,9 +355,9 @@ def runRallyTests(master, target, dockerImageLink, platform, output_dir, reposit
     full_cmd = cmd_rally_init + cmd_rally_checkout + cmd_rally_start + cmd_rally_task_args + cmd_report
     salt.runSaltProcessStep(master, target, 'file.touch', ["${results}/rally.db"])
     salt.cmdRun(master, target, "chmod 666 ${results}/rally.db")
-    salt.cmdRun(master, target, "docker run -i --rm --net=host -e ${env_vars} " +
+    salt.cmdRun(master, target, "docker run -w /home/rally -i --rm --net=host -e ${env_vars} " +
         "-v ${results}:${dest_folder} " +
-        "-v ${results}/rally.db:/home/rally/.rally/rally.db " +
+        "-v ${results}/rally.db:/home/rally/data/rally.db " +
         "--entrypoint /bin/bash ${dockerImageLink} " +
         "-c \"${full_cmd}\" > ${results}/${output_file}")
     addFiles(master, target, results, output_dir)
