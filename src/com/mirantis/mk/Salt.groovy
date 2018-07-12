@@ -64,9 +64,13 @@ def runSaltCommand(saltId, client, target, function, batch = null, args = null, 
         'client': client,
         'expr_form': target.type,
     ]
-    if(batch != null && ( (batch instanceof Integer && batch > 0) || (batch instanceof String && batch.contains("%")))){
-        data['client']= "local_batch"
-        data['batch'] = batch
+
+    if(batch != null){
+        batch = batch.toString()
+        if( (batch.isInteger() && batch.toInteger() > 0) || (batch.contains("%"))){
+            data['client']= "local_batch"
+            data['batch'] = batch
+        }
     }
 
     if (args) {
@@ -733,6 +737,8 @@ def checkResult(result, failOnError = true, printResults = true, printOnlyChange
                             def resKey;
                             if(node instanceof Map){
                                 resKey = node.keySet()[k]
+                                if (resKey == "retcode")
+                                    continue
                             }else if(node instanceof List){
                                 resKey = k
                             }
