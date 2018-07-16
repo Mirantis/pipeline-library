@@ -8,8 +8,8 @@ import org.yaml.snakeyaml.Yaml
  * fix groovy List.collect()
  **/
 @NonCPS
-def constructString(ArrayList options, String keyOption, String separator = " ") {
-    return options.collect { keyOption + it }.join(separator).replaceAll("\n", "")
+def constructString(ArrayList options, String keyOption, String separator = ' ') {
+    return options.collect { keyOption + it }.join(separator).replaceAll('\n', '')
 }
 
 /**
@@ -18,8 +18,8 @@ def constructString(ArrayList options, String keyOption, String separator = " ")
  * @param format Defaults to yyyyMMddHHmmss
  */
 def getDatetime(format = "yyyyMMddHHmmss") {
-    def now = new Date();
-    return now.format(format, TimeZone.getTimeZone('UTC'));
+    def now = new Date()
+    return now.format(format, TimeZone.getTimeZone('UTC'))
 }
 
 /**
@@ -30,7 +30,7 @@ def runTox(String env = null) {
   if (env) {
     sh "tox -v -e ${env}"
   } else {
-    sh "tox -v"
+    sh 'tox -v'
   }
 }
 
