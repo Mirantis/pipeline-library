@@ -48,7 +48,9 @@ def installFoundationInfra(master, staticMgmtNet=false, extra_tgt = '') {
     if (staticMgmtNet) {
         salt.runSaltProcessStep(master, "* ${extra_tgt}", 'cmd.shell', ["salt-call state.sls linux.network; salt-call service.restart salt-minion"], null, true, 60)
     }
-    salt.enforceState(master, "I@linux:network:interface ${extra_tgt}", ['linux.network.interface'])
+    common.retry(2,5){
+        salt.enforceState(master, "I@linux:network:interface ${extra_tgt}", ['linux.network.interface'])
+    }
     sleep(5)
     salt.enforceState(master, "I@linux:system ${extra_tgt}", ['linux', 'openssh', 'ntp', 'rsyslog'])
     salt.enforceState(master, "* ${extra_tgt}", ['salt.minion'], true, false, null, false, 60, 2)
