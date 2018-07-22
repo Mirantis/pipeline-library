@@ -667,10 +667,11 @@ def generateNodeMetadata(saltId, target, host, classes, parameters) {
  * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Orchestration target
  * @param orchestrate Salt orchestrate params
+ * @param kwargs Salt orchestrate params
  * @return output of salt command
  */
-def orchestrateSystem(saltId, target, orchestrate) {
-    return runSaltCommand(saltId, 'runner', target, 'state.orchestrate', [orchestrate])
+def orchestrateSystem(saltId, target, orchestrate=[], kwargs = null) {
+    return runSaltCommand(saltId, 'runner', target, 'state.orchestrate', true, orchestrate, kwargs, -1, -1)
 }
 
 /**
