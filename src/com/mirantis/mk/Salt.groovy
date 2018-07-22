@@ -675,6 +675,42 @@ def orchestrateSystem(saltId, target, orchestrate=[], kwargs = null) {
 }
 
 /**
+ * Run salt pre or post orchestrate tasks
+ *
+ * @param  saltId       Salt Connection object or pepperEnv (the command will be sent using the selected method)
+ * @param  pillar_tree  Reclass pillar that has orchestrate pillar for desired stage
+ * @param  extra_tgt    Extra targets for compound
+ *
+ * @return              output of salt command
+ */
+def orchestratePrePost(saltId, pillar_tree, extra_tgt = '') {
+
+    def common = new com.mirantis.mk.Common()
+    def salt = new com.mirantis.mk.Salt()
+    def compound = 'I@' + pillar_tree + " " + extra_tgt
+
+    common.infoMsg("Refreshing pillars")
+    runSaltProcessStep(saltId, '*', 'saltutil.refresh_pillar', [], null, true)
+
+    common.infoMsg("Looking for orchestrate pillars")
+    if (salt.testTarget(saltId, compound)) {
+        for ( node in salt.getMinionsSorted(saltId, compound) ) {
+            def pillar = salt.getPillar(saltId, node, pillar_tree)
+            if ( !pillar['return'].isEmpty() ) {
+                for ( orch_id in pillar['return'][0].values() ) {
+                    def orchestrator = orch_id.values()['orchestrator']
+                    def orch_enabled = orch_id.values()['enabled']
+                    if ( orch_enabled ) {
+                        common.infoMsg("Orchestrating: ${orchestrator}")
+                        salt.printSaltCommandResult(salt.orchestrateSystem(saltId, ['expression': node], [orchestrator]))
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
  * Run salt process step
  * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param tgt Salt process step target
@@ -910,6 +946,7 @@ def getFileContent(saltId, target, file) {
  * @param saltId         Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param salt_overrides YAML formatted string containing key: value, one per line
  * @param reclass_dir    Directory where Reclass git repo is located
+ * @param extra_tgt      Extra targets for compound
  */
 
 def setSaltOverrides(saltId, salt_overrides, reclass_dir="/srv/salt/reclass", extra_tgt = '') {
