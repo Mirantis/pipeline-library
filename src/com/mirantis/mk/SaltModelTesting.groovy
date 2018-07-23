@@ -20,7 +20,7 @@ package com.mirantis.mk
  */
 
 def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSource = 'pkg',
-                     formulasRevision = 'stable', reclassVersion = "1.5.4", dockerMaxCpus = 0,
+                     formulasRevision = 'stable', reclassVersion = "master", dockerMaxCpus = 0,
                      ignoreClassNotfound = false, legacyTestingMode = false, aptRepoUrl = '', aptRepoGPG = '', dockerContainerName = false) {
   // timeout for test execution (40min)
   def testTimeout = 40 * 60
