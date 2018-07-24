@@ -210,7 +210,7 @@ def runTempestTests(master, target, dockerImageLink, output_dir, confRepository,
     salt.runSaltProcessStep(master, target, 'file.mkdir', ["${results}", "mode=777"])
     def _pillar = salt.getPillar(master, 'I@keystone:server', 'keystone:server')
     def keystone = _pillar['return'][0].values()[0]
-    def env_vars = ['tempest_version=${version}',
+    def env_vars = ["tempest_version=${version}",
                     "OS_USERNAME=${keystone.admin_name}",
                     "OS_PASSWORD=${keystone.admin_password}",
                     "OS_TENANT_NAME=${keystone.admin_tenant}",
