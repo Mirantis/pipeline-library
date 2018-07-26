@@ -700,7 +700,9 @@ def installDockerSwarm(master, extra_tgt = '') {
     salt.runSaltProcessStep(master, "I@docker:swarm ${extra_tgt}", 'saltutil.refresh_modules')
     sleep(5)
     salt.enforceState(master, "I@docker:swarm:role:master ${extra_tgt}", 'docker.swarm')
-    salt.enforceState(master, "I@docker:swarm:role:manager ${extra_tgt}", 'docker.swarm')
+    if (salt.testTarget(master, "I@docker:swarm:role:manager ${extra_tgt}")){
+      salt.enforceState(master, "I@docker:swarm:role:manager ${extra_tgt}", 'docker.swarm')
+    }
     sleep(10)
     salt.cmdRun(master, "I@docker:swarm:role:master ${extra_tgt}", 'docker node ls')
 }
