@@ -380,6 +380,40 @@ def getHeatStackServers(env, name, path = null) {
 }
 
 /**
+ * Delete nova key pair
+ *
+ * @param env          Connection parameters for OpenStack API endpoint
+ * @param name         Name of the key pair to delete
+ * @param path         Optional path to the custom virtualenv
+ */
+def deleteKeyPair(env, name, path = null) {
+    def common = new com.mirantis.mk.Common()
+    common.infoMsg("Removing key pair ${name}")
+    def cmd = "openstack keypair delete ${name}"
+    runOpenstackCommand(cmd, env, path)
+}
+
+/**
+ * Get nova key pair
+ *
+ * @param env          Connection parameters for OpenStack API endpoint
+ * @param name         Name of the key pair to show
+ * @param path         Optional path to the custom virtualenv
+ */
+
+def getKeyPair(env, name, path = null) {
+    def common = new com.mirantis.mk.Common()
+    def cmd = "openstack keypair show ${name}"
+    def outputTable
+    try {
+        outputTable = runOpenstackCommand(cmd, env, path)
+    } catch (Exception e) {
+        common.infoMsg("Key pair ${name} not found")
+    }
+    return outputTable
+}
+
+/**
  * Stops all services that contain specific string (for example nova,heat, etc.)
  * @param env Salt Connection object or pepperEnv
  * @param probe single node on which to list service names
