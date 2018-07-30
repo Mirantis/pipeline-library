@@ -1274,3 +1274,31 @@ def installOss(master, extra_tgt = '') {
   }
   salt.enforceState(master, "I@elasticsearch:client ${extra_tgt}", 'elasticsearch.client')
 }
+
+/**
+ * Function receives connection string, target and configuration yaml pattern
+ * and retrieves config fom salt minion according to pattern. After that it
+ * sorts applications according to priorities and runs orchestration states
+ * @param master Salt Connection object or pepperEnv
+ * @param tgt Target
+ * @param conf Configuration pattern
+ */
+def OrchestrateApplications(master, tgt, conf) {
+    def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+    def _orch = salt.getConfig(master, tgt, conf)
+    if ( !_orch['return'][0].values()[0].isEmpty() ) {
+      Map<String,Integer> _orch_app = [:]
+      for (k in _orch['return'][0].values()[0].keySet()) {
+        _orch_app[k] = _orch['return'][0].values()[0][k].values()[0].toInteger()
+      }
+      def _orch_app_sorted = common.SortMapByValueAsc(_orch_app)
+      common.infoMsg("Applications will be deployed in following order:"+_orch_app_sorted.keySet())
+      for (app in _orch_app_sorted.keySet()) {
+        salt.orchestrateSystem(master, ['expression': tgt, 'type': 'compound'], "${app}.orchestrate.deploy")
+      }
+    }
+    else {
+      common.infoMsg("No applications found for orchestration")
+    }
+}

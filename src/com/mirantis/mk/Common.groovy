@@ -539,3 +539,14 @@ def waitForInputThenPass(timeoutInSeconds, options=[message: 'Ready to go?']) {
   }
   return userInput
 }
+
+/**
+ * Function receives Map variable as input and sorts it
+ * by values ascending. Returns sorted Map
+ * @param _map Map variable
+ */
+@NonCPS
+def SortMapByValueAsc(_map) {
+    def sortedMap = _map.sort {it.value}
+    return sortedMap
+}

@@ -132,6 +132,16 @@ def getGrain(saltId, target, grain = null) {
     }
 }
 
+/**
+ * Return config items for given saltId and target
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
+ * @param target Get grain target
+ * @param config grain name (optional)
+ * @return output of salt command
+ */
+def getConfig(saltId, target, config) {
+    return runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'config.get', null, [config.replace('.', ':')], '--out=json')
+}
 
 /**
  * Enforces state on given saltId and target
@@ -671,6 +681,9 @@ def generateNodeMetadata(saltId, target, host, classes, parameters) {
  * @return output of salt command
  */
 def orchestrateSystem(saltId, target, orchestrate=[], kwargs = null) {
+    //Since the runSaltCommand uses "arg" (singular) for "runner" client this won`t work correctly on old salt 2016
+    //cause this version of salt used "args" (plural) for "runner" client, see following link for reference:
+    //https://github.com/saltstack/salt/pull/32938
     return runSaltCommand(saltId, 'runner', target, 'state.orchestrate', true, orchestrate, kwargs, 7200, 7200)
 }
 
