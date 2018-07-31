@@ -210,7 +210,7 @@ def runTempestTests(master, target, dockerImageLink, output_dir, confRepository,
     salt.runSaltProcessStep(master, target, 'file.mkdir', ["${results}", "mode=777"])
     def _pillar = salt.getPillar(master, 'I@keystone:server', 'keystone:server')
     def keystone = _pillar['return'][0].values()[0]
-    def env_vars = ["tempest_version=${version}",
+    def env_vars = ['tempest_version=15.0.0',
                     "OS_USERNAME=${keystone.admin_name}",
                     "OS_PASSWORD=${keystone.admin_password}",
                     "OS_TENANT_NAME=${keystone.admin_tenant}",
@@ -222,7 +222,7 @@ def runTempestTests(master, target, dockerImageLink, output_dir, confRepository,
         cmd = "git clone -b ${confBranch ?: 'master'} ${confRepository} test_config; " +
             'rally deployment create --fromenv --name=tempest; rally deployment config; ' +
             'rally verify create-verifier --name tempest_verifier --type tempest ' +
-            "--source ${repository ?: '/tmp/tempest/'} --version ${version}; " +
+            "--source ${repository ?: '/tmp/tempest/'} --version ${version: '15.0.0'}; " +
             'rally verify configure-verifier --extend test_config/tempest/tempest.conf --show; '
         skip_list = '--skip-list test_config/tempest/skip-list.yaml'
     }
