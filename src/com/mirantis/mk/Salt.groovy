@@ -248,12 +248,20 @@ def cmdRun(saltId, target, cmd, checkResponse = true, batch=null, output = true,
                 def node = out["return"][i];
                 for(int j=0;j<node.size();j++){
                     def nodeKey = node.keySet()[j]
-                    if (!node[nodeKey].contains("Salt command execution success")) {
-                        throw new Exception("Execution of cmd ${originalCmd} failed. Server returns: ${node[nodeKey]}")
+                    if (node[nodeKey] instanceof String) {
+                        if (!node[nodeKey].contains("Salt command execution success")) {
+                            throw new Exception("Execution of cmd ${originalCmd} failed. Server returns: ${node[nodeKey]}")
+                        }
+                    } else if (node[nodeKey] instanceof Boolean) {
+                        if (!node[nodeKey]) {
+                            throw new Exception("Execution of cmd ${originalCmd} failed. Server returns: ${node[nodeKey]}")
+                        }
+                    } else {
+                        throw new Exception("Execution of cmd ${originalCmd} failed. Server returns unexpected data type: ${node[nodeKey]}")
                     }
                 }
             }
-        }else{
+        } else {
             throw new Exception("Salt Api response doesn't have return param!")
         }
     }
