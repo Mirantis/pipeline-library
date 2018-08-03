@@ -1209,11 +1209,6 @@ def installOssInfra(master, extra_tgt = '') {
   def common = new com.mirantis.mk.Common()
   def salt = new com.mirantis.mk.Salt()
 
-  if (!common.checkContains('STACK_INSTALL', 'k8s') || !common.checkContains('STACK_INSTALL', 'openstack')) {
-    def orchestrate = new com.mirantis.mk.Orchestrate()
-    orchestrate.installInfra(master)
-  }
-
   if (salt.testTarget(master, "I@devops_portal:config ${extra_tgt}")) {
     salt.enforceState(master, "I@devops_portal:config ${extra_tgt}", 'devops_portal.config')
     salt.enforceState(master, "I@rundeck:client ${extra_tgt}", ['linux.system.user', 'openssh'])
