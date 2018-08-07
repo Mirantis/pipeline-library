@@ -842,11 +842,18 @@ def installStacklight(master, extra_tgt = '') {
     }
 
     //Install Elasticsearch and Kibana
-    salt.enforceState(master, "*01* and  I@elasticsearch:server ${extra_tgt}", 'elasticsearch.server')
-    salt.enforceState(master, "I@elasticsearch:server ${extra_tgt}", 'elasticsearch.server')
-    salt.enforceState(master, "*01* and I@kibana:server ${extra_tgt}", 'kibana.server')
-    salt.enforceState(master, "I@kibana:server ${extra_tgt}", 'kibana.server')
-
+    if (salt.testTarget(master, "*01* and I@elasticsearch:server:enabled:true ${extra_tgt}")) {
+        salt.enforceState(master, "*01* and I@elasticsearch:server:enabled:true ${extra_tgt}", 'elasticsearch.server')
+    }
+    if (salt.testTarget(master, "I@elasticsearch:server:enabled:true ${extra_tgt}")) {
+        salt.enforceState(master, "I@elasticsearch:server:enabled:true ${extra_tgt}", 'elasticsearch.server')
+    }
+    if (salt.testTarget(master, "*01* and I@kibana:server:enabled:true ${extra_tgt}")) {
+        salt.enforceState(master, "*01* and I@kibana:server:enabled:true ${extra_tgt}", 'kibana.server')
+    }
+    if (salt.testTarget(master, "I@kibana:server:enabled:true ${extra_tgt}")) {
+        salt.enforceState(master, "I@kibana:server:enabled:true ${extra_tgt}", 'kibana.server')
+    }
     // Check ES health cluster status
     def pillar = salt.getPillar(master, "I@elasticsearch:client ${extra_tgt}", 'elasticsearch:client:server:host')
     def elasticsearch_vip
