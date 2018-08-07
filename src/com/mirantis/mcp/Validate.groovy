@@ -327,9 +327,10 @@ def runRallyTests(master, target, dockerImageLink, platform, output_dir, reposit
       writeFile file: "${tmp_dir}/k8s-client.crt", text: k8s_client_crt
       salt.cmdRun(master, target, "mv ${tmp_dir}/* ${results}/")
       salt.runSaltProcessStep(master, target, 'file.rmdir', ["${tmp_dir}"])
-      cmd_rally_init = 'set -e ; set -x; if [ ! -w ~/.rally ]; then sudo chown rally:rally ~/.rally ; fi; cd /tmp/; ' +
+      cmd_rally_init = 'set -e ; set -x; cd /tmp/; ' +
           "git clone -b ${plugins_branch ?: 'master'} ${plugins_repo} plugins; " +
           "sudo pip install --upgrade ./plugins; " +
+          "rally db recreate; " +
           "rally env create --name k8s --from-sysenv; " +
           "rally env check k8s; "
       if (repository == '' ) {
