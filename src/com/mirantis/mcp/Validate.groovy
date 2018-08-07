@@ -254,7 +254,7 @@ def runTempestTests(master, target, dockerImageLink, output_dir, confRepository,
  * @param ext_variables     The list of external variables
  * @param results           The reports directory
  */
-def runRallyTests(master, target, dockerImageLink, platform, output_dir, repository, branch, scenarios = '', tasks_args_file = '', ext_variables = [], results = '/root/qa_results') {
+def runRallyTests(master, target, dockerImageLink, platform, output_dir, repository, branch, scenarios = '', tasks_args_file = '', ext_variables = [], results = '/root/qa_results', skip_list = '') {
     def salt = new com.mirantis.mk.Salt()
     def output_file = 'docker-rally.log'
     def dest_folder = '/home/rally/qa_results'
@@ -266,6 +266,8 @@ def runRallyTests(master, target, dockerImageLink, platform, output_dir, reposit
     def cmd_rally_task_args = ''
     def cmd_report = "rally task export --type junit-xml --to ${dest_folder}/report-rally.xml; " +
         "rally task report --out ${dest_folder}/report-rally.html"
+    def cmd_skip_names = ''
+    def cmd_skip_dirs = ''
     salt.runSaltProcessStep(master, target, 'file.remove', ["${results}"])
     salt.runSaltProcessStep(master, target, 'file.mkdir', ["${results}", "mode=777"])
     if (platform == 'openstack') {
@@ -289,13 +291,25 @@ def runRallyTests(master, target, dockerImageLink, platform, output_dir, reposit
             'rally deployment create --fromenv --name=existing; ' +
             'rally deployment config; '
         cmd_rally_checkout = "git clone -b ${branch ?: 'master'} ${repository} test_config; "
+        if (skip_list != ''){
+          for ( scen in skip_list.split(',') ) {
+            if ( scen.contains('yaml')) {
+              cmd_skip_names += "! -name ${scen} "
+            }
+            else {
+              cmd_skip_dirs += "-path ${scenarios}/${scen} -prune -o "
+            }
+          }
+        }
         if (scenarios == '') {
           cmd_rally_start = "rally $rally_extra_args task start test_config/rally/scenario.yaml "
         } else {
           cmd_rally_start = "rally $rally_extra_args task start scenarios.yaml "
           cmd_rally_checkout += "if [ -f ${scenarios} ]; then cp ${scenarios} scenarios.yaml; " +
               "else " +
-              "find -L ${scenarios} -name '*.yaml' -exec cat {} >> scenarios.yaml \\; ; " +
+              "find -L ${scenarios} " + cmd_skip_dirs +
+              " -name '*.yaml' " + cmd_skip_names +
+              "-exec cat {} >> scenarios.yaml \\; ; " +
               "sed -i '/---/d' scenarios.yaml; fi; "
         }
       }
