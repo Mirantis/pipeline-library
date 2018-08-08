@@ -177,10 +177,9 @@ def testCCModel(cfg) {
       '',
       cfg.DockerCName)
   if (testResult) {
-    common.infoMsg("testCCModel for model ${cfg.modelFile} finished: SUCCESS")
+    common.infoMsg("testCCModel for context: ${cfg.modelFile} model: ${cfg.testReclassEnv} finished: SUCCESS")
   } else {
-    error("testCCModel for model ${cfg.modelFile} finished: FAILURE")
-    throw new RuntimeException("testCCModel for model ${cfg.modelFile} finished: FAILURE")
+    throw new RuntimeException("testCCModel for context: ${cfg.modelFile} model: ${cfg.testReclassEnv} finished: FAILURE")
   }
   return testResult
 }
