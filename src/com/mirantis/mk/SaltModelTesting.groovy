@@ -47,10 +47,23 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
                "DEBUG=1", "MASTER_HOSTNAME=${masterName}", "CLUSTER_NAME=${clusterName}", "MINION_ID=${masterName}",
                "RECLASS_VERSION=${reclassVersion}", "RECLASS_IGNORE_CLASS_NOTFOUND=${ignoreClassNotfound}", "APT_REPOSITORY=${aptRepoUrl}",
                "APT_REPOSITORY_GPG=${aptRepoGPG}", "SALT_STOPSTART_WAIT=5"]) {
+        // Currently, we don't have any other point to install
+        // runtime dependencies for tests.
+        sh('''#!/bin/bash -xe
+              echo "APT::Get::AllowUnauthenticated 'true';"  > /etc/apt/apt.conf.d/99setupAndTestNode
+              echo "APT::Get::Install-Suggests 'false';"  >> /etc/apt/apt.conf.d/99setupAndTestNode
+              echo "APT::Get::Install-Recommends 'false';"  >> /etc/apt/apt.conf.d/99setupAndTestNode
+              echo 'deb [arch=amd64] http://mirror.mirantis.com/nightly/ubuntu xenial main restricted universe' > /etc/apt/sources.list
+              echo 'deb [arch=amd64] http://mirror.mirantis.com/nightly/ubuntu xenial-updates main restricted universe' >> /etc/apt/sources.list
+              echo "Installing extra-deb dependencies inside docker:"
+              apt-get update
+              apt-get install -y python-netaddr
+          ''')
         sh(script: "git clone https://github.com/salt-formulas/salt-formulas-scripts /srv/salt/scripts", returnStdout: true)
         sh("""rsync -ah ${testDir}/* /srv/salt/reclass && echo '127.0.1.2  salt' >> /etc/hosts
               cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt-mk.mirantis.com/apt.mirantis.net:8085/g' {} \\;
               cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt.mirantis.com/apt.mirantis.net:8085/g' {} \\;""")
+        // FIXME: should be changed to use reclass from mcp_extra_nigtly?
         sh("""for s in \$(python -c \"import site; print(' '.join(site.getsitepackages()))\"); do
                 sudo -H pip install --install-option=\"--prefix=\" --upgrade --force-reinstall -I \
                     -t \"\$s\" git+https://github.com/salt-formulas/reclass.git@${reclassVersion};
@@ -76,11 +89,17 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
             sh('''#!/bin/bash
                   source /srv/salt/scripts/bootstrap.sh
                   cd /srv/salt/scripts
-                  verify_salt_minions''')
+                  verify_salt_minions
+                  ''')
           }
         }
         // If we didn't dropped for now - test has been passed.
         TestMarkerResult = true
+        // Collect rendered per-node data.Those info could be simply used
+        // for diff processing. Data was generated via reclass.cli --nodeinfo,
+        /// during verify_salt_minions.
+        sh(script: "cd /tmp; tar -czf ${env.WORKSPACE}/nodesinfo.tar.gz *reclass*", returnStatus: true)
+        archiveArtifacts artifacts: "nodesinfo.tar.gz"
       }
     }
   }
