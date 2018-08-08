@@ -22,11 +22,11 @@ package com.mirantis.mk
 def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSource = 'pkg',
                      formulasRevision = 'stable', reclassVersion = "master", dockerMaxCpus = 0,
                      ignoreClassNotfound = false, legacyTestingMode = false, aptRepoUrl = '', aptRepoGPG = '', dockerContainerName = false) {
+  def common = new com.mirantis.mk.Common()
   // timeout for test execution (40min)
   def testTimeout = 40 * 60
   def TestMarkerResult = false
   def saltOpts = "--retcode-passthrough --force-color"
-  def common = new com.mirantis.mk.Common()
   def workspace = common.getWorkspace()
   def img = docker.image("mirantis/salt:saltstack-ubuntu-xenial-salt-2017.7")
   img.pull()
@@ -46,7 +46,7 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
       withEnv(["FORMULAS_SOURCE=${formulasSource}", "EXTRA_FORMULAS=${extraFormulas}", "DISTRIB_REVISION=${formulasRevision}",
                "DEBUG=1", "MASTER_HOSTNAME=${masterName}", "CLUSTER_NAME=${clusterName}", "MINION_ID=${masterName}",
                "RECLASS_VERSION=${reclassVersion}", "RECLASS_IGNORE_CLASS_NOTFOUND=${ignoreClassNotfound}", "APT_REPOSITORY=${aptRepoUrl}",
-               "APT_REPOSITORY_GPG=${aptRepoGPG}", "SALT_STOPSTART_WAIT=10"]) {
+               "APT_REPOSITORY_GPG=${aptRepoGPG}", "SALT_STOPSTART_WAIT=5"]) {
         sh(script: "git clone https://github.com/salt-formulas/salt-formulas-scripts /srv/salt/scripts", returnStdout: true)
         sh("""rsync -ah ${testDir}/* /srv/salt/reclass && echo '127.0.1.2  salt' >> /etc/hosts
               cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt-mk.mirantis.com/apt.mirantis.net:8085/g' {} \\;
@@ -129,4 +129,58 @@ def setupAndTestNode(masterName, clusterName, extraFormulas, testDir, formulasSo
 
 def testMinion(minionName) {
   sh(script: "bash -c 'source /srv/salt/scripts/bootstrap.sh; cd /srv/salt/scripts && verify_salt_minion ${minionName}'", returnStdout: true)
+}
+
+
+/**
+ * Wrapper over setupAndTestNode, to test exactly one CC model.
+   Whole workspace and model - should be pre-rendered and passed via MODELS_TARGZ
+   Flow: grab all data, and pass to setupAndTestNode function
+   under-modell will be directly mirrored to `model/{cfg.testReclassEnv}/* /srv/salt/reclass/*`
+ *
+ * @param cfg - dict with params:
+  MODELS_TARGZ       http link to arch with (models|contexts|global_reclass)
+  modelFile
+  DockerCName        directly passed to setupAndTestNode
+  EXTRA_FORMULAS     directly passed to setupAndTestNode
+  DISTRIB_REVISION   directly passed to setupAndTestNode
+  reclassVersion     directly passed to setupAndTestNode
+
+  Return: true\exception
+ */
+
+def testCCModel(cfg) {
+  def common = new com.mirantis.mk.Common()
+  sh(script:  'find . -mindepth 1 -delete || true', returnStatus: true)
+  sh(script: "wget --progress=dot:mega --auth-no-challenge -O models.tar.gz ${cfg.MODELS_TARGZ}")
+  // unpack data
+  sh(script: "tar -xzf models.tar.gz ")
+  common.infoMsg("Going to test exactly one context: ${cfg.modelFile}\n, with params: ${cfg}")
+  content = readFile(file: cfg.modelFile)
+  templateContext = readYaml text: content
+  clusterName = templateContext.default_context.cluster_name
+  clusterDomain = templateContext.default_context.cluster_domain
+
+  def testResult = false
+  testResult = setupAndTestNode(
+      "cfg01.${clusterDomain}",
+      clusterName,
+      cfg.EXTRA_FORMULAS,
+      cfg.testReclassEnv, // Sync into image exactly one env
+      'pkg',
+      cfg.DISTRIB_REVISION,
+      cfg.reclassVersion,
+      0,
+      false,
+      false,
+      '',
+      '',
+      cfg.DockerCName)
+  if (testResult) {
+    common.infoMsg("testCCModel for model ${cfg.modelFile} finished: SUCCESS")
+  } else {
+    error("testCCModel for model ${cfg.modelFile} finished: FAILURE")
+    throw new RuntimeException("testCCModel for model ${cfg.modelFile} finished: FAILURE")
+  }
+  return testResult
 }
