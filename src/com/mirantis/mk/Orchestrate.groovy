@@ -693,18 +693,20 @@ def installDockerSwarm(master, extra_tgt = '') {
     def salt = new com.mirantis.mk.Salt()
 
     //Install and Configure Docker
-    salt.enforceState(master, "I@docker:swarm ${extra_tgt}", 'docker.host')
-    salt.enforceState(master, "I@docker:swarm:role:master ${extra_tgt}", 'docker.swarm')
-    salt.enforceState(master, "I@docker:swarm ${extra_tgt}", 'salt.minion.grains')
-    salt.runSaltProcessStep(master, "I@docker:swarm ${extra_tgt}", 'mine.update')
-    salt.runSaltProcessStep(master, "I@docker:swarm ${extra_tgt}", 'saltutil.refresh_modules')
-    sleep(5)
-    salt.enforceState(master, "I@docker:swarm:role:master ${extra_tgt}", 'docker.swarm')
-    if (salt.testTarget(master, "I@docker:swarm:role:manager ${extra_tgt}")){
-      salt.enforceState(master, "I@docker:swarm:role:manager ${extra_tgt}", 'docker.swarm')
+    if (salt.testTarget(master, "I@docker:swarm ${extra_tgt}")) {
+        salt.enforceState(master, "I@docker:swarm ${extra_tgt}", 'docker.host')
+        salt.enforceState(master, "I@docker:swarm:role:master ${extra_tgt}", 'docker.swarm')
+        salt.enforceState(master, "I@docker:swarm ${extra_tgt}", 'salt.minion.grains')
+        salt.runSaltProcessStep(master, "I@docker:swarm ${extra_tgt}", 'mine.update')
+        salt.runSaltProcessStep(master, "I@docker:swarm ${extra_tgt}", 'saltutil.refresh_modules')
+        sleep(5)
+        salt.enforceState(master, "I@docker:swarm:role:master ${extra_tgt}", 'docker.swarm')
+        if (salt.testTarget(master, "I@docker:swarm:role:manager ${extra_tgt}")){
+            salt.enforceState(master, "I@docker:swarm:role:manager ${extra_tgt}", 'docker.swarm')
+        }
+        sleep(10)
+        salt.cmdRun(master, "I@docker:swarm:role:master ${extra_tgt}", 'docker node ls')
     }
-    sleep(10)
-    salt.cmdRun(master, "I@docker:swarm:role:master ${extra_tgt}", 'docker node ls')
 }
 
 
