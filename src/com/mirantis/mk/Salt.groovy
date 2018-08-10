@@ -692,7 +692,22 @@ def orchestrateSystem(saltId, target, orchestrate=[], kwargs = null) {
     //Since the runSaltCommand uses "arg" (singular) for "runner" client this won`t work correctly on old salt 2016
     //cause this version of salt used "args" (plural) for "runner" client, see following link for reference:
     //https://github.com/saltstack/salt/pull/32938
-    return runSaltCommand(saltId, 'runner', target, 'state.orchestrate', true, orchestrate, kwargs, 7200, 7200)
+    def common = new com.mirantis.mk.Common()
+    def result = runSaltCommand(saltId, 'runner', target, 'state.orchestrate', true, orchestrate, kwargs, 7200, 7200)
+        if(result != null){
+            if(result['return']){
+                def retcode = result['return'][0].get('retcode')
+                if (retcode != 0) {
+                    throw new Exception("Orchestration state failed while running: "+orchestrate)
+                }else{
+                    common.infoMsg("Orchestrate state "+orchestrate+" succeeded")
+                }
+            }else{
+                common.errorMsg("Salt result has no return attribute! Result: ${result}")
+            }
+        }else{
+            common.errorMsg("Cannot check salt result, given result is null")
+        }
 }
 
 /**
