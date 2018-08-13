@@ -600,7 +600,7 @@ def installContrailNetwork(master, extra_tgt = '') {
     salt.enforceStateWithExclude(master, "I@opencontrail:collector ${extra_tgt}", "opencontrail", "opencontrail.client")
 
     if (salt.testTarget(master, "I@docker:client and I@opencontrail:control ${extra_tgt}")) {
-        salt.enforceState(master, "I@opencontrail:control or I@opencontrail:collector ${extra_tgt}", 'docker.client')
+        salt.enforceState(master, "( I@opencontrail:control or I@opencontrail:collector ) ${extra_tgt}", 'docker.client')
     }
     installBackup(master, 'contrail', extra_tgt)
 }
@@ -834,7 +834,7 @@ def installStacklight(master, extra_tgt = '') {
     }
 
     //Install Telegraf
-    salt.enforceState(master, "I@telegraf:agent or I@telegraf:remote_agent ${extra_tgt}", 'telegraf')
+    salt.enforceState(master, "( I@telegraf:agent or I@telegraf:remote_agent ) ${extra_tgt}", 'telegraf')
 
     // Install Prometheus exporters
     if (salt.testTarget(master, "I@prometheus:exporters ${extra_tgt}")) {
@@ -1022,7 +1022,7 @@ def installStacklightv1Client(master, extra_tgt = '') {
     sleep(5)
 
     // Update Heka
-    salt.enforceState(master, "I@heka:aggregator:enabled:True or I@heka:remote_collector:enabled:True ${extra_tgt}", 'heka')
+    salt.enforceState(master, "( I@heka:aggregator:enabled:True or I@heka:remote_collector:enabled:True ) ${extra_tgt}", 'heka')
 
     // Update collectd
     salt.enforceState(master, "I@collectd:remote_client:enabled:True ${extra_tgt}", 'collectd')
@@ -1149,10 +1149,10 @@ def installCephMon(master, target="I@ceph:mon", extra_tgt = '') {
     salt.enforceState(master, "I@ceph:common ${extra_tgt}", 'salt.minion.grains')
 
     // generate keyrings
-    if (salt.testTarget(master, "I@ceph:mon:keyring:mon ${extra_tgt} or I@ceph:common:keyring:admin ${extra_tgt}")) {
-        salt.enforceState(master, "I@ceph:mon:keyring:mon ${extra_tgt} or I@ceph:common:keyring:admin ${extra_tgt}", 'ceph.mon')
+    if (salt.testTarget(master, "( I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin ) ${extra_tgt}")) {
+        salt.enforceState(master, "( I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin ) ${extra_tgt}", 'ceph.mon')
         salt.runSaltProcessStep(master, "I@ceph:mon ${extra_tgt}", 'saltutil.sync_grains')
-        salt.runSaltProcessStep(master, "I@ceph:mon:keyring:mon ${extra_tgt} or I@ceph:common:keyring:admin ${extra_tgt}", 'mine.update')
+        salt.runSaltProcessStep(master, "( I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin ) ${extra_tgt}", 'mine.update')
         sleep(5)
     }
     // install Ceph Mons
