@@ -164,6 +164,38 @@ def enforceStateWithExclude(saltId, target, state, excludedStates = "", output =
     return enforceState(saltId, target, state, output, failOnError, batch, optional, read_timeout, retries, queue, saltArgs)
 }
 
+/**
+ * Allows to test the given target for reachability and if reachable enforces the state
+* @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
+ * @param target State enforcing target
+ * @param state Salt state
+ * @param testTargetMatcher Salt compound matcher to be tested (default is empty string). If empty string, param `target` will be used for tests
+ * @param output print output (optional, default true)
+ * @param failOnError throw exception on salt state result:false (optional, default true)
+ * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
+ * @param optional Optional flag (if true pipeline will continue even if no minions for target found)
+ * @param read_timeout http session read timeout (optional, default -1 - disabled)
+ * @param retries Retry count for salt state. (optional, default -1 - no retries)
+ * @param queue salt queue parameter for state.sls calls (optional, default true) - CANNOT BE USED WITH BATCH
+ * @param saltArgs additional salt args eq. ["runas=aptly"]
+ * @return output of salt command
+ */
+def enforceStateWithTest(saltId, target, state, testTargetMatcher = "", output = true, failOnError = true, batch = null, optional = false, read_timeout=-1, retries=-1, queue=true, saltArgs=[]) {
+    def common = new com.mirantis.mk.Common()
+    if (!testTargetMatcher) {
+        testTargetMatcher = target
+    }
+    if (testTarget(saltId, testTargetMatcher)) {
+        return enforceState(saltId, target, state, output, failOnError, batch, false, read_timeout, retries, queue, saltArgs)
+    } else {
+        if (!optional) {
+                throw new Exception("No Minions matched the target matcher: ${testTargetMatcher}.")
+            } else {
+                common.infoMsg("No Minions matched the target given, but 'optional' param was set to true - Pipeline continues. ")
+            }
+    }
+}
+
 /* Enforces state on given saltId and target
  * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target State enforcing target
