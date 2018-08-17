@@ -550,3 +550,155 @@ def SortMapByValueAsc(_map) {
     def sortedMap = _map.sort {it.value}
     return sortedMap
 }
+
+/**
+ *  Compare 'old' and 'new' dir's recursively
+ * @param diffData =' Only in new/XXX/infra: secrets.yml
+ Files old/XXX/init.yml and new/XXX/init.yml differ
+ Only in old/XXX/infra: secrets11.yml '
+ *
+ * @return
+ *   - new:
+ - XXX/secrets.yml
+ - diff:
+ - XXX/init.yml
+ - removed:
+ - XXX/secrets11.yml
+
+ */
+def diffCheckMultidir(diffData) {
+  common = new com.mirantis.mk.Common()
+  // Some global constants. Don't change\move them!
+  keyNew = 'new'
+  keyRemoved = 'removed'
+  keyDiff = 'diff'
+  def output = [
+      new    : [],
+      removed: [],
+      diff   : [],
+  ]
+  String pathSep = '/'
+  diffData.each { line ->
+    def job_file = ''
+    def job_type = ''
+    if (line.startsWith('Files old/')) {
+      job_file = new File(line.replace('Files old/', '').tokenize()[0])
+      job_type = keyDiff
+    } else if (line.startsWith('Only in new/')) {
+      // get clean normalized filepath, under new/
+      job_file = new File(line.replace('Only in new/', '').replace(': ', pathSep)).toString()
+      job_type = keyNew
+    } else if (line.startsWith('Only in old/')) {
+      // get clean normalized filepath, under old/
+      job_file = new File(line.replace('Only in old/', '').replace(': ', pathSep)).toString()
+      job_type = keyRemoved
+    } else {
+      common.warningMsg("Not parsed diff line: ${line}!")
+    }
+    if (job_file != '') {
+      output[job_type].push(job_file)
+    }
+  }
+  return output
+}
+
+/**
+ * Compare 2 folder, file by file
+ * Structure should be:
+ * ${compRoot}/
+ └── diff - diff results will be save here
+ ├── new  - input folder with data
+ ├── old  - input folder with data
+ ├── pillar.diff - globall diff will be saved here
+ * b_url - usual env.BUILD_URL, to be add into description
+ * findRegEx - stub for future
+ * return - html-based string
+ * TODO: allow to specify subdir for results?
+ * TODO: implement proper regex?
+ **/
+def comparePillars(compRoot, b_url, findRegEx) {
+  common = new com.mirantis.mk.Common()
+  //  findRegEx = '.*.infra/secrets.yml'
+  //  if (findRegEx) {
+  //    withEnv(["S_REGEX=${findRegEx}"]) {
+  //      sh(script: """
+  //        find ${dir1} ${dir2} -type f \\(  -regex '${findRegEx}' \\) > diff_exclude.list
+  //
+  //        """)
+  //      cmdline = '--exclude-from=diff_exclude.list'
+  //    }
+  //  }
+  // Some global constants. Don't change\move them!
+  keyNew = 'new'
+  keyRemoved = 'removed'
+  keyDiff = 'diff'
+  def diff_status = 0
+  // FIXME
+  httpWS = b_url + '/artifact/'
+  dir(compRoot) {
+    diff_status = sh(
+        // If diff empty - exit 0
+        script: """
+          diff -q -r old/ new/  > pillar.diff
+          """,
+        returnStatus: true,
+    )
+  }
+  // Set job description
+  String description = ''
+  if (diff_status == 1) {
+    // Analyse output file and prepare array with results
+    String data_ = readFile file: "${compRoot}/pillar.diff"
+    def diff_list = diffCheckMultidir(data_.split("\\r?\\n"))
+    common.infoMsg(diff_list)
+    dir(compRoot) {
+      if (diff_list[keyDiff].size() > 0) {
+        if (!fileExists('diff')) {
+          sh('mkdir -p diff')
+        }
+        description += '<b>CHANGED</b><ul>'
+        common.infoMsg('Changed items:')
+        for (item in diff_list[keyDiff]) {
+          // We don't want to handle sub-dirs structure. So, simply make diff 'flat'
+          item_f = item.toString().replace('/', '_')
+          description += "<li><a href=\"${httpWS}/diff/${item_f}/*view*/\">${item}</a></li>"
+          // Generate diff file
+          def diff_exit_code = sh([
+              script      : "diff -U 50 old/${item} new/${item} > diff/${item_f}",
+              returnStdout: false,
+              returnStatus: true,
+          ])
+          // catch normal errors, diff should always return 1
+          if (diff_exit_code != 1) {
+            error 'Error with diff file generation'
+          }
+        }
+      }
+      if (diff_list[keyNew].size() > 0) {
+        description += '<b>ADDED</b><ul>'
+        for (item in diff_list[keyNew]) {
+          description += "<li><a href=\"${httpWS}/new/${item}/*view*/\">${item}</a></li>"
+        }
+      }
+      if (diff_list[keyRemoved].size() > 0) {
+        description += '<b>DELETED</b><ul>'
+        for (item in diff_list[keyRemoved]) {
+          description += "<li><a href=\"${httpWS}/old/${item}/*view*/\">${item}</a></li>"
+        }
+      }
+
+    }
+  }
+
+  if (description != '') {
+    dir(compRoot) {
+      archiveArtifacts([
+          artifacts        : '**',
+          allowEmptyArchive: true,
+      ])
+    }
+    return description.toString()
+  } else {
+    return 'No job changes'
+  }
+}
