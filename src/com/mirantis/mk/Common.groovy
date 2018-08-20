@@ -608,23 +608,14 @@ def diffCheckMultidir(diffData) {
  ├── old  - input folder with data
  ├── pillar.diff - globall diff will be saved here
  * b_url - usual env.BUILD_URL, to be add into description
- * findRegEx - stub for future
+ * grepOpts -   General grep cmdline; Could be used to pass some magic
+ *              regexp into after-diff listing file(pillar.diff)
+ *              Example: '-Ev infra/secrets.yml'
  * return - html-based string
  * TODO: allow to specify subdir for results?
- * TODO: implement proper regex?
  **/
-def comparePillars(compRoot, b_url, findRegEx) {
+def comparePillars(compRoot, b_url, grepOpts) {
     common = new com.mirantis.mk.Common()
-    //  findRegEx = '.*.infra/secrets.yml'
-    //  if (findRegEx) {
-    //    withEnv(["S_REGEX=${findRegEx}"]) {
-    //      sh(script: """
-    //        find ${dir1} ${dir2} -type f \\(  -regex '${findRegEx}' \\) > diff_exclude.list
-    //
-    //        """)
-    //      cmdline = '--exclude-from=diff_exclude.list'
-    //    }
-    //  }
     // Some global constants. Don't change\move them!
     keyNew = 'new'
     keyRemoved = 'removed'
@@ -633,13 +624,19 @@ def comparePillars(compRoot, b_url, findRegEx) {
     // FIXME
     httpWS = b_url + '/artifact/'
     dir(compRoot) {
-        diff_status = sh(
-            // If diff empty - exit 0
-            script: """
-          diff -q -r old/ new/  > pillar.diff
-          """,
+        // If diff empty - exit 0
+        diff_status = sh(script: 'diff -q -r old/ new/  > pillar.diff',
             returnStatus: true,
         )
+        // Unfortunately, diff not able to work with dir-based regexp
+        if (grepOpts) {
+            sh(script: """
+                cp -v pillar.diff pillar_orig.diff
+                grep ${grepOpts} pillar_orig.diff  > pillar.diff
+                """,
+                returnStatus: false
+            )
+        }
     }
     // Set job description
     String description = ''
