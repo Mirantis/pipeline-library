@@ -648,6 +648,18 @@ def installKubernetesInfra(master, extra_tgt = '') {
 
 def installKubernetesControl(master, extra_tgt = '') {
     def salt = new com.mirantis.mk.Salt()
+    salt.fullRefresh(master, "* ${extra_tgt}")
+
+    // Bootstrap all nodes
+    salt.enforceState(master, "I@kubernetes:pool ${extra_tgt}", 'linux')
+    salt.enforceState(master, "I@kubernetes:pool ${extra_tgt}", 'salt.minion')
+    salt.enforceState(master, "I@kubernetes:pool ${extra_tgt}", ['openssh', 'ntp'])
+
+    // Create and distribute SSL certificates for services using salt state
+    salt.enforceState(master, "I@kubernetes:pool ${extra_tgt}", 'salt.minion.cert')
+
+    // Install docker
+    salt.enforceState(master, "I@docker:host ${extra_tgt}", 'docker.host')
 
     // Install Kubernetes pool and Calico
     salt.enforceState(master, "I@kubernetes:master ${extra_tgt}", 'kubernetes.master.kube-addons')
