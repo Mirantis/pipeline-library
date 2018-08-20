@@ -5,6 +5,7 @@ import static groovy.json.JsonOutput.toJson
 
 import com.cloudbees.groovy.cps.NonCPS
 import groovy.json.JsonSlurperClassic
+
 /**
  *
  * Common functions
@@ -14,9 +15,9 @@ import groovy.json.JsonSlurperClassic
 /**
  * Generate current timestamp
  *
- * @param format    Defaults to yyyyMMddHHmmss
+ * @param format Defaults to yyyyMMddHHmmss
  */
-def getDatetime(format="yyyyMMddHHmmss") {
+def getDatetime(format = "yyyyMMddHHmmss") {
     def now = new Date();
     return now.format(format, TimeZone.getTimeZone('UTC'));
 }
@@ -26,14 +27,14 @@ def getDatetime(format="yyyyMMddHHmmss") {
  * Currently implemented by calling pwd so it won't return relevant result in
  * dir context
  */
-def getWorkspace(includeBuildNum=false) {
+def getWorkspace(includeBuildNum = false) {
     def workspace = sh script: 'pwd', returnStdout: true
     workspace = workspace.trim()
-    if(includeBuildNum){
-       if(!workspace.endsWith("/")){
-          workspace += "/"
-       }
-       workspace += env.BUILD_NUMBER
+    if (includeBuildNum) {
+        if (!workspace.endsWith("/")) {
+            workspace += "/"
+        }
+        workspace += env.BUILD_NUMBER
     }
     return workspace
 }
@@ -43,7 +44,7 @@ def getWorkspace(includeBuildNum=false) {
  * Must be run from context of node
  */
 def getJenkinsUid() {
-    return sh (
+    return sh(
         script: 'id -u',
         returnStdout: true
     ).trim()
@@ -54,7 +55,7 @@ def getJenkinsUid() {
  * Must be run from context of node
  */
 def getJenkinsGid() {
-    return sh (
+    return sh(
         script: 'id -g',
         returnStdout: true
     ).trim()
@@ -64,7 +65,7 @@ def getJenkinsGid() {
  * Returns Jenkins user uid and gid in one list (in that order)
  * Must be run from context of node
  */
-def getJenkinsUserIds(){
+def getJenkinsUserIds() {
     return sh(script: "id -u && id -g", returnStdout: true).tokenize("\n")
 }
 
@@ -72,37 +73,37 @@ def getJenkinsUserIds(){
  *
  * Find credentials by ID
  *
- * @param credsId    Credentials ID
- * @param credsType  Credentials type (optional)
+ * @param credsId Credentials ID
+ * @param credsType Credentials type (optional)
  *
  */
 def getCredentialsById(String credsId, String credsType = 'any') {
     def credClasses = [ // ordered by class name
-        sshKey:     com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey.class,
-        cert:       com.cloudbees.plugins.credentials.common.CertificateCredentials.class,
-        password:   com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials.class,
-        any:        com.cloudbees.plugins.credentials.impl.BaseStandardCredentials.class,
-        dockerCert: org.jenkinsci.plugins.docker.commons.credentials.DockerServerCredentials.class,
-        file:       org.jenkinsci.plugins.plaincredentials.FileCredentials.class,
-        string:     org.jenkinsci.plugins.plaincredentials.StringCredentials.class,
+                        sshKey    : com.cloudbees.jenkins.plugins.sshcredentials.impl.BasicSSHUserPrivateKey.class,
+                        cert      : com.cloudbees.plugins.credentials.common.CertificateCredentials.class,
+                        password  : com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials.class,
+                        any       : com.cloudbees.plugins.credentials.impl.BaseStandardCredentials.class,
+                        dockerCert: org.jenkinsci.plugins.docker.commons.credentials.DockerServerCredentials.class,
+                        file      : org.jenkinsci.plugins.plaincredentials.FileCredentials.class,
+                        string    : org.jenkinsci.plugins.plaincredentials.StringCredentials.class,
     ]
     return com.cloudbees.plugins.credentials.CredentialsProvider.lookupCredentials(
         credClasses[credsType],
         jenkins.model.Jenkins.instance
-    ).findAll {cred -> cred.id == credsId}[0]
+    ).findAll { cred -> cred.id == credsId }[0]
 }
 
 /**
  * Get credentials from store
  *
- * @param id    Credentials name
+ * @param id Credentials name
  */
 def getCredentials(id, cred_type = "username_password") {
     warningMsg('You are using obsolete function. Please switch to use `getCredentialsById()`')
 
     type_map = [
         username_password: 'password',
-        key:               'sshKey',
+        key              : 'sshKey',
     ]
 
     return getCredentialsById(id, type_map[cred_type])
@@ -122,7 +123,7 @@ def abortBuild() {
  * Print pretty-printed string representation of given item
  * @param item item to be pretty-printed (list, map, whatever)
  */
-def prettyPrint(item){
+def prettyPrint(item) {
     println prettify(item)
 }
 
@@ -131,7 +132,7 @@ def prettyPrint(item){
  * @param item item to be pretty-printed (list, map, whatever)
  * @return pretty-printed string
  */
-def prettify(item){
+def prettify(item) {
     return groovy.json.JsonOutput.prettyPrint(toJson(item)).replace('\\n', System.getProperty('line.separator'))
 }
 
@@ -180,9 +181,9 @@ def warningMsg(msg, color = true) {
  * @param msg
  * @param color Colorful output or not
  */
-def debugMsg(msg, color = true){
+def debugMsg(msg, color = true) {
     // if debug property exists on env, debug is enabled
-    if(env.getEnvironment().containsKey('DEBUG') && env['DEBUG'] == "true"){
+    if (env.getEnvironment().containsKey('DEBUG') && env['DEBUG'] == "true") {
         printMsg("[DEBUG] ${msg}", "red")
     }
 }
@@ -190,9 +191,9 @@ def debugMsg(msg, color = true){
 /**
  * Print message
  *
- * @param msg        Message to be printed
- * @param level      Level of message (default INFO)
- * @param color      Color to use for output or false (default)
+ * @param msg Message to be printed
+ * @param level Level of message (default INFO)
+ * @param color Color to use for output or false (default)
  */
 def printMsg(msg, color = false) {
     colors = [
@@ -220,7 +221,7 @@ def printMsg(msg, color = false) {
  * @param type Type of files to search (groovy.io.FileType.FILES)
  */
 @NonCPS
-def getFiles(path, type=groovy.io.FileType.FILES) {
+def getFiles(path, type = groovy.io.FileType.FILES) {
     files = []
     new File(path).eachFile(type) {
         files[] = it
@@ -236,7 +237,7 @@ def getFiles(path, type=groovy.io.FileType.FILES) {
  */
 @NonCPS
 def entries(m) {
-    m.collect {k, v -> [k, v]}
+    m.collect { k, v -> [k, v] }
 }
 
 /**
@@ -246,20 +247,20 @@ def entries(m) {
  */
 def serial(steps) {
     stepsArray = entries(steps)
-    for (i=0; i < stepsArray.size; i++) {
+    for (i = 0; i < stepsArray.size; i++) {
         def step = stepsArray[i]
         def dummySteps = [:]
         def stepKey
-        if(step[1] instanceof List || step[1] instanceof Map){
-            for(j=0;j < step[1].size(); j++){
-                if(step[1] instanceof List){
+        if (step[1] instanceof List || step[1] instanceof Map) {
+            for (j = 0; j < step[1].size(); j++) {
+                if (step[1] instanceof List) {
                     stepKey = j
-                }else if(step[1] instanceof Map){
+                } else if (step[1] instanceof Map) {
                     stepKey = step[1].keySet()[j]
                 }
-                dummySteps.put("step-${step[0]}-${stepKey}",step[1][stepKey])
+                dummySteps.put("step-${step[0]}-${stepKey}", step[1][stepKey])
             }
-        }else{
+        } else {
             dummySteps.put(step[0], step[1])
         }
         parallel dummySteps
@@ -271,18 +272,18 @@ def serial(steps) {
  * @param inputList input list
  * @param partitionSize (partition size, optional, default 5)
  */
-def partitionList(inputList, partitionSize=5){
-  List<List<String>> partitions = new ArrayList<>();
-  for (int i=0; i<inputList.size(); i += partitionSize) {
-      partitions.add(new ArrayList<String>(inputList.subList(i, Math.min(i + partitionSize, inputList.size()))));
-  }
-  return partitions
+def partitionList(inputList, partitionSize = 5) {
+    List<List<String>> partitions = new ArrayList<>();
+    for (int i = 0; i < inputList.size(); i += partitionSize) {
+        partitions.add(new ArrayList<String>(inputList.subList(i, Math.min(i + partitionSize, inputList.size()))));
+    }
+    return partitions
 }
 
 /**
  * Get password credentials from store
  *
- * @param id    Credentials name
+ * @param id Credentials name
  */
 def getPasswordCredentials(id) {
     return getCredentialsById(id, 'password')
@@ -291,7 +292,7 @@ def getPasswordCredentials(id) {
 /**
  * Get SSH credentials from store
  *
- * @param id    Credentials name
+ * @param id Credentials name
  */
 def getSshCredentials(id) {
     return getCredentialsById(id, 'sshKey')
@@ -303,28 +304,28 @@ def getSshCredentials(id) {
  * @return boolean result
  */
 @NonCPS
-def jenkinsHasPlugin(pluginName){
-    return Jenkins.instance.pluginManager.plugins.collect{p -> p.shortName}.contains(pluginName)
+def jenkinsHasPlugin(pluginName) {
+    return Jenkins.instance.pluginManager.plugins.collect { p -> p.shortName }.contains(pluginName)
 }
 
 @NonCPS
 def _needNotification(notificatedTypes, buildStatus, jobName) {
-    if(notificatedTypes && notificatedTypes.contains("onchange")){
-        if(jobName){
+    if (notificatedTypes && notificatedTypes.contains("onchange")) {
+        if (jobName) {
             def job = Jenkins.instance.getItem(jobName)
             def numbuilds = job.builds.size()
-            if (numbuilds > 0){
+            if (numbuilds > 0) {
                 //actual build is first for some reasons, so last finished build is second
                 def lastBuild = job.builds[1]
-                if(lastBuild){
-                    if(lastBuild.result.toString().toLowerCase().equals(buildStatus)){
+                if (lastBuild) {
+                    if (lastBuild.result.toString().toLowerCase().equals(buildStatus)) {
                         println("Build status didn't changed since last build, not sending notifications")
                         return false;
                     }
                 }
             }
         }
-    }else if(!notificatedTypes.contains(buildStatus)){
+    } else if (!notificatedTypes.contains(buildStatus)) {
         return false;
     }
     return true;
@@ -343,7 +344,7 @@ def _needNotification(notificatedTypes, buildStatus, jobName) {
  * @param mailFrom mail FROM param, if empty "jenkins" will be used, it's mandatory for sending email notifications
  * @param mailTo mail TO param, it's mandatory for sending email notifications, this option enable mail notification
  */
-def sendNotification(buildStatus, msgText="", enabledNotifications = [], notificatedTypes=["onchange"], jobName=null, buildNumber=null, buildUrl=null, mailFrom="jenkins", mailTo=null){
+def sendNotification(buildStatus, msgText = "", enabledNotifications = [], notificatedTypes = ["onchange"], jobName = null, buildNumber = null, buildUrl = null, mailFrom = "jenkins", mailTo = null) {
     // Default values
     def colorName = 'blue'
     def colorCode = '#0000FF'
@@ -354,40 +355,40 @@ def sendNotification(buildStatus, msgText="", enabledNotifications = [], notific
     def subject = "${buildStatusParam}: Job '${jobNameParam} [${buildNumberParam}]'"
     def summary = "${subject} (${buildUrlParam})"
 
-    if(msgText != null && msgText != ""){
-        summary+="\n${msgText}"
+    if (msgText != null && msgText != "") {
+        summary += "\n${msgText}"
     }
-    if(buildStatusParam.toLowerCase().equals("success")){
+    if (buildStatusParam.toLowerCase().equals("success")) {
         colorCode = "#00FF00"
         colorName = "green"
-    }else if(buildStatusParam.toLowerCase().equals("unstable")){
+    } else if (buildStatusParam.toLowerCase().equals("unstable")) {
         colorCode = "#FFFF00"
         colorName = "yellow"
-    }else if(buildStatusParam.toLowerCase().equals("failure")){
+    } else if (buildStatusParam.toLowerCase().equals("failure")) {
         colorCode = "#FF0000"
         colorName = "red"
     }
-    if(_needNotification(notificatedTypes, buildStatusParam.toLowerCase(), jobNameParam)){
-        if(enabledNotifications.contains("slack") && jenkinsHasPlugin("slack")){
-            try{
+    if (_needNotification(notificatedTypes, buildStatusParam.toLowerCase(), jobNameParam)) {
+        if (enabledNotifications.contains("slack") && jenkinsHasPlugin("slack")) {
+            try {
                 slackSend color: colorCode, message: summary
-            }catch(Exception e){
+            } catch (Exception e) {
                 println("Calling slack plugin failed")
                 e.printStackTrace()
             }
         }
-        if(enabledNotifications.contains("hipchat") && jenkinsHasPlugin("hipchat")){
-            try{
+        if (enabledNotifications.contains("hipchat") && jenkinsHasPlugin("hipchat")) {
+            try {
                 hipchatSend color: colorName.toUpperCase(), message: summary
-            }catch(Exception e){
+            } catch (Exception e) {
                 println("Calling hipchat plugin failed")
                 e.printStackTrace()
             }
         }
-        if(enabledNotifications.contains("email") && mailTo != null && mailTo != "" && mailFrom != null && mailFrom != ""){
-            try{
+        if (enabledNotifications.contains("email") && mailTo != null && mailTo != "" && mailFrom != null && mailFrom != "") {
+            try {
                 mail body: summary, from: mailFrom, subject: subject, to: mailTo
-            }catch(Exception e){
+            } catch (Exception e) {
                 println("Sending mail plugin failed")
                 e.printStackTrace()
             }
@@ -402,16 +403,15 @@ def sendNotification(buildStatus, msgText="", enabledNotifications = [], notific
  * @return index-th element
  */
 
-def cutOrDie(cmd, index)
-{
+def cutOrDie(cmd, index) {
     def common = new com.mirantis.mk.Common()
     def output
     try {
-      output = sh(script: cmd, returnStdout: true)
-      def result = output.tokenize(" ")[index]
-      return result;
+        output = sh(script: cmd, returnStdout: true)
+        def result = output.tokenize(" ")[index]
+        return result;
     } catch (Exception e) {
-      common.errorMsg("Failed to execute cmd: ${cmd}\n output: ${output}")
+        common.errorMsg("Failed to execute cmd: ${cmd}\n output: ${output}")
     }
 }
 
@@ -423,7 +423,7 @@ def cutOrDie(cmd, index)
  */
 
 def checkContains(variable, keyword) {
-    if(env.getEnvironment().containsKey(variable)){
+    if (env.getEnvironment().containsKey(variable)) {
         return env[variable] && env[variable].toLowerCase().contains(keyword.toLowerCase())
     } else {
         return false
@@ -435,18 +435,18 @@ def checkContains(variable, keyword) {
  * @param jsonString input JSON string
  * @return created hashmap
  */
-def parseJSON(jsonString){
-   def m = [:]
-   def lazyMap = new JsonSlurperClassic().parseText(jsonString)
-   m.putAll(lazyMap)
-   return m
+def parseJSON(jsonString) {
+    def m = [:]
+    def lazyMap = new JsonSlurperClassic().parseText(jsonString)
+    m.putAll(lazyMap)
+    return m
 }
 
 /**
  * Test pipeline input parameter existence and validity (not null and not empty string)
  * @param paramName input parameter name (usually uppercase)
  */
-def validInputParam(paramName){
+def validInputParam(paramName) {
     return env.getEnvironment().containsKey(paramName) && env[paramName] != null && env[paramName] != ""
 }
 
@@ -460,7 +460,7 @@ def validInputParam(paramName){
 
 @NonCPS
 def countHashMapEquals(lm, param, eq) {
-    return lm.stream().filter{i -> i[param].equals(eq)}.collect(java.util.stream.Collectors.counting())
+    return lm.stream().filter { i -> i[param].equals(eq) }.collect(java.util.stream.Collectors.counting())
 }
 
 /**
@@ -476,7 +476,7 @@ def shCmdStatus(cmd) {
     def stdout = sh(script: 'mktemp', returnStdout: true).trim()
 
     try {
-        def status = sh(script:"${cmd} 1>${stdout} 2>${stderr}", returnStatus: true)
+        def status = sh(script: "${cmd} 1>${stdout} 2>${stderr}", returnStatus: true)
         res['stderr'] = sh(script: "cat ${stderr}", returnStdout: true)
         res['stdout'] = sh(script: "cat ${stdout}", returnStdout: true)
         res['status'] = status
@@ -488,7 +488,6 @@ def shCmdStatus(cmd) {
     return res
 }
 
-
 /**
  * Retry commands passed to body
  *
@@ -496,17 +495,16 @@ def shCmdStatus(cmd) {
  * @param delay Delay between retries (in seconds)
  * @param body Commands to be in retry block
  * @return calling commands in body
- * @example retry(3,5){ function body }
- *          retry{ function body }
+ * @example retry ( 3 , 5 ) { function body }*          retry{ function body }
  */
 
 def retry(int times = 5, int delay = 0, Closure body) {
     int retries = 0
     def exceptions = []
-    while(retries++ < times) {
+    while (retries++ < times) {
         try {
             return body.call()
-        } catch(e) {
+        } catch (e) {
             sleep(delay)
         }
     }
@@ -514,30 +512,29 @@ def retry(int times = 5, int delay = 0, Closure body) {
     throw new Exception("Failed after $times retries")
 }
 
-
 /**
  * Wait for user input with timeout
  *
  * @param timeoutInSeconds Timeout
  * @param options Options for input widget
  */
-def waitForInputThenPass(timeoutInSeconds, options=[message: 'Ready to go?']) {
-  def userInput = true
-  try {
-    timeout(time: timeoutInSeconds, unit: 'SECONDS') {
-      userInput = input options
+def waitForInputThenPass(timeoutInSeconds, options = [message: 'Ready to go?']) {
+    def userInput = true
+    try {
+        timeout(time: timeoutInSeconds, unit: 'SECONDS') {
+            userInput = input options
+        }
+    } catch (err) { // timeout reached or input false
+        def user = err.getCauses()[0].getUser()
+        if ('SYSTEM' == user.toString()) { // SYSTEM means timeout.
+            println("Timeout, proceeding")
+        } else {
+            userInput = false
+            println("Aborted by: [${user}]")
+            throw err
+        }
     }
-  } catch(err) { // timeout reached or input false
-    def user = err.getCauses()[0].getUser()
-    if('SYSTEM' == user.toString()) { // SYSTEM means timeout.
-      println("Timeout, proceeding")
-    } else {
-      userInput = false
-      println("Aborted by: [${user}]")
-      throw err
-    }
-  }
-  return userInput
+    return userInput
 }
 
 /**
@@ -547,7 +544,7 @@ def waitForInputThenPass(timeoutInSeconds, options=[message: 'Ready to go?']) {
  */
 @NonCPS
 def SortMapByValueAsc(_map) {
-    def sortedMap = _map.sort {it.value}
+    def sortedMap = _map.sort { it.value }
     return sortedMap
 }
 
