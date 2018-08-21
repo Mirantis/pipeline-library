@@ -628,6 +628,10 @@ def comparePillars(compRoot, b_url, grepOpts) {
         diff_status = sh(script: 'diff -q -r old/ new/  > pillar.diff',
             returnStatus: true,
         )
+    }
+    // Set job description
+    String description = ''
+    if (diff_status == 1) {
         // Unfortunately, diff not able to work with dir-based regexp
         if (grepOpts) {
             sh(script: """
@@ -637,10 +641,6 @@ def comparePillars(compRoot, b_url, grepOpts) {
                 returnStatus: false
             )
         }
-    }
-    // Set job description
-    String description = ''
-    if (diff_status == 1) {
         // Analyse output file and prepare array with results
         String data_ = readFile file: "${compRoot}/pillar.diff"
         def diff_list = diffCheckMultidir(data_.split("\\r?\\n"))
