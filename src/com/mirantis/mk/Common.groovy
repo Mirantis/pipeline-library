@@ -634,12 +634,14 @@ def comparePillars(compRoot, b_url, grepOpts) {
     if (diff_status == 1) {
         // Unfortunately, diff not able to work with dir-based regexp
         if (grepOpts) {
-            sh(script: """
+            dir(compRoot) {
+                sh(script: """
                 cp -v pillar.diff pillar_orig.diff
                 grep ${grepOpts} pillar_orig.diff  > pillar.diff
                 """,
-                returnStatus: false
-            )
+                    returnStatus: false
+                )
+            }
         }
         // Analyse output file and prepare array with results
         String data_ = readFile file: "${compRoot}/pillar.diff"
