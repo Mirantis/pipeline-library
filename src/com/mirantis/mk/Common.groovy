@@ -629,20 +629,24 @@ def comparePillars(compRoot, b_url, grepOpts) {
             returnStatus: true,
         )
     }
-    // Set job description
-    String description = ''
-    if (diff_status == 1) {
-        // Unfortunately, diff not able to work with dir-based regexp
-        if (grepOpts) {
-            dir(compRoot) {
-                sh(script: """
+    // Unfortunately, diff not able to work with dir-based regexp
+    if (diff_status == 1 && grepOpts) {
+        dir(compRoot) {
+            grep_status = sh(script: """
                 cp -v pillar.diff pillar_orig.diff
                 grep ${grepOpts} pillar_orig.diff  > pillar.diff
                 """,
-                    returnStatus: false
-                )
+                returnStatus: true
+            )
+            if (grep_status == 1){
+                common.warningMsg("Grep regexp ${grepOpts} removed all diff!")
+                diff_status = 0
             }
         }
+    }
+    // Set job description
+    String description = ''
+    if (diff_status == 1) {
         // Analyse output file and prepare array with results
         String data_ = readFile file: "${compRoot}/pillar.diff"
         def diff_list = diffCheckMultidir(data_.split("\\r?\\n"))
