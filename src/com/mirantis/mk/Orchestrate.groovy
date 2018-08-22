@@ -416,8 +416,8 @@ def installOpenstackControl(master, extra_tgt = '') {
 
     // Install octavia api service
     if (salt.testTarget(master, "I@octavia:api ${extra_tgt}")) {
-        salt.enforceState(master, "I@octavia:api:role:primary ${extra_tgt}", 'octavia')
-        salt.enforceState(master, "I@octavia:api ${extra_tgt}", 'octavia')
+        salt.enforceState(master, "I@octavia:api:role:primary ${extra_tgt}", 'octavia.api')
+        salt.enforceState(master, "I@octavia:api ${extra_tgt}", 'octavia.api')
     }
 
     // Install DogTag server service
@@ -540,7 +540,7 @@ def installOpenstackNetwork(master, extra_tgt = '') {
     // install octavia manager services
     if (salt.testTarget(master, "I@octavia:manager ${extra_tgt}")) {
         salt.runSaltProcessStep(master, "I@salt:master ${extra_tgt}", 'mine.update', ['*'])
-        salt.enforceState(master, "I@octavia:manager ${extra_tgt}", 'octavia')
+        salt.enforceState(master, "I@octavia:manager ${extra_tgt}", 'octavia.manager')
         salt.enforceState(master, "I@octavia:manager ${extra_tgt}", 'salt.minion.ca')
         salt.enforceState(master, "I@octavia:manager ${extra_tgt}", 'salt.minion.cert')
     }
