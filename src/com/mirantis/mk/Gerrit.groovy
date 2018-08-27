@@ -76,7 +76,7 @@ def gerritPatchsetCheckout(LinkedHashMap config, List extraScmExtensions = []) {
 
         // if we need to "merge" code from patchset to GERRIT_BRANCH branch
         if (merge) {
-            scmExtensions.add([$class: 'PreBuildMerge', options: [fastForwardMode: 'FF', mergeRemote: 'gerrit', mergeStrategy: 'default', mergeTarget: gerritBranch]])
+            scmExtensions.add([$class: 'PreBuildMerge', options: [fastForwardMode: 'FF', mergeRemote: 'gerrit', mergeStrategy: 'DEFAULT', mergeTarget: gerritBranch]])
         }
         // we need wipe workspace before checkout
         if (wipe) {
