@@ -251,3 +251,89 @@ def uploadPpa(ppaRepo, dirPath, privateKeyCredId) {
         sh("export GNUPGHOME=${workspace}/.gnupg; dput -f \"ppa:${ppaRepo}\" *_source.changes")
     }
 }
+
+/**
+* Upgrade packages on given target.
+*
+* @param env    Salt Connection object or env  Salt command map
+* @param target Salt target to upgrade packages on.
+*/
+def osUpgrade(env, target){
+  def common = new com.mirantis.mk.Common()
+  def salt = new com.mirantis.mk.Salt()
+
+  common.infoMsg("Running upgrade on ${target}")
+
+  salt.runSaltProcessStep(env, target, 'pkg.refresh_db', [], null, true)
+  def cmd = 'export DEBIAN_FRONTEND=noninteractive; apt-get -y -q --allow-downgrades -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" upgrade;'
+  salt.runSaltProcessStep(env, target, 'cmd.run', [cmd])
+}
+
+/**
+* Running dist-upgrade on given target.
+*
+* @param env    Salt Connection object or env  Salt command map
+* @param target Salt target to upgrade packages on.
+*/
+def osDistUpgrade(env, target){
+  def salt = new com.mirantis.mk.Salt()
+  def common = new com.mirantis.mk.Common()
+
+  common.infoMsg("Running dist-upgrade on ${target}")
+  salt.runSaltProcessStep(env, target, 'pkg.refresh_db', [], null, true)
+  def cmd = 'export DEBIAN_FRONTEND=noninteractive; apt-get -y -q --allow-downgrades -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" dist-upgrade;'
+  salt.runSaltProcessStep(env, target, 'cmd.run', [cmd])
+}
+
+/**
+* Reboot specified target, and wait when minion is UP.
+*
+* @param env       Salt Connection object or env  Salt command map
+* @param target    Salt target to upgrade packages on.
+* @param timeout   Sleep timeout when doing retries.
+* @param attempts  Number of attemps to wait for.
+*/
+def osReboot(env, target, timeout=30, attempts=10){
+  def salt = new com.mirantis.mk.Salt()
+  def common = new com.mirantis.mk.Common()
+
+  salt.runSaltProcessStep(env, target, 'cmd.run', ["touch /tmp/rebooting"])
+  salt.runSaltProcessStep(env, target, 'system.reboot', [], null, true, 5)
+
+  common.retry(timeout, attempts){
+    if (salt.runSaltProcessStep(env, target, 'file.file_exists', ['/tmp/rebooting'], null, true, 5)['return'][0].values()[0].toBoolean()){
+      error("The system is still rebooting...")
+    }
+  }
+}
+
+/**
+* Upgrade OS on given node, wait when minion become reachable.
+*
+* @param env             Salt Connection object or env  Salt command map
+* @param target          Salt target to upgrade packages on.
+* @param mode            'upgrade' or 'dist-upgrade'
+* @param postponeReboot  Boolean flag to specify if reboot have to be postponed.
+* @param timeout   Sleep timeout when doing retries.
+* @param attempts  Number of attemps to wait for.
+*/
+def osUpgradeNode(env, target, mode, postponeReboot=false, timeout=30, attempts=10){
+    def common = new com.mirantis.mk.Common()
+    def salt = new com.mirantis.mk.Salt()
+
+    def rebootRequired = false
+    if (mode == 'dist-upgrade'){
+      osDistUpgrade(env, target)
+    } else if (mode == 'upgrade'){
+      osUpgrade(env, target)
+    }
+    rebootRequired = salt.runSaltProcessStep(env, target, 'file.file_exists', ['/var/run/reboot-required'], null, true, 5)['return'][0].values()[0].toBoolean()
+    if (rebootRequired) {
+      if (!postponeReboot){
+        common.infoMsg("Reboot is required after upgrade on ${target} Rebooting...")
+        osReboot(env, target, timeout, attempts)
+      } else {
+        common.infoMsg("Postponing reboot on node ${target}")
+      }
+    }
+}
