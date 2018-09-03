@@ -454,6 +454,79 @@ def stopServices(env, probe, target, services=[], confirm=false) {
 }
 
 /**
+ * Return intersection of globally installed services and those are
+ * defined on specific target according to theirs priorities.
+ *
+ * @param env     Salt Connection object or env
+ * @param target  The target node to get list of apps for.
+**/
+def getOpenStackUpgradeServices(env, target){
+    def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+
+    def global_apps = salt.getConfig(env, 'I@salt:master:enabled:true', 'orchestration.upgrade.applications')
+    def node_apps = salt.getPillar(env, target, '__reclass__:applications')['return'][0].values()[0]
+    def node_sorted_apps = []
+    if ( !global_apps['return'][0].values()[0].isEmpty() ) {
+        Map<String,Integer> _sorted_apps = [:]
+        for (k in global_apps['return'][0].values()[0].keySet()) {
+            if (k in node_apps) {
+              _sorted_apps[k] = global_apps['return'][0].values()[0][k].values()[0].toInteger()
+            }
+        }
+        node_sorted_apps = common.SortMapByValueAsc(_sorted_apps).keySet()
+        common.infoMsg("Applications are placed in following order:"+node_sorted_apps)
+    } else {
+        common.errorMsg("No applications found.")
+    }
+
+  return node_sorted_apps
+}
+
+
+/**
+ * Run specified upgrade phase for all services on given node.
+ *
+ * @param env     Salt Connection object or env
+ * @param target  The target node to run states on.
+ * @param phase   The phase name to run.
+**/
+def runOpenStackUpgradePhase(env, target, phase){
+    def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+
+    services = getOpenStackUpgradeServices(env, target)
+    def st
+
+    for (service in services){
+        st = "${service}.upgrade.${phase}".trim()
+        common.infoMsg("Running ${phase} for service ${st} on ${target}")
+        salt.enforceState(env, target, st)
+    }
+}
+
+
+/**
+ * Run OpenStack states on specified node.
+ *
+ * @param env     Salt Connection object or env
+ * @param target  The target node to run states on.
+**/
+def applyOpenstackAppsStates(env, target){
+    def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+
+    services = getOpenStackUpgradeServices(env, target)
+    def st
+
+    for (service in services){
+        st = "${service}".trim()
+        common.infoMsg("Running ${st} on ${target}")
+        salt.enforceState(env, target, st)
+    }
+}
+
+/**
  * Restores Galera database
  * @param env Salt Connection object or pepperEnv
  * @return output of salt commands
