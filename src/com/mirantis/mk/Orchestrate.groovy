@@ -74,6 +74,11 @@ def installFoundationInfra(master, staticMgmtNet=false, extra_tgt = '') {
     if (salt.testTarget(master, "I@auditd:service ${extra_tgt}")) {
         salt.enforceState(master, "I@auditd:service ${extra_tgt}", 'auditd')
     }
+
+    // Install and configure openscap
+    if (salt.testTarget(master, "I@openscap:service ${extra_tgt}")) {
+        salt.enforceState(master, "I@openscap:service ${extra_tgt}", 'openscap')
+    }
 }
 
 def installFoundationInfraOnTarget(master, target, staticMgmtNet=false, extra_tgt = '') {
