@@ -241,36 +241,71 @@ def runTempestTests(master, target, dockerImageLink, output_dir, confRepository,
 }
 
 /**
+ * Make all-in-one scenario cmd for rally tests
+ *
+ * @param scenarios_path    Path to scenarios folder/file
+ * @param skip_scenarios    Comma-delimited list of scenarios names to skip
+ * @param bundle_file       Bundle name to create
+*/
+def bundle_up_scenarios(scenarios_path, skip_scenarios, bundle_file) {
+      def skip_names = ''
+      def skip_dirs = ''
+      def result = ''
+      if (skip_scenarios != ''){
+        for ( scen in skip_scenarios.split(',') ) {
+          if ( scen.contains('yaml')) {
+            skip_names += "! -name ${scen} "
+          }
+          else {
+            skip_dirs += "-path ${scenarios_path}/${scen} -prune -o "
+          }
+        }
+      }
+      result = "if [ -f ${scenarios_path} ]; then cp ${scenarios_path} ${bundle_file}; " +
+          "else " +
+          "find -L ${scenarios_path} " + skip_dirs +
+          " -name '*.yaml' " + skip_names +
+          "-exec cat {} >> ${bundle_file} \\; ; " +
+          "sed -i '/---/d' ${bundle_file}; fi; "
+
+      return result
+}
+
+/**
  * Execute rally tests
  *
  * @param target            Host to run tests
  * @param dockerImageLink   Docker image link
  * @param platform          What do we have underneath (openstack/k8s)
  * @param output_dir        Directory for results
- * @param repository        Git repository with files for Rally
- * @param branch            Git branch which will be used during the checkout
+ * @param config_repo       Git repository with with files for Rally
+ * @param config_branch     Git config repo branch which will be used during the checkout
+ * @param plugins_repo      Git repository with Rally plugins
+ * @param plugins_branch    Git plugins repo branch which will be used during the checkout
  * @param scenarios         Directory inside repo with specific scenarios
+ * @param sl_scenarios      Directory inside repo with specific scenarios for stacklight
  * @param tasks_args_file   Argument file that is used for throttling settings
  * @param ext_variables     The list of external variables
  * @param results           The reports directory
  */
-def runRallyTests(master, target, dockerImageLink, platform, output_dir, repository, branch, scenarios = '', tasks_args_file = '', ext_variables = [], results = '/root/qa_results', skip_list = '') {
+def runRallyTests(master, target, dockerImageLink, platform, output_dir, config_repo, config_branch, plugins_repo, plugins_branch, scenarios, sl_scenarios = '', tasks_args_file = '', ext_variables = [], results = '/root/qa_results', skip_list = '') {
     def salt = new com.mirantis.mk.Salt()
     def output_file = 'docker-rally.log'
     def dest_folder = '/home/rally/qa_results'
     def env_vars = []
     def rally_extra_args = ''
+    def cmd_rally_plugins =
+          "git clone -b ${plugins_branch ?: 'master'} ${plugins_repo} /tmp/plugins; " +
+          "sudo pip install --upgrade /tmp/plugins; "
     def cmd_rally_init = ''
-    def cmd_rally_checkout = ''
+    def cmd_rally_checkout = "git clone -b ${config_branch ?: 'master'} ${config_repo} test_config; "
     def cmd_rally_start = ''
     def cmd_rally_task_args = ''
-    def cmd_report = "rally task export --type junit-xml --to ${dest_folder}/report-rally.xml; " +
-        "rally task report --out ${dest_folder}/report-rally.html"
-    def cmd_skip_names = ''
-    def cmd_skip_dirs = ''
+    def cmd_rally_stacklight = ''
+    def cmd_rally_report = ''
     salt.runSaltProcessStep(master, target, 'file.remove', ["${results}"])
     salt.runSaltProcessStep(master, target, 'file.mkdir', ["${results}", "mode=777"])
-    if (platform == 'openstack') {
+    if (platform['type'] == 'openstack') {
       def _pillar = salt.getPillar(master, 'I@keystone:server', 'keystone:server')
       def keystone = _pillar['return'][0].values()[0]
       env_vars = ( ['tempest_version=15.0.0',
@@ -280,43 +315,16 @@ def runRallyTests(master, target, dockerImageLink, platform, output_dir, reposit
           "OS_AUTH_URL=http://${keystone.bind.private_address}:${keystone.bind.private_port}/v2.0",
           "OS_REGION_NAME=${keystone.region}",
           'OS_ENDPOINT_TYPE=admin'] + ext_variables ).join(' -e ')
-      if (repository == '' ) {
-        cmd_rally_init = ''
-        cmd_rally_start = '/opt/devops-qa-tools/deployment/configure.sh; ' +
-            "rally $rally_extra_args task start combined_scenario.yaml " +
-            '--task-args-file /opt/devops-qa-tools/rally-scenarios/task_arguments.yaml; '
-        cmd_rally_checkout = ''
-      } else {
-        cmd_rally_init = 'rally db create; ' +
-            'rally deployment create --fromenv --name=existing; ' +
-            'rally deployment config; '
-        cmd_rally_checkout = "git clone -b ${branch ?: 'master'} ${repository} test_config; "
-        if (skip_list != ''){
-          for ( scen in skip_list.split(',') ) {
-            if ( scen.contains('yaml')) {
-              cmd_skip_names += "! -name ${scen} "
-            }
-            else {
-              cmd_skip_dirs += "-path ${scenarios}/${scen} -prune -o "
-            }
-          }
-        }
-        if (scenarios == '') {
-          cmd_rally_start = "rally $rally_extra_args task start test_config/rally/scenario.yaml "
-        } else {
-          cmd_rally_start = "rally $rally_extra_args task start scenarios.yaml "
-          cmd_rally_checkout += "if [ -f ${scenarios} ]; then cp ${scenarios} scenarios.yaml; " +
-              "else " +
-              "find -L ${scenarios} " + cmd_skip_dirs +
-              " -name '*.yaml' " + cmd_skip_names +
-              "-exec cat {} >> scenarios.yaml \\; ; " +
-              "sed -i '/---/d' scenarios.yaml; fi; "
-        }
+      cmd_rally_init = 'rally db create; ' +
+          'rally deployment create --fromenv --name=existing; ' +
+          'rally deployment config; '
+      if (platform['stacklight_enabled'] == true) {
+        cmd_rally_stacklight = bundle_up_scenarios(sl_scenarios, skip_list, "scenarios_${platform.type}_stacklight.yaml")
+        cmd_rally_stacklight += "rally $rally_extra_args task start scenarios_${platform.type}_stacklight.yaml " +
+            "--task-args-file test_config/job-params-stacklight.yaml; "
       }
-    } else if (platform == 'k8s') {
+    } else if (platform['type'] == 'k8s') {
       rally_extra_args = "--debug --log-file ${dest_folder}/task.log"
-      def plugins_repo = ext_variables.plugins_repo
-      def plugins_branch = ext_variables.plugins_branch
       def _pillar = salt.getPillar(master, 'I@kubernetes:master and *01*', 'kubernetes:master')
       def kubernetes = _pillar['return'][0].values()[0]
       env_vars = [
@@ -341,32 +349,15 @@ def runRallyTests(master, target, dockerImageLink, platform, output_dir, reposit
       writeFile file: "${tmp_dir}/k8s-client.crt", text: k8s_client_crt
       salt.cmdRun(master, target, "mv ${tmp_dir}/* ${results}/")
       salt.runSaltProcessStep(master, target, 'file.rmdir', ["${tmp_dir}"])
-      cmd_rally_init = 'set -e ; set -x; cd /tmp/; ' +
-          "git clone -b ${plugins_branch ?: 'master'} ${plugins_repo} plugins; " +
-          "sudo pip install --upgrade ./plugins; " +
-          "rally db recreate; " +
+      cmd_rally_init = "rally db recreate; " +
           "rally env create --name k8s --from-sysenv; " +
           "rally env check k8s; "
-      if (repository == '' ) {
-        cmd_rally_start = "rally $rally_extra_args task start " +
-            "./plugins/samples/scenarios/kubernetes/create-and-delete-pod.yaml; "
-        cmd_rally_checkout = ''
-      } else {
-        cmd_rally_checkout = "git clone -b ${branch ?: 'master'} ${repository} test_config; "
-        if (scenarios == '') {
-          cmd_rally_start = "rally $rally_extra_args task start test_config/rally-k8s/create-and-delete-pod.yaml "
-        } else {
-          cmd_rally_start = "rally $rally_extra_args task start scenarios.yaml "
-          cmd_rally_checkout += "if [ -f ${scenarios} ]; then cp ${scenarios} scenarios.yaml; " +
-              "else " +
-              "find -L ${scenarios} -name '*.yaml' -exec cat {} >> scenarios.yaml \\; ; " +
-              "sed -i '/---/d' scenarios.yaml; fi; "
-        }
-      }
     } else {
       throw new Exception("Platform ${platform} is not supported yet")
     }
-    if (repository != '' ) {
+    cmd_rally_checkout += bundle_up_scenarios(scenarios, skip_list, "scenarios_${platform.type}.yaml")
+    cmd_rally_start = "rally $rally_extra_args task start scenarios_${platform.type}.yaml "
+    if (config_repo != '' ) {
       switch(tasks_args_file) {
         case 'none':
           cmd_rally_task_args = '; '
@@ -379,7 +370,13 @@ def runRallyTests(master, target, dockerImageLink, platform, output_dir, reposit
         break
       }
     }
-    full_cmd = cmd_rally_init + cmd_rally_checkout + cmd_rally_start + cmd_rally_task_args + cmd_report
+    cmd_rally_report= "rally task export --type junit-xml --to ${dest_folder}/report-rally.xml; " +
+        "rally task report --out ${dest_folder}/report-rally.html"
+    full_cmd = 'set -xe; ' + cmd_rally_plugins +
+        cmd_rally_init + cmd_rally_checkout +
+        'set +e; ' + cmd_rally_start +
+        cmd_rally_task_args + cmd_rally_stacklight +
+        cmd_rally_report
     salt.runSaltProcessStep(master, target, 'file.touch', ["${results}/rally.db"])
     salt.cmdRun(master, target, "chmod 666 ${results}/rally.db")
     salt.cmdRun(master, target, "docker run -w /home/rally -i --rm --net=host -e ${env_vars} " +
