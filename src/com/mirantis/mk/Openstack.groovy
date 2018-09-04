@@ -426,7 +426,7 @@ def stopServices(env, probe, target, services=[], confirm=false) {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
     for (s in services) {
-        def outputServicesStr = salt.getReturnValues(salt.cmdRun(env, "${probe}*", "service --status-all | grep ${s} | awk \'{print \$4}\'"))
+        def outputServicesStr = salt.getReturnValues(salt.cmdRun(env, probe, "service --status-all | grep ${s} | awk \'{print \$4}\'"))
         def servicesList = outputServicesStr.tokenize("\n").init()
         if (confirm) {
             if (servicesList) {
@@ -434,7 +434,7 @@ def stopServices(env, probe, target, services=[], confirm=false) {
                     input message: "Click PROCEED to stop ${servicesList}. Otherwise click ABORT to skip stopping them."
                     for (name in servicesList) {
                         if (!name.contains('Salt command')) {
-                            salt.runSaltProcessStep(env, "${target}*", 'service.stop', ["${name}"])
+                            salt.runSaltProcessStep(env, target, 'service.stop', ["${name}"])
                         }
                     }
                 } catch (Exception er) {
@@ -445,7 +445,7 @@ def stopServices(env, probe, target, services=[], confirm=false) {
             if (servicesList) {
                 for (name in servicesList) {
                     if (!name.contains('Salt command')) {
-                        salt.runSaltProcessStep(env, "${target}*", 'service.stop', ["${name}"])
+                        salt.runSaltProcessStep(env, target, 'service.stop', ["${name}"])
                     }
                 }
             }
