@@ -255,6 +255,15 @@ def installInfra(master, extra_tgt = '') {
         }
         salt.enforceState(master, "I@redis:server ${extra_tgt}", 'redis')
     }
+
+    // Install DNS services
+    if (salt.testTarget(master, "I@bind:server ${extra_tgt}")) {
+        salt.enforceState(master, "I@bind:server ${extra_tgt}", 'bind.server')
+    }
+    if (salt.testTarget(master, "I@powerdns:server ${extra_tgt}")) {
+        salt.enforceState(master, "I@powerdns:server ${extra_tgt}", 'powerdns.server')
+    }
+
     installBackup(master, 'common', extra_tgt)
 }
 
@@ -397,12 +406,6 @@ def installOpenstackControl(master, extra_tgt = '') {
 
     // Install designate services
     if (salt.testTarget(master, "I@designate:server:enabled ${extra_tgt}")) {
-        if (salt.testTarget(master, "I@designate:server:backend:bind9 ${extra_tgt}")) {
-            salt.enforceState(master, "I@bind:server ${extra_tgt}", 'bind.server')
-        }
-        if (salt.testTarget(master, "I@designate:server:backend:pdns4 ${extra_tgt}")) {
-            salt.enforceState(master, "I@powerdns:server ${extra_tgt}", 'powerdns.server')
-        }
         salt.enforceState(master, "I@designate:server and *01* ${extra_tgt}", 'designate.server')
         salt.enforceState(master, "I@designate:server ${extra_tgt}", 'designate')
     }
