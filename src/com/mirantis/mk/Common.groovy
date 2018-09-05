@@ -188,30 +188,30 @@ def debugMsg(msg, color = true) {
     }
 }
 
+def getColorizedString(msg, color){
+  def  colorMap = [
+    'red'   : '\u001B[31m',
+    'black' : '\u001B[30m',
+    'green' : '\u001B[32m',
+    'yellow': '\u001B[33m',
+    'blue'  : '\u001B[34m',
+    'purple': '\u001B[35m',
+    'cyan'  : '\u001B[36m',
+    'white' : '\u001B[37m',
+    'reset' : '\u001B[0m'
+  ]
+
+  return "${colorMap[color]}${msg}${colorMap.reset}"
+}
+
 /**
  * Print message
  *
  * @param msg Message to be printed
- * @param level Level of message (default INFO)
- * @param color Color to use for output or false (default)
+ * @param color Color to use for output
  */
-def printMsg(msg, color = false) {
-    colors = [
-        'red'   : '\u001B[31m',
-        'black' : '\u001B[30m',
-        'green' : '\u001B[32m',
-        'yellow': '\u001B[33m',
-        'blue'  : '\u001B[34m',
-        'purple': '\u001B[35m',
-        'cyan'  : '\u001B[36m',
-        'white' : '\u001B[37m',
-        'reset' : '\u001B[0m'
-    ]
-    if (color != false) {
-        print "${colors[color]}${msg}${colors.reset}"
-    } else {
-        print "[${level}] ${msg}"
-    }
+def printMsg(msg, color) {
+    print getColorizedString(msg, color)
 }
 
 /**
