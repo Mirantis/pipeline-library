@@ -715,3 +715,88 @@ def GetBaseName(line, remove_ext) {
     }
     return filename
 }
+
+/**
+* Return colored string of specific stage in stageMap
+*
+* @param stageMap  LinkedHashMap object.
+* @param stageName The name of current stage we are going to execute.
+* @param color     Text color
+**/
+def getColoredStageView(stageMap, stageName, color){
+  def stage = stageMap[stageName]
+  def banner = []
+  def currentStageIndex = new ArrayList<String>(stageMap.keySet()).indexOf(stageName)
+  def numberOfStages = stageMap.keySet().size() - 1
+
+  banner.add(getColorizedString(
+    "=========== Stage ${currentStageIndex}/${numberOfStages}: ${stageName} ===========", color))
+  for (stage_item in stage.keySet()){
+    banner.add(getColorizedString(
+    "${stage_item}: ${stage[stage_item]}", color))
+  }
+  banner.add('\n')
+
+  return banner
+}
+
+/**
+* Pring stageMap to console with specified color
+*
+* @param stageMap        LinkedHashMap object with stages information.
+* @param currentStage    The name of current stage we are going to execute.
+*
+**/
+def printCurrentStage(stageMap, currentStage){
+  print getColoredStageView(stageMap, currentStage, "cyan").join('\n')
+}
+
+/**
+* Pring stageMap to console with specified color
+*
+* @param stageMap   LinkedHashMap object.
+* @param baseColor  Text color (default white)
+**/
+def printStageMap(stageMap, baseColor="white"){
+  def banner = []
+  def index = 0
+  for (stage_name in stageMap.keySet()){
+    banner.addAll(getColoredStageView(stageMap, stage_name,  baseColor))
+  }
+  print banner.join('\n')
+}
+
+/**
+* Wrap provided code in stage, and do interactive retires if needed.
+*
+* @param stageMap        LinkedHashMap object with stages information.
+* @param currentStage    The name of current stage we are going to execute.
+* @param target          Target host to execute stage on.
+* @param interactive     Boolean flag to specify if interaction with user is enabled.
+* @param body            Command to be in stage block.
+**/
+def stageWrapper(stageMap, currentStage, target, interactive=true, Closure body) {
+  def common = new com.mirantis.mk.Common()
+  def banner = []
+
+  printCurrentStage(stageMap, currentStage)
+
+  stage(currentStage){
+    input message: getColorizedString("We are going to execute stage \'${currentStage}\' on the following target ${target}.\nPlease review stage information above.", "yellow")
+    try {
+      return body.call()
+      stageMap[currentStage]['status'] = "SUCCESS"
+    } catch (Exception err) {
+      def msg = "Stage ${currentStage} failed with the following exception:\n${err}"
+      print getColorizedString(msg, "yellow")
+      common.errorMsg(err)
+      if (interactive){
+        input message: getColorizedString("Please make sure problem is fixed to proceed with retry. Ready to proceed?", "yellow")
+        stageMap[currentStage]['status'] = "RETRYING"
+        stageWrapper(stageMap, currentStage, target, interactive, body)
+      } else {
+        error(msg)
+      }
+    }
+  }
+}
