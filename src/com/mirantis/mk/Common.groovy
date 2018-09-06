@@ -785,14 +785,14 @@ def stageWrapper(stageMap, currentStage, target, interactive=true, Closure body)
     input message: getColorizedString("We are going to execute stage \'${currentStage}\' on the following target ${target}.\nPlease review stage information above.", "yellow")
     try {
       return body.call()
-      stageMap[currentStage]['status'] = "SUCCESS"
+      stageMap[currentStage]['Status'] = "SUCCESS"
     } catch (Exception err) {
       def msg = "Stage ${currentStage} failed with the following exception:\n${err}"
       print getColorizedString(msg, "yellow")
       common.errorMsg(err)
       if (interactive){
         input message: getColorizedString("Please make sure problem is fixed to proceed with retry. Ready to proceed?", "yellow")
-        stageMap[currentStage]['status'] = "RETRYING"
+        stageMap[currentStage]['Status'] = "RETRYING"
         stageWrapper(stageMap, currentStage, target, interactive, body)
       } else {
         error(msg)
