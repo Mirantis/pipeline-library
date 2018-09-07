@@ -188,20 +188,20 @@ def debugMsg(msg, color = true) {
     }
 }
 
-def getColorizedString(msg, color){
-  def  colorMap = [
-    'red'   : '\u001B[31m',
-    'black' : '\u001B[30m',
-    'green' : '\u001B[32m',
-    'yellow': '\u001B[33m',
-    'blue'  : '\u001B[34m',
-    'purple': '\u001B[35m',
-    'cyan'  : '\u001B[36m',
-    'white' : '\u001B[37m',
-    'reset' : '\u001B[0m'
-  ]
+def getColorizedString(msg, color) {
+    def colorMap = [
+        'red'   : '\u001B[31m',
+        'black' : '\u001B[30m',
+        'green' : '\u001B[32m',
+        'yellow': '\u001B[33m',
+        'blue'  : '\u001B[34m',
+        'purple': '\u001B[35m',
+        'cyan'  : '\u001B[36m',
+        'white' : '\u001B[37m',
+        'reset' : '\u001B[0m'
+    ]
 
-  return "${colorMap[color]}${msg}${colorMap.reset}"
+    return "${colorMap[color]}${msg}${colorMap.reset}"
 }
 
 /**
@@ -638,7 +638,7 @@ def comparePillars(compRoot, b_url, grepOpts) {
                 """,
                 returnStatus: true
             )
-            if (grep_status == 1){
+            if (grep_status == 1) {
                 common.warningMsg("Grep regexp ${grepOpts} removed all diff!")
                 diff_status = 0
             }
@@ -717,86 +717,110 @@ def GetBaseName(line, remove_ext) {
 }
 
 /**
-* Return colored string of specific stage in stageMap
-*
-* @param stageMap  LinkedHashMap object.
-* @param stageName The name of current stage we are going to execute.
-* @param color     Text color
-**/
-def getColoredStageView(stageMap, stageName, color){
-  def stage = stageMap[stageName]
-  def banner = []
-  def currentStageIndex = new ArrayList<String>(stageMap.keySet()).indexOf(stageName)
-  def numberOfStages = stageMap.keySet().size() - 1
+ * Return colored string of specific stage in stageMap
+ *
+ * @param stageMap LinkedHashMap object.
+ * @param stageName The name of current stage we are going to execute.
+ * @param color Text color
+ * */
+def getColoredStageView(stageMap, stageName, color) {
+    def stage = stageMap[stageName]
+    def banner = []
+    def currentStageIndex = new ArrayList<String>(stageMap.keySet()).indexOf(stageName)
+    def numberOfStages = stageMap.keySet().size() - 1
 
-  banner.add(getColorizedString(
-    "=========== Stage ${currentStageIndex}/${numberOfStages}: ${stageName} ===========", color))
-  for (stage_item in stage.keySet()){
     banner.add(getColorizedString(
-    "${stage_item}: ${stage[stage_item]}", color))
-  }
-  banner.add('\n')
-
-  return banner
-}
-
-/**
-* Pring stageMap to console with specified color
-*
-* @param stageMap        LinkedHashMap object with stages information.
-* @param currentStage    The name of current stage we are going to execute.
-*
-**/
-def printCurrentStage(stageMap, currentStage){
-  print getColoredStageView(stageMap, currentStage, "cyan").join('\n')
-}
-
-/**
-* Pring stageMap to console with specified color
-*
-* @param stageMap   LinkedHashMap object.
-* @param baseColor  Text color (default white)
-**/
-def printStageMap(stageMap, baseColor="white"){
-  def banner = []
-  def index = 0
-  for (stage_name in stageMap.keySet()){
-    banner.addAll(getColoredStageView(stageMap, stage_name,  baseColor))
-  }
-  print banner.join('\n')
-}
-
-/**
-* Wrap provided code in stage, and do interactive retires if needed.
-*
-* @param stageMap        LinkedHashMap object with stages information.
-* @param currentStage    The name of current stage we are going to execute.
-* @param target          Target host to execute stage on.
-* @param interactive     Boolean flag to specify if interaction with user is enabled.
-* @param body            Command to be in stage block.
-**/
-def stageWrapper(stageMap, currentStage, target, interactive=true, Closure body) {
-  def common = new com.mirantis.mk.Common()
-  def banner = []
-
-  printCurrentStage(stageMap, currentStage)
-
-  stage(currentStage){
-    input message: getColorizedString("We are going to execute stage \'${currentStage}\' on the following target ${target}.\nPlease review stage information above.", "yellow")
-    try {
-      return body.call()
-      stageMap[currentStage]['Status'] = "SUCCESS"
-    } catch (Exception err) {
-      def msg = "Stage ${currentStage} failed with the following exception:\n${err}"
-      print getColorizedString(msg, "yellow")
-      common.errorMsg(err)
-      if (interactive){
-        input message: getColorizedString("Please make sure problem is fixed to proceed with retry. Ready to proceed?", "yellow")
-        stageMap[currentStage]['Status'] = "RETRYING"
-        stageWrapper(stageMap, currentStage, target, interactive, body)
-      } else {
-        error(msg)
-      }
+        "=========== Stage ${currentStageIndex}/${numberOfStages}: ${stageName} ===========", color))
+    for (stage_item in stage.keySet()) {
+        banner.add(getColorizedString(
+            "${stage_item}: ${stage[stage_item]}", color))
     }
-  }
+    banner.add('\n')
+
+    return banner
+}
+
+/**
+ * Pring stageMap to console with specified color
+ *
+ * @param stageMap LinkedHashMap object with stages information.
+ * @param currentStage The name of current stage we are going to execute.
+ *
+ * */
+def printCurrentStage(stageMap, currentStage) {
+    print getColoredStageView(stageMap, currentStage, "cyan").join('\n')
+}
+
+/**
+ * Pring stageMap to console with specified color
+ *
+ * @param stageMap LinkedHashMap object.
+ * @param baseColor Text color (default white)
+ * */
+def printStageMap(stageMap, baseColor = "white") {
+    def banner = []
+    def index = 0
+    for (stage_name in stageMap.keySet()) {
+        banner.addAll(getColoredStageView(stageMap, stage_name, baseColor))
+    }
+    print banner.join('\n')
+}
+
+/**
+ * Wrap provided code in stage, and do interactive retires if needed.
+ *
+ * @param stageMap LinkedHashMap object with stages information.
+ * @param currentStage The name of current stage we are going to execute.
+ * @param target Target host to execute stage on.
+ * @param interactive Boolean flag to specify if interaction with user is enabled.
+ * @param body Command to be in stage block.
+ * */
+def stageWrapper(stageMap, currentStage, target, interactive = true, Closure body) {
+    def common = new com.mirantis.mk.Common()
+    def banner = []
+
+    printCurrentStage(stageMap, currentStage)
+
+    stage(currentStage) {
+        input message: getColorizedString("We are going to execute stage \'${currentStage}\' on the following target ${target}.\nPlease review stage information above.", "yellow")
+        try {
+            return body.call()
+            stageMap[currentStage]['Status'] = "SUCCESS"
+        } catch (Exception err) {
+            def msg = "Stage ${currentStage} failed with the following exception:\n${err}"
+            print getColorizedString(msg, "yellow")
+            common.errorMsg(err)
+            if (interactive) {
+                input message: getColorizedString("Please make sure problem is fixed to proceed with retry. Ready to proceed?", "yellow")
+                stageMap[currentStage]['Status'] = "RETRYING"
+                stageWrapper(stageMap, currentStage, target, interactive, body)
+            } else {
+                error(msg)
+            }
+        }
+    }
+}
+
+/**
+ *  Ugly transition solution for internal tests.
+ *  1) Check input => transform to static result, based on runtime and input
+ *  2) Check remote-binary repo for exact resource
+ */
+
+def checkRemoteBinary(LinkedHashMap config, List extraScmExtensions = []) {
+    def common = new com.mirantis.mk.Common()
+    res = [:]
+    res['MirrorRoot'] = config.get('globalMirrorRoot', env["BIN_MIRROR_ROOT"] ? env["BIN_MIRROR_ROOT"] : "http://mirror.mirantis.com/")
+    // Reclass-like format's. To make life eazy!
+    res['apt_mk_version'] = config.get('apt_mk_version', env["BIN_APT_MK_VERSION"] ? env["BIN_APT_MK_VERSION"] : 'nightly')
+    res['linux_system_repo_url'] = config.get('linux_system_repo_url', env["BIN_linux_system_repo_url"] ? env["BIN_linux_system_repo_url"] : "${res['MirrorRoot']}/${res['apt_mk_version']}/")
+
+    if (config.get('verify', true)) {
+        MirrorRootStatus = sh(script: "wget  --auth-no-challenge --spider ${res['linux_system_repo_url']} 2>/dev/null", returnStatus: true)
+        if (MirrorRootStatus != '0') {
+            common.warningMsg("Resource: ${res['linux_system_repo_url']} not exist")
+            res['linux_system_repo_url'] = false
+        }
+    }
+    return res
 }
