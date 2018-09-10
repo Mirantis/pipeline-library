@@ -651,19 +651,19 @@ def installKubernetesControl(master, extra_tgt = '') {
     salt.fullRefresh(master, "* ${extra_tgt}")
 
     // Bootstrap all nodes
-    salt.enforceState(master, "I@kubernetes:pool ${extra_tgt}", 'linux')
-    salt.enforceState(master, "I@kubernetes:pool ${extra_tgt}", 'salt.minion')
-    salt.enforceState(master, "I@kubernetes:pool ${extra_tgt}", ['openssh', 'ntp'])
+    salt.enforceState(master, "I@kubernetes:master ${extra_tgt}", 'linux')
+    salt.enforceState(master, "I@kubernetes:master ${extra_tgt}", 'salt.minion')
+    salt.enforceState(master, "I@kubernetes:master ${extra_tgt}", ['openssh', 'ntp'])
 
     // Create and distribute SSL certificates for services using salt state
-    salt.enforceState(master, "I@kubernetes:pool ${extra_tgt}", 'salt.minion.cert')
+    salt.enforceState(master, "I@kubernetes:master ${extra_tgt}", 'salt.minion.cert')
 
     // Install docker
     salt.enforceState(master, "I@docker:host ${extra_tgt}", 'docker.host')
 
     // Install Kubernetes pool and Calico
     salt.enforceState(master, "I@kubernetes:master ${extra_tgt}", 'kubernetes.master.kube-addons')
-    salt.enforceState(master, "I@kubernetes:pool ${extra_tgt}", 'kubernetes.pool')
+    salt.enforceState(master, "I@kubernetes:master ${extra_tgt}", 'kubernetes.pool')
 
     if (salt.testTarget(master, "I@etcd:server:setup ${extra_tgt}")) {
         // Setup etcd server
@@ -680,7 +680,7 @@ def installKubernetesControl(master, extra_tgt = '') {
     salt.enforceState(master, "I@kubernetes:master and *01* ${extra_tgt}", 'kubernetes.master.setup')
 
     // Restart kubelet
-    salt.runSaltProcessStep(master, "I@kubernetes:pool ${extra_tgt}", 'service.restart', ['kubelet'])
+    salt.runSaltProcessStep(master, "I@kubernetes:master ${extra_tgt}", 'service.restart', ['kubelet'])
 }
 
 
@@ -689,23 +689,24 @@ def installKubernetesCompute(master, extra_tgt = '') {
     salt.fullRefresh(master, "*")
 
     // Bootstrap all nodes
-    salt.enforceState(master, "I@kubernetes:pool ${extra_tgt}", 'linux')
-    salt.enforceState(master, "I@kubernetes:pool ${extra_tgt}", 'salt.minion')
-    salt.enforceState(master, "I@kubernetes:pool ${extra_tgt}", ['openssh', 'ntp'])
+    salt.enforceState(master, "I@kubernetes:pool and not I@kubernetes:master ${extra_tgt}", 'linux')
+    salt.enforceState(master, "I@kubernetes:pool and not I@kubernetes:master ${extra_tgt}", 'salt.minion')
+    salt.enforceState(master, "I@kubernetes:pool and not I@kubernetes:master ${extra_tgt}", ['openssh', 'ntp'])
 
     // Create and distribute SSL certificates for services using salt state
-    salt.enforceState(master, "I@kubernetes:pool ${extra_tgt}", 'salt.minion.cert')
+    salt.enforceState(master, "I@kubernetes:pool and not I@kubernetes:master ${extra_tgt}", 'salt.minion.cert')
 
     // Install docker
     salt.enforceState(master, "I@docker:host ${extra_tgt}", 'docker.host')
 
     // Install Kubernetes and Calico
-    salt.enforceState(master, "I@kubernetes:pool ${extra_tgt}", 'kubernetes.pool')
+    salt.enforceState(master, "I@kubernetes:pool and not I@kubernetes:master ${extra_tgt}", 'kubernetes.pool')
 
     // Install Tiller and all configured releases
     if (salt.testTarget(master, "I@helm:client ${extra_tgt}")) {
         salt.enforceState(master, "I@helm:client ${extra_tgt}", 'helm')
     }
+    salt.runSaltProcessStep(master, "I@kubernetes:pool and not I@kubernetes:master ${extra_tgt}", 'service.restart', ['kubelet'])
 }
 
 
