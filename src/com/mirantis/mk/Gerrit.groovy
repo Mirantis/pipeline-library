@@ -16,6 +16,8 @@ import com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.GerritCause
  *          - withMerge, merge master before build
  *          - withLocalBranch, prevent detached mode in repo
  *          - withWipeOut, wipe repository and force clone
+ *          - GerritTriggerBuildChooser - use magic GerritTriggerBuildChooser class from gerrit-trigger-plugin.
+ *            By default,enabled.
  *        Gerrit properties like GERRIT_SCHEMA can be passed in config as gerritSchema or will be obtained from env
  * @param extraScmExtensions list of extra scm extensions which will be used for checkout (optional)
  * @return boolean result
@@ -48,13 +50,13 @@ def gerritPatchsetCheckout(LinkedHashMap config, List extraScmExtensions = []) {
     def path = config.get('path', "")
     def depth = config.get('depth', 0)
     def timeout = config.get('timeout', 20)
+    def GerritTriggerBuildChooser = config.get('useGerritTriggerBuildChooser', true)
 
     def invalidParams = _getInvalidGerritParams(config)
     if (invalidParams.isEmpty()) {
         // default parameters
         def scmExtensions = [
             [$class: 'CleanCheckout'],
-            [$class: 'BuildChooserSetting', buildChooser: [$class: 'GerritTriggerBuildChooser']],
             [$class: 'CheckoutOption', timeout: timeout],
             [$class: 'CloneOption', depth: depth, noTags: false, reference: '', shallow: depth > 0, timeout: timeout]
         ]
@@ -72,6 +74,11 @@ def gerritPatchsetCheckout(LinkedHashMap config, List extraScmExtensions = []) {
             // else use ssh checkout
             scmUserRemoteConfigs.put('url',"ssh://${gerritName}@${gerritHost}:${gerritPort}/${gerritProject}.git")
             scmUserRemoteConfigs.put('credentialsId',credentials)
+        }
+
+        // Usefull, if we only need to clone branch. W\o any refspec magic
+        if (GerritTriggerBuildChooser) {
+            scmExtensions.add([$class: 'BuildChooserSetting', buildChooser: [$class: 'GerritTriggerBuildChooser']],)
         }
 
         // if we need to "merge" code from patchset to GERRIT_BRANCH branch
