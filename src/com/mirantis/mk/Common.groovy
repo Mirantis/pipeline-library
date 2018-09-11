@@ -617,6 +617,7 @@ def diffCheckMultidir(diffData) {
  * return - html-based string
  * TODO: allow to specify subdir for results?
  **/
+
 def comparePillars(compRoot, b_url, grepOpts) {
     common = new com.mirantis.mk.Common()
     // Some global constants. Don't change\move them!
@@ -648,7 +649,7 @@ def comparePillars(compRoot, b_url, grepOpts) {
         }
     }
     // Set job description
-    String description = ''
+    description = ''
     if (diff_status == 1) {
         // Analyse output file and prepare array with results
         String data_ = readFile file: "${compRoot}/pillar.diff"
@@ -661,21 +662,28 @@ def comparePillars(compRoot, b_url, grepOpts) {
                 }
                 description += '<b>CHANGED</b><ul>'
                 common.infoMsg('Changed items:')
-                for (item in diff_list[keyDiff]) {
-                    // We don't want to handle sub-dirs structure. So, simply make diff 'flat'
-                    item_f = item.toString().replace('/', '_')
-                    description += "<li><a href=\"${httpWS}/diff/${item_f}/*view*/\">${item}</a></li>"
-                    // Generate diff file
-                    def diff_exit_code = sh([
-                        script      : "diff -U 50 old/${item} new/${item} > diff/${item_f}",
-                        returnStdout: false,
-                        returnStatus: true,
-                    ])
-                    // catch normal errors, diff should always return 1
-                    if (diff_exit_code != 1) {
-                        error 'Error with diff file generation'
-                    }
+                def stepsForParallel = [:]
+                stepsForParallel.failFast = true
+                diff_list[keyDiff].each {
+                    stepsForParallel.put("Differ for:${it}",
+                        {
+                            // We don't want to handle sub-dirs structure. So, simply make diff 'flat'
+                            def item_f = it.toString().replace('/', '_')
+                            description += "<li><a href=\"${httpWS}/diff/${item_f}/*view*/\">${it}</a></li>"
+                            // Generate diff file
+                            def diff_exit_code = sh([
+                                script      : "diff -U 50 old/${it} new/${it} > diff/${item_f}",
+                                returnStdout: false,
+                                returnStatus: true,
+                            ])
+                            // catch normal errors, diff should always return 1
+                            if (diff_exit_code != 1) {
+                                error 'Error with diff file generation'
+                            }
+                        })
                 }
+
+                parallel stepsForParallel
             }
             if (diff_list[keyNew].size() > 0) {
                 description += '<b>ADDED</b><ul>'
