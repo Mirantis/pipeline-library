@@ -445,9 +445,12 @@ def parseJSON(jsonString) {
 /**
  * Test pipeline input parameter existence and validity (not null and not empty string)
  * @param paramName input parameter name (usually uppercase)
- */
+  */
 def validInputParam(paramName) {
-    return env.getEnvironment().containsKey(paramName) && env[paramName] != null && env[paramName] != ""
+    if (paramName instanceof java.lang.String) {
+        return env.getEnvironment().containsKey(paramName) && env[paramName] != null && env[paramName] != ""
+    }
+    return false
 }
 
 /**
