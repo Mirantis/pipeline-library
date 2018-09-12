@@ -5,7 +5,7 @@ package com.mirantis.mk
  were tests successful or not.
  * @param config - LinkedHashMap with configuration params:
  *   dockerHostname - (required) Hostname to use for Docker container.
- *   formulasRevision - (optional) Revision of packages to use (default stable).
+ *   formulasRevision - (optional) Revision of packages to use (default proposed).
  *   runCommands - (optional) Dict with closure structure of body required tests. For example:
  *     [ '001_Test': { sh("./run-some-test") }, '002_Test': { sh("./run-another-test") } ]
  *     Before execution runCommands will be sorted by key names. Alpabetical order is preferred.
@@ -108,6 +108,89 @@ def setupDockerAndTest(LinkedHashMap config) {
         common.warningMsg("Test finished: FAILURE")
     }
     return TestMarkerResult
+}
+
+/**
+  * Wrapper around setupDockerAndTest, to run checks against new Reclass version
+  * that current model is compatible with new Reclass.
+  *
+  * @param config - LinkedHashMap with configuration params:
+  *   dockerHostname - (required) Hostname to use for Docker container.
+  *   distribRevision - (optional) Revision of packages to use (default proposed).
+  *   extraRepo - (optional) Extra repo to use to install new Reclass version. Has
+  *     high priority on distribRevision
+  *   targetNodes - (required) List nodes to check pillar data.
+ */
+def compareReclassVersions(config) {
+    def common = new com.mirantis.mk.Common()
+    def salt = new com.mirantis.mk.Salt()
+    common.infoMsg("Going to test new reclass for CFG node")
+    def distribRevision = config.get('distribRevision', 'proposed')
+    def venv = config.get('venv')
+    def extraRepo = config.get('extraRepo', '')
+    def extraRepoKey = config.get('extraRepoKey', '')
+    def targetNodes = config.get('targetNodes')
+    sh "rm -rf ${env.WORKSPACE}/old ${env.WORKSPACE}/new"
+    sh "mkdir -p ${env.WORKSPACE}/old ${env.WORKSPACE}/new"
+    def configRun = [
+        'formulasRevision': distribRevision,
+        'dockerExtraOpts': [
+            "-v /srv/salt/reclass:/srv/salt/reclass:ro",
+            "-v /etc/salt:/etc/salt:ro",
+            "-v /usr/share/salt-formulas/:/usr/share/salt-formulas/:ro"
+        ],
+        'envOpts': [
+            "WORKSPACE=${env.WORKSPACE}",
+            "NODES_LIST=${targetNodes.join(' ')}"
+        ],
+        'runCommands': [
+            '001_Update_Reclass_package': {
+              sh('apt-get update && apt-get install -y reclass')
+            },
+            '002_Test_Reclass_Compatibility': {
+              sh('''
+                reclass-salt -b /srv/salt/reclass -t > ${WORKSPACE}/new/inventory || exit 1
+                for node in $NODES_LIST; do
+                    reclass-salt -b /srv/salt/reclass -p $node > ${WORKSPACE}/new/$node || exit 1
+                done
+              ''')
+            }
+        ]
+    ]
+    if (extraRepo) {
+        configRun['runCommands']['0001_Additional_Extra_Repo_Passed'] = {
+            sh("""
+                echo "${extraRepo}" > /etc/apt/sources.list.d/mcp_extra.list
+                [ "${extraRepoKey}" ] && wget -O - ${extraRepoKey} | apt-key add -
+            """)
+        }
+    } else {
+        configRun['runCommands']['0001_Additional_Extra_Repo_Default'] = {
+            sh("""
+                echo "deb [arch=amd64] http://apt.mirantis.com/xenial ${distribRevision} extra" > /etc/apt/sources.list.d/mcp_extra.list
+                wget -O - http://apt.mirantis.com/public.gpg | apt-key add -
+            """)
+        }
+    }
+    if (setupDockerAndTest(configRun)) {
+        common.infoMsg("New reclass version is compatible with current model: SUCCESS")
+        def inventoryOld = salt.cmdRun(venv, "I@salt:master", "reclass-salt -b /srv/salt/reclass -t", true, null, true).get("return")[0].values()[0]
+        // [0..-31] to exclude 'echo Salt command execution success' from output
+        writeFile(file: "${env.WORKSPACE}/old/inventory", text: inventoryOld[0..-31])
+        for(String node in targetNodes) {
+            def nodeOut = salt.cmdRun(venv, "I@salt:master", "reclass-salt -b /srv/salt/reclass -p ${node}", true, null, true).get("return")[0].values()[0]
+            writeFile(file: "${env.WORKSPACE}/old/${node}", text: nodeOut[0..-31])
+        }
+        def reclassDiff = common.comparePillars(env.WORKSPACE, env.BUILD_URL, '')
+        currentBuild.description = reclassDiff
+        if (reclassDiff != '<b>No job changes</b>') {
+            throw new RuntimeException("Pillars with new reclass version has been changed: FAILED")
+        } else {
+            common.infoMsg("Pillars not changed with new reclass version: SUCCESS")
+        }
+    } else {
+        throw new RuntimeException("New reclass version is not compatible with current model: FAILED")
+    }
 }
 
 /**
