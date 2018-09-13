@@ -180,8 +180,7 @@ def installInfra(master, extra_tgt = '') {
     if (salt.testTarget(master, "I@glusterfs:server ${extra_tgt}")) {
         salt.enforceState(master, "I@glusterfs:server ${extra_tgt}", 'glusterfs.server.service')
 
-        first_target = salt.getFirstMinion(master, "I@glusterfs:server ${extra_tgt}")
-        salt.enforceState(master, "${first_target} ${extra_tgt}", 'glusterfs.server.setup', true, true, null, false, -1, 5)
+        salt.enforceState(master, "I@glusterfs:server:role:primary ${extra_tgt}", 'glusterfs.server.setup', true, true, null, false, -1, 5)
         sleep(10)
         salt.cmdRun(master, "I@glusterfs:server ${extra_tgt}", "gluster peer status; gluster volume status")
     }
