@@ -34,7 +34,6 @@ def setupAndTestNode(masterName, clusterName, extraFormulas = '*', testDir, form
     if (!extraFormulas.contains('*') && formulasSource == 'pkg') {
         common.warningMsg("You have passed deprecated variable:extraFormulas=${extraFormulas}. " +
             "\n It would be ignored, and all formulas would be installed anyway")
-        extraFormulas = '*'
     }
     if (!dockerContainerName) {
         dockerContainerName = 'setupAndTestNode' + UUID.randomUUID().toString()
