@@ -31,9 +31,11 @@ def setupAndTestNode(masterName, clusterName, extraFormulas = '*', testDir, form
     def img = docker.image("mirantis/salt:saltstack-ubuntu-xenial-salt-2017.7")
     img.pull()
 
-    if (!extraFormulas.contains('*') && formulasSource == 'pkg') {
-        common.warningMsg("You have passed deprecated variable:extraFormulas=${extraFormulas}. " +
-            "\n It would be ignored, and all formulas would be installed anyway")
+    if (formulasSource == 'pkg') {
+        if (extraFormulas) {
+            common.warningMsg("You have passed deprecated variable:extraFormulas=${extraFormulas}. " +
+                "\n It would be ignored, and all formulas would be installed anyway")
+        }
     }
     if (!dockerContainerName) {
         dockerContainerName = 'setupAndTestNode' + UUID.randomUUID().toString()
@@ -44,7 +46,7 @@ def setupAndTestNode(masterName, clusterName, extraFormulas = '*', testDir, form
     }
     try {
         img.inside("-u root:root --hostname=${masterName} --ulimit nofile=4096:8192 ${dockerMaxCpusOpt} --name=${dockerContainerName}") {
-            withEnv(["FORMULAS_SOURCE=${formulasSource}", "EXTRA_FORMULAS=${extraFormulas}",
+            withEnv(["FORMULAS_SOURCE=${formulasSource}", "EXTRA_FORMULAS=${extraFormulas}", "EXTRA_FORMULAS_PKG_ALL=true",
                      "DISTRIB_REVISION=${formulasRevision}",
                      "DEBUG=1", "MASTER_HOSTNAME=${masterName}",
                      "CLUSTER_NAME=${clusterName}", "MINION_ID=${masterName}",
