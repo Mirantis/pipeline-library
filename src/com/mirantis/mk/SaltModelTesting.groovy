@@ -236,6 +236,10 @@ def setupAndTestNode(masterName, clusterName, extraFormulas = '*', testDir, form
                      formulasRevision = 'stable', reclassVersion = "master", dockerMaxCpus = 0,
                      ignoreClassNotfound = false, legacyTestingMode = false, aptRepoUrl = '', aptRepoGPG = '', dockerContainerName = false) {
     def common = new com.mirantis.mk.Common()
+    // TODO
+    common.errorMsg('You are using deprecated function!Please migrate to "setupDockerAndTest".' +
+        'It would be removed after 2018.q4 release!Pushing forced 60s sleep..')
+    sh('sleep 60')
     // timeout for test execution (40min)
     def testTimeout = 40 * 60
     def TestMarkerResult = false
@@ -395,6 +399,9 @@ def testMinion(minionName) {
 
 def testCCModel(cfg) {
     def common = new com.mirantis.mk.Common()
+    common.errorMsg('You are using deprecated function!Please migrate to "testNode".' +
+        'It would be removed after 2018.q4 release!Pushing forced 60s sleep..')
+    sh('sleep 60')
     sh(script: 'find . -mindepth 1 -delete || true', returnStatus: true)
     sh(script: "wget --progress=dot:mega --auth-no-challenge -O models.tar.gz ${cfg.MODELS_TARGZ}")
     // unpack data
