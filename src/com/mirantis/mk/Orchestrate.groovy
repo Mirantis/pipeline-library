@@ -560,7 +560,7 @@ def installOpenstackCompute(master, extra_tgt = '') {
         def hightstateTarget = "${compute_compound} and not ${gluster_compound} and not ${salt_ca_compound}"
         if (salt.testTarget(master, hightstateTarget)) {
             retry(2) {
-                salt.enforceHighstateWithExclude(master, hightstateTarget, 'opencontrail.client')
+                salt.enforceHighstate(master, hightstateTarget)
             }
         } else {
             common.infoMsg("No minions matching highstate target found for target ${hightstateTarget}")
@@ -573,7 +573,7 @@ def installOpenstackCompute(master, extra_tgt = '') {
                 if ( target == cmp_target ) {
                     // Enforce highstate one by one on salt ca servers which are compute nodes
                     retry(2) {
-                        salt.enforceHighstateWithExclude(master, target, 'opencontrail.client')
+                        salt.enforceHighstate(master, target)
                     }
                 }
             }
@@ -586,7 +586,7 @@ def installOpenstackCompute(master, extra_tgt = '') {
                 if ( target == cmp_target ) {
                     // Enforce highstate one by one on glusterfs servers which are compute nodes
                     retry(2) {
-                        salt.enforceHighstateWithExclude(master, target, 'opencontrail.client')
+                        salt.enforceHighstate(master, target)
                     }
                 }
             }
