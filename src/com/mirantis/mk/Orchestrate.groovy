@@ -1252,6 +1252,11 @@ def connectCeph(master, extra_tgt = '') {
         salt.enforceState(master, "I@ceph:common and I@nova:compute ${extra_tgt}", ['nova'])
         salt.runSaltProcessStep(master, "I@ceph:common and I@nova:compute ${extra_tgt}", 'service.restart', ['nova-compute'])
     }
+    if (salt.testTarget(master, "I@ceph:common and I@gnocchi:server ${extra_tgt}")) {
+        salt.enforceState(master, "I@ceph:common and I@gnocchi:server ${extra_tgt}", ['ceph.common', 'ceph.setup.keyring'])
+        salt.enforceState(master, "I@ceph:common and I@gnocchi:server:role:primary ${extra_tgt}", 'gnocchi.server')
+        salt.enforceState(master, "I@ceph:common and I@gnocchi:server ${extra_tgt}", 'gnocchi.server')
+    }
 }
 
 def installOssInfra(master, extra_tgt = '') {
