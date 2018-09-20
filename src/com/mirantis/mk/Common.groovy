@@ -710,7 +710,7 @@ def comparePillars(compRoot, b_url, grepOpts) {
         }
         return description.toString()
     } else {
-        return 'No job changes'
+        return '<b>No job changes</b>'
     }
 }
 
