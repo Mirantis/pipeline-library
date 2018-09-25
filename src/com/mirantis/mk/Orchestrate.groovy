@@ -1228,32 +1228,48 @@ def installCephClient(master, extra_tgt = '') {
         salt.runSaltProcessStep(master, "I@ceph:radosgw ${extra_tgt}", 'saltutil.sync_grains')
         salt.enforceState(master, "I@ceph:radosgw ${extra_tgt}", 'ceph.radosgw')
     }
-    // setup Keystone service and endpoints for swift or / and S3
-    if (salt.testTarget(master, "I@keystone:client ${extra_tgt}")) {
-        salt.enforceState(master, "I@keystone:client ${extra_tgt}", 'keystone.client')
+
+    // setup keyring for Openstack services
+    if (salt.testTarget(master, "I@ceph:common and I@glance:server ${extra_tgt}")) {
+        salt.enforceState(master, "I@ceph:common and I@glance:server ${extra_tgt}", ['ceph.common', 'ceph.setup.keyring'])
+    }
+
+    if (salt.testTarget(master, "I@ceph:common and I@cinder:controller ${extra_tgt}")) {
+        salt.enforceState(master, "I@ceph:common and I@cinder:controller ${extra_tgt}", ['ceph.common', 'ceph.setup.keyring'])
+    }
+
+    if (salt.testTarget(master, "I@ceph:common and I@nova:compute ${extra_tgt}")) {
+        salt.enforceState(master, "I@ceph:common and I@nova:compute ${extra_tgt}", ['ceph.common', 'ceph.setup.keyring'])
+        salt.runSaltProcessStep(master, "I@ceph:common and I@nova:compute ${extra_tgt}", 'saltutil.sync_grains')
+    }
+
+    if (salt.testTarget(master, "I@ceph:common and I@gnocchi:server ${extra_tgt}")) {
+        salt.enforceState(master, "I@ceph:common and I@gnocchi:server ${extra_tgt}", ['ceph.common', 'ceph.setup.keyring'])
     }
 }
 
 def connectCeph(master, extra_tgt = '') {
     def salt = new com.mirantis.mk.Salt()
 
+    // setup Keystone service and endpoints for swift or / and S3
+    if (salt.testTarget(master, "I@keystone:client ${extra_tgt}")) {
+        salt.enforceState(master, "I@keystone:client ${extra_tgt}", 'keystone.client')
+    }
+
     // connect Ceph to the env
     if (salt.testTarget(master, "I@ceph:common and I@glance:server ${extra_tgt}")) {
-        salt.enforceState(master, "I@ceph:common and I@glance:server ${extra_tgt}", ['ceph.common', 'ceph.setup.keyring', 'glance'])
+        salt.enforceState(master, "I@ceph:common and I@glance:server ${extra_tgt}", ['glance'])
         salt.runSaltProcessStep(master, "I@ceph:common and I@glance:server ${extra_tgt}", 'service.restart', ['glance-api'])
     }
     if (salt.testTarget(master, "I@ceph:common and I@cinder:controller ${extra_tgt}")) {
-        salt.enforceState(master, "I@ceph:common and I@cinder:controller ${extra_tgt}", ['ceph.common', 'ceph.setup.keyring', 'cinder'])
+        salt.enforceState(master, "I@ceph:common and I@cinder:controller ${extra_tgt}", ['cinder'])
         salt.runSaltProcessStep(master, "I@ceph:common and I@cinder:controller ${extra_tgt}", 'service.restart', ['cinder-volume'])
     }
     if (salt.testTarget(master, "I@ceph:common and I@nova:compute ${extra_tgt}")) {
-        salt.enforceState(master, "I@ceph:common and I@nova:compute ${extra_tgt}", ['ceph.common', 'ceph.setup.keyring'])
-        salt.runSaltProcessStep(master, "I@ceph:common and I@nova:compute ${extra_tgt}", 'saltutil.sync_grains')
         salt.enforceState(master, "I@ceph:common and I@nova:compute ${extra_tgt}", ['nova'])
         salt.runSaltProcessStep(master, "I@ceph:common and I@nova:compute ${extra_tgt}", 'service.restart', ['nova-compute'])
     }
     if (salt.testTarget(master, "I@ceph:common and I@gnocchi:server ${extra_tgt}")) {
-        salt.enforceState(master, "I@ceph:common and I@gnocchi:server ${extra_tgt}", ['ceph.common', 'ceph.setup.keyring'])
         salt.enforceState(master, "I@ceph:common and I@gnocchi:server:role:primary ${extra_tgt}", 'gnocchi.server')
         salt.enforceState(master, "I@ceph:common and I@gnocchi:server ${extra_tgt}", 'gnocchi.server')
     }
