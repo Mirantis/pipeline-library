@@ -830,7 +830,7 @@ def checkRemoteBinary(LinkedHashMap config, List extraScmExtensions = []) {
 
     if (config.get('verify', true)) {
         MirrorRootStatus = sh(script: "wget  --auth-no-challenge --spider ${res['linux_system_repo_url']} 2>/dev/null", returnStatus: true)
-        if (MirrorRootStatus != '0') {
+        if (MirrorRootStatus != 0) {
             common.warningMsg("Resource: ${res['linux_system_repo_url']} not exist")
             res['linux_system_repo_url'] = false
         }
