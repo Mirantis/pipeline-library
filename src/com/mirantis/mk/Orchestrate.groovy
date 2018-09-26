@@ -673,8 +673,12 @@ def installKubernetesControl(master, extra_tgt = '') {
     // Install docker
     salt.enforceState(master, "I@docker:host ${extra_tgt}", 'docker.host')
 
+     // If network engine is not opencontrail, run addons state for kubernetes
+    if (!salt.getPillar(master, "I@kubernetes:master ${extra_tgt}", 'kubernetes:master:network:opencontrail:enabled')) {
+        salt.enforceState(master, "I@kubernetes:master ${extra_tgt}", 'kubernetes.master.kube-addons')
+    }
+
     // Install Kubernetes pool and Calico
-    salt.enforceState(master, "I@kubernetes:master ${extra_tgt}", 'kubernetes.master.kube-addons')
     salt.enforceState(master, "I@kubernetes:master ${extra_tgt}", 'kubernetes.pool')
 
     if (salt.testTarget(master, "I@etcd:server:setup ${extra_tgt}")) {
@@ -685,10 +689,20 @@ def installKubernetesControl(master, extra_tgt = '') {
 
     // Run k8s master at *01* to simplify namespaces creation
     first_target = salt.getFirstMinion(master, "I@kubernetes:master ${extra_tgt}")
-    salt.enforceStateWithExclude(master, "${first_target} ${extra_tgt}", "kubernetes.master", "kubernetes.master.setup")
 
-    // Run k8s without master.setup
-    salt.enforceStateWithExclude(master, "I@kubernetes:master ${extra_tgt}", "kubernetes", "kubernetes.master.setup")
+    // If network engine is opencontrail, run master state for kubernetes without kube-addons
+    // The kube-addons state will be called later only in case of opencontrail
+    if (salt.getPillar(master, "I@kubernetes:master ${extra_tgt}", 'kubernetes:master:network:opencontrail:enabled')) {
+        // Run k8s on first node without master.setup and master.kube-addons
+        salt.enforceStateWithExclude(master, "${first_target} ${extra_tgt}", "kubernetes.master", "kubernetes.master.setup,kubernetes.master.kube-addons")
+        // Run k8s without master.setup and master.kube-addons
+        salt.enforceStateWithExclude(master, "I@kubernetes:master ${extra_tgt}", "kubernetes", "kubernetes.master.setup,kubernetes.master.kube-addons")
+    } else {
+        // Run k8s on first node without master.setup and master.kube-addons
+        salt.enforceStateWithExclude(master, "${first_target} ${extra_tgt}", "kubernetes.master", "kubernetes.master.setup")
+        // Run k8s without master.setup
+        salt.enforceStateWithExclude(master, "I@kubernetes:master ${extra_tgt}", "kubernetes", "kubernetes.master.setup")
+    }
 
     // Run k8s master setup
     first_target = salt.getFirstMinion(master, "I@kubernetes:master ${extra_tgt}")
@@ -745,6 +759,16 @@ def installDockerSwarm(master, extra_tgt = '') {
     }
 }
 
+// Setup addons for kubernetes - For OpenContrail network engine
+// Use after compute nodes are ready, because K8s addons like DNS should be placed on cmp nodes
+def setupKubeAddonForContrail(master, extra_tgt = '') {
+    def salt = new com.mirantis.mk.Salt()
+
+    if (salt.getPillar(master, "I@kubernetes:master ${extra_tgt}", 'kubernetes:master:network:opencontrail:enabled')){
+        // Setup  Addons for Kubernetes only in case of OpenContrail is used as neteork engine
+        salt.enforceState(master, "I@kubernetes:master ${extra_tgt}", 'kubernetes.master.kube-addons')
+    }
+}
 
 def installCicd(master, extra_tgt = '') {
     def salt = new com.mirantis.mk.Salt()
