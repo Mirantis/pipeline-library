@@ -837,3 +837,22 @@ def checkRemoteBinary(LinkedHashMap config, List extraScmExtensions = []) {
     }
     return res
 }
+
+/**
+ *  Workaround to update env properties, like GERRIT_* vars,
+ *  which should be passed from upstream job to downstream.
+ *  Will not fail entire job in case any issues.
+ *  @param envVar - EnvActionImpl env job
+ *  @param extraVars - Multiline YAML text with extra vars
+ */
+def mergeEnv(envVar, extraVars) {
+    try {
+        def extraParams = readYaml text: extraVars
+        for(String key in extraParams.keySet()) {
+            envVar[key] = extraParams[key]
+            common.warningMsg("Parameter ${key} is updated from EXTRA vars.")
+        }
+    } catch (Exception e) {
+        common.errorMsg("Can't update env parameteres, because: ${e.toString()}")
+    }
+}
