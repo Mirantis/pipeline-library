@@ -846,6 +846,7 @@ def checkRemoteBinary(LinkedHashMap config, List extraScmExtensions = []) {
  *  @param extraVars - Multiline YAML text with extra vars
  */
 def mergeEnv(envVar, extraVars) {
+    def common = new com.mirantis.mk.Common()
     try {
         def extraParams = readYaml text: extraVars
         for(String key in extraParams.keySet()) {
