@@ -178,7 +178,7 @@ def installInfra(master, extra_tgt = '') {
     }
 
     // Ensure glusterfs clusters is ready
-    salt.enforceStateWithTest(master, "I@glusterfs:client ${extra_tgt}", 'glusterfs.client', true, true, null, false, -1, 2)
+    salt.enforceStateWithTest(master, "I@glusterfs:client ${extra_tgt}", 'glusterfs.client', "", true, true, null, false, -1, 2)
 
     // Install galera
     if (salt.testTarget(master, "I@galera:master ${extra_tgt}") || salt.testTarget(master, "I@galera:slave ${extra_tgt}")) {
