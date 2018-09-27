@@ -559,7 +559,7 @@ def getMinionsSorted(saltId, target) {
  */
 def getFirstMinion(saltId, target) {
     def minionsSorted = getMinionsSorted(saltId, target)
-    return minionsSorted[0].split("\\.")[0]
+    return minionsSorted[0]
 }
 
 /**
