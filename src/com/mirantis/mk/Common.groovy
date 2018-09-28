@@ -857,3 +857,31 @@ def mergeEnv(envVar, extraVars) {
         common.errorMsg("Can't update env parameteres, because: ${e.toString()}")
     }
 }
+
+/**
+ * Wrapper around parallel pipeline function
+ * with ability to restrict number of parallel threads
+ * running simultaneously
+ *
+ * @param branches - Map with Clousers to be executed
+ * @param maxParallelJob - Integer number of parallel threads allowed
+ *                         to run simultaneously
+ */
+def runParallel(branches, maxParallelJob = 10) {
+    def runningSteps = 0
+    branches.each { branchName, branchBody ->
+        if (branchBody instanceof Closure) {
+            branches[branchName] = {
+                while (!(runningSteps < maxParallelJob)) {
+                    continue
+                }
+                runningSteps += 1
+                branchBody.call()
+                runningSteps -= 1
+            }
+        }
+    }
+    if (branches) {
+        parallel branches
+    }
+}
