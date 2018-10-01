@@ -1,4 +1,4 @@
 [gerrit]
-host=gerrit.mcp.mirantis.net
+host=gerrit.mcp.mirantis.com
 port=29418
 project=mcp-ci/pipeline-library.git
