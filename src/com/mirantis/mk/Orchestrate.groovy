@@ -626,8 +626,7 @@ def installKubernetesControl(master, extra_tgt = '') {
     }
 
     // Run k8s master setup
-    first_target = salt.getFirstMinion(master, "I@kubernetes:master ${extra_tgt}")
-    salt.enforceState(master, "${first_target} ${extra_tgt}", 'kubernetes.master.setup')
+    salt.enforceState(master, "I@kubernetes:master ${extra_tgt}", 'kubernetes.master.setup')
 
     // Restart kubelet
     salt.runSaltProcessStep(master, "I@kubernetes:master ${extra_tgt}", 'service.restart', ['kubelet'])
