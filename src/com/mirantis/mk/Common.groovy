@@ -908,7 +908,7 @@ def runParallel(branches, maxParallelJob = 10) {
 
 def debianExtraRepos(configYaml) {
     def config = readYaml text: configYaml
-    def distribRevision = config.get('distrib_revision', 'nightly')
+    def distribRevision = config.get('distribRevision', 'nightly')
     if (config.get('repo', false)) {
         for (String repo in config['repo'].keySet()) {
             source = config['repo'][repo]['source'].replace('SUB_DISTRIB_REVISION', distribRevision)
