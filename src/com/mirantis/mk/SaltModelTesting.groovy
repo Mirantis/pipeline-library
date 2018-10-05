@@ -45,36 +45,7 @@ def setupDockerAndTest(LinkedHashMap config) {
     ]
 
     def dockerOptsFinal = (dockerBaseOpts + dockerExtraOpts).join(' ')
-    def defaultExtraReposYaml = '''
----
-distrib_revision: 'nightly'
-aprConfD: |-
-  APT::Get::AllowUnauthenticated 'true';
-  APT::Get::Install-Suggests 'false';
-  APT::Get::Install-Recommends 'false';
-repo:
-  mcp_saltstack:
-    source: "deb [arch=amd64] http://mirror.mirantis.com/SUB_DISTRIB_REVISION/saltstack-2017.7/xenial xenial main"
-    pinning: |-
-        Package: libsodium18
-        Pin: release o=SaltStack
-        Pin-Priority: 50
-
-        Package: *
-        Pin: release o=SaltStack
-        Pin-Priority: 1100
-  mcp_extra:
-    source: "deb [arch=amd64] http://mirror.mirantis.com/SUB_DISTRIB_REVISION/extra/xenial xenial main"
-  ubuntu:
-    source: "deb [arch=amd64] http://mirror.mirantis.com/SUB_DISTRIB_REVISION/ubuntu xenial main restricted universe"
-  ubuntu-upd:
-    source: "deb [arch=amd64] http://mirror.mirantis.com/SUB_DISTRIB_REVISION/ubuntu xenial-updates main restricted universe"
-  ubuntu-sec:
-    source: "deb [arch=amd64] http://mirror.mirantis.com/SUB_DISTRIB_REVISION/ubuntu xenial-security main restricted universe"
-'''
     def img = docker.image(dockerImageName)
-    def extraReposYaml = config.get('extraReposYaml', defaultExtraReposYaml)
-
     img.pull()
 
     try {
@@ -84,19 +55,17 @@ repo:
                     // Currently, we don't have any other point to install
                     // runtime dependencies for tests.
                     if (baseRepoPreConfig) {
-                        // Warning! POssible point of 'allow-downgrades' issue
-                        // Probably, need to add such flag into apt.prefs
                         sh("""#!/bin/bash -xe
                             echo "Installing extra-deb dependencies inside docker:"
-                            echo > /etc/apt/sources.list
+                            echo "APT::Get::AllowUnauthenticated 'true';"  > /etc/apt/apt.conf.d/99setupAndTestNode
+                            echo "APT::Get::Install-Suggests 'false';"  >> /etc/apt/apt.conf.d/99setupAndTestNode
+                            echo "APT::Get::Install-Recommends 'false';"  >> /etc/apt/apt.conf.d/99setupAndTestNode
                             rm -vf /etc/apt/sources.list.d/* || true
-                        """)
-                        common.debianExtraRepos(extraReposYaml)
-                        sh('''#!/bin/bash -xe
+                            echo 'deb [arch=amd64] http://mirror.mirantis.com/$DISTRIB_REVISION/ubuntu xenial main restricted universe' > /etc/apt/sources.list
+                            echo 'deb [arch=amd64] http://mirror.mirantis.com/$DISTRIB_REVISION/ubuntu xenial-updates main restricted universe' >> /etc/apt/sources.list
                             apt-get update
-                            apt-get install -y python-netaddr reclass
-                        ''')
-
+                            apt-get install -y python-netaddr
+                        """)
                     }
                     runCommands.sort().each { command, body ->
                         common.warningMsg("Running command: ${command}")
@@ -142,15 +111,15 @@ repo:
 }
 
 /**
- * Wrapper around setupDockerAndTest, to run checks against new Reclass version
- * that current model is compatible with new Reclass.
- *
- * @param config - LinkedHashMap with configuration params:
- *   dockerHostname - (required) Hostname to use for Docker container.
- *   distribRevision - (optional) Revision of packages to use (default proposed).
- *   extraRepo - (optional) Extra repo to use to install new Reclass version. Has
- *     high priority on distribRevision
- *   targetNodes - (required) List nodes to check pillar data.
+  * Wrapper around setupDockerAndTest, to run checks against new Reclass version
+  * that current model is compatible with new Reclass.
+  *
+  * @param config - LinkedHashMap with configuration params:
+  *   dockerHostname - (required) Hostname to use for Docker container.
+  *   distribRevision - (optional) Revision of packages to use (default proposed).
+  *   extraRepo - (optional) Extra repo to use to install new Reclass version. Has
+  *     high priority on distribRevision
+  *   targetNodes - (required) List nodes to check pillar data.
  */
 def compareReclassVersions(config) {
     def common = new com.mirantis.mk.Common()
@@ -165,21 +134,21 @@ def compareReclassVersions(config) {
     sh "mkdir -p ${env.WORKSPACE}/old ${env.WORKSPACE}/new"
     def configRun = [
         'formulasRevision': distribRevision,
-        'dockerExtraOpts' : [
+        'dockerExtraOpts': [
             "-v /srv/salt/reclass:/srv/salt/reclass:ro",
             "-v /etc/salt:/etc/salt:ro",
             "-v /usr/share/salt-formulas/:/usr/share/salt-formulas/:ro"
         ],
-        'envOpts'         : [
+        'envOpts': [
             "WORKSPACE=${env.WORKSPACE}",
             "NODES_LIST=${targetNodes.join(' ')}"
         ],
-        'runCommands'     : [
-            '001_Update_Reclass_package'    : {
-                sh('apt-get update && apt-get install -y reclass')
+        'runCommands': [
+            '001_Update_Reclass_package': {
+              sh('apt-get update && apt-get install -y reclass')
             },
             '002_Test_Reclass_Compatibility': {
-                sh('''
+              sh('''
                 reclass-salt -b /srv/salt/reclass -t > ${WORKSPACE}/new/inventory || exit 1
                 for node in $NODES_LIST; do
                     reclass-salt -b /srv/salt/reclass -p $node > ${WORKSPACE}/new/$node || exit 1
@@ -195,13 +164,20 @@ def compareReclassVersions(config) {
                 [ "${extraRepoKey}" ] && wget -O - ${extraRepoKey} | apt-key add -
             """)
         }
+    } else {
+        configRun['runCommands']['0001_Additional_Extra_Repo_Default'] = {
+            sh("""
+                echo "deb [arch=amd64] http://apt.mirantis.com/xenial ${distribRevision} extra" > /etc/apt/sources.list.d/mcp_extra.list
+                wget -O - http://apt.mirantis.com/public.gpg | apt-key add -
+            """)
+        }
     }
     if (setupDockerAndTest(configRun)) {
         common.infoMsg("New reclass version is compatible with current model: SUCCESS")
         def inventoryOld = salt.cmdRun(venv, "I@salt:master", "reclass-salt -b /srv/salt/reclass -t", true, null, true).get("return")[0].values()[0]
         // [0..-31] to exclude 'echo Salt command execution success' from output
         writeFile(file: "${env.WORKSPACE}/old/inventory", text: inventoryOld[0..-31])
-        for (String node in targetNodes) {
+        for(String node in targetNodes) {
             def nodeOut = salt.cmdRun(venv, "I@salt:master", "reclass-salt -b /srv/salt/reclass -p ${node}", true, null, true).get("return")[0].values()[0]
             writeFile(file: "${env.WORKSPACE}/old/${node}", text: nodeOut[0..-31])
         }
@@ -231,7 +207,7 @@ def compareReclassVersions(config) {
  *   aptRepoUrl - (optional) package repository with salt formulas
  *   aptRepoGPG - (optional) GPG key for apt repository with formulas
  *   testContext - (optional) Description of test
- Return: true\exception
+  Return: true\exception
  */
 
 def testNode(LinkedHashMap config) {
@@ -259,20 +235,29 @@ def testNode(LinkedHashMap config) {
 
     config['runCommands'] = [
         '001_Clone_salt_formulas_scripts': {
-            sh(script: 'git clone https://github.com/salt-formulas/salt-formulas-scripts /srv/salt/scripts', returnStdout: true)
+          sh(script: 'git clone https://github.com/salt-formulas/salt-formulas-scripts /srv/salt/scripts', returnStdout: true)
         },
 
-        '002_Prepare_something'          : {
+        '002_Prepare_something': {
             sh('''rsync -ah ${RECLASS_ENV}/* /srv/salt/reclass && echo '127.0.1.2  salt' >> /etc/hosts
               cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt-mk.mirantis.com/apt.mirantis.net:8085/g' {} \\;
               cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt.mirantis.com/apt.mirantis.net:8085/g' {} \\;
             ''')
         },
 
-        '004_Run_tests'                  : {
+        // should be switched on packages later
+        '003_Install_reclass': {
+            sh('''for s in \$(python -c \"import site; print(' '.join(site.getsitepackages()))\"); do
+              sudo -H pip install --install-option=\"--prefix=\" --upgrade --force-reinstall -I \
+              -t \"\$s\" git+https://github.com/salt-formulas/reclass.git@${RECLASS_VERSION};
+              done
+            ''')
+        },
+
+        '004_Run_tests': {
             def testTimeout = 40 * 60
             timeout(time: testTimeout, unit: 'SECONDS') {
-                sh('''#!/bin/bash
+              sh('''#!/bin/bash
                 source /srv/salt/scripts/bootstrap.sh
                 cd /srv/salt/scripts
                 source_local_envs
@@ -283,13 +268,13 @@ def testNode(LinkedHashMap config) {
                 cd /srv/salt/scripts
                 saltservice_restart''')
 
-                sh('''#!/bin/bash
+              sh('''#!/bin/bash
                 source /srv/salt/scripts/bootstrap.sh
                 cd /srv/salt/scripts
                 source_local_envs
                 saltmaster_init''')
 
-                sh('''#!/bin/bash
+              sh('''#!/bin/bash
                 source /srv/salt/scripts/bootstrap.sh
                 cd /srv/salt/scripts
                 verify_salt_minions''')
