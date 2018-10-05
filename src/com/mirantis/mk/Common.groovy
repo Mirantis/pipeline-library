@@ -619,7 +619,7 @@ def diffCheckMultidir(diffData) {
  **/
 
 def comparePillars(compRoot, b_url, grepOpts) {
-    common = new com.mirantis.mk.Common()
+
     // Some global constants. Don't change\move them!
     keyNew = 'new'
     keyRemoved = 'removed'
@@ -643,7 +643,7 @@ def comparePillars(compRoot, b_url, grepOpts) {
                 returnStatus: true
             )
             if (grep_status == 1) {
-                common.warningMsg("Grep regexp ${grepOpts} removed all diff!")
+                warningMsg("Grep regexp ${grepOpts} removed all diff!")
                 diff_status = 0
             }
         }
@@ -654,14 +654,14 @@ def comparePillars(compRoot, b_url, grepOpts) {
         // Analyse output file and prepare array with results
         String data_ = readFile file: "${compRoot}/pillar.diff"
         def diff_list = diffCheckMultidir(data_.split("\\r?\\n"))
-        common.infoMsg(diff_list)
+        infoMsg(diff_list)
         dir(compRoot) {
             if (diff_list[keyDiff].size() > 0) {
                 if (!fileExists('diff')) {
                     sh('mkdir -p diff')
                 }
                 description += '<b>CHANGED</b><ul>'
-                common.infoMsg('Changed items:')
+                infoMsg('Changed items:')
                 def stepsForParallel = [:]
                 stepsForParallel.failFast = true
                 diff_list[keyDiff].each {
@@ -883,5 +883,45 @@ def runParallel(branches, maxParallelJob = 10) {
     }
     if (branches) {
         parallel branches
+    }
+}
+
+/**
+ * Ugly processing basic funcs with /etc/apt
+ * @param configYaml
+ * Example :
+ configYaml = '''
+ ---
+ distrib_revision: 'nightly'
+ aprConfD: |-
+    APT::Get::AllowUnauthenticated 'true';
+ repo:
+    mcp_saltstack:
+        source: "deb [arch=amd64] http://mirror.mirantis.com/SUB_DISTRIB_REVISION/saltstack-2017.7/xenial xenial main"
+        pinning: |-
+            Package: libsodium18
+            Pin: release o=SaltStack
+            Pin-Priority: 50
+ '''
+ *
+ */
+
+def debianExtraRepos(configYaml) {
+    def config = readYaml text: configYaml
+    def distribRevision = config.get('distrib_revision', 'nightly')
+    if (config.get('repo', false)) {
+        for (String repo in config['repo'].keySet()) {
+            source = config['repo'][repo]['source'].replace('SUB_DISTRIB_REVISION', distribRevision)
+            warningMsg("Write ${source} >  /etc/apt/sources.list.d/${repo}.list")
+            sh("echo '${source}' > /etc/apt/sources.list.d/${repo}.list")
+            // TODO implement pining
+        }
+    }
+    if (config.get('aprConfD', false)) {
+        for (String pref in config['aprConfD'].tokenize('\n')) {
+            warningMsg("Adding ${pref} => /etc/apt/apt.conf.d/99setupAndTestNode")
+            sh("echo '${pref}' >> /etc/apt/apt.conf.d/99setupAndTestNode")
+        }
+        sh('cat /etc/apt/apt.conf.d/99setupAndTestNode')
     }
 }
