@@ -1004,8 +1004,8 @@ def printSaltCommandResult(result) {
  * @param file      File path to read (/etc/hosts for example)
  */
 
-def getFileContent(saltId, target, file) {
-    result = cmdRun(saltId, target, "cat ${file}")
+def getFileContent(saltId, target, file, checkResponse = true, batch=null, output = true, saltArgs = []) {
+    result = cmdRun(saltId, target, "cat ${file}", checkResponse, batch, output, saltArgs)
     return result['return'][0].values()[0].replaceAll('Salt command execution success','')
 }
 
