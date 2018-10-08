@@ -112,25 +112,25 @@ def sendHttpDeleteRequest(url, data = null, headers = [:]) {
 }
 
 /**
- * Make generic call using Salt REST API and return parsed JSON
+ * Make generic call using REST API and return parsed JSON
  *
- * @param master   Salt connection object
- * @param uri   URI which will be appended to Salt server base URL
- * @param method    HTTP method to use (default GET)
- * @param data      JSON data to POST or PUT
- * @param headers   Map of additional request headers
+ * @param base    connection object, map with 'url' and optional 'authToken' keys
+ * @param uri     URI which will be appended to connection base URL
+ * @param method  HTTP method to use (default GET)
+ * @param data    JSON data to POST, PUT or PATCH
+ * @param headers Map of additional request headers
  */
-def restCall(master, uri, method = 'GET', data = null, headers = [:]) {
-    def connection = new URL("${master.url}${uri}").openConnection()
+def restCall(base, uri, method = 'GET', data = null, headers = [:]) {
+    def connection = new URL("${base.url}${uri}").openConnection()
     if (method != 'GET') {
         connection.setRequestMethod(method)
     }
 
     connection.setRequestProperty('User-Agent', 'jenkins-groovy')
     connection.setRequestProperty('Accept', 'application/json')
-    if (master.authToken) {
-        // XXX: removeme
-        connection.setRequestProperty('X-Auth-Token', master.authToken)
+    if (base.authToken) {
+        // XXX: removeme, explicitly use headers instead
+        connection.setRequestProperty('X-Auth-Token', base.authToken)
     }
 
     for (header in headers) {
@@ -163,34 +163,56 @@ def restCall(master, uri, method = 'GET', data = null, headers = [:]) {
 }
 
 /**
- * Make GET request using Salt REST API and return parsed JSON
+ * Make GET request using REST API and return parsed JSON
  *
- * @param master   Salt connection object
- * @param uri   URI which will be appended to Salt server base URL
+ * @param base  connection object, map with 'url' and optional 'authToken' keys
+ * @param uri   URI which will be appended to server base URL
  */
-def restGet(master, uri, data = null) {
-    return restCall(master, uri, 'GET', data)
+def restGet(base, uri, data = null, headers = [:]) {
+    return restCall(base, uri, 'GET', data, headers)
 }
 
 /**
- * Make POST request using Salt REST API and return parsed JSON
+ * Make POST request using REST API and return parsed JSON
  *
- * @param master   Salt connection object
- * @param uri   URI which will be appended to Docker server base URL
+ * @param base  connection object, map with 'url' and optional 'authToken' keys
+ * @param uri   URI which will be appended to server base URL
+ * @param data  JSON Data to POST
+ */
+def restPost(base, uri, data = null, headers = ['Accept': '*/*']) {
+    return restCall(base, uri, 'POST', data, headers)
+}
+
+/**
+ * Make PUT request using REST API and return parsed JSON
+ *
+ * @param base  connection object, map with 'url' and optional 'authToken' keys
+ * @param uri   URI which will be appended to server base URL
  * @param data  JSON Data to PUT
  */
-def restPost(master, uri, data = null) {
-    return restCall(master, uri, 'POST', data, ['Accept': '*/*'])
+def restPut(base, uri, data = null, headers = ['Accept': '*/*']) {
+    return restCall(base, uri, 'PUT', data, headers)
 }
 
 /**
- * Make DELETE request using Salt REST API and return parsed JSON
+ * Make PATCH request using REST API and return parsed JSON
  *
- * @param master   Salt connection object
- * @param uri   URI which will be appended to Salt server base URL
+ * @param base  connection object, map with 'url' and optional 'authToken' keys
+ * @param uri   URI which will be appended to server base URL
+ * @param data  JSON Data to PUT
  */
-def restDelete(master, uri, data = null) {
-    return restCall(master, uri, 'DELETE', data)
+def restPatch(base, uri, data = null, headers = ['Accept': '*/*']) {
+    return restCall(base, uri, 'PATCH', data, headers)
+}
+
+/**
+ * Make DELETE request using REST API and return parsed JSON
+ *
+ * @param base  connection object, map with 'url' and optional 'authToken' keys
+ * @param uri   URI which will be appended to server base URL
+ */
+def restDelete(base, uri, data = null, headers = [:]) {
+    return restCall(base, uri, 'DELETE', data, headers)
 }
 
 /**
