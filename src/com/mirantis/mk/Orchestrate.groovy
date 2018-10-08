@@ -544,7 +544,7 @@ def installContrailNetwork(master, extra_tgt = '') {
     salt.enforceStateWithExclude(master, "I@opencontrail:collector ${extra_tgt}", "opencontrail", "opencontrail.client")
 
     salt.enforceStateWithTest(master, "( I@opencontrail:control or I@opencontrail:collector ) ${extra_tgt}", 'docker.client', "I@docker:client and I@opencontrail:control ${extra_tgt}")
-    installBackup(master, 'contrail', extra_tgt)
+    // NOTE(ivasilevskaya) call to installBackup here has been removed as it breaks deployment if done before computes are deployed
 }
 
 
