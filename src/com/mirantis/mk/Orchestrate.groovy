@@ -466,10 +466,11 @@ def installOpenstackNetwork(master, extra_tgt = '') {
 
     // install octavia manager services
     if (salt.testTarget(master, "I@octavia:manager ${extra_tgt}")) {
-        salt.runSaltProcessStep(master, "I@salt:master ${extra_tgt}", 'mine.update', ['*'])
+        salt.runSaltProcessStep(master, "I@neutron:client ${extra_tgt}", 'mine.update')
         salt.enforceState(master, "I@octavia:manager ${extra_tgt}", 'octavia.manager')
         salt.enforceState(master, "I@octavia:manager ${extra_tgt}", 'salt.minion.ca')
         salt.enforceState(master, "I@octavia:manager ${extra_tgt}", 'salt.minion.cert')
+        salt.enforceState(master, "I@octavia:client ${extra_tgt}", 'octavia.client')
     }
 }
 
