@@ -721,7 +721,7 @@ def check_vm_status(master, target, kvm) {
  */
 def get_vip_node(master, target) {
     def salt = new com.mirantis.mk.Salt()
-    def list = salt.runSaltProcessStep(master, "${target}", 'cmd.run', ["ip a | grep global | grep -v brd"])['return'][0]
+    def list = salt.runSaltProcessStep(master, "${target}", 'cmd.run', ["ip a | grep '/32'"])['return'][0]
     for (item in list.keySet()) {
         if (list[item]) {
             return item
