@@ -484,12 +484,12 @@ def runSptTests(master, target, dockerImageLink, output_dir, ext_variables = [],
  * @param testing_tools_repo    	Repo with testing tools: configuration script, skip-list, etc.
  * @param tempest_repo         		Tempest repo to clone. Can be upstream tempest (default, recommended), your customized tempest in local/remote repo or path inside container. If not specified, tempest will not be configured.
  * @param tempest_endpoint_type         internalURL or adminURL or publicURL to use in tests
- * @param tempest_version	        Version of tempest to use
+ * @param tempest_version	        Version of tempest to use. This value will be just passed to configure.sh script (cvp-configuration repo).
  * @param conf_script_path              Path to configuration script.
  * @param ext_variables                 Some custom extra variables to add into container
  */
 def configureContainer(master, target, proxy, testing_tools_repo, tempest_repo,
-                       tempest_endpoint_type="internalURL", tempest_version="15.0.0",
+                       tempest_endpoint_type="internalURL", tempest_version="",
                        conf_script_path="", ext_variables = []) {
     def salt = new com.mirantis.mk.Salt()
     if (testing_tools_repo != "" ) {
