@@ -522,19 +522,17 @@ def runCVPtempest(master, target, test_pattern="set=smoke", skip_list="", output
     def salt = new com.mirantis.mk.Salt()
     def xml_file = "${output_filename}.xml"
     def html_file = "${output_filename}.html"
-    def log_file = "${output_filename}.log"
     skip_list_cmd = ''
     if (skip_list != '') {
         skip_list_cmd = "--skip-list ${skip_list}"
     }
-    salt.cmdRun(master, target, "docker exec cvp rally verify start --pattern ${test_pattern} ${skip_list_cmd} " +
-                                "--detailed > ${log_file}", false)
-    salt.cmdRun(master, target, "cat ${log_file}")
+    salt.cmdRun(master, target, "docker exec cvp rally verify start --pattern ${test_pattern} ${skip_list_cmd} --detailed")
     salt.cmdRun(master, target, "docker exec cvp rally verify report --type junit-xml --to /home/rally/${xml_file}")
     salt.cmdRun(master, target, "docker exec cvp rally verify report --type html --to /home/rally/${html_file}")
     salt.cmdRun(master, target, "docker cp cvp:/home/rally/${xml_file} ${output_dir}")
     salt.cmdRun(master, target, "docker cp cvp:/home/rally/${html_file} ${output_dir}")
-    return salt.cmdRun(master, target, "docker exec cvp rally verify show | head -5 | tail -1 | awk '{print \$4}'")['return'][0].values()[0].split()[0]
+    return salt.cmdRun(master, target, "docker exec cvp rally verify show | head -5 | tail -1 | " +
+                                       "awk '{print \$4}'")['return'][0].values()[0].split()[0]
 }
 
 /**
@@ -548,10 +546,8 @@ def runCVPtempest(master, target, test_pattern="set=smoke", skip_list="", output
 def runCVPrally(master, target, scenarios_path, output_dir, output_filename="docker-rally") {
     def salt = new com.mirantis.mk.Salt()
     def xml_file = "${output_filename}.xml"
-    def log_file = "${output_filename}.log"
     def html_file = "${output_filename}.html"
-    salt.cmdRun(master, target, "docker exec cvp rally task start ${scenarios_path} > ${log_file}", false)
-    salt.cmdRun(master, target, "cat ${log_file}")
+    salt.cmdRun(master, target, "docker exec cvp rally task start ${scenarios_path}")
     salt.cmdRun(master, target, "docker exec cvp rally task report --out ${html_file}")
     salt.cmdRun(master, target, "docker exec cvp rally task report --junit --out ${xml_file}")
     salt.cmdRun(master, target, "docker cp cvp:/home/rally/${xml_file} ${output_dir}")
