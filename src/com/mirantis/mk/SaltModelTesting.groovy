@@ -94,7 +94,7 @@ repo:
                         common.debianExtraRepos(extraReposYaml)
                         sh('''#!/bin/bash -xe
                             apt-get update
-                            apt-get install -y python-netaddr reclass
+                            apt-get install -y python-netaddr
                         ''')
 
                     }
@@ -268,6 +268,10 @@ def testNode(LinkedHashMap config) {
               cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt-mk.mirantis.com/apt.mirantis.net:8085/g' {} \\;
               cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt.mirantis.com/apt.mirantis.net:8085/g' {} \\;
             ''')
+        },
+
+        '003_Install_Reclass_package'    : {
+            sh('apt-get install -y reclass')
         },
 
         '004_Run_tests'                  : {
