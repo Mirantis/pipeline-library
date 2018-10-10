@@ -43,24 +43,25 @@ def setupDockerAndTest(LinkedHashMap config) {
         "--name=${dockerContainerName}",
         "--cpus=${dockerMaxCpus}"
     ]
-    // extra repo on mirror.mirantis.net, which is not supported before 2018.11.0 release
-    def extraRepoSource = "deb [arch=amd64] http://mirror.mirantis.com/${distribRevision}/extra/xenial xenial main"
-    try {
-        def releaseNaming = 'yyyy.MM.dd'
-        def repoDateUsed = new Date().parse(releaseNaming, distribRevision)
-        def extraAvailableFrom = new Date().parse(releaseNaming, '2018.11.0')
-        if (repoDateUsed < extraAvailableFrom) {
-          extraRepoSource = "deb http://apt.mcp.mirantis.net:8085/xenial ${distribRevision} extra"
+    if (baseRepoPreConfig) {
+        // extra repo on mirror.mirantis.net, which is not supported before 2018.11.0 release
+        def extraRepoSource = "deb [arch=amd64] http://mirror.mirantis.com/${distribRevision}/extra/xenial xenial main"
+        try {
+            def releaseNaming = 'yyyy.MM.dd'
+            def repoDateUsed = new Date().parse(releaseNaming, distribRevision)
+            def extraAvailableFrom = new Date().parse(releaseNaming, '2018.11.0')
+            if (repoDateUsed < extraAvailableFrom) {
+              extraRepoSource = "deb http://apt.mcp.mirantis.net:8085/xenial ${distribRevision} extra"
+            }
+        } catch (Exception e) {
+            common.warningMsg(e)
+            if ( !(distribRevision in [ 'nightly', 'proposed', 'testing' ] )) {
+                extraRepoSource = "deb http://apt.mcp.mirantis.net:8085/xenial ${distribRevision} extra"
+            }
         }
-    } catch (Exception e) {
-        common.warningMsg(e)
-        if ( !(distribRevision in [ 'nightly', 'proposed', 'testing' ] )) {
-            extraRepoSource = "deb http://apt.mcp.mirantis.net:8085/xenial ${distribRevision} extra"
-        }
-    }
 
-    def dockerOptsFinal = (dockerBaseOpts + dockerExtraOpts).join(' ')
-    def defaultExtraReposYaml = """
+        def dockerOptsFinal = (dockerBaseOpts + dockerExtraOpts).join(' ')
+        def defaultExtraReposYaml = """
 ---
 aprConfD: |-
   APT::Get::AllowUnauthenticated 'true';
@@ -89,8 +90,25 @@ repo:
   ubuntu-sec:
     source: "deb [arch=amd64] http://mirror.mirantis.com/${distribRevision}/ubuntu xenial-security main restricted universe"
 """
+        def extraRepoMergeStrategy = config.get('extraRepoMergeStrategy', 'merge')
+        def extraReposYaml = null
+        if (defaultMergeStrategy == 'merge') {
+            def extraReposYamlConfig = config.get('extraReposYaml', '')
+            def extraRepos = readYaml text: extraReposYamlConfig
+            def defaultRepos = readYaml text: defaultExtraReposYaml
+
+            Map.metaClass.mergeNested = { Map rhs ->
+                def lhs = delegate
+                rhs.each { k, v -> lhs[k] = lhs[k] in Map ? lhs[k].addNested(v) : v }
+                lhs
+            }
+
+            extraReposYaml = defaultRepos.mergeNested(extraRepos)
+        } else {
+            extraReposYaml = config.get('extraReposYaml', defaultExtraReposYaml)
+        }
+    }
     def img = docker.image(dockerImageName)
-    def extraReposYaml = config.get('extraReposYaml', defaultExtraReposYaml)
 
     img.pull()
 
@@ -254,13 +272,11 @@ def compareReclassVersions(config) {
 
 def testNode(LinkedHashMap config) {
     def common = new com.mirantis.mk.Common()
-    def result = ''
     def dockerHostname = config.get('dockerHostname')
     def reclassEnv = config.get('reclassEnv')
     def clusterName = config.get('clusterName', "")
     def formulasSource = config.get('formulasSource', 'pkg')
     def extraFormulas = config.get('extraFormulas', 'linux')
-    def reclassVersion = config.get('reclassVersion', 'master')
     def ignoreClassNotfound = config.get('ignoreClassNotfound', false)
     def aptRepoUrl = config.get('aptRepoUrl', "")
     def aptRepoGPG = config.get('aptRepoGPG', "")
@@ -269,10 +285,9 @@ def testNode(LinkedHashMap config) {
         "RECLASS_ENV=${reclassEnv}", "SALT_STOPSTART_WAIT=5",
         "MASTER_HOSTNAME=${dockerHostname}", "CLUSTER_NAME=${clusterName}",
         "MINION_ID=${dockerHostname}", "FORMULAS_SOURCE=${formulasSource}",
-        "EXTRA_FORMULAS=${extraFormulas}", "RECLASS_VERSION=${reclassVersion}",
+        "EXTRA_FORMULAS=${extraFormulas}", "EXTRA_FORMULAS_PKG_ALL=true",
         "RECLASS_IGNORE_CLASS_NOTFOUND=${ignoreClassNotfound}", "DEBUG=1",
-        "APT_REPOSITORY=${aptRepoUrl}", "APT_REPOSITORY_GPG=${aptRepoGPG}",
-        "EXTRA_FORMULAS_PKG_ALL=true"
+        "APT_REPOSITORY=${aptRepoUrl}", "APT_REPOSITORY_GPG=${aptRepoGPG}"
     ]
 
     config['runCommands'] = [
