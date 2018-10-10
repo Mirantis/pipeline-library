@@ -61,6 +61,55 @@ def runContainer(master, target, dockerImageLink, name='cvp', env_var=[], entryp
 
 
 /**
+ * Get v2 Keystone credentials from pillars
+ *
+ */
+def _get_keystone_creds_v2(master){
+    def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+    def keystone = []
+    common.infoMsg("Fetching Keystone v2 credentials")
+    _pillar = salt.getPillar(master, 'I@keystone:server', 'keystone:server')['return'][0].values()[0]
+    keystone.add("OS_USERNAME=${_pillar.admin_name}")
+    keystone.add("OS_PASSWORD=${_pillar.admin_password}")
+    keystone.add("OS_TENANT_NAME=${_pillar.admin_tenant}")
+    keystone.add("OS_AUTH_URL=http://${_pillar.bind.private_address}:${_pillar.bind.private_port}/v2.0")
+    keystone.add("OS_REGION_NAME=${_pillar.region}")
+    keystone.add("OS_ENDPOINT_TYPE=admin")
+    return keystone
+}
+
+/**
+ * Get v3 Keystone credentials from pillars
+ *
+ */
+def _get_keystone_creds_v3(master){
+    def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+    pillar_name = 'keystone:client:os_client_config:cfgs:root:content:clouds:admin_identity'
+    common.infoMsg("Fetching Keystone v3 credentials")
+    def _pillar = salt.getPillar(master, 'I@keystone:client', pillar_name)['return'][0].values()[0]
+    def keystone = []
+    if (_pillar) {
+        keystone.add("OS_USERNAME=${_pillar.auth.username}")
+        keystone.add("OS_PASSWORD=${_pillar.auth.password}")
+        keystone.add("OS_TENANT_NAME=${_pillar.auth.project_name}")
+        keystone.add("OS_PROJECT_NAME=${_pillar.auth.project_name}")
+        keystone.add("OS_AUTH_URL=${_pillar.auth.auth_url}/v3")
+        keystone.add("OS_REGION_NAME=${_pillar.region_name}")
+        keystone.add("OS_IDENTITY_API_VERSION=${_pillar.identity_api_version}")
+        keystone.add("OS_ENDPOINT_TYPE=admin")
+        keystone.add("OS_PROJECT_DOMAIN_NAME=${_pillar.auth.project_domain_name}")
+        keystone.add("OS_USER_DOMAIN_NAME=${_pillar.auth.user_domain_name}")
+        return keystone
+    }
+    else {
+        common.warningMsg("Failed to fetch Keystone v3 credentials")
+        return false
+    }
+}
+
+/**
  * Get file content (encoded). The content encoded by Base64.
  *
  * @param target            Compound target (should target only one host)
