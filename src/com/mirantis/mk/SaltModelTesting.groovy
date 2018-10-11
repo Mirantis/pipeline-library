@@ -45,16 +45,15 @@ def setupDockerAndTest(LinkedHashMap config) {
     ]
 
     def dockerOptsFinal = (dockerBaseOpts + dockerExtraOpts).join(' ')
-    def defaultExtraReposYaml = '''
+    def defaultExtraReposYaml = """
 ---
-distribRevision: 'nightly'
 aprConfD: |-
   APT::Get::AllowUnauthenticated 'true';
   APT::Get::Install-Suggests 'false';
   APT::Get::Install-Recommends 'false';
 repo:
   mcp_saltstack:
-    source: "deb [arch=amd64] http://mirror.mirantis.com/SUB_DISTRIB_REVISION/saltstack-2017.7/xenial xenial main"
+    source: "deb [arch=amd64] http://mirror.mirantis.com/${distribRevision}/saltstack-2017.7/xenial xenial main"
     pinning: |-
         Package: libsodium18
         Pin: release o=SaltStack
@@ -64,14 +63,17 @@ repo:
         Pin: release o=SaltStack
         Pin-Priority: 1100
   mcp_extra:
-    source: "deb [arch=amd64] http://mirror.mirantis.com/SUB_DISTRIB_REVISION/extra/xenial xenial main"
+    source: "deb [arch=amd64] http://mirror.mirantis.com/${distribRevision}/extra/xenial xenial main"
+  mcp_saltformulas:
+    source: "deb http://apt.mcp.mirantis.net:8085/xenial ${distribRevision} salt salt-latest"
+    repo_key: "http://apt.mcp.mirantis.net:8085/public.gpg"
   ubuntu:
-    source: "deb [arch=amd64] http://mirror.mirantis.com/SUB_DISTRIB_REVISION/ubuntu xenial main restricted universe"
+    source: "deb [arch=amd64] http://mirror.mirantis.com/${distribRevision}/ubuntu xenial main restricted universe"
   ubuntu-upd:
-    source: "deb [arch=amd64] http://mirror.mirantis.com/SUB_DISTRIB_REVISION/ubuntu xenial-updates main restricted universe"
+    source: "deb [arch=amd64] http://mirror.mirantis.com/${distribRevision}/ubuntu xenial-updates main restricted universe"
   ubuntu-sec:
-    source: "deb [arch=amd64] http://mirror.mirantis.com/SUB_DISTRIB_REVISION/ubuntu xenial-security main restricted universe"
-'''
+    source: "deb [arch=amd64] http://mirror.mirantis.com/${distribRevision}/ubuntu xenial-security main restricted universe"
+"""
     def img = docker.image(dockerImageName)
     def extraReposYaml = config.get('extraReposYaml', defaultExtraReposYaml)
 

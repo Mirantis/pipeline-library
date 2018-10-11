@@ -892,28 +892,31 @@ def runParallel(branches, maxParallelJob = 10) {
  * Example :
  configYaml = '''
  ---
- distrib_revision: 'nightly'
  aprConfD: |-
     APT::Get::AllowUnauthenticated 'true';
  repo:
     mcp_saltstack:
-        source: "deb [arch=amd64] http://mirror.mirantis.com/SUB_DISTRIB_REVISION/saltstack-2017.7/xenial xenial main"
+        source: "deb [arch=amd64] http://mirror.mirantis.com/nightly/saltstack-2017.7/xenial xenial main"
         pinning: |-
             Package: libsodium18
             Pin: release o=SaltStack
             Pin-Priority: 50
+        repo_key: "http://mirror.mirantis.com/public.gpg"
  '''
  *
  */
 
 def debianExtraRepos(configYaml) {
     def config = readYaml text: configYaml
-    def distribRevision = config.get('distribRevision', 'nightly')
     if (config.get('repo', false)) {
         for (String repo in config['repo'].keySet()) {
-            source = config['repo'][repo]['source'].replace('SUB_DISTRIB_REVISION', distribRevision)
+            source = config['repo'][repo]['source']
             warningMsg("Write ${source} >  /etc/apt/sources.list.d/${repo}.list")
             sh("echo '${source}' > /etc/apt/sources.list.d/${repo}.list")
+            if (config['repo'][repo].containsKey('repo_key')) {
+                key = config['repo'][repo]['repo_key']
+                sh("wget -O - '${key}' | apt-key add -")
+            }
             // TODO implement pining
         }
     }
