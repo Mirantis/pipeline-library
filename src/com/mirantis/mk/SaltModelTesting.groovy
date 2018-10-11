@@ -5,7 +5,7 @@ package com.mirantis.mk
  were tests successful or not.
  * @param config - LinkedHashMap with configuration params:
  *   dockerHostname - (required) Hostname to use for Docker container.
- *   formulasRevision - (optional) Revision of packages to use (default proposed).
+ *   distribRevision - (optional) Revision of packages to use (default proposed).
  *   runCommands - (optional) Dict with closure structure of body required tests. For example:
  *     [ '001_Test': { sh("./run-some-test") }, '002_Test': { sh("./run-another-test") } ]
  *     Before execution runCommands will be sorted by key names. Alpabetical order is preferred.
@@ -26,7 +26,7 @@ def setupDockerAndTest(LinkedHashMap config) {
     // setup options
     def defaultContainerName = 'test-' + UUID.randomUUID().toString()
     def dockerHostname = config.get('dockerHostname', defaultContainerName)
-    def formulasRevision = config.get('formulasRevision', 'proposed')
+    def distribRevision = config.get('distribRevision', 'proposed')
     def runCommands = config.get('runCommands', [:])
     def runFinally = config.get('runFinally', [:])
     def baseRepoPreConfig = config.get('baseRepoPreConfig', true)
@@ -35,7 +35,7 @@ def setupDockerAndTest(LinkedHashMap config) {
     def dockerMaxCpus = config.get('dockerMaxCpus', 4)
     def dockerExtraOpts = config.get('dockerExtraOpts', [])
     def envOpts = config.get('envOpts', [])
-    envOpts.add("DISTRIB_REVISION=${formulasRevision}")
+    envOpts.add("DISTRIB_REVISION=${distribRevision}")
     def dockerBaseOpts = [
         '-u root:root',
         "--hostname=${dockerHostname}",
@@ -47,7 +47,7 @@ def setupDockerAndTest(LinkedHashMap config) {
     def dockerOptsFinal = (dockerBaseOpts + dockerExtraOpts).join(' ')
     def defaultExtraReposYaml = '''
 ---
-distrib_revision: 'nightly'
+distribRevision: 'nightly'
 aprConfD: |-
   APT::Get::AllowUnauthenticated 'true';
   APT::Get::Install-Suggests 'false';
@@ -164,7 +164,7 @@ def compareReclassVersions(config) {
     sh "rm -rf ${env.WORKSPACE}/old ${env.WORKSPACE}/new"
     sh "mkdir -p ${env.WORKSPACE}/old ${env.WORKSPACE}/new"
     def configRun = [
-        'formulasRevision': distribRevision,
+        'distribRevision': distribRevision,
         'dockerExtraOpts' : [
             "-v /srv/salt/reclass:/srv/salt/reclass:ro",
             "-v /etc/salt:/etc/salt:ro",
