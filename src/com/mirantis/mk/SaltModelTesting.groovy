@@ -43,6 +43,21 @@ def setupDockerAndTest(LinkedHashMap config) {
         "--name=${dockerContainerName}",
         "--cpus=${dockerMaxCpus}"
     ]
+    // extra repo on mirror.mirantis.net, which is not supported before 2018.11.0 release
+    def extraRepoSource = "deb [arch=amd64] http://mirror.mirantis.com/${distribRevision}/extra/xenial xenial main"
+    try {
+        def releaseNaming = 'yyyy.MM.dd'
+        def repoDateUsed = new Date().parse(releaseNaming, distribRevision)
+        def extraAvailableFrom = new Date().parse(releaseNaming, '2018.11.0')
+        if (repoDateUsed < extraAvailableFrom) {
+          extraRepoSource = "deb http://apt.mcp.mirantis.net:8085/xenial ${distribRevision} extra"
+        }
+    } catch (Exception e) {
+        common.warningMsg(e)
+        if ( !(distribRevision in [ 'nightly', 'proposed', 'testing' ] )) {
+            extraRepoSource = "deb http://apt.mcp.mirantis.net:8085/xenial ${distribRevision} extra"
+        }
+    }
 
     def dockerOptsFinal = (dockerBaseOpts + dockerExtraOpts).join(' ')
     def defaultExtraReposYaml = """
@@ -63,7 +78,7 @@ repo:
         Pin: release o=SaltStack
         Pin-Priority: 1100
   mcp_extra:
-    source: "deb [arch=amd64] http://mirror.mirantis.com/${distribRevision}/extra/xenial xenial main"
+    source: "${extraRepoSource}"
   mcp_saltformulas:
     source: "deb http://apt.mcp.mirantis.net:8085/xenial ${distribRevision} salt salt-latest"
     repo_key: "http://apt.mcp.mirantis.net:8085/public.gpg"
