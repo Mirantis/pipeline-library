@@ -36,6 +36,8 @@ def installFoundationInfra(master, staticMgmtNet=false, extra_tgt = '') {
     salt.enforceState(master, "I@salt:master ${extra_tgt}", ['salt.minion'])
     salt.fullRefresh(master, "* ${extra_tgt}")
     salt.enforceState(master, "* ${extra_tgt}", ['linux.network.proxy'], true, false, null, false, 60, 2)
+    // Make sure all repositories are in place before proceeding with package installation from other states
+    salt.enforceState(master, "* ${extra_tgt}", ['linux.system.repo'], true, false, null, false, 60, 2)
     try {
         salt.enforceState(master, "* ${extra_tgt}", ['salt.minion.base'], true, false, null, false, 60, 2)
         sleep(5)
