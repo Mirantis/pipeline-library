@@ -494,8 +494,11 @@ def runRallyTests(master, target, dockerImageLink, platform, output_dir, config_
         break
       }
     }
-    cmd_rally_report= "rally task export --type junit-xml --to ${dest_folder}/report-rally.xml; " +
-        "rally task report --out ${dest_folder}/report-rally.html"
+    cmd_rally_report= "rally task export --uuid \\\$(rally task list --uuids-only --status finished) " +
+        "--type junit-xml --to ${dest_folder}/report-rally.xml; " +
+        "rally task report --uuid \\\$(rally task list --uuids-only --status finished) " +
+        "--out ${dest_folder}/report-rally.html"
+
     full_cmd = 'set -xe; ' + cmd_rally_plugins +
         cmd_rally_init + cmd_rally_checkout +
         'set +e; ' + cmd_rally_start +
