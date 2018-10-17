@@ -452,7 +452,7 @@ def runRallyTests(master, target, dockerImageLink, platform, output_dir, config_
       def _pillar = salt.getPillar(master, 'I@kubernetes:master and *01*', 'kubernetes:master')
       def kubernetes = _pillar['return'][0].values()[0]
       env_vars = [
-          "KUBERNETES_HOST=${kubernetes.apiserver.vip_address}" +
+          "KUBERNETES_HOST=http://${kubernetes.apiserver.vip_address}" +
           ":${kubernetes.apiserver.insecure_port}",
           "KUBERNETES_CERT_AUTH=${dest_folder}/k8s-ca.crt",
           "KUBERNETES_CLIENT_KEY=${dest_folder}/k8s-client.key",
