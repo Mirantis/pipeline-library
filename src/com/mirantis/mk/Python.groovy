@@ -270,6 +270,87 @@ def buildCookiecutterTemplate(template, context, outputDir = '.', path = null, t
 }
 
 /**
+ *
+ * @param context - context template
+ * @param contextName - context template name
+ * @param saltMasterName - hostname of Salt Master node
+ * @param virtualenv - pyvenv with CC and dep's
+ * @param templateEnvDir - root of CookieCutter
+ * @return
+ */
+def generateModel(context, contextName, saltMasterName, virtualenv, modelEnv, templateEnvDir, multiModels = true) {
+    def generatedModel = multiModels ? "${modelEnv}/${contextName}" : modelEnv
+    def templateContext = readYaml text: context
+    def clusterDomain = templateContext.default_context.cluster_domain
+    def clusterName = templateContext.default_context.cluster_name
+    def outputDestination = "${generatedModel}/classes/cluster/${clusterName}"
+    def templateBaseDir = templateEnvDir
+    def templateDir = "${templateEnvDir}/dir"
+    def templateOutputDir = templateBaseDir
+    dir(templateEnvDir) {
+        common.infoMsg("Generating model from context ${contextName}")
+        def productList = ["infra", "cicd", "opencontrail", "kubernetes", "openstack", "oss", "stacklight", "ceph"]
+        for (product in productList) {
+            // get templateOutputDir and productDir
+            templateOutputDir = "${templateEnvDir}/output/${product}"
+            productDir = product
+            templateDir = "${templateEnvDir}/cluster_product/${productDir}"
+            // Bw for 2018.8.1 and older releases
+            if (product.startsWith("stacklight") && (!fileExists(templateDir))) {
+                common.warningMsg("Old release detected! productDir => 'stacklight2' ")
+                productDir = "stacklight2"
+                templateDir = "${templateEnvDir}/cluster_product/${productDir}"
+            }
+            if (product == "infra" || (templateContext.default_context["${product}_enabled"]
+                && templateContext.default_context["${product}_enabled"].toBoolean())) {
+
+                common.infoMsg("Generating product " + product + " from " + templateDir + " to " + templateOutputDir)
+
+                sh "rm -rf ${templateOutputDir} || true"
+                sh "mkdir -p ${templateOutputDir}"
+                sh "mkdir -p ${outputDestination}"
+
+                buildCookiecutterTemplate(templateDir, context, templateOutputDir, virtualenv, templateBaseDir)
+                sh "mv -v ${templateOutputDir}/${clusterName}/* ${outputDestination}"
+            } else {
+                common.warningMsg("Product " + product + " is disabled")
+            }
+        }
+
+        def localRepositories = templateContext.default_context.local_repositories
+        localRepositories = localRepositories ? localRepositories.toBoolean() : false
+        def offlineDeployment = templateContext.default_context.offline_deployment
+        offlineDeployment = offlineDeployment ? offlineDeployment.toBoolean() : false
+        if (localRepositories && !offlineDeployment) {
+            def mcpVersion = templateContext.default_context.mcp_version
+            def aptlyModelUrl = templateContext.default_context.local_model_url
+            def ssh = new com.mirantis.mk.Ssh()
+            dir(path: modelEnv) {
+                ssh.agentSh "git submodule add \"${aptlyModelUrl}\" \"classes/cluster/${clusterName}/cicd/aptly\""
+                if (!(mcpVersion in ["nightly", "testing", "stable"])) {
+                    ssh.agentSh "cd \"classes/cluster/${clusterName}/cicd/aptly\";git fetch --tags;git checkout ${mcpVersion}"
+                }
+            }
+        }
+
+        def nodeFile = "${generatedModel}/nodes/${saltMasterName}.${clusterDomain}.yml"
+        def nodeString = """classes:
+- cluster.${clusterName}.infra.config
+parameters:
+  _param:
+    linux_system_codename: xenial
+    reclass_data_revision: master
+  linux:
+    system:
+      name: ${saltMasterName}
+      domain: ${clusterDomain}
+    """
+        sh "mkdir -p ${generatedModel}/nodes/"
+        writeFile(file: nodeFile, text: nodeString)
+    }
+}
+
+/**
  * Install jinja rendering in isolated environment
  *
  * @param path        Path where virtualenv is created
