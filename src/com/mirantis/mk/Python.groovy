@@ -302,9 +302,8 @@ def generateModel(context, contextName, saltMasterName, virtualenv, modelEnv, te
                 productDir = "stacklight2"
                 templateDir = "${templateEnvDir}/cluster_product/${productDir}"
             }
-            // generate infra unless its explicitly disabled
-            if ((product == "infra" && templateContext.default_context.get("infra_enabled", "True").toBoolean())
-                 || templateContext.default_context.get("${product}_enabled", "False").toBoolean()) {
+            if (product == "infra" || (templateContext.default_context["${product}_enabled"]
+                && templateContext.default_context["${product}_enabled"].toBoolean())) {
 
                 common.infoMsg("Generating product " + product + " from " + templateDir + " to " + templateOutputDir)
 
