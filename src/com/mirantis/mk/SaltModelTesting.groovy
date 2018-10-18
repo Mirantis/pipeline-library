@@ -93,17 +93,21 @@ repo:
         def extraRepoMergeStrategy = config.get('extraRepoMergeStrategy', 'merge')
         def extraReposYaml = null
         if (extraRepoMergeStrategy == 'merge') {
-            def extraReposYamlConfig = config.get('extraReposYaml', '')
-            def extraRepos = readYaml text: extraReposYamlConfig
+            def extraReposYamlConfig = config.get('extraReposYaml', '').trim()
             def defaultRepos = readYaml text: defaultExtraReposYaml
+            if (extraReposYamlConfig) {
+                def extraRepos = readYaml text: extraReposYamlConfig
 
-            Map.metaClass.mergeNested = { Map rhs ->
-                def lhs = delegate
-                rhs.each { k, v -> lhs[k] = lhs[k] in Map ? lhs[k].addNested(v) : v }
-                lhs
+                Map.metaClass.mergeNested = { Map rhs ->
+                    def lhs = delegate
+                    rhs.each { k, v -> lhs[k] = lhs[k] in Map ? lhs[k].addNested(v) : v }
+                    lhs
+                }
+
+                extraReposYaml = defaultRepos.mergeNested(extraRepos)
+            } else {
+                extraReposYaml = defaultRepos
             }
-
-            extraReposYaml = defaultRepos.mergeNested(extraRepos)
         } else {
             extraReposYaml = config.get('extraReposYaml', defaultExtraReposYaml)
         }
