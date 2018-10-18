@@ -43,6 +43,7 @@ def setupDockerAndTest(LinkedHashMap config) {
         "--name=${dockerContainerName}",
         "--cpus=${dockerMaxCpus}"
     ]
+    def dockerOptsFinal = (dockerBaseOpts + dockerExtraOpts).join(' ')
     if (baseRepoPreConfig) {
         // extra repo on mirror.mirantis.net, which is not supported before 2018.11.0 release
         def extraRepoSource = "deb [arch=amd64] http://mirror.mirantis.com/${distribRevision}/extra/xenial xenial main"
@@ -60,7 +61,6 @@ def setupDockerAndTest(LinkedHashMap config) {
             }
         }
 
-        def dockerOptsFinal = (dockerBaseOpts + dockerExtraOpts).join(' ')
         def defaultExtraReposYaml = """
 ---
 aprConfD: |-
