@@ -279,6 +279,7 @@ def buildCookiecutterTemplate(template, context, outputDir = '.', path = null, t
  * @return
  */
 def generateModel(context, contextName, saltMasterName, virtualenv, modelEnv, templateEnvDir, multiModels = true) {
+    def common = new com.mirantis.mk.Common()
     def generatedModel = multiModels ? "${modelEnv}/${contextName}" : modelEnv
     def templateContext = readYaml text: context
     def clusterDomain = templateContext.default_context.cluster_domain
