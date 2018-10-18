@@ -888,7 +888,7 @@ def runParallel(branches, maxParallelJob = 10) {
 
 /**
  * Ugly processing basic funcs with /etc/apt
- * @param configYaml YAML text or Map
+ * @param configYaml
  * Example :
  configYaml = '''
  ---
@@ -907,12 +907,7 @@ def runParallel(branches, maxParallelJob = 10) {
  */
 
 def debianExtraRepos(configYaml) {
-    def config = null
-    if (configYaml instanceof String) {
-        config = readYaml text: configYaml
-    } else {
-        config = configYaml
-    }
+    def config = readYaml text: configYaml
     if (config.get('repo', false)) {
         for (String repo in config['repo'].keySet()) {
             source = config['repo'][repo]['source']
