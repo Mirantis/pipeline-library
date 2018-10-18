@@ -919,9 +919,9 @@ def runParallel(branches, maxParallelJob = 10) {
 
 /**
  * Ugly processing basic funcs with /etc/apt
- * @param configYaml
+ * @param repoConfig YAML text or Map
  * Example :
- configYaml = '''
+ repoConfig = '''
  ---
  aprConfD: |-
    APT::Get::AllowUnauthenticated 'true';
@@ -940,8 +940,13 @@ def runParallel(branches, maxParallelJob = 10) {
  *
  */
 
-def debianExtraRepos(configYaml) {
-    def config = readYaml text: configYaml
+def debianExtraRepos(repoConfig) {
+    def config = null
+    if (repoConfig instanceof Map) {
+        config = repoConfig
+    } else {
+        config = readYaml text: repoConfig
+    }
     if (config.get('repo', false)) {
         for (String repo in config['repo'].keySet()) {
             source = config['repo'][repo]['source']

@@ -43,25 +43,26 @@ def setupDockerAndTest(LinkedHashMap config) {
         "--name=${dockerContainerName}",
         "--cpus=${dockerMaxCpus}"
     ]
-
-    // extra repo on mirror.mirantis.net, which is not supported before 2018.11.0 release
-    def extraRepoSource = "deb [arch=amd64] http://mirror.mirantis.com/${distribRevision}/extra/xenial xenial main"
-    try {
-        def releaseNaming = 'yyyy.MM.dd'
-        def repoDateUsed = new Date().parse(releaseNaming, distribRevision)
-        def extraAvailableFrom = new Date().parse(releaseNaming, '2018.11.0')
-        if (repoDateUsed < extraAvailableFrom) {
-          extraRepoSource = "deb http://apt.mcp.mirantis.net:8085/xenial ${distribRevision} extra"
-        }
-    } catch (Exception e) {
-        common.warningMsg(e)
-        if ( !(distribRevision in [ 'nightly', 'proposed', 'testing' ] )) {
-            extraRepoSource = "deb http://apt.mcp.mirantis.net:8085/xenial ${distribRevision} extra"
-        }
-    }
-
     def dockerOptsFinal = (dockerBaseOpts + dockerExtraOpts).join(' ')
-    def defaultExtraReposYaml = """
+    def extraReposConfig = null
+    if (baseRepoPreConfig) {
+        // extra repo on mirror.mirantis.net, which is not supported before 2018.11.0 release
+        def extraRepoSource = "deb [arch=amd64] http://mirror.mirantis.com/${distribRevision}/extra/xenial xenial main"
+        try {
+            def releaseNaming = 'yyyy.MM.dd'
+            def repoDateUsed = new Date().parse(releaseNaming, distribRevision)
+            def extraAvailableFrom = new Date().parse(releaseNaming, '2018.11.0')
+            if (repoDateUsed < extraAvailableFrom) {
+              extraRepoSource = "deb http://apt.mcp.mirantis.net:8085/xenial ${distribRevision} extra"
+            }
+        } catch (Exception e) {
+            common.warningMsg(e)
+            if ( !(distribRevision in [ 'nightly', 'proposed', 'testing' ] )) {
+                extraRepoSource = "deb http://apt.mcp.mirantis.net:8085/xenial ${distribRevision} extra"
+            }
+        }
+
+        def defaultExtraReposYaml = """
 ---
 aprConfD: |-
   APT::Get::AllowUnauthenticated 'true';
@@ -89,9 +90,17 @@ repo:
   ubuntu-sec:
     source: "deb [arch=amd64] http://mirror.mirantis.com/${distribRevision}/ubuntu xenial-security main restricted universe"
 """
-
+        // override for now
+        def extraRepoMergeStrategy = config.get('extraRepoMergeStrategy', 'override')
+        def extraRepos = config.get('extraRepos', [:])
+        def defaultRepos = readYaml text: defaultExtraReposYaml
+        if (extraRepoMergeStrategy == 'merge') {
+            extraReposConfig = common.mergeMaps(defaultRepos, extraRepos)
+        } else {
+            extraReposConfig = extraRepos ? extraRepos : defaultRepos
+        }
+    }
     def img = docker.image(dockerImageName)
-    def extraReposYaml = config.get('extraReposYaml', defaultExtraReposYaml)
 
     img.pull()
 
@@ -110,7 +119,7 @@ repo:
                             rm -vf /etc/apt/sources.list.d/* || true
                             rm -vf /etc/apt/preferences.d/* || true
                         """)
-                        common.debianExtraRepos(extraReposYaml)
+                        common.debianExtraRepos(extraReposConfig)
                         sh('''#!/bin/bash -xe
                             apt-get update
                             apt-get install -y python-netaddr
