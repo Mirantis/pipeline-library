@@ -92,7 +92,7 @@ repo:
 """
         def extraRepoMergeStrategy = config.get('extraRepoMergeStrategy', 'merge')
         def extraReposYaml = null
-        if (defaultMergeStrategy == 'merge') {
+        if (extraRepoMergeStrategy == 'merge') {
             def extraReposYamlConfig = config.get('extraReposYaml', '')
             def extraRepos = readYaml text: extraReposYamlConfig
             def defaultRepos = readYaml text: defaultExtraReposYaml
