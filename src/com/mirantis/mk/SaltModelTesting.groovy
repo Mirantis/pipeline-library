@@ -70,14 +70,13 @@ aprConfD: |-
 repo:
   mcp_saltstack:
     source: "deb [arch=amd64] http://mirror.mirantis.com/${distribRevision}/saltstack-2017.7/xenial xenial main"
-    pinning: |-
-        Package: libsodium18
-        Pin: release o=SaltStack
-        Pin-Priority: 50
-
-        Package: *
-        Pin: release o=SaltStack
-        Pin-Priority: 1100
+    pin:
+      - package: "libsodium18"
+        pin: "release o=SaltStack"
+        priority: 50
+      - package: "*"
+        pin: "release o=SaltStack"
+        priority: "1100"
   mcp_extra:
     source: "${extraRepoSource}"
   mcp_saltformulas:
@@ -109,6 +108,7 @@ repo:
                             echo "Installing extra-deb dependencies inside docker:"
                             echo > /etc/apt/sources.list
                             rm -vf /etc/apt/sources.list.d/* || true
+                            rm -vf /etc/apt/preferences.d/* || true
                         """)
                         common.debianExtraRepos(extraReposYaml)
                         sh('''#!/bin/bash -xe

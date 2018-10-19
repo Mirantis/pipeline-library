@@ -924,15 +924,18 @@ def runParallel(branches, maxParallelJob = 10) {
  configYaml = '''
  ---
  aprConfD: |-
-    APT::Get::AllowUnauthenticated 'true';
+   APT::Get::AllowUnauthenticated 'true';
  repo:
-    mcp_saltstack:
-        source: "deb [arch=amd64] http://mirror.mirantis.com/nightly/saltstack-2017.7/xenial xenial main"
-        pinning: |-
-            Package: libsodium18
-            Pin: release o=SaltStack
-            Pin-Priority: 50
-        repo_key: "http://mirror.mirantis.com/public.gpg"
+   mcp_saltstack:
+     source: "deb [arch=amd64] http://mirror.mirantis.com/nightly/saltstack-2017.7/xenial xenial main"
+     pin:
+       - package: "libsodium18"
+         pin: "release o=SaltStack"
+         priority: 50
+       - package: "*"
+         pin: "release o=SaltStack"
+         priority: "1100"
+     repo_key: "http://mirror.mirantis.com/public.gpg"
  '''
  *
  */
@@ -948,7 +951,21 @@ def debianExtraRepos(configYaml) {
                 key = config['repo'][repo]['repo_key']
                 sh("wget -O - '${key}' | apt-key add -")
             }
-            // TODO implement pining
+            if (config['repo'][repo]['pin']) {
+                def repoPins = []
+                for (Map pin in config['repo'][repo]['pin']) {
+                    repoPins.add("Package: ${pin['package']}")
+                    repoPins.add("Pin: ${pin['pin']}")
+                    repoPins.add("Pin-Priority: ${pin['priority']}")
+                }
+                if (repoPins) {
+                    repoPins.add(0, "### Extra ${repo} repo pin start ###")
+                    repoPins.add("### Extra ${repo} repo pin end ###")
+                    repoPinning = repoPins.join('\n')
+                    warningMsg("Adding pinning \n${repoPinning}\n => /etc/apt/preferences.d/${repo}")
+                    sh("echo '${repoPinning}' > /etc/apt/preferences.d/${repo}")
+                }
+            }
         }
     }
     if (config.get('aprConfD', false)) {
