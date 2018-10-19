@@ -443,6 +443,37 @@ def parseJSON(jsonString) {
 }
 
 /**
+ *
+ * Deep merge of  Map items. Merges variable number of maps in to onto.
+ *   Using the following rules:
+ *     - Lists are appended
+ *     - Maps are updated
+ *     - other object types are replaced.
+ *
+ *
+ * @param onto Map object to merge in
+ * @param overrides Map objects to merge to onto
+*/
+def mergeMaps(Map onto, Map... overrides){
+    if (!overrides){
+        return onto
+    }
+    else if (overrides.length == 1) {
+        overrides[0]?.each { k, v ->
+            if (v in Map && onto[k] in Map){
+                mergeMaps((Map) onto[k], (Map) v)
+            } else if (v in List) {
+                onto[k] += v
+            } else {
+                onto[k] = v
+            }
+        }
+        return onto
+    }
+    return overrides.inject(onto, { acc, override -> mergeMaps(acc, override ?: [:]) })
+}
+
+/**
  * Test pipeline input parameter existence and validity (not null and not empty string)
  * @param paramName input parameter name (usually uppercase)
   */
