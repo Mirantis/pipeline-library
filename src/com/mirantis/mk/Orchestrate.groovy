@@ -451,6 +451,7 @@ def installManilaShare(master, extra_tgt = ''){
 
 def installOpenstackNetwork(master, extra_tgt = '') {
     def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
     //run full neutron state on neutron.gateway - this will install
     //neutron agents in addition to neutron server. Once neutron agents
     //are up neutron resources can be created without hitting the situation when neutron resources are created
@@ -468,8 +469,12 @@ def installOpenstackNetwork(master, extra_tgt = '') {
     if (salt.testTarget(master, "I@octavia:manager ${extra_tgt}")) {
         salt.runSaltProcessStep(master, "I@neutron:client ${extra_tgt}", 'mine.update')
         salt.enforceState(master, "I@octavia:manager ${extra_tgt}", 'octavia.manager')
-        salt.enforceState(master, "I@octavia:manager ${extra_tgt}", 'salt.minion.ca')
-        salt.enforceState(master, "I@octavia:manager ${extra_tgt}", 'salt.minion.cert')
+        commom.retry(2) {
+            salt.enforceState(master, "I@octavia:manager ${extra_tgt}", 'salt.minion.ca')
+        }
+        commom.retry(2) {
+            salt.enforceState(master, "I@octavia:manager ${extra_tgt}", 'salt.minion.cert')
+        }
         salt.enforceState(master, "I@octavia:client ${extra_tgt}", 'octavia.client')
     }
 }
