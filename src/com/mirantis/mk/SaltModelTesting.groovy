@@ -53,12 +53,12 @@ def setupDockerAndTest(LinkedHashMap config) {
             def repoDateUsed = new Date().parse(releaseNaming, distribRevision)
             def extraAvailableFrom = new Date().parse(releaseNaming, '2018.11.0')
             if (repoDateUsed < extraAvailableFrom) {
-              extraRepoSource = "deb http://apt.mcp.mirantis.net:8085/xenial ${distribRevision} extra"
+              extraRepoSource = "deb http://apt.mcp.mirantis.net/xenial ${distribRevision} extra"
             }
         } catch (Exception e) {
             common.warningMsg(e)
             if ( !(distribRevision in [ 'nightly', 'proposed', 'testing' ] )) {
-                extraRepoSource = "deb http://apt.mcp.mirantis.net:8085/xenial ${distribRevision} extra"
+                extraRepoSource = "deb http://apt.mcp.mirantis.net/xenial ${distribRevision} extra"
             }
         }
 
@@ -81,8 +81,8 @@ repo:
   mcp_extra:
     source: "${extraRepoSource}"
   mcp_saltformulas:
-    source: "deb http://apt.mcp.mirantis.net:8085/xenial ${distribRevision} salt salt-latest"
-    repo_key: "http://apt.mcp.mirantis.net:8085/public.gpg"
+    source: "deb http://apt.mcp.mirantis.net/xenial ${distribRevision} salt salt-latest"
+    repo_key: "http://apt.mcp.mirantis.net/public.gpg"
   ubuntu:
     source: "deb [arch=amd64] http://mirror.mirantis.com/${distribRevision}/ubuntu xenial main restricted universe"
   ubuntu-upd:
@@ -290,8 +290,8 @@ def testNode(LinkedHashMap config) {
 
         '002_Prepare_something'          : {
             sh('''rsync -ah ${RECLASS_ENV}/* /srv/salt/reclass && echo '127.0.1.2  salt' >> /etc/hosts
-              cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt-mk.mirantis.com/apt.mirantis.net:8085/g' {} \\;
-              cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt.mirantis.com/apt.mirantis.net:8085/g' {} \\;
+              cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt-mk.mirantis.com/apt.mcp.mirantis.net/g' {} \\;
+              cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt.mirantis.com/apt.mcp.mirantis.net/g' {} \\;
             ''')
         },
 
@@ -414,8 +414,8 @@ def setupAndTestNode(masterName, clusterName, extraFormulas = '*', testDir, form
             """)
                     sh(script: "git clone https://github.com/salt-formulas/salt-formulas-scripts /srv/salt/scripts", returnStdout: true)
                     sh("""rsync -ah ${testDir}/* /srv/salt/reclass && echo '127.0.1.2  salt' >> /etc/hosts
-            cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt-mk.mirantis.com/apt.mirantis.net:8085/g' {} \\;
-            cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt.mirantis.com/apt.mirantis.net:8085/g' {} \\;
+            cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt-mk.mirantis.com/apt.mcp.mirantis.net/g' {} \\;
+            cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt.mirantis.com/apt.mcp.mirantis.net/g' {} \\;
             """)
                     // FIXME: should be changed to use reclass from mcp_extra_nigtly?
                     sh("""for s in \$(python -c \"import site; print(' '.join(site.getsitepackages()))\"); do
