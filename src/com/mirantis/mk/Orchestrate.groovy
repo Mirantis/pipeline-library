@@ -56,7 +56,7 @@ def installFoundationInfra(master, staticMgmtNet=false, extra_tgt = '') {
     sleep(5)
     salt.enforceState(master, "I@linux:system ${extra_tgt}", ['linux', 'openssh', 'ntp', 'rsyslog'])
 
-    common.retry(2) {
+    common.retry(3, 5) {
         salt.enforceState(master, "* ${extra_tgt}", ['salt.minion'], true, false, null, false, 60, 2)
     }
     sleep(5)
