@@ -443,8 +443,12 @@ def runRallyTests(master, target, dockerImageLink, platform, output_dir, config_
           'rally deployment create --fromenv --name=existing; ' +
           'rally deployment config; '
       if (platform['stacklight_enabled'] == true) {
+        def _pillar_grafana = salt.getPillar(master, 'I@grafana:client', 'grafana:client:server')
+        def grafana = _pillar_grafana['return'][0].values()[0]
         cmd_rally_stacklight = bundle_up_scenarios(sl_scenarios, skip_list, "scenarios_${platform.type}_stacklight.yaml")
-        cmd_rally_stacklight += "rally $rally_extra_args task start scenarios_${platform.type}_stacklight.yaml " +
+        cmd_rally_stacklight += "sed -i 's/grafana_password: .*/grafana_password: ${grafana.password}/' " +
+            "test_config/job-params-stacklight.yaml; " +
+            "rally $rally_extra_args task start scenarios_${platform.type}_stacklight.yaml " +
             "--task-args-file test_config/job-params-stacklight.yaml; "
       }
     } else if (platform['type'] == 'k8s') {
