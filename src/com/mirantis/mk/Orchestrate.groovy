@@ -188,15 +188,20 @@ def installInfra(master, extra_tgt = '') {
     // Install galera
     if (salt.testTarget(master, "I@galera:master ${extra_tgt}") || salt.testTarget(master, "I@galera:slave ${extra_tgt}")) {
         salt.enforceState(master, "I@galera:master ${extra_tgt}", 'galera', true, true, null, false, -1, 2)
-        salt.enforceState(master, "I@galera:slave ${extra_tgt}", 'galera', true, true, null, false, -1, 2)
+        salt.enforceStateWithTest(master, "I@galera:slave ${extra_tgt}", 'galera', true, true, null, false, -1, 2)
 
         // Check galera status
         salt.runSaltProcessStep(master, "I@galera:master ${extra_tgt}", 'mysql.status')
-        salt.runSaltProcessStep(master, "I@galera:slave ${extra_tgt}", 'mysql.status')
+        if (salt.testTarget(master, "I@galera:slave ${extra_tgt}")) {
+            salt.runSaltProcessStep(master, "I@galera:slave ${extra_tgt}", 'mysql.status')
+        }
+
     // If galera is not enabled check if we need to install mysql:server
     } else {
-    salt.enforceStateWithTest(master, "I@mysql:server ${extra_tgt}", 'mysql.server')
-    salt.enforceStateWithTest(master, "I@mysql:client ${extra_tgt}", 'mysql.client')
+
+        salt.enforceStateWithTest(master, "I@mysql:server ${extra_tgt}", 'mysql.server')
+        salt.enforceStateWithTest(master, "I@mysql:client ${extra_tgt}", 'mysql.client')
+
     }
     installBackup(master, 'mysql', extra_tgt)
 
@@ -457,6 +462,7 @@ def installManilaShare(master, extra_tgt = ''){
 def installOpenstackNetwork(master, extra_tgt = '') {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
+
     //run full neutron state on neutron.gateway - this will install
     //neutron agents in addition to neutron server. Once neutron agents
     //are up neutron resources can be created without hitting the situation when neutron resources are created
@@ -468,7 +474,9 @@ def installOpenstackNetwork(master, extra_tgt = '') {
     //usable state. More information: https://bugs.launchpad.net/neutron/+bug/1399249
     salt.enforceStateWithTest(master, "I@neutron:client ${extra_tgt}", 'neutron.client')
 
-    salt.enforceHighstate(master, "I@neutron:gateway ${extra_tgt}")
+    if (salt.testTarget(master, "I@neutron:gateway ${extra_tgt}")) {
+        salt.enforceHighstate(master, "I@neutron:gateway ${extra_tgt}")
+    }
 
     // install octavia manager services
     if (salt.testTarget(master, "I@octavia:manager ${extra_tgt}")) {
