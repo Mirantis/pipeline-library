@@ -56,9 +56,16 @@ def installFoundationInfra(master, staticMgmtNet=false, extra_tgt = '') {
     sleep(5)
     salt.enforceState(master, "I@linux:system ${extra_tgt}", ['linux', 'openssh', 'ntp', 'rsyslog'])
 
-    common.retry(3, 5) {
-        salt.enforceState(master, "* ${extra_tgt}", ['salt.minion'], true, false, null, false, 60, 2)
+    if (salt.testTarget(master, "I@octavia:manager ${extra_tgt}")) {
+        salt.enforceState(master, "I@octavia:manager ${extra_tgt}", 'salt.minion.ca')
+
+        common.retry(3, 5) {
+            salt.enforceState(master, "I@octavia:manager ${extra_tgt}", 'salt.minion.cert')
+        }
     }
+
+    salt.enforceState(master, "* ${extra_tgt}", ['salt.minion'], true, false, null, false, 60, 2)
+
     sleep(5)
 
     salt.fullRefresh(master, "* ${extra_tgt}")
@@ -482,10 +489,8 @@ def installOpenstackNetwork(master, extra_tgt = '') {
     if (salt.testTarget(master, "I@octavia:manager ${extra_tgt}")) {
         salt.runSaltProcessStep(master, "I@neutron:client ${extra_tgt}", 'mine.update')
         salt.enforceState(master, "I@octavia:manager ${extra_tgt}", 'octavia.manager')
-        common.retry(2) {
-            salt.enforceState(master, "I@octavia:manager ${extra_tgt}", 'salt.minion.ca')
-        }
-        common.retry(2) {
+        salt.enforceState(master, "I@octavia:manager ${extra_tgt}", 'salt.minion.ca')
+        common.retry(2, 5) {
             salt.enforceState(master, "I@octavia:manager ${extra_tgt}", 'salt.minion.cert')
         }
         salt.enforceState(master, "I@octavia:client ${extra_tgt}", 'octavia.client')
