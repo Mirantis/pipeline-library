@@ -962,6 +962,8 @@ def debianExtraRepos(repoConfig) {
                     repoPins.add("Package: ${pin['package']}")
                     repoPins.add("Pin: ${pin['pin']}")
                     repoPins.add("Pin-Priority: ${pin['priority']}")
+                    // additional empty line between pins
+                    repoPins.add('\n')
                 }
                 if (repoPins) {
                     repoPins.add(0, "### Extra ${repo} repo pin start ###")
