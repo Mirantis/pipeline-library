@@ -1159,7 +1159,7 @@ def installCephClient(master, extra_tgt = '') {
     def salt = new com.mirantis.mk.Salt()
 
     // install Ceph Radosgw
-    if (salt.testTarget(master, "I@ceph:radosgw ${extra_tgt} and I@node_role.openstack-control")) {
+    if (salt.testTarget(master, "I@ceph:radosgw ${extra_tgt}")) {
         salt.runSaltProcessStep(master, "I@ceph:radosgw ${extra_tgt}", 'saltutil.sync_grains')
         salt.enforceState(master, "I@ceph:radosgw ${extra_tgt}", 'ceph.radosgw')
     }
