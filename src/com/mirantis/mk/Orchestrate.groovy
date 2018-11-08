@@ -282,8 +282,6 @@ def installOpenstackControl(master, extra_tgt = '') {
     def common = new com.mirantis.mk.Common()
     def first_target
 
-    // Install horizon dashboard
-    salt.enforceStateWithTest(master, "I@horizon:server ${extra_tgt}", 'horizon')
     // Install sphinx server
     salt.enforceStateWithTest(master, "I@sphinx:server ${extra_tgt}", 'sphinx')
     salt.enforceStateWithTest(master, "I@nginx:server ${extra_tgt}", 'salt.minion')
@@ -334,7 +332,6 @@ def installOpenstackControl(master, extra_tgt = '') {
             salt.cmdRun(master, "I@keystone:server ${extra_tgt}", '. /root/keystonercv3; nova service-list')
         }
     }
-
 
     // Create nova resources
     salt.enforceStateWithTest(master, "I@nova:client ${extra_tgt}", 'nova.client')
@@ -439,6 +436,9 @@ def installOpenstackControl(master, extra_tgt = '') {
         salt.enforceState(master, "${first_target} ${extra_tgt}", 'aodh')
         salt.enforceState(master, "I@aodh:server ${extra_tgt}", 'aodh')
     }
+
+    // Install horizon dashboard
+    salt.enforceStateWithTest(master, "I@horizon:server ${extra_tgt}", 'horizon')
 }
 
 
