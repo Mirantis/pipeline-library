@@ -195,7 +195,7 @@ def installInfra(master, extra_tgt = '') {
     // Install galera
     if (salt.testTarget(master, "I@galera:master ${extra_tgt}") || salt.testTarget(master, "I@galera:slave ${extra_tgt}")) {
         salt.enforceState(master, "I@galera:master ${extra_tgt}", 'galera', true, true, null, false, -1, 2)
-        salt.enforceStateWithTest(master, "I@galera:slave ${extra_tgt}", 'galera', true, true, null, false, -1, 2)
+        salt.enforceStateWithTest(master, "I@galera:slave ${extra_tgt}", 'galera', "", true, true, null, false, -1, 2)
 
         // Check galera status
         salt.runSaltProcessStep(master, "I@galera:master ${extra_tgt}", 'mysql.status')
