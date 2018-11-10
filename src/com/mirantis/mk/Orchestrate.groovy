@@ -509,10 +509,9 @@ def installOpenstackCompute(master, extra_tgt = '') {
         def salt_ca_compound = "I@salt:minion:ca:salt_master_ca ${extra_tgt}"
         // Enforce highstate asynchronous only on compute nodes which are not glusterfs and not salt ca servers
         def hightstateTarget = "${compute_compound} and not ${gluster_compound} and not ${salt_ca_compound}"
-        def excludedStates = "fluentd"
         if (salt.testTarget(master, hightstateTarget)) {
             retry(2) {
-                salt.enforceHighstateWithExclude(master, hightstateTarget, excludedStates)
+                salt.enforceHighstate(master, hightstateTarget)
             }
         } else {
             common.infoMsg("No minions matching highstate target found for target ${hightstateTarget}")
@@ -525,7 +524,7 @@ def installOpenstackCompute(master, extra_tgt = '') {
                 if ( target == cmp_target ) {
                     // Enforce highstate one by one on salt ca servers which are compute nodes
                     retry(2) {
-                        salt.enforceHighstateWithExclude(master, target, excludedStates)
+                        salt.enforceHighstate(master, target)
                     }
                 }
             }
@@ -538,7 +537,7 @@ def installOpenstackCompute(master, extra_tgt = '') {
                 if ( target == cmp_target ) {
                     // Enforce highstate one by one on glusterfs servers which are compute nodes
                     retry(2) {
-                        salt.enforceHighstateWithExclude(master, target, excludedStates)
+                        salt.enforceHighstate(master, target)
                     }
                 }
             }
