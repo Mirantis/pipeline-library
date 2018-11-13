@@ -371,7 +371,7 @@ def runTempestTests(master, target, dockerImageLink, output_dir, confRepository,
  * @param skip_scenarios    Comma-delimited list of scenarios names to skip
  * @param bundle_file       Bundle name to create
 */
-def bundle_up_scenarios(scenarios_path, skip_scenarios, bundle_file) {
+def bundle_up_scenarios(scenarios_path, skip_scenarios, bundle_file = '' ) {
       def skip_names = ''
       def skip_dirs = ''
       def result = ''
@@ -385,12 +385,17 @@ def bundle_up_scenarios(scenarios_path, skip_scenarios, bundle_file) {
           }
         }
       }
-      result = "if [ -f ${scenarios_path} ]; then cp ${scenarios_path} ${bundle_file}; " +
+      if (bundle_file != '') {
+        result = "if [ -f ${scenarios_path} ]; then cp ${scenarios_path} ${bundle_file}; " +
           "else " +
           "find -L ${scenarios_path} " + skip_dirs +
           " -name '*.yaml' " + skip_names +
           "-exec cat {} >> ${bundle_file} \\; ; " +
           "sed -i '/---/d' ${bundle_file}; fi; "
+      } else {
+        result = "find -L ${scenarios_path} " + skip_dirs +
+            " -name '*.yaml' " + skip_names
+      }
 
       return result
 }
@@ -483,20 +488,26 @@ def runRallyTests(master, target, dockerImageLink, platform, output_dir, config_
     } else {
       throw new Exception("Platform ${platform} is not supported yet")
     }
-    cmd_rally_checkout += bundle_up_scenarios(scenarios, skip_list, "scenarios_${platform.type}.yaml")
-    cmd_rally_start = "rally $rally_extra_args task start scenarios_${platform.type}.yaml "
-    if (config_repo != '' ) {
-      switch(tasks_args_file) {
-        case 'none':
-          cmd_rally_task_args = '; '
-          break
-        case '':
-          cmd_rally_task_args = '--task-args-file test_config/job-params-light.yaml; '
-          break
-        default:
-          cmd_rally_task_args = "--task-args-file ${tasks_args_file}; "
+    switch(tasks_args_file) {
+      case 'none':
+        cmd_rally_task_args = '; '
         break
-      }
+      case '':
+        cmd_rally_task_args = '--task-args-file test_config/job-params-light.yaml; '
+        break
+      default:
+        cmd_rally_task_args = "--task-args-file ${tasks_args_file}; "
+      break
+    }
+    if (platform['type'] == 'k8s') {
+      cmd_rally_start = "for task in \\\$(" + bundle_up_scenarios(scenarios, skip_list) +
+          "); do " +
+          "rally $rally_extra_args task start \\\$task ${cmd_rally_task_args}" +
+          "done; "
+    } else {
+      cmd_rally_checkout += bundle_up_scenarios(scenarios, skip_list, "scenarios_${platform.type}.yaml")
+      cmd_rally_start = "rally $rally_extra_args task start " +
+          "scenarios_${platform.type}.yaml ${cmd_rally_task_args}"
     }
     cmd_rally_report= "rally task export --uuid \\\$(rally task list --uuids-only --status finished) " +
         "--type junit-xml --to ${dest_folder}/report-rally.xml; " +
@@ -506,7 +517,7 @@ def runRallyTests(master, target, dockerImageLink, platform, output_dir, config_
     full_cmd = 'set -xe; ' + cmd_rally_plugins +
         cmd_rally_init + cmd_rally_checkout +
         'set +e; ' + cmd_rally_start +
-        cmd_rally_task_args + cmd_rally_stacklight +
+        cmd_rally_stacklight +
         cmd_rally_report
     salt.runSaltProcessStep(master, target, 'file.touch', ["${results}/rally.db"])
     salt.cmdRun(master, target, "chmod 666 ${results}/rally.db")
