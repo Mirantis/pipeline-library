@@ -1130,6 +1130,11 @@ def installCephMon(master, target="I@ceph:mon", extra_tgt = '') {
         salt.enforceState(master, "( I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin ) ${extra_tgt}", 'ceph.mon')
         salt.runSaltProcessStep(master, "I@ceph:mon ${extra_tgt}", 'saltutil.sync_grains')
         salt.runSaltProcessStep(master, "( I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin ) ${extra_tgt}", 'mine.update')
+
+        // on target nodes mine is used to get pillar from 'ceph:common:keyring:admin' via grain.items
+        // we need to refresh all pillar/grains to make data sharing work correctly
+        salt.fullRefresh(master, "( I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin ) ${extra_tgt}")
+
         sleep(5)
     }
     // install Ceph Mons
