@@ -435,14 +435,15 @@ def runRallyTests(master, target, dockerImageLink, platform, output_dir, config_
     salt.runSaltProcessStep(master, target, 'file.remove', ["${results}"])
     salt.runSaltProcessStep(master, target, 'file.mkdir', ["${results}", "mode=777"])
     if (platform['type'] == 'openstack') {
-      def _pillar = salt.getPillar(master, 'I@keystone:server', 'keystone:server')
+      def _pillar = salt.getPillar(master, 'I@keystone:server', 'keystone')
       def keystone = _pillar['return'][0].values()[0]
       env_vars = ( ['tempest_version=15.0.0',
-          "OS_USERNAME=${keystone.admin_name}",
-          "OS_PASSWORD=${keystone.admin_password}",
-          "OS_TENANT_NAME=${keystone.admin_tenant}",
-          "OS_AUTH_URL=http://${keystone.bind.private_address}:${keystone.bind.private_port}/v2.0",
-          "OS_REGION_NAME=${keystone.region}",
+          "OS_USERNAME=${keystone.server.admin_name}",
+          "OS_PASSWORD=${keystone.server.admin_password}",
+          "OS_TENANT_NAME=${keystone.server.admin_tenant}",
+          "OS_AUTH_URL=http://${keystone.server.bind.private_address}:${keystone.server.bind.private_port}" +
+          "/v${keystone.client.os_client_config.cfgs.root.content.clouds.admin_identity.identity_api_version}",
+          "OS_REGION_NAME=${keystone.server.region}",
           'OS_ENDPOINT_TYPE=admin'] + ext_variables ).join(' -e ')
       cmd_rally_init = 'rally db create; ' +
           'rally deployment create --fromenv --name=existing; ' +
