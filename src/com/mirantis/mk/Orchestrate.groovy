@@ -351,7 +351,7 @@ def installOpenstackControl(master, extra_tgt = '') {
     salt.enforceStateWithTest(master, "I@neutron:server:role:primary ${extra_tgt}", 'neutron.server', "I@neutron:server ${extra_tgt}")
     salt.enforceStateWithTest(master, "I@neutron:server ${extra_tgt}", 'neutron.server')
     if (salt.testTarget(master, "I@keystone:server and I@neutron:server ${extra_tgt}")) {
-        common.retry(3,5){
+        common.retry(10,5){
             salt.cmdRun(master, "I@keystone:server ${extra_tgt}",'. /root/keystonercv3; neutron agent-list')
         }
     }
