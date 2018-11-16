@@ -280,3 +280,34 @@ def postGerritComment(LinkedHashMap config) {
     ssh.ensureKnownHosts(gerritHost)
     ssh.agentSh(String.format("ssh -p 29418 %s@%s gerrit review %s,%s -m \"'%s'\" --code-review 0", gerritName, gerritHost, gerritChangeNumber, gerritPatchSetNumber, message))
 }
+
+/**
+ * Return map of dependent patches info for current patch set
+ * based on commit message hints: Depends-On: https://gerrit_address/_CHANGE_NUMBER_
+ * @param changeInfo Map Info about current patch set, such as:
+ *   gerritName Gerrit user name (usually GERRIT_NAME property)
+ *   gerritHost Gerrit host (usually GERRIT_HOST property)
+ *   gerritChangeNumber Gerrit change number (usually GERRIT_CHANGE_NUMBER property)
+ *   credentialsId Jenkins credentials id for gerrit
+ * @return map of dependent patches info
+ */
+LinkedHashMap getDependentPatches(LinkedHashMap changeInfo) {
+    def dependentPatches = [:]
+    def currentChange = getGerritChange(changeInfo.gerritName, changeInfo.gerritHost, changeInfo.gerritChangeNumber, changeInfo.credentialsId, true)
+    def dependentCommits = currentChange.commitMessage.tokenize('\n').findAll { it  ==~ /Depends-On: \b[^ ]+\b/  }
+    if (dependentCommits) {
+        dependentCommits.each { commit ->
+            def patchLink = commit.tokenize(' ')[1]
+            def changeNumber = patchLink.tokenize('/')[-1].trim()
+            def dependentCommit = getGerritChange(changeInfo.gerritName, changeInfo.gerritHost, changeNumber, changeInfo.credentialsId, true)
+            if (dependentCommit.status == "NEW") {
+                dependentPatches[dependentCommit.project] = [
+                    'number': dependentCommit.number,
+                    'ref': dependentCommit.currentPatchSet.ref,
+                    'branch': dependentCommit.branch,
+                ]
+            }
+        }
+    }
+    return dependentPatches
+}
