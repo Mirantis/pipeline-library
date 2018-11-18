@@ -856,8 +856,8 @@ def checkRemoteBinary(LinkedHashMap config, List extraScmExtensions = []) {
     res = [:]
     res['MirrorRoot'] = config.get('globalMirrorRoot', env["BIN_MIRROR_ROOT"] ? env["BIN_MIRROR_ROOT"] : "http://mirror.mirantis.com/")
     // Reclass-like format's. To make life eazy!
-    res['apt_mk_version'] = config.get('apt_mk_version', env["BIN_APT_MK_VERSION"] ? env["BIN_APT_MK_VERSION"] : 'nightly')
-    res['linux_system_repo_url'] = config.get('linux_system_repo_url', env["BIN_linux_system_repo_url"] ? env["BIN_linux_system_repo_url"] : "${res['MirrorRoot']}/${res['apt_mk_version']}/")
+    res['mcp_version'] = config.get('mcp_version', env["BIN_APT_MCP_VERSION"] ? env["BIN_APT_MCP_VERSION"] : 'nightly')
+    res['linux_system_repo_url'] = config.get('linux_system_repo_url', env["BIN_linux_system_repo_url"] ? env["BIN_linux_system_repo_url"] : "${res['MirrorRoot']}/${res['mcp_version']}/")
 
     if (config.get('verify', true)) {
         MirrorRootStatus = sh(script: "wget  --auth-no-challenge --spider ${res['linux_system_repo_url']} 2>/dev/null", returnStatus: true)
