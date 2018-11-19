@@ -315,7 +315,7 @@ def installOpenstackControl(master, extra_tgt = '') {
 
     // Check glance service
     if (salt.testTarget(master, "I@glance:server ${extra_tgt}")) {
-        common.retry(3,5){
+        common.retry(10,5){
             salt.cmdRun(master, "I@keystone:server ${extra_tgt}", '. /root/keystonercv3; glance image-list')
         }
     }
