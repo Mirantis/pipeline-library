@@ -23,7 +23,7 @@ def currentUserInGroup(groupName){
 def currentUserInGroups(groups){
     def hasAccess = false
     wrap([$class: 'BuildUser']) {
-        def authorities = Jenkins.instance.securityRealm.loadUserByUsername(BUILD_USER).getAuthorities()
+        def authorities = Jenkins.instance.securityRealm.loadUserByUsername(BUILD_USER_ID).getAuthorities()
         for(int i=0;i < authorities.size();i++){
             if(groups.contains(authorities[i])){
                 hasAccess=true
