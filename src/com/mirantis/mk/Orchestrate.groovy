@@ -797,15 +797,19 @@ def installStacklight(master, extra_tgt = '') {
     def first_target
 
     // Install core services for K8S environments:
-    // HAProxy, Nginx and lusterFS clients
+    // HAProxy, Nginx and glusterFS clients.
+    // glusterFS clients must be first one, since nginx should store certs on it.
     // In case of OpenStack, those are already installed
     if (common.checkContains('STACK_INSTALL', 'k8s')) {
+        salt.enforceStateWithTest(master, "I@glusterfs:client ${extra_tgt}", 'glusterfs.client', "", true, true, null, false, -1, 2)
+        common.retry(3, 5){
+          salt.enforceState(master, "I@nginx:server ${extra_tgt}", 'salt.minion.cert')
+        }
+
         salt.enforceState(master, "I@haproxy:proxy ${extra_tgt}", 'haproxy')
         salt.runSaltProcessStep(master, "I@haproxy:proxy ${extra_tgt}", 'service.status', ['haproxy'])
 
         salt.enforceStateWithTest(master, "I@nginx:server ${extra_tgt}", 'nginx')
-
-        salt.enforceStateWithTest(master, "I@glusterfs:client ${extra_tgt}", 'glusterfs.client', "", true, true, null, false, -1, 2)
     }
 
     // Install MongoDB for Alerta
