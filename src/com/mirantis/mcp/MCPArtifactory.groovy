@@ -125,6 +125,31 @@ def getPropertiesForArtifact(String artifactUrl) {
 }
 
 /**
+ * Check if image with tag exist by provided path
+ * Returns true or false
+ *
+ * @param artifactoryURL String, an URL to Artifactory
+ * @param imageRepo String, path to image to check, includes repo path and image name
+ * @param tag String, tag to check
+ * @param artifactoryCreds String, artifactory creds to use. Optional, default is 'artifactory'
+ */
+def imageExists(String artifactoryURL, String imageRepo, String tag, String artifactoryCreds = 'artifactory') {
+    def url = artifactoryURL + '/v2/' + imageRepo + '/manifest/' + tag
+    def result
+    withCredentials([
+            [$class          : 'UsernamePasswordMultiBinding',
+             credentialsId   : artifactoryCreds,
+             passwordVariable: 'ARTIFACTORY_PASSWORD',
+             usernameVariable: 'ARTIFACTORY_LOGIN']
+    ]) {
+        result = sh(script: "bash -c \"curl -X GET -u ${ARTIFACTORY_LOGIN}:${ARTIFACTORY_PASSWORD} \'${url}\'\"",
+                returnStdout: true).trim()
+    }
+    def properties = new groovy.json.JsonSlurperClassic().parseText(result)
+    return properties.get("errors") ? false : true
+}
+
+/**
  * Find docker images by tag
  * Returns Array of image' hashes with names as full path in @repo
  *
