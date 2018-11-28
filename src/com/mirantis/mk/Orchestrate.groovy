@@ -719,7 +719,9 @@ def installCicd(master, extra_tgt = '') {
     salt.fullRefresh(master, gerrit_compound)
     salt.fullRefresh(master, jenkins_compound)
 
-    salt.enforceState(master, "I@docker:swarm:role:master and I@jenkins:client ${extra_tgt}", 'docker.client', true, true, null, false, -1, 2)
+    // Temporary exclude cfg node from docker.client state (PROD-24934)
+    def dockerClientExclude = !salt.getPillar(master, 'I@salt:master', 'docker:client:stack:jenkins').isEmpty() ? 'and not I@salt:master' : ''
+    salt.enforceState(master, "I@docker:swarm:role:master and I@jenkins:client ${dockerClientExclude} ${extra_tgt}", 'docker.client', true, true, null, false, -1, 2)
 
     // API timeout in minutes
     def wait_timeout = 10
