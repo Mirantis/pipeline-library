@@ -7,6 +7,252 @@ package com.mirantis.mk
  */
 
 /**
+ * Get conformance pod statuses
+ *
+ * @param target   Any control node of k8s
+ */
+def getConformanceStatus(master, target) {
+    def salt = new com.mirantis.mk.Salt()
+    def status = salt.cmdRun(master, target, "kubectl get po conformance -n conformance | awk {'print \$3'} | tail -n +2")['return'][0].values()[0].replaceAll('Salt command execution success','').trim()
+    return status
+}
+
+/**
+ * Replace conformance image not relying on deployed version. Will be useful for testing a new k8s builds from docker-dev
+ *
+ * @param target      I@kubernetes:master target
+ * @param image       Desired image for conformance
+ * @param autodetect  Default behaviour - use version discovered on deployment. Non default - use image provided via image param
+ */
+def passCustomConformanceImage(LinkedHashMap config) {
+    def salt = new com.mirantis.mk.Salt()
+
+    // Listing defaults
+    def master = config.get('master', 'pepperVenv')
+    def target = config.get('target', 'I@kubernetes:master')
+    def pod_path = config.get('pod_path', '/srv/kubernetes/conformance.yml')
+    def autodetect = config.get('autodetect', true)
+    def image = config.get('image', null)
+    // End listing defaults
+
+    if (!(autodetect.toBoolean()) && image) {
+        print("Replacing conformance image with ${image}")
+        salt.cmdRun(master, target, "sed -i 's|image: .*|image: ${image}|' ${pod_path}")
+    }
+}
+
+/**
+ * Run e2e conformance on ContainerD environments
+ *
+ * @param target   Any control node of k8s
+ * @param pd_path  Conformance pod path to create
+ * @param timeout  Test timeout
+ */
+def runConformanceTestsOnContainerD(LinkedHashMap config) {
+    def salt = new com.mirantis.mk.Salt()
+
+    // Listing defaults
+    def master = config.get('master', 'pepperVenv')
+    def target = config.get('target', 'I@kubernetes:master and ctl01*')
+    def pod_path = config.get('pod_path', '/srv/kubernetes/conformance.yml')
+    def timeout = config.get('timeout', 3600)
+    // End listing defaults
+
+    def status = ""
+    salt.cmdRun(master, target, "kubectl delete -f ${pod_path}", false)
+    salt.cmdRun(master, target, "kubectl create -f ${pod_path}")
+    sleep(10)
+
+    counter = timeout/60
+
+    print("Waiting for results")
+    for (i = 0; i < counter; i++) {
+        current = getConformanceStatus(master, target)
+        if (current == "Running" || current == "ContainerCreating") {
+            sleep(60)
+            print("Wait counter: $i . Cap is $counter")
+        } else if (current == "Completed") {
+            print("Conformance succeeded. Proceed with artifacts.")
+            status = "OK"
+            return status
+        } else if (current == "Error") {
+            status = "ERR"
+            print("Tests failed. Proceed with artifacts")
+            return status
+        } else if (current == "ContainerCannotRun") {
+            print("Container can not run. Please check executor logs")
+            status = "NOTEXECUTED"
+            salt.cmdRun(master, target, "kubectl describe po conformance -n conformance")
+            return status
+        } else if (current == "ImagePullBackOff" || current == "ErrImagePull") {
+            print("Can not pull conformance image. Image is not exists or can not be accessed")
+            status = "PULLERR"
+            salt.cmdRun(master, target, "kubectl describe po conformance -n conformance")
+            return status
+        } else {
+            print("Unexpected status: ${current}")
+            status = "UNKNOWN"
+            salt.cmdRun(master, target, "kubectl describe po conformance -n conformance")
+            salt.cmdRun(master, target, "kubectl get cs")
+            salt.cmdRun(master, target, "kubectl get po --all-namespaces -o wide")
+            return status
+        }
+    }
+    status = "TIMEDOUT"
+    salt.cmdRun(master, target, "kubectl describe po conformance -n conformance")
+    salt.cmdRun(master, target, "kubectl logs conformance -n conformance")
+    return status
+}
+
+
+/**
+ * Locate node where conformance pod runs
+ *
+ * @param target  Any control node of k8s
+ */
+def locateConformancePod(master, target) {
+    def salt = new com.mirantis.mk.Salt()
+    def node = salt.cmdRun(master, target, "kubectl get po conformance -n conformance -o wide -o=custom-columns=NODE:.spec.nodeName | tail -n +2")['return'][0].values()[0].replaceAll('Salt command execution success','').trim()
+    return node
+}
+
+/**
+ * Get conformance results and logs
+ *
+ * @param ctl_target            Target maps to all k8s masters
+ * @param artifacts_dir         Artifacts_dir Local directory to push artifacts to
+ * @param output_file           Output tar file that will be archived and (optional) published
+ * @param status                Status of conformance run to react (if NOTEXECUTED - xml will never published)
+ * @param junitResults          Whether or not build test graph
+ */
+def uploadConformanceContainerdResults(LinkedHashMap config) {
+    def salt = new com.mirantis.mk.Salt()
+
+    // Listing defaults
+    def master = config.get('master', 'pepperVenv')
+    def target = config.get('target', 'I@kubernetes:master and ctl01*')
+    def status = config.get('status')
+    def ctl_target = config.get('ctl_target', 'I@kubernetes:master')
+    def results_dir = config.get('results_dir', '/tmp/conformance')
+    def artifacts_dir = config.get('artifacts_dir', '_artifacts/')
+    def output_file = config.get('output_file', 'conformance.tar')
+    def junitResults = config.get('junitResults', false)
+    // End listing defaults
+
+    def short_node = locateConformancePod(master, target)
+    print("Pod located on $short_node")
+
+    minions = salt.getMinionsSorted(master, ctl_target)
+    conformance_target = minions.find {it =~ short_node}
+
+    if (status == 'NOTEXECUTED') {
+        salt.cmdRun(master, conformance_target, "test -e ${results_dir}/conformance.log || kubectl logs conformance -n conformance > ${results_dir}/conformance.log")
+    } else if (status == "PULLERR") {
+        print("Conformance image failed to pull. Skipping logs publishing")
+        return conformance_target
+    } else if (status == "UNKNOWN") {
+        print("Can not recognize pod status as acceptable. Skipping logs publishing")
+        return conformance_target
+    }
+
+    print("Copy XML test results for junit artifacts and logs")
+    salt.runSaltProcessStep(master, conformance_target, 'cmd.run', ["tar -cf /tmp/${output_file} -C ${results_dir}  ."])
+
+    writeFile file: "${artifacts_dir}${output_file}", text: salt.getFileContent(master, conformance_target, "/tmp/${output_file}")
+    sh "mkdir -p ${artifacts_dir}/conformance_tests"
+    sh "tar -xf ${artifacts_dir}${output_file} -C ${artifacts_dir}/conformance_tests"
+    sh "cat ${artifacts_dir}/conformance_tests/conformance.log"
+    if (junitResults.toBoolean() && (status == 'OK' || status == 'ERR')) {
+        archiveArtifacts artifacts: "${artifacts_dir}${output_file}"
+        archiveArtifacts artifacts: "${artifacts_dir}conformance_tests/conformance.log"
+        junit(keepLongStdio: true, testResults:  "${artifacts_dir}conformance_tests/**.xml")
+    }
+    return conformance_target
+}
+
+
+/**
+ * Clean conformance pod and tmp files
+ *
+ * @param target       Node where conformance was executed\
+ * @param results_dir  Directory to clean up
+ */
+def cleanUpConformancePod(LinkedHashMap config) {
+    def salt = new com.mirantis.mk.Salt()
+
+    // Listing defaults
+    def master = config.get('master', 'pepperVenv')
+    def target = config.get('target', 'I@kubernetes:master and ctl01*')
+    def pod_path = config.get('pod_path', '/srv/kubernetes/conformance.yml')
+    def results_dir = config.get('results_dir', '/tmp/conformance')
+    def output_file = config.get('output_file', )
+    // End listing defaults
+
+    salt.cmdRun(master, target, "kubectl delete -f ${pod_path}")
+    salt.cmdRun(master, target, "rm -rf ${results_dir}", false)
+    salt.cmdRun(master, target, "rm -f ${output_file}", false)
+}
+
+/**
+ * Throw exception if any
+ *
+ * @param status  Conformance tests status
+ */
+def conformanceStatusReact(status) {
+    if (status == "ERR" || status == "NOTEXECUTED") {
+        throw new RuntimeException("Conformance tests failed")
+    } else if (status == "TIMEDOUT") {
+        throw new RuntimeException("Conformance tests timed out")
+    } else if (status == "PULLERR")  {
+        throw new RuntimeException("Image is not exists or can not reach repository")
+    } else if (status == "UNKNOWN")  {
+        throw new RuntimeException("Pod status unacceptable. Please check pipeline logs for more information")
+    }
+}
+
+/**
+ * Orchestrate conformance tests inside kubernetes cluster
+ *
+ * @param junitResults     Whether or not build junit graph
+ * @param autodetect       Default behaviour - use version discovered on deployment. Non default - use image provided via image param
+ * @param image            Can be used only if autodetection disabled. Overriding pod image.
+ * @param ctl_target       Target maps to all k8s masters
+ * @param pod_path         Path where conformance pod located
+ * @param results_dir      Directory with results after conformance run
+ * @param artifacts_dir    Local artifacts dir
+ * @param output_file      Conformance tar output
+ */
+def executeConformance(LinkedHashMap config) {
+    // Listing defaults
+    def master = config.get('master', 'pepperVenv')
+    def target = config.get('target', 'I@kubernetes:master and ctl01*')
+    def junitResults = config.get('junitResults', false)
+    def autodetect = config.get('autodetect', true)
+    def image = config.get('image', null)
+    def ctl_target = config.get('ctl_target', 'I@kubernetes:master')
+    def pod_path = config.get('pod_path', '/srv/kubernetes/conformance.yml')
+    def results_dir = config.get('results_dir', '/tmp/conformance')
+    def artifacts_dir = config.get('artifacts_dir', '_artifacts/')
+    def output_file = config.get('output_file', 'conformance.tar')
+    // End listing defaults
+
+    // Check whether or not custom image is defined and apply it
+    passCustomConformanceImage(['master': master, 'ctl_target': ctl_target, 'pod_path': pod_path, 'autodetect': autodetect, 'image': image])
+
+    // Start conformance pod and get its status
+    status = runConformanceTestsOnContainerD('master': master, 'target': target, 'pod_path': pod_path)
+
+    // Manage results
+    cleanup_target = uploadConformanceContainerdResults('master': master, 'target': target, 'status': status, 'ctl_target': ctl_target, 'results_dir': results_dir, 'artifacts_dir': artifacts_dir, 'output_file': output_file, 'junitResults': junitResults)
+
+    // Do cleanup
+    cleanUpConformancePod('master': master, 'target': cleanup_target, 'pod_path': pod_path, 'results_dir': results_dir, 'output_file': output_file)
+
+    // Throw exception to Jenkins if any
+    conformanceStatusReact(status)
+}
+
+/**
  * Run e2e conformance tests
  *
  * @param target        Kubernetes node to run tests from
@@ -29,7 +275,6 @@ def runConformanceTests(master, target, k8s_api, image, timeout=2400) {
     salt.runSaltProcessStep(master, target, 'cmd.run', ["docker logs -t ${containerName} > ${outfile}"])
     print("Conformance test output saved in " + outfile)
 }
-
 
 /**
  * Upload conformance results to cfg node
