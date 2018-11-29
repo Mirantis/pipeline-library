@@ -828,7 +828,7 @@ def runCleanup(master, target, name='cvp') {
  * @param repo_url          Repository url to clone
  * @param proxy             Proxy address to use
  */
-def prepareVenv(repo_url, proxy) {
+def prepareVenv(repo_url, proxy, useSystemPackages=false) {
     def python = new com.mirantis.mk.Python()
     repo_name = "${repo_url}".tokenize("/").last()
     if (repo_url.tokenize().size() > 1){
@@ -845,7 +845,7 @@ def prepareVenv(repo_url, proxy) {
     if (proxy != 'offline') {
         withEnv(["HTTPS_PROXY=${proxy}", "HTTP_PROXY=${proxy}", "https_proxy=${proxy}", "http_proxy=${proxy}"]) {
             sh "git clone ${repo_url}"
-            python.setupVirtualenv(path_venv, "python2", [], path_req, true)
+            python.setupVirtualenv(path_venv, "python2", [], path_req, true, useSystemPackages)
         }
     }
     else {
