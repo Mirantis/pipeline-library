@@ -254,3 +254,29 @@ def _getInvalidGerritParams(LinkedHashMap config){
     def badParams = config.subMap(requiredParams).findAll{it.value in [null, '']}.keySet()
     return badParams + missedParams
 }
+
+/**
+ * Post Gerrit comment from CI user
+ *
+ * @param config map which contains next params:
+ *  gerritName - gerrit user name (usually GERRIT_NAME property)
+ *  gerritHost - gerrit host (usually GERRIT_HOST property)
+ *  gerritChangeNumber - gerrit change number (usually GERRIT_CHANGE_NUMBER property)
+ *  gerritPatchSetNumber - gerrit patch set number (usually GERRIT_PATCHSET_NUMBER property)
+ *  message - message to send to gerrit review patch
+ *  credentialsId - jenkins credentials id for gerrit
+ */
+def postGerritComment(LinkedHashMap config) {
+    def common = new com.mirantis.mk.Common()
+    def ssh = new com.mirantis.mk.Ssh()
+    String gerritName = config.get('gerritName')
+    String gerritHost = config.get('gerritHost')
+    String gerritChangeNumber = config.get('gerritChangeNumber')
+    String gerritPatchSetNumber = config.get('gerritPatchSetNumber')
+    String message = config.get('message')
+    String credentialsId = config.get('credentialsId')
+
+    ssh.prepareSshAgentKey(credentialsId)
+    ssh.ensureKnownHosts(gerritHost)
+    ssh.agentSh(String.format("ssh -p 29418 %s@%s gerrit review %s,%s -m \"'%s'\" --code-review 0", gerritName, gerritHost, gerritChangeNumber, gerritPatchSetNumber, message))
+}
