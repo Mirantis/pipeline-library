@@ -409,7 +409,9 @@ def catTestsOutput(master, image) {
  */
 def install_docker(master, target) {
     def salt = new com.mirantis.mk.Salt()
-    salt.runSaltProcessStep(master, target, 'pkg.install', ["docker.io"])
+    def dockerPackagesPillar = salt.getPillar(master, target, 'docker:host:pkgs')
+    def dockerPackages = salt.getReturnValues(dockerPackagesPillar) ?: ['docker.io']
+    salt.runSaltProcessStep(master, target, 'pkg.install', dockerPackages)
 }
 
 
