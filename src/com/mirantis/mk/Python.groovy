@@ -247,8 +247,7 @@ def setupCookiecutterVirtualenv(path) {
     requirements = [
         'cookiecutter',
         'jinja2==2.8.1',
-        'PyYAML==3.12',
-        'python-gnupg==0.4.3'
+        'PyYAML==3.12'
     ]
     setupVirtualenv(path, 'python2', requirements)
 }
