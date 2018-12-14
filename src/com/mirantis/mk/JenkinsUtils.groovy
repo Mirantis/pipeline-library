@@ -149,3 +149,71 @@ def getJobParameters(jobName){
     }
     return params
 }
+
+/**
+ * Get list of causes actions for given build
+ *
+ * @param build Job build object (like, currentBuild.rawBuild)
+ * @return list of causes actions for given build
+ */
+@NonCPS
+def getBuildCauseActions(build) {
+    def causeAction = build.actions.find { it -> it instanceof hudson.model.CauseAction }
+    if(causeAction) {
+        return causeAction.causes
+    } else {
+        return []
+    }
+}
+
+/**
+ * Get list of builds, triggered by Gerrit with given build
+ * @param build Job build object (like, currentBuild.rawBuild)
+ * @return list of builds with names and numbers
+ */
+@NonCPS
+def getGerritBuildContext(build) {
+    def causes = getBuildCauseActions(build)
+    if (causes) {
+      def gerritTriggerCause = causes.find { cause ->
+          cause instanceof com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.GerritCause
+      }
+      return gerritTriggerCause.context.getOtherBuilds()
+    } else {
+      return []
+    }
+}
+
+/**
+ * Wait for other jobs
+ * @param config config parameter:
+ *   builds - List of job build objects, which should be checked
+ *   checkBuilds - List of job names or regexps, which should be used to check provided builds list
+ *   regexp - Wheither to use regexp or simple string matching
+ */
+def waitForOtherBuilds(LinkedHashMap config){
+  def common = new com.mirantis.mk.Common()
+  def builds = config.get('builds')
+  def checkBuilds = config.get('checkBuilds')
+  def regexp = config.get('regexp', false)
+  def waitForBuilds = builds.findAll { build ->
+    def jobName = build.fullDisplayName.tokenize(' ')[0]
+    if (regexp) {
+      checkBuilds.find { jobName ==~ it }
+    } else {
+      jobName in checkBuilds
+    }
+  }
+  if (waitForBuilds) {
+    def waiting = true
+    common.infoMsg("Waiting for next jobs: ${waitForBuilds}")
+    while(waiting) {
+      waiting = false
+      waitForBuilds.each { job ->
+        if (job.inProgress) {
+          waiting = true
+        }
+      }
+    }
+  }
+}
