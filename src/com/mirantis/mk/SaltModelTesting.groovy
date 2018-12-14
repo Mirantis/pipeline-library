@@ -83,8 +83,8 @@ repo:
   mcp_extra:
     source: "${extraRepoSource}"
   mcp_saltformulas:
-    source: "deb http://apt.mcp.mirantis.net/xenial ${distribRevision} salt salt-latest"
-    repo_key: "http://apt.mcp.mirantis.net/public.gpg"
+    source:   "deb [arch=amd64]  http://mirror.mirantis.com/${distribRevision}/salt-formulas/xenial xenial main"
+    repo_key: "http://mirror.mirantis.com/${distribRevision}/salt-formulas/xenial/archive-salt-formulas.key"
   ubuntu:
     source: "deb [arch=amd64] http://mirror.mirantis.com/${distribRevision}/ubuntu xenial main restricted universe"
   ubuntu-upd:
