@@ -1,5 +1,8 @@
 package com.mirantis.mcp
 
+import java.util.zip.GZIPInputStream
+import java.util.zip.GZIPOutputStream
+
 @Grab(group='org.yaml', module='snakeyaml', version='1.17')
 import org.yaml.snakeyaml.Yaml
 
@@ -199,4 +202,20 @@ def runOnKubernetes(LinkedHashMap config) {
     }
   } //else
 
+}
+
+def zipBase64(String s){
+    def targetStream = new ByteArrayOutputStream()
+    def zipStream = new GZIPOutputStream(targetStream)
+    zipStream.write(s.getBytes('UTF-8'))
+    zipStream.close()
+    def zippedBytes = targetStream.toByteArray()
+    targetStream.close()
+    return zippedBytes.encodeBase64()
+}
+
+def unzipBase64(String compressed){
+    def inflaterStream = new GZIPInputStream(new ByteArrayInputStream(compressed.decodeBase64()))
+    def uncompressedStr = inflaterStream.getText('UTF-8')
+    return uncompressedStr
 }
