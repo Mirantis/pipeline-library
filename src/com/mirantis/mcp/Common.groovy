@@ -204,6 +204,12 @@ def runOnKubernetes(LinkedHashMap config) {
 
 }
 
+/**
+ * Compress a string with Gzip and encode result with Base64 encoding,
+ * useful for wire transfer of large text data over text-based protocols like HTTP
+ * @param s string to encode
+ * @return base64-encoded gzipped string
+*/
 def zipBase64(String s){
     def targetStream = new ByteArrayOutputStream()
     def zipStream = new GZIPOutputStream(targetStream)
@@ -211,9 +217,14 @@ def zipBase64(String s){
     zipStream.close()
     def zippedBytes = targetStream.toByteArray()
     targetStream.close()
-    return zippedBytes.encodeBase64()
+    return zippedBytes.encodeBase64().toString()
 }
 
+/**
+ * De-compress a base64-encoded gzipped string, reverts result of zipBase64
+ * @param compressed base64-endcoded gzipped string
+ * @return decoded decompressed string
+*/
 def unzipBase64(String compressed){
     def inflaterStream = new GZIPInputStream(new ByteArrayInputStream(compressed.decodeBase64()))
     def uncompressedStr = inflaterStream.getText('UTF-8')
