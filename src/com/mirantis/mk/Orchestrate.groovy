@@ -284,7 +284,10 @@ def installOpenstackControl(master, extra_tgt = '') {
 
     // Install sphinx server
     salt.enforceStateWithTest(master, "I@sphinx:server ${extra_tgt}", 'sphinx')
-    salt.enforceStateWithTest(master, "I@nginx:server ${extra_tgt}", 'salt.minion')
+    // Running minion states in a batch to avoid races related to certificates which are placed on glusterfs
+    // Details on races: https://mirantis.jira.com/browse/PROD-25796
+    // TODO: Run in parallel when glusterfs for certificates is dropped in cookiecutter
+    salt.enforceStateWithTest(master, "I@nginx:server ${extra_tgt}", 'salt.minion', '', true, true, 1)
     salt.enforceStateWithTest(master, "I@nginx:server ${extra_tgt}", 'nginx')
 
     // setup keystone service
