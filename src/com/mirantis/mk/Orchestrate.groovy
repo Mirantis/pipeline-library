@@ -363,7 +363,7 @@ def installOpenstackControl(master, extra_tgt = '') {
     salt.enforceStateWithTest(master, "I@heat:server:role:primary ${extra_tgt}", 'heat', "I@heat:server ${extra_tgt}")
     salt.enforceStateWithTest(master, "I@heat:server ${extra_tgt}", 'heat')
     if (salt.testTarget(master, "I@keystone:server and I@heat:server ${extra_tgt}")) {
-        common.retry(3,5){
+        common.retry(10,5){
             salt.cmdRun(master, "I@keystone:server ${extra_tgt}", '. /root/keystonercv3; openstack orchestration resource type list')
         }
     }
