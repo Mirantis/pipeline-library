@@ -159,9 +159,27 @@ def getConfig(saltId, target, config) {
  * @param saltArgs additional salt args eq. ["runas=aptly"]
  * @return output of salt command
  */
+def enforceStateWithExclude(Map params) {
+    //Set defaults
+    defaults = ["excludedStates": "", "output": true, "failOnError": true, "batch": null, "optional": false,
+                "read_timeout": -1, "retries": -1, "queue": true, "saltArgs": []]
+    params = defaults + params
+    params.saltArgs << "exclude=${params.excludedStates}"
+    params.remove('excludedStates')
+    return enforceState(params)
+}
+
+
 def enforceStateWithExclude(saltId, target, state, excludedStates = "", output = true, failOnError = true, batch = null, optional = false, read_timeout=-1, retries=-1, queue=true, saltArgs=[]) {
-    saltArgs << "exclude=${excludedStates}"
-    return enforceState(saltId, target, state, output, failOnError, batch, optional, read_timeout, retries, queue, saltArgs)
+// Deprecated, convert state to use Map as input parameter
+    def common = new com.mirantis.mk.Common()
+    common.infoMsg("This method is deprecated. Convert you method call to use Map as input parameter")
+    // Convert to Map
+    params = ['saltId': saltId, 'target': target, 'state': state, 'excludedStates': excludedStates, 'output': output,
+                'failOnError': failOnError, 'batch': batch, 'optional': optional, 'read_timeout': read_timeout,
+                'retries': retries, 'queue': queue, 'saltArgs': saltArgs]
+    // Call new method with Map as parameter
+    return enforceStateWithExclude(params)
 }
 
 /**
@@ -180,21 +198,38 @@ def enforceStateWithExclude(saltId, target, state, excludedStates = "", output =
  * @param saltArgs additional salt args eq. ["runas=aptly"]
  * @return output of salt command
  */
-def enforceStateWithTest(saltId, target, state, testTargetMatcher = "", output = true, failOnError = true, batch = null, optional = false, read_timeout=-1, retries=-1, queue=true, saltArgs=[]) {
+def enforceStateWithTest(Map params) {
     def common = new com.mirantis.mk.Common()
-    if (!testTargetMatcher) {
-        testTargetMatcher = target
+    //Set defaults
+    defaults = ["testTargetMatcher": "", "output": true, "failOnError": true, "batch": null, "optional": false,
+                "read_timeout": -1, "retries": -1, "queue": true, "saltArgs":[]]
+    params = defaults + params
+    if (!params.testTargetMatcher) {
+        params.testTargetMatcher = params.target
     }
-    if (testTarget(saltId, testTargetMatcher)) {
-        return enforceState(saltId, target, state, output, failOnError, batch, false, read_timeout, retries, queue, saltArgs)
+    if (testTarget(params.saltId, params.testTargetMatcher)) {
+        return enforceState(params)
     } else {
-        if (!optional) {
-                common.infoMsg("No Minions matched the target matcher: ${testTargetMatcher}, and 'optional' param was set to false. - This may signify missing pillar definition!!")
+        if (!params.optional) {
+                common.infoMsg("No Minions matched the target matcher: ${params.testTargetMatcher}, and 'optional' param was set to false. - This may signify missing pillar definition!!")
 //              throw new Exception("No Minions matched the target matcher: ${testTargetMatcher}.") TODO: Change the infoMsg to Error once the methods are changed to Use named params and optional param will be set globally
             } else {
-                common.infoMsg("No Minions matched the target matcher: ${testTargetMatcher}, but 'optional' param was set to true - Pipeline continues. ")
+                common.infoMsg("No Minions matched the target matcher: ${params.testTargetMatcher}, but 'optional' param was set to true - Pipeline continues. ")
             }
     }
+}
+
+
+def enforceStateWithTest(saltId, target, state, testTargetMatcher = "", output = true, failOnError = true, batch = null, optional = false, read_timeout=-1, retries=-1, queue=true, saltArgs=[]) {
+// Deprecated, convert state to use Map as input parameter
+    def common = new com.mirantis.mk.Common()
+    common.infoMsg("This method is deprecated. Convert you method call to use Map as input parameter")
+    // Convert to Map
+    params = ['saltId': saltId, 'target': target, 'state': state, 'testTargetMatcher': testTargetMatcher, 'output': output,
+                'failOnError': failOnError, 'batch': batch, 'optional': optional, 'read_timeout': read_timeout,
+                'retries': retries, 'queue': queue, 'saltArgs': saltArgs]
+    // Call new method with Map as parameter
+    return enforceStateWithTest(params)
 }
 
 /* Enforces state on given saltId and target
@@ -212,43 +247,59 @@ def enforceStateWithTest(saltId, target, state, testTargetMatcher = "", output =
  * @param minionRestartWaitTimeout specifies timeout that we should wait after minion restart.
  * @return output of salt command
  */
-def enforceState(saltId, target, state, output = true, failOnError = true, batch = null, optional = false, read_timeout=-1, retries=-1, queue=true, saltArgs = [], minionRestartWaitTimeout=10) {
+def enforceState(Map params) {
     def common = new com.mirantis.mk.Common()
+    //Set defaults
+    defaults = ["output": true, "failOnError": true, "batch": null, "optional": false,
+                "read_timeout": -1, "retries": -1, "queue": true, "saltArgs": [], "minionRestartWaitTimeout": 10]
+    params = defaults + params
     // add state to salt args
-    if (state instanceof String) {
-        saltArgs << state
+    if (params.state instanceof String) {
+        params.saltArgs << params.state
     } else {
-        saltArgs << state.join(',')
+        params.saltArgs << params.state.join(',')
     }
 
-    common.infoMsg("Running state ${state} on ${target}")
+    common.infoMsg("Running state ${params.state} on ${params.target}")
     def out
     def kwargs = [:]
 
-    if (queue && batch == null) {
+    if (params.queue && params.batch == null) {
       kwargs["queue"] = true
     }
 
-    if (optional == false || testTarget(saltId, target)){
-        if (retries > 0){
+    if (params.optional == false || params.testTarget(params.saltId, params.target)){
+        if (params.retries > 0){
             def retriesCounter = 0
-            retry(retries){
+            retry(params.retries){
                 retriesCounter++
                 // we have to reverse order in saltArgs because salt state have to be first
-                out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, saltArgs.reverse(), kwargs, -1, read_timeout)
+                out = runSaltCommand(params.saltId, 'local', ['expression': params.target, 'type': 'compound'], 'state.sls', params.batch, params.saltArgs.reverse(), kwargs, -1, params.read_timeout)
                 // failOnError should be passed as true because we need to throw exception for retry block handler
-                checkResult(out, true, output, true, retriesCounter < retries) //disable ask on error for every interation except last one
+                checkResult(out, true, params.output, true, retriesCounter < params.retries) //disable ask on error for every interation except last one
             }
         } else {
             // we have to reverse order in saltArgs because salt state have to be first
-            out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'state.sls', batch, saltArgs.reverse(), kwargs, -1, read_timeout)
-            checkResult(out, failOnError, output)
+            out = runSaltCommand(params.saltId, 'local', ['expression': params.target, 'type': 'compound'], 'state.sls', params.batch, params.saltArgs.reverse(), kwargs, -1, params.read_timeout)
+            checkResult(out, params.failOnError, params.output)
         }
-        waitForMinion(out, minionRestartWaitTimeout)
+        waitForMinion(out, params.minionRestartWaitTimeout)
         return out
     } else {
         common.infoMsg("No Minions matched the target given, but 'optional' param was set to true - Pipeline continues. ")
     }
+}
+
+def enforceState(saltId, target, state, output = true, failOnError = true, batch = null, optional = false, read_timeout=-1, retries=-1, queue=true, saltArgs = [], minionRestartWaitTimeout=10) {
+// Deprecated, convert state to use Map as input parameter
+    def common = new com.mirantis.mk.Common()
+    common.infoMsg("This method is deprecated. Convert you method call to use Map as input parameter")
+    // Convert to Map
+    params = ['saltId': saltId, 'target': target, 'state': state, 'output': output,
+                'failOnError': failOnError, 'batch': batch, 'optional': optional, 'read_timeout': read_timeout,
+                'retries': retries, 'queue': queue, 'saltArgs': saltArgs, 'minionRestartWaitTimeout': minionRestartWaitTimeout]
+    // Call new method with Map as parameter
+    return enforceState(params)
 }
 
 /**
