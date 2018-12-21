@@ -535,28 +535,53 @@ def applyOpenstackAppsStates(env, target){
  * @param env           Salt Connection object or pepperEnv
  * @return resultCode   int values used to determine exit status in the calling function
  */
-def verifyGaleraStatus(env) {
+def verifyGaleraStatus(env, slave=false) {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
     def out = ""
     def status = "unknown"
-    try {
-        galeraMaster = salt.getMinions(env, "I@galera:master")
-        common.infoMsg("Current Galera master is: ${galeraMaster}")
-        salt.minionsReachable(env, "I@salt:master", "I@galera:master")
-    } catch (Exception e) {
-        common.errorMsg('Galera master is not reachable.')
-        return 128
+    def testNode = ""
+    if (!slave) {
+        try {
+            galeraMaster = salt.getMinions(env, "I@galera:master")
+            common.infoMsg("Current Galera master is: ${galeraMaster}")
+            salt.minionsReachable(env, "I@salt:master", "I@galera:master")
+            testNode = "I@galera:master"
+        } catch (Exception e) {
+            common.errorMsg('Galera master is not reachable.')
+            return 128
+        }
+    } else {
+        try {
+            galeraMinions = salt.getMinions(env, "I@galera:slave")
+            common.infoMsg("Testing Galera slave minions: ${galeraMinions}")
+        } catch (Exception e) {
+            common.errorMsg("Cannot obtain Galera slave minions list.")
+            return 129
+        }
+        for (minion in galeraMinions) {
+            try {
+                salt.minionsReachable(env, "I@salt:master", minion)
+                testNode = minion
+                break
+            } catch (Exception e) {
+                common.warningMsg("Slave '${minion}' is not reachable.")
+            }
+        }
+    }
+    if (!testNode) {
+        common.errorMsg("No Galera slave was reachable.")
+        return 130
     }
     try {
-        out = salt.cmdRun(env, "I@salt:master", "salt -C 'I@galera:master' mysql.status")
+        out = salt.cmdRun(env, "I@salt:master", "salt -C '${testNode}' mysql.status")
     } catch (Exception e) {
         common.errorMsg('Could not determine mysql status.')
         return 256
     }
     if (out) {
         try {
-            status = validateAndPrintGaleraStatusReport(env, out)
+            status = validateAndPrintGaleraStatusReport(env, out, testNode)
         } catch (Exception e) {
             common.errorMsg('Could not parse the mysql status output. Check it manually.')
             return 1
@@ -583,10 +608,15 @@ def verifyGaleraStatus(env) {
 @return status  "OK", "ERROR" or "uknown" depending on result of validation
 */
 
-def validateAndPrintGaleraStatusReport(env, out) {
+def validateAndPrintGaleraStatusReport(env, out, minion) {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
-    sizeOut = salt.getReturnValues(salt.getPillar(env, "I@galera:master", "galera:master:members"))
+    if (minion == "I@galera:master") {
+        role = "master"
+    } else {
+        role = "slave"
+    }
+    sizeOut = salt.getReturnValues(salt.getPillar(env, testNode, "galera:${role}:members"))
     expected_cluster_size = sizeOut.size()
     outlist = out['return'][0]
     resultString = outlist.get(outlist.keySet()[0]).replace("\n        ", " ").replace("    ", "").replace("Salt command execution success", "").replace("----------", "").replace(": \n", ": no value\n")
@@ -594,9 +624,9 @@ def validateAndPrintGaleraStatusReport(env, out) {
     parameters = [
         wsrep_cluster_status: [title: 'Cluster status', expectedValues: ['Primary'], description: ''],
         wsrep_cluster_size: [title: 'Current cluster size', expectedValues: [expected_cluster_size], description: ''],
-        wsrep_ready: [title: 'Master node status', expectedValues: ['ON', true], description: ''],
-        wsrep_local_state_comment: [title: 'Master node status comment', expectedValues: ['Joining', 'Waiting on SST', 'Joined', 'Synced', 'Donor'], description: ''],
-        wsrep_connected: [title: 'Master node connectivity', expectedValues: ['ON', true], description: ''],
+        wsrep_ready: [title: 'Node status', expectedValues: ['ON', true], description: ''],
+        wsrep_local_state_comment: [title: 'Node status comment', expectedValues: ['Joining', 'Waiting on SST', 'Joined', 'Synced', 'Donor'], description: ''],
+        wsrep_connected: [title: 'Node connectivity', expectedValues: ['ON', true], description: ''],
         wsrep_local_recv_queue_avg: [title: 'Average size of local reveived queue', expectedThreshold: [warn: 0.5, error: 1.0], description: '(Value above 0 means that the node cannot apply write-sets as fast as it receives them, which can lead to replication throttling)'],
         wsrep_local_send_queue_avg: [title: 'Average size of local send queue', expectedThreshold: [warn: 0.5, error: 1.0], description: '(Value above 0 indicate replication throttling or network throughput issues, such as a bottleneck on the network link.)']
         ]
@@ -664,6 +694,44 @@ def validateAndPrintGaleraStatusReport(env, out) {
     }
 }
 
+def getGaleraLastShutdownNode(env) {
+    def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+    members = ''
+    lastNode = [ip: '', seqno: -2]
+    try {
+        members = salt.getReturnValues(salt.getPillar(env, "I@galera:master", "galera:master:members"))
+    } catch (Exception er) {
+        common.errorMsg('Could not retrieve members list')
+        return 'I@galera:master'
+    }
+    if (members) {
+        for (member in members) {
+            try {
+                salt.minionsReachable(env, 'I@salt:master', "S@${member.host}")
+                out = salt.getReturnValues(salt.cmdRun(env, "S@${member.host}", 'cat /var/lib/mysql/grastate.dat | grep "seqno" | cut -d ":" -f2', true, null, false))
+                seqno = out.tokenize('\n')[0].trim()
+                if (seqno.isNumber()) {
+                    seqno = seqno.toInteger()
+                } else {
+                    seqno = -2
+                }
+                highestSeqno = lastNode.get('seqno')
+                if (seqno > highestSeqno) {
+                    lastNode << [ip: "${member.host}", seqno: seqno]
+                }
+            } catch (Exception er) {
+                common.warningMsg("Could not determine 'seqno' value for node ${member.host} ")
+            }
+        }
+    }
+    if (lastNode.get('ip') != '') {
+        return "S@${lastNode.ip}"
+    } else {
+        return "I@galera:master"
+    }
+}
+
 /**
  * Restores Galera database
  * @param env Salt Connection object or pepperEnv
@@ -682,44 +750,51 @@ def restoreGaleraDb(env) {
     } catch (Exception er) {
         common.warningMsg('Mysql service already stopped')
     }
+    lastNodeTarget = getGaleraLastShutdownNode(env)
     try {
         salt.cmdRun(env, 'I@galera:slave', "rm /var/lib/mysql/ib_logfile*")
     } catch (Exception er) {
         common.warningMsg('Files are not present')
     }
     try {
-        salt.cmdRun(env, 'I@galera:master', "mkdir /root/mysql/mysql.bak")
+        salt.cmdRun(env, 'I@galera:slave', "rm  /var/lib/mysql/grastate.dat")
+    } catch (Exception er) {
+        common.warningMsg('Files are not present')
+    }
+    try {
+        salt.cmdRun(env, lastNodeTarget, "mkdir /root/mysql/mysql.bak")
     } catch (Exception er) {
         common.warningMsg('Directory already exists')
     }
     try {
-        salt.cmdRun(env, 'I@galera:master', "rm -rf /root/mysql/mysql.bak/*")
+        salt.cmdRun(env, lastNodeTarget, "rm -rf /root/mysql/mysql.bak/*")
     } catch (Exception er) {
         common.warningMsg('Directory already empty')
     }
     try {
-        salt.cmdRun(env, 'I@galera:master', "mv /var/lib/mysql/* /root/mysql/mysql.bak")
+        salt.cmdRun(env, lastNodeTarget, "mv /var/lib/mysql/* /root/mysql/mysql.bak")
     } catch (Exception er) {
         common.warningMsg('Files were already moved')
     }
     try {
-        salt.runSaltProcessStep(env, 'I@galera:master', 'file.remove', ["/var/lib/mysql/.galera_bootstrap"])
+        salt.runSaltProcessStep(env, lastNodeTarget, 'file.remove', ["/var/lib/mysql/.galera_bootstrap"])
     } catch (Exception er) {
         common.warningMsg('File is not present')
     }
-    salt.cmdRun(env, 'I@galera:master', "sed -i '/gcomm/c\\wsrep_cluster_address=\"gcomm://\"' /etc/mysql/my.cnf")
-    def backup_dir = salt.getReturnValues(salt.getPillar(env, "I@galera:master", 'xtrabackup:client:backup_dir'))
+    salt.cmdRun(env, lastNodeTarget, "sed -i '/gcomm/c\\wsrep_cluster_address=\"gcomm://\"' /etc/mysql/my.cnf")
+    def backup_dir = salt.getReturnValues(salt.getPillar(env, lastNodeTarget, 'xtrabackup:client:backup_dir'))
     if(backup_dir == null || backup_dir.isEmpty()) { backup_dir='/var/backups/mysql/xtrabackup' }
-    salt.runSaltProcessStep(env, 'I@galera:master', 'file.remove', ["${backup_dir}/dbrestored"])
+    salt.runSaltProcessStep(env, lastNodeTarget, 'file.remove', ["${backup_dir}/dbrestored"])
     salt.cmdRun(env, 'I@xtrabackup:client', "su root -c 'salt-call state.sls xtrabackup'")
-    salt.runSaltProcessStep(env, 'I@galera:master', 'service.start', ['mysql'])
+    salt.runSaltProcessStep(env, lastNodeTarget, 'service.start', ['mysql'])
 
     // wait until mysql service on galera master is up
     try {
-        salt.commandStatus(env, 'I@galera:master', 'service mysql status', 'running')
+        salt.commandStatus(env, lastNodeTarget, 'service mysql status', 'running')
     } catch (Exception er) {
         input message: "Database is not running please fix it first and only then click on PROCEED."
     }
 
-    salt.runSaltProcessStep(env, 'I@galera:slave', 'service.start', ['mysql'])
+    salt.runSaltProcessStep(env, "I@galera:master and not ${lastNodeTarget}", 'service.start', ['mysql'])
+    salt.runSaltProcessStep(env, "I@galera:slave and not ${lastNodeTarget}", 'service.start', ['mysql'])
 }
