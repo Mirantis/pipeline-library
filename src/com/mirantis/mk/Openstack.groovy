@@ -527,6 +527,144 @@ def applyOpenstackAppsStates(env, target){
 }
 
 /**
+ * Verifies Galera database
+ *
+ * This function checks for Galera master, tests connection and if reachable, it obtains the result
+ *      of Salt mysql.status function. The result is then parsed, validated and outputed to the user.
+ *
+ * @param env           Salt Connection object or pepperEnv
+ * @return resultCode   int values used to determine exit status in the calling function
+ */
+def verifyGaleraStatus(env) {
+    def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+    def out = ""
+    def status = "unknown"
+    try {
+        galeraMaster = salt.getMinions(env, "I@galera:master")
+        common.infoMsg("Current Galera master is: ${galeraMaster}")
+        salt.minionsReachable(env, "I@salt:master", "I@galera:master")
+    } catch (Exception e) {
+        common.errorMsg('Galera master is not reachable.')
+        return 128
+    }
+    try {
+        out = salt.cmdRun(env, "I@salt:master", "salt -C 'I@galera:master' mysql.status")
+    } catch (Exception e) {
+        common.errorMsg('Could not determine mysql status.')
+        return 256
+    }
+    if (out) {
+        try {
+            status = validateAndPrintGaleraStatusReport(env, out)
+        } catch (Exception e) {
+            common.errorMsg('Could not parse the mysql status output. Check it manually.')
+            return 1
+        }
+    } else {
+        common.errorMsg("Mysql status response unrecognized or is empty. Response: ${out}")
+        return 1024
+    }
+    if (status == "OK") {
+        common.infoMsg("No errors found - MySQL status is ${status}.")
+        return 0
+    } else if (status == "unknown") {
+        common.warningMsg('MySQL status cannot be detemined')
+        return 1
+    } else {
+        common.errorMsg("Errors found.")
+        return 2
+    }
+}
+
+/** Validates and prints result of verifyGaleraStatus function
+@param env      Salt Connection object or pepperEnv
+@param out      Output of the mysql.status Salt function
+@return status  "OK", "ERROR" or "uknown" depending on result of validation
+*/
+
+def validateAndPrintGaleraStatusReport(env, out) {
+    def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+    sizeOut = salt.getReturnValues(salt.getPillar(env, "I@galera:master", "galera:master:members"))
+    expected_cluster_size = sizeOut.size()
+    outlist = out['return'][0]
+    resultString = outlist.get(outlist.keySet()[0]).replace("\n        ", " ").replace("    ", "").replace("Salt command execution success", "").replace("----------", "").replace(": \n", ": no value\n")
+    resultYaml = readYaml text: resultString
+    parameters = [
+        wsrep_cluster_status: [title: 'Cluster status', expectedValues: ['Primary'], description: ''],
+        wsrep_cluster_size: [title: 'Current cluster size', expectedValues: [expected_cluster_size], description: ''],
+        wsrep_ready: [title: 'Master node status', expectedValues: ['ON', true], description: ''],
+        wsrep_local_state_comment: [title: 'Master node status comment', expectedValues: ['Joining', 'Waiting on SST', 'Joined', 'Synced', 'Donor'], description: ''],
+        wsrep_connected: [title: 'Master node connectivity', expectedValues: ['ON', true], description: ''],
+        wsrep_local_recv_queue_avg: [title: 'Average size of local reveived queue', expectedThreshold: [warn: 0.5, error: 1.0], description: '(Value above 0 means that the node cannot apply write-sets as fast as it receives them, which can lead to replication throttling)'],
+        wsrep_local_send_queue_avg: [title: 'Average size of local send queue', expectedThreshold: [warn: 0.5, error: 1.0], description: '(Value above 0 indicate replication throttling or network throughput issues, such as a bottleneck on the network link.)']
+        ]
+    results = [:].withDefault {"unknown"}
+    for (key in parameters.keySet()) {
+        value = resultYaml[key]
+        parameters.get(key) << [actualValue: value]
+    }
+    for (key in parameters.keySet()) {
+        param = parameters.get(key)
+        if (key == 'wsrep_local_recv_queue_avg' || key == 'wsrep_local_send_queue_avg') {
+            if (param.get('actualValue') > param.get('expectedThreshold').get('error')) {
+                param << [match: 'error']
+            } else if (param.get('actualValue') > param.get('expectedThreshold').get('warn')) {
+                param << [match: 'warn']
+            } else {
+                param << [match: 'ok']
+            }
+        } else {
+            for (expValue in param.get('expectedValues')) {
+                if (expValue == param.get('actualValue')) {
+                    param << [match: 'ok']
+                    break
+                } else {
+                    param << [match: 'error']
+                }
+            }
+        }
+    }
+    cluster_info_report = []
+    cluster_warning_report = []
+    cluster_error_report = []
+    for (key in parameters.keySet()) {
+        param = parameters.get(key)
+        if (param.containsKey('expectedThreshold')) {
+            expValues = "below ${param.get('expectedThreshold').get('warn')}"
+        } else {
+            if (param.get('expectedValues').size() > 1) {
+                expValues = param.get('expectedValues').join(' or ')
+            } else {
+                expValues = param.get('expectedValues')[0]
+            }
+        }
+        reportString = "${param.title}: ${param.actualValue} (Expected: ${expValues}) ${param.description}"
+        if (param.get('match').equals('ok')) {
+            cluster_info_report.add("[OK     ] ${reportString}")
+        } else if (param.get('match').equals('warn')) {
+            cluster_warning_report.add("[WARNING] ${reportString}")
+        } else {
+            cluster_error_report.add("[  ERROR] ${reportString})")
+        }
+    }
+    common.infoMsg("CLUSTER STATUS REPORT: ${cluster_info_report.size()} expected values, ${cluster_warning_report.size()} warnings and ${cluster_error_report.size()} error found:")
+    if (cluster_info_report.size() > 0) {
+        common.infoMsg(cluster_info_report.join('\n'))
+    }
+    if (cluster_warning_report.size() > 0) {
+        common.warningMsg(cluster_warning_report.join('\n'))
+    }
+    if (cluster_error_report.size() > 0) {
+        common.errorMsg(cluster_error_report.join('\n'))
+        return "ERROR"
+    } else {
+        return "OK"
+    }
+}
+
+/**
  * Restores Galera database
  * @param env Salt Connection object or pepperEnv
  * @return output of salt commands
