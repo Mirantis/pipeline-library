@@ -173,7 +173,7 @@ def enforceStateWithExclude(Map params) {
 def enforceStateWithExclude(saltId, target, state, excludedStates = "", output = true, failOnError = true, batch = null, optional = false, read_timeout=-1, retries=-1, queue=true, saltArgs=[]) {
 // Deprecated, convert state to use Map as input parameter
     def common = new com.mirantis.mk.Common()
-    common.infoMsg("This method is deprecated. Convert you method call to use Map as input parameter")
+    common.infoMsg("This method will be deprecated. Convert you method call to use Map as input parameter")
     // Convert to Map
     params = ['saltId': saltId, 'target': target, 'state': state, 'excludedStates': excludedStates, 'output': output,
                 'failOnError': failOnError, 'batch': batch, 'optional': optional, 'read_timeout': read_timeout,
@@ -223,7 +223,7 @@ def enforceStateWithTest(Map params) {
 def enforceStateWithTest(saltId, target, state, testTargetMatcher = "", output = true, failOnError = true, batch = null, optional = false, read_timeout=-1, retries=-1, queue=true, saltArgs=[]) {
 // Deprecated, convert state to use Map as input parameter
     def common = new com.mirantis.mk.Common()
-    common.infoMsg("This method is deprecated. Convert you method call to use Map as input parameter")
+    common.infoMsg("This method will be deprecated. Convert you method call to use Map as input parameter")
     // Convert to Map
     params = ['saltId': saltId, 'target': target, 'state': state, 'testTargetMatcher': testTargetMatcher, 'output': output,
                 'failOnError': failOnError, 'batch': batch, 'optional': optional, 'read_timeout': read_timeout,
@@ -293,7 +293,7 @@ def enforceState(Map params) {
 def enforceState(saltId, target, state, output = true, failOnError = true, batch = null, optional = false, read_timeout=-1, retries=-1, queue=true, saltArgs = [], minionRestartWaitTimeout=10) {
 // Deprecated, convert state to use Map as input parameter
     def common = new com.mirantis.mk.Common()
-    common.infoMsg("This method is deprecated. Convert you method call to use Map as input parameter")
+    common.infoMsg("This method will be deprecated. Convert you method call to use Map as input parameter")
     // Convert to Map
     params = ['saltId': saltId, 'target': target, 'state': state, 'output': output,
                 'failOnError': failOnError, 'batch': batch, 'optional': optional, 'read_timeout': read_timeout,
