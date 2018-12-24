@@ -713,6 +713,13 @@ def installCicd(master, extra_tgt = '') {
 
     // Temporary exclude cfg node from docker.client state (PROD-24934)
     def dockerClientExclude = !salt.getPillar(master, 'I@salt:master', 'docker:client:stack:jenkins').isEmpty() ? 'and not I@salt:master' : ''
+    // Pull images first if any
+    def listCIMinions = salt.getMinions(master, "ci* ${dockerClientExclude} ${extra_tgt}")
+    for (int i = 0; i < listCIMinions.size(); i++) {
+        if (!salt.getReturnValues(salt.getPillar(master, listCIMinions[i], 'docker:client:images')).isEmpty()) {
+            salt.enforceState([saltId: master, target: listCIMinions[i], state: 'docker.client.images', retries: 2])
+        }
+    }
     salt.enforceState([saltId: master, target: "I@docker:swarm:role:master and I@jenkins:client ${dockerClientExclude} ${extra_tgt}", state: 'docker.client', retries: 2])
 
     // API timeout in minutes
