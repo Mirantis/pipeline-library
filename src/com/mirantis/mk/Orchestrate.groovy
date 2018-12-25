@@ -915,6 +915,13 @@ def installStacklight(master, extra_tgt = '') {
     }
 
     // Launch containers
+    // Pull images first if any
+    def listMinions = salt.getMinions(master, "I@docker:swarm and I@prometheus:server ${extra_tgt}")
+    for (int i = 0; i < listMinions.size(); i++) {
+        if (!salt.getReturnValues(salt.getPillar(master, listMinions[i], 'docker:client:images')).isEmpty()) {
+            salt.enforceState([saltId: master, target: listMinions[i], state: 'docker.client.images', retries: 2])
+        }
+    }
     salt.enforceState([saltId: master, target: "I@docker:swarm:role:master and I@prometheus:server ${extra_tgt}", state: 'docker.client'])
     salt.runSaltProcessStep(master, "I@docker:swarm and I@prometheus:server ${extra_tgt}", 'dockerng.ps')
 
