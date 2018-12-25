@@ -8,30 +8,74 @@ import com.cloudbees.groovy.cps.NonCPS
  */
 
 /**
- * Tests if current user belongs to given group
- * @param groupName name of the group you want to verify user presence
- * @return boolean result
+ * Returns a list of groups which user belongs
+ * @param username String
+ * @return list of groups [String]
  */
-def currentUserInGroup(groupName){
-    return currentUserInGroups([groupName])
-}
-/**
- * Tests if current user belongs to at least one of given groups
- * @param groups list of group names you want to verify user presence
- * @return boolean result
- */
-def currentUserInGroups(groups){
-    def hasAccess = false
-    wrap([$class: 'BuildUser']) {
-        def authorities = Jenkins.instance.securityRealm.loadUserByUsername(BUILD_USER).getAuthorities()
-        for(int i=0;i < authorities.size();i++){
-            if(groups.contains(authorities[i])){
-                hasAccess=true
-                break
-            }
-        }
+def userGroups(username) {
+    res = []
+    def authorities = Jenkins.instance.securityRealm.loadUserByUsername(username).getAuthorities()
+    authorities.each {
+        res.add(it.toString())
     }
-    return hasAccess
+    return res
+}
+
+/**
+ * Check if user belongs to group
+ * @param username String
+ * @param group String
+ * @return boolean result
+ */
+def userInGroup(username, group) {
+    def authorities = userGroups(username)
+    return authorities.any{it==group}
+}
+
+/**
+ * Check if user belongs to at least one of given groups
+ * @param username String
+ * @param groups [String]
+ * @return boolean result
+ */
+def userInGroups(username, groups) {
+    return groups.any{userInGroup(username, it)}
+}
+
+/**
+ * Returns current username from build
+ * @return username String
+ */
+def currentUsername() {
+    username = ''
+    wrap([$class: 'BuildUser']) {
+        username = BUILD_USER
+    }
+    if (username) {
+        return username
+    } else {
+        throw new Exception('cant get  current username')
+    }
+}
+
+/**
+ * Check if current user belongs to at least one of given groups
+ * @param groups [String]
+ * @return boolean result
+ */
+def currentUserInGroups(groups) {
+    username = currentUsername()
+    return userInGroups(username, groups)
+}
+
+/**
+ * Check if current user belongs to group
+ * @param group String
+ * @return boolean result
+ */
+def currentUserInGroup(group) {
+    username = currentUsername()
+    return userInGroup(username, group)
 }
 
 /**
@@ -41,39 +85,39 @@ def currentUserInGroups(groups){
  */
 @NonCPS
 def getJobRunningBuilds(jobName){
-  def job = Jenkins.instance.items.find{it -> it.name.equals(jobName)}
-  if(job){
-   return job.builds.findAll{build -> build.isBuilding()}
-  }
-  return []
+    def job = Jenkins.instance.items.find{it -> it.name.equals(jobName)}
+    if(job){
+        return job.builds.findAll{build -> build.isBuilding()}
+    }
+    return []
 }
 
 @NonCPS
 def getRunningBuilds(job){
-  return job.builds.findAll{build -> build.isBuilding()}
+    return job.builds.findAll{build -> build.isBuilding()}
 }
 
 @NonCPS
 def killStuckBuilds(maxSeconds, job){
-  def common = new com.mirantis.mk.Common()
-  def result = true
-  def runningBuilds = getRunningBuilds(job)
-  def jobName = job.name
-  for(int j=0; j < runningBuilds.size(); j++){
-    int durationInSeconds = (System.currentTimeMillis() - runningBuilds[j].getTimeInMillis())/1000.0
-    if(durationInSeconds > maxSeconds){
-      result = false
-      def buildId = runningBuilds[j].id
-      common.infoMsg("Aborting ${jobName}-${buildId} which is running for ${durationInSeconds}s")
-      try{
-        runningBuilds[j].finish(hudson.model.Result.ABORTED, new java.io.IOException("Aborting build by long running jobs killer"));
-        result = true
-      }catch(e){
-        common.errorMsg("Error occured during aborting build: Exception: ${e}")
-      }
+    def common = new com.mirantis.mk.Common()
+    def result = true
+    def runningBuilds = getRunningBuilds(job)
+    def jobName = job.name
+    for(int j=0; j < runningBuilds.size(); j++){
+        int durationInSeconds = (System.currentTimeMillis() - runningBuilds[j].getTimeInMillis())/1000.0
+        if(durationInSeconds > maxSeconds){
+            result = false
+            def buildId = runningBuilds[j].id
+            common.infoMsg("Aborting ${jobName}-${buildId} which is running for ${durationInSeconds}s")
+            try{
+                runningBuilds[j].finish(hudson.model.Result.ABORTED, new java.io.IOException("Aborting build by long running jobs killer"));
+                result = true
+            }catch(e){
+                common.errorMsg("Error occured during aborting build: Exception: ${e}")
+            }
+        }
     }
-  }
-  return result
+    return result
 }
 
 /**
@@ -104,72 +148,4 @@ def getJobParameters(jobName){
         }
     }
     return params
-}
-
-/**
- * Get list of causes actions for given build
- *
- * @param build Job build object (like, currentBuild.rawBuild)
- * @return list of causes actions for given build
- */
-@NonCPS
-def getBuildCauseActions(build) {
-    def causeAction = build.actions.find { it -> it instanceof hudson.model.CauseAction }
-    if(causeAction) {
-        return causeAction.causes
-    } else {
-        return []
-    }
-}
-
-/**
- * Get list of builds, triggered by Gerrit with given build
- * @param build Job build object (like, currentBuild.rawBuild)
- * @return list of builds with names and numbers
- */
-@NonCPS
-def getGerritBuildContext(build) {
-    def causes = getBuildCauseActions(build)
-    if (causes) {
-      def gerritTriggerCause = causes.find { cause ->
-          cause instanceof com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.GerritCause
-      }
-      return gerritTriggerCause.context.getOtherBuilds()
-    } else {
-      return []
-    }
-}
-
-/**
- * Wait for other jobs
- * @param config config parameter:
- *   builds - List of job build objects, which should be checked
- *   checkBuilds - List of job names or regexps, which should be used to check provided builds list
- *   regexp - Wheither to use regexp or simple string matching
- */
-def waitForOtherBuilds(LinkedHashMap config){
-  def common = new com.mirantis.mk.Common()
-  def builds = config.get('builds')
-  def checkBuilds = config.get('checkBuilds')
-  def regexp = config.get('regexp', false)
-  def waitForBuilds = builds.findAll { build ->
-    def jobName = build.fullDisplayName.tokenize(' ')[0]
-    if (regexp) {
-      checkBuilds.find { jobName ==~ it }
-    } else {
-      jobName in checkBuilds
-    }
-  }
-  if (waitForBuilds) {
-    def waiting = true
-    common.infoMsg("Waiting for next jobs: ${waitForBuilds}")
-    while(waiting) {
-      waiting = false
-      waitForBuilds.each { job ->
-        if (job.inProgress) {
-          waiting = true
-        }
-      }
-    }
-  }
 }
