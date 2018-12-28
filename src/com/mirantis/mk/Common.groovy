@@ -849,21 +849,28 @@ def stageWrapper(stageMap, currentStage, target, interactive = true, Closure bod
  *  Ugly transition solution for internal tests.
  *  1) Check input => transform to static result, based on runtime and input
  *  2) Check remote-binary repo for exact resource
- */
+ *  Return: changes each linux_system_* cto false, in case broken url in some of them
+  */
 
 def checkRemoteBinary(LinkedHashMap config, List extraScmExtensions = []) {
     def common = new com.mirantis.mk.Common()
-    res = [:]
+    def res = [:]
     res['MirrorRoot'] = config.get('globalMirrorRoot', env["BIN_MIRROR_ROOT"] ? env["BIN_MIRROR_ROOT"] : "http://mirror.mirantis.com/")
     // Reclass-like format's. To make life eazy!
     res['mcp_version'] = config.get('mcp_version', env["BIN_APT_MCP_VERSION"] ? env["BIN_APT_MCP_VERSION"] : 'nightly')
-    res['linux_system_repo_url'] = config.get('linux_system_repo_url', env["BIN_linux_system_repo_url"] ? env["BIN_linux_system_repo_url"] : "${res['MirrorRoot']}/${res['mcp_version']}/")
+    res['linux_system_repo_url'] = config.get('linux_system_repo_url', env['BIN_linux_system_repo_url'] ? env['BIN_linux_system_repo_url'] : "${res['MirrorRoot']}/${res['mcp_version']}/")
+    res['linux_system_repo_ubuntu_url'] = config.get('linux_system_repo_ubuntu_url', env['BIN_linux_system_repo_ubuntu_url'] ? env['BIN_linux_system_repo_ubuntu_url'] : "${res['MirrorRoot']}/${res['mcp_version']}/ubuntu/")
+    res['linux_system_repo_mcp_salt_url'] = config.get('linux_system_repo_mcp_salt_url', env['BIN_linux_system_repo_mcp_salt_url'] ? env['BIN_linux_system_repo_mcp_salt_url'] : "${res['MirrorRoot']}/${res['mcp_version']}/salt-formulas/")
 
     if (config.get('verify', true)) {
-        MirrorRootStatus = sh(script: "wget  --auth-no-challenge --spider ${res['linux_system_repo_url']} 2>/dev/null", returnStatus: true)
-        if (MirrorRootStatus != 0) {
-            common.warningMsg("Resource: ${res['linux_system_repo_url']} not exist")
-            res['linux_system_repo_url'] = false
+        res.each { key, val ->
+            if (key.toString().startsWith('linux_system_repo')) {
+                def MirrorRootStatus = sh(script: "wget  --auth-no-challenge --spider ${val} 2>/dev/null", returnStatus: true)
+                if (MirrorRootStatus != 0) {
+                    common.warningMsg("Resource: '${key}' at '${val}' not exist!")
+                    res[key] = false
+                }
+            }
         }
     }
     return res
