@@ -60,7 +60,7 @@ def setupDockerAndTest(LinkedHashMap config) {
         } catch (Exception e) {
             common.warningMsg(e)
             if ( !(distribRevision in [ 'nightly', 'proposed', 'testing' ] )) {
-                extraRepoSource = "deb http://apt.mcp.mirantis.net/xenial ${distribRevision} extra"
+                extraRepoSource = "deb [arch=amd64] http://apt.mcp.mirantis.net/xenial ${distribRevision} extra"
             }
         }
 
@@ -287,7 +287,7 @@ def testNode(LinkedHashMap config) {
 
     config['runCommands'] = [
         '001_Clone_salt_formulas_scripts': {
-            sh(script: 'git clone https://github.com/salt-formulas/salt-formulas-scripts /srv/salt/scripts', returnStdout: true)
+            sh(script: 'git clone http://gerrit.mcp.mirantis.com/salt-formulas/salt-formulas-scripts /srv/salt/scripts', returnStdout: true)
         },
 
         '002_Prepare_something'          : {
