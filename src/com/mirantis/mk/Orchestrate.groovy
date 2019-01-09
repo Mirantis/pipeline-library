@@ -608,7 +608,7 @@ def installKubernetesControl(master, extra_tgt = '') {
     salt.enforceState([saltId: master, target: "I@kubernetes:master ${extra_tgt}", state: 'salt.minion.cert'])
 
     // Install docker
-    salt.enforceState([saltId: master, target: "I@docker:host ${extra_tgt}", state: 'docker.host'])
+    salt.enforceState([saltId: master, target: "I@docker:host ${extra_tgt}", state: 'docker.host', optional: true])
 
      // If network engine is not opencontrail, run addons state for kubernetes
     if (!salt.getPillar(master, "I@kubernetes:master ${extra_tgt}", 'kubernetes:master:network:opencontrail:enabled')) {
@@ -662,7 +662,7 @@ def installKubernetesCompute(master, extra_tgt = '') {
     salt.enforceState([saltId: master, target: "I@kubernetes:pool and not I@kubernetes:master ${extra_tgt}", state: 'salt.minion.cert'])
 
     // Install docker
-    salt.enforceState([saltId: master, target: "I@docker:host ${extra_tgt}", state: 'docker.host'])
+    salt.enforceState([saltId: master, target: "I@docker:host ${extra_tgt}", state: 'docker.host', optional: true])
 
     // Install Kubernetes and Calico
     salt.enforceState([saltId: master, target: "I@kubernetes:pool and not I@kubernetes:master ${extra_tgt}", state: 'kubernetes.pool'])
