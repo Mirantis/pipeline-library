@@ -894,8 +894,9 @@ def checkResult(result, failOnError = true, printResults = true, printOnlyChange
                             def resKey;
                             if(node instanceof Map){
                                 resKey = node.keySet()[k]
-                                if (resKey == "retcode")
+                                if (resKey == "retcode") {
                                     continue
+                                }
                             }else if(node instanceof List){
                                 resKey = k
                             }
