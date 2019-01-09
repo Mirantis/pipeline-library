@@ -268,7 +268,7 @@ def enforceState(Map params) {
       kwargs["queue"] = true
     }
 
-    if (params.optional == false || params.testTarget(params.saltId, params.target)){
+    if (params.optional == false || testTarget(params.saltId, params.target)){
         if (params.retries > 0){
             def retriesCounter = 0
             retry(params.retries){
