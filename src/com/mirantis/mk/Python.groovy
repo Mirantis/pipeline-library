@@ -262,12 +262,22 @@ def setupCookiecutterVirtualenv(path) {
  * @param templatePath path to cookiecutter template repo (optional)
  */
 def buildCookiecutterTemplate(template, context, outputDir = '.', path = null, templatePath = ".") {
+    def common = new com.mirantis.mk.Common()
     configFile = "default_config.yaml"
-    configString = "default_context:\n"
     writeFile file: configFile, text: context
-    command = ". ${path}/bin/activate; if [ -f ${templatePath}/generate.py ]; then python ${templatePath}/generate.py --config-file ${configFile} --template ${template} --output-dir ${outputDir}; else cookiecutter --config-file ${configFile} --output-dir ${outputDir} --overwrite-if-exists --verbose --no-input ${template}; fi"
-    output = sh (returnStdout: true, script: command)
-    echo("[Cookiecutter build] Output: ${output}")
+    if (fileExists(templatePath + 'tox.ini')) {
+        withEnv(["CONFIG_FILE=$configFile",
+                 "OUTPUT_DIR=$outputDir",
+                 "TEMPLATE=$template"
+        ]) {
+            output = sh(returnStdout: true, script: "tox -ve generate")
+        }
+    } else {
+        common.warningMsg('Old Cookiecutter env detected!')
+        command = ". ${path}/bin/activate; if [ -f ${templatePath}/generate.py ]; then python ${templatePath}/generate.py --config-file ${configFile} --template ${template} --output-dir ${outputDir}; else cookiecutter --config-file ${configFile} --output-dir ${outputDir} --overwrite-if-exists --verbose --no-input ${template}; fi"
+        output = sh(returnStdout: true, script: command)
+    }
+    common.infoMsg("[Cookiecutter build] Result: ${output}")
 }
 
 /**
