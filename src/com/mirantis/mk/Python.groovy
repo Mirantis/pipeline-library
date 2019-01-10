@@ -265,7 +265,7 @@ def buildCookiecutterTemplate(template, context, outputDir = '.', path = null, t
     def common = new com.mirantis.mk.Common()
     configFile = "default_config.yaml"
     writeFile file: configFile, text: context
-    if (fileExists(templatePath + 'tox.ini')) {
+    if (fileExists(new File(templatePath, 'tox.ini').toString())) {
         withEnv(["CONFIG_FILE=$configFile",
                  "OUTPUT_DIR=$outputDir",
                  "TEMPLATE=$template"
