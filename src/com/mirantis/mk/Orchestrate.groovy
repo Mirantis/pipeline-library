@@ -578,7 +578,7 @@ def installContrailCompute(master, extra_tgt = '') {
     }
 
     if (salt.testTarget(master, "I@nova:compute ${extra_tgt}")) {
-        salt.cmdRun(master, "I@nova:compute ${extra_tgt}", 'exec 0>&-; exec 1>&-; exec 2>&-; nohup bash -c "ip link | grep vhost && echo no_reboot || sleep 5 && reboot & "', false)
+        salt.cmdRun(master, "I@nova:compute ${extra_tgt}", 'exec 0>&-; exec 1>&-; exec 2>&-; nohup bash -c "ip link | grep vhost && echo no_reboot || reboot & "', false)
     }
 
     sleep(300)
