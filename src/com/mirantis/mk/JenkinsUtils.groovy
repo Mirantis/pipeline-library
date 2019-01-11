@@ -125,9 +125,9 @@ def killStuckBuilds(maxSeconds, job){
  * @param jobName job name
  * @return job object that matches jobName
  */
-def getJobByName(jobName){
+def getJobByName(jobName, regexp=false){
     for(item in Hudson.instance.items) {
-        if(item.name == jobName){
+        if (regexp && item.name ==~ jobName || item.name == jobName) {
             return item
         }
     }
