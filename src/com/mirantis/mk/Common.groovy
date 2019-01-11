@@ -542,7 +542,6 @@ def retry(int times = 5, int delay = 0, Closure body) {
             sleep(delay)
         }
     }
-    currentBuild.result = "FAILURE"
     throw new Exception("Failed after $times retries")
 }
 
