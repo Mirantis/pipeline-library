@@ -560,7 +560,9 @@ def installContrailNetwork(master, extra_tgt = '') {
     salt.enforceStateWithExclude([saltId: master, target: "I@opencontrail:collector ${extra_tgt}", state: "opencontrail", excludedStates: "opencontrail.client"])
 
     salt.enforceStateWithTest([saltId: master, target: "( I@opencontrail:control or I@opencontrail:collector ) ${extra_tgt}", state: 'docker.client', testTargetMatcher: "I@docker:client and I@opencontrail:control ${extra_tgt}"])
-    // NOTE(ivasilevskaya) call to installBackup here has been removed as it breaks deployment if done before computes are deployed
+
+    // Waiting until Contrail API is started
+    salt.runSaltProcessStep(master, "I@opencontrail:database:id:1 ${extra_tgt}", 'contrail_health.get_api_status')
 }
 
 
