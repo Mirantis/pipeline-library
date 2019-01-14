@@ -158,12 +158,12 @@ def getJobParameters(jobName){
  */
 @NonCPS
 def getBuildCauseActions(build) {
-    def causeAction = build.actions.find { it -> it instanceof hudson.model.CauseAction }
-    if(causeAction) {
-        return causeAction.causes
-    } else {
-        return []
+    for(action in build.actions) {
+        if (action instanceof hudson.model.CauseAction) {
+            return action.causes
+        }
     }
+    return []
 }
 
 /**
@@ -174,14 +174,12 @@ def getBuildCauseActions(build) {
 @NonCPS
 def getGerritBuildContext(build) {
     def causes = getBuildCauseActions(build)
-    if (causes) {
-      def gerritTriggerCause = causes.find { cause ->
-          cause instanceof com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.GerritCause
-      }
-      return gerritTriggerCause.context.getOtherBuilds()
-    } else {
-      return []
+    for(cause in causes) {
+        if (cause instanceof com.sonyericsson.hudson.plugins.gerrit.trigger.hudsontrigger.GerritCause) {
+            return cause.context.getOtherBuilds()
+        }
     }
+    return []
 }
 
 /**
@@ -191,11 +189,18 @@ def getGerritBuildContext(build) {
  *   checkBuilds - List of job names or regexps, which should be used to check provided builds list
  *   regexp - Wheither to use regexp or simple string matching
  */
+@NonCPS
 def waitForOtherBuilds(LinkedHashMap config){
-  def common = new com.mirantis.mk.Common()
-  def builds = config.get('builds')
+  def context = config.get('context', 'gerrit')
+  def builds = []
+  if (context == 'gerrit') {
+    builds = getGerritBuildContext(currentBuild.rawBuild)
+  } else if (context == 'custom') {
+    builds = config.get('builds')
+  }
   def checkBuilds = config.get('checkBuilds')
   def regexp = config.get('regexp', false)
+
   def waitForBuilds = builds.findAll { build ->
     def jobName = build.fullDisplayName.tokenize(' ')[0]
     if (regexp) {
@@ -204,16 +209,25 @@ def waitForOtherBuilds(LinkedHashMap config){
       jobName in checkBuilds
     }
   }
+
+  def buildsMap = []
   if (waitForBuilds) {
     def waiting = true
-    common.infoMsg("Waiting for next jobs: ${waitForBuilds}")
+    print "\u001B[36mWaiting for next jobs: ${waitForBuilds}\u001B[0m"
     while(waiting) {
       waiting = false
       waitForBuilds.each { job ->
         if (job.inProgress) {
           waiting = true
+        } else {
+          buildInfo = [
+              'jobName': job.fullDisplayName.tokenize(' ')[0],
+              'jobNumber': job.number,
+          ]
+          buildsMap.add(buildInfo)
         }
       }
     }
   }
+  return buildsMap
 }
