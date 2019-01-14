@@ -534,11 +534,11 @@ def shCmdStatus(cmd) {
 
 def retry(int times = 5, int delay = 0, Closure body) {
     int retries = 0
-    def exceptions = []
     while (retries++ < times) {
         try {
             return body.call()
         } catch (e) {
+            errorMsg(e.toString())
             sleep(delay)
         }
     }
