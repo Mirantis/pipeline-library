@@ -477,10 +477,10 @@ def runRallyTests(master, target, dockerImageLink, platform, output_dir, config_
                         'I@kubernetes:master and *01*', 'cmd.run',
                         ["cat /etc/kubernetes/ssl/kubelet-client.crt"]))
       def tmp_dir = '/tmp/kube'
-      salt.runSaltProcessStep(master, target, 'file.mkdir', ["${tmp_dir}", "mode=777"])
-      writeFile file: "${tmp_dir}/k8s-ca.crt", text: k8s_ca
-      writeFile file: "${tmp_dir}/k8s-client.key", text: k8s_client_key
-      writeFile file: "${tmp_dir}/k8s-client.crt", text: k8s_client_crt
+      salt.runSaltProcessStep(master, target, 'file.mkdir', ["${tmp_dir}"])
+      salt.runSaltProcessStep(master, target, 'file.write', ["${tmp_dir}/k8s-ca.crt", "${k8s_ca}"])
+      salt.runSaltProcessStep(master, target, 'file.write', ["${tmp_dir}/k8s-client.key", "${k8s_client_key}"])
+      salt.runSaltProcessStep(master, target, 'file.write', ["${tmp_dir}/k8s-client.crt", "${k8s_client_crt}"])
       salt.cmdRun(master, target, "mv ${tmp_dir}/* ${results}/")
       salt.runSaltProcessStep(master, target, 'file.rmdir', ["${tmp_dir}"])
       cmd_rally_init = "rally db recreate; " +
