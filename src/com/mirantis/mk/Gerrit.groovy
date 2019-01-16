@@ -201,7 +201,8 @@ def getGerritTriggeredBuilds(allBuilds, gerritChange, excludePatchset = null){
     return allBuilds.findAll{job ->
         def cause = job.causes[0]
         if(cause instanceof GerritCause &&
-           cause.getEvent() instanceof com.sonymobile.tools.gerrit.gerritevents.dto.events.PatchsetCreated){
+           (cause.getEvent() instanceof com.sonymobile.tools.gerrit.gerritevents.dto.events.PatchsetCreated ||
+            cause.getEvent() instanceof com.sonymobile.tools.gerrit.gerritevents.dto.events.CommentAdded)) {
             if(excludePatchset == null || excludePatchset == 0){
                 return cause.event.change.number.equals(String.valueOf(gerritChange))
             }else{
