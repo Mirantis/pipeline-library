@@ -616,7 +616,7 @@ def validateAndPrintGaleraStatusReport(env, out, minion) {
     } else {
         role = "slave"
     }
-    sizeOut = salt.getReturnValues(salt.getPillar(env, testNode, "galera:${role}:members"))
+    sizeOut = salt.getReturnValues(salt.getPillar(env, minion, "galera:${role}:members"))
     expected_cluster_size = sizeOut.size()
     outlist = out['return'][0]
     resultString = outlist.get(outlist.keySet()[0]).replace("\n        ", " ").replace("    ", "").replace("Salt command execution success", "").replace("----------", "").replace(": \n", ": no value\n")
