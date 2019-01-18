@@ -630,7 +630,6 @@ def validateAndPrintGaleraStatusReport(env, out, minion) {
         wsrep_local_recv_queue_avg: [title: 'Average size of local reveived queue', expectedThreshold: [warn: 0.5, error: 1.0], description: '(Value above 0 means that the node cannot apply write-sets as fast as it receives them, which can lead to replication throttling)'],
         wsrep_local_send_queue_avg: [title: 'Average size of local send queue', expectedThreshold: [warn: 0.5, error: 1.0], description: '(Value above 0 indicate replication throttling or network throughput issues, such as a bottleneck on the network link.)']
         ]
-    results = [:].withDefault {"unknown"}
     for (key in parameters.keySet()) {
         value = resultYaml[key]
         parameters.get(key) << [actualValue: value]
