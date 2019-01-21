@@ -533,9 +533,11 @@ def applyOpenstackAppsStates(env, target){
  *      of Salt mysql.status function. The result is then parsed, validated and outputed to the user.
  *
  * @param env           Salt Connection object or pepperEnv
+ * @param slave         Boolean value to enable slave checking (if master in unreachable)
+ * @param checkTimeSync Boolean value to enable time sync check
  * @return resultCode   int values used to determine exit status in the calling function
  */
-def verifyGaleraStatus(env, slave=false) {
+def verifyGaleraStatus(env, slave=false, checkTimeSync=false) {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
     def out = ""
@@ -572,6 +574,10 @@ def verifyGaleraStatus(env, slave=false) {
     if (!testNode) {
         common.errorMsg("No Galera slave was reachable.")
         return 130
+    }
+    if (checkTimeSync && !salt.checkClusterTimeSync(env, "I@galera:master or I@galera:slave")) {
+        common.errorMsg("Time in cluster is desynchronized or it couldn't be detemined. You should fix this issue manually before proceeding.")
+        return 131
     }
     try {
         out = salt.cmdRun(env, "I@salt:master", "salt -C '${testNode}' mysql.status")
@@ -736,7 +742,7 @@ def getGaleraLastShutdownNode(env) {
  * @param env Salt Connection object or pepperEnv
  * @return output of salt commands
  */
-def restoreGaleraDb(env) {
+def restoreGaleraDb(env, type) {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
     try {
