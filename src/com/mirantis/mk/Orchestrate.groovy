@@ -562,7 +562,10 @@ def installContrailNetwork(master, extra_tgt = '') {
     salt.enforceStateWithTest([saltId: master, target: "( I@opencontrail:control or I@opencontrail:collector ) ${extra_tgt}", state: 'docker.client', testTargetMatcher: "I@docker:client and I@opencontrail:control ${extra_tgt}"])
 
     // Waiting until Contrail API is started
-    salt.runSaltProcessStep(master, "I@opencontrail:database:id:1 ${extra_tgt}", 'contrail_health.get_api_status')
+    def apiCheckResult = salt.getReturnValues(salt.runSaltProcessStep(master, "I@opencontrail:control:role:primary", 'contrail_health.get_api_status', ['wait_for=300', 'tries=20']))
+    if (!apiCheckResult){
+        throw new Exception("Contrail is not working after deployment: contrail-api service is not in healthy state")
+    }
 }
 
 
