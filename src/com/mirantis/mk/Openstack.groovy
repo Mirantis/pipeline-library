@@ -203,10 +203,8 @@ def createHeatStack(client, name, template, params = [], environment = null, pat
     }
 
     dir("${env.WORKSPACE}/template/template") {
-        outputTable = runOpenstackCommand(cmd, client, path)
+        def out = runOpenstackCommand(cmd, client, path)
     }
-
-    output = python.parseTextTable(outputTable, 'item', 'prettytable', path)
 }
 
 /**
