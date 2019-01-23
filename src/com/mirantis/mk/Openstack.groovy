@@ -162,15 +162,17 @@ def createHeatEnv(file, environment = [], original_file = null) {
 }
 
 /**
- * Create new OpenStack Heat stack
+ * Create new OpenStack Heat stack. Will wait for action to be complited in
+ * specified amount of time (by default 120min)
  *
  * @param env          Connection parameters for OpenStack API endpoint
  * @param template     HOT template for the new Heat stack
  * @param environment  Environmentale parameters of the new Heat stack
  * @param name         Name of the new Heat stack
  * @param path         Optional path to the custom virtualenv
+ * @param timeout      Optional number in minutes to wait for stack action is applied.
  */
-def createHeatStack(client, name, template, params = [], environment = null, path = null, action="create") {
+def createHeatStack(client, name, template, params = [], environment = null, path = null, action="create", timeout=120) {
     def python = new com.mirantis.mk.Python()
     def templateFile = "${env.WORKSPACE}/template/template/${template}.hot"
     def envFile
@@ -192,14 +194,12 @@ def createHeatStack(client, name, template, params = [], environment = null, pat
     }
 
     def cmd
-    def waitState
+    def cmd_args = "-f ${templateFile} -e ${envFile} -t ${timeout} --wait ${name}"
 
     if (action == "create") {
-        cmd = "heat stack-create -f ${templateFile} -e ${envFile} ${name}"
-        waitState = "CREATE_COMPLETE"
+        cmd = "openstack stack create ${cmd_args}"
     } else {
-        cmd = "heat stack-update -f ${templateFile} -e ${envFile} ${name}"
-        waitState = "UPDATE_COMPLETE"
+        cmd = "openstack stack update ${cmd_args}"
     }
 
     dir("${env.WORKSPACE}/template/template") {
@@ -207,26 +207,6 @@ def createHeatStack(client, name, template, params = [], environment = null, pat
     }
 
     output = python.parseTextTable(outputTable, 'item', 'prettytable', path)
-
-    def heatStatusCheckerCount = 1
-    while (heatStatusCheckerCount <= 250) {
-        status = getHeatStackStatus(client, name, path)
-        echo("[Heat Stack] Status: ${status}, Check: ${heatStatusCheckerCount}")
-
-        if (status.contains('CREATE_FAILED')) {
-            info = getHeatStackInfo(client, name, path)
-            throw new Exception(info.stack_status_reason)
-
-        } else if (status.contains(waitState)) {
-            info = getHeatStackInfo(client, name, path)
-            echo(info.stack_status_reason)
-            break
-        }
-
-        sleep(30)
-        heatStatusCheckerCount++
-    }
-    echo("[Heat Stack] Status: ${status}")
 }
 
 /**
