@@ -194,7 +194,7 @@ def createHeatStack(client, name, template, params = [], environment = null, pat
     }
 
     def cmd
-    def cmd_args = "-f ${templateFile} -e ${envFile} -t ${timeout} --wait ${name}"
+    def cmd_args = "-t ${templateFile} -e ${envFile} --timeout ${timeout} --wait ${name}"
 
     if (action == "create") {
         cmd = "openstack stack create ${cmd_args}"
