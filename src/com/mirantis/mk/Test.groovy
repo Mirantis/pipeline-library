@@ -411,7 +411,7 @@ def install_docker(master, target) {
     def salt = new com.mirantis.mk.Salt()
     def dockerPackagesPillar = salt.getPillar(master, target, 'docker:host:pkgs')
     def dockerPackages = salt.getReturnValues(dockerPackagesPillar) ?: ['docker.io']
-    salt.runSaltProcessStep(master, target, 'pkg.install', dockerPackages)
+    salt.runSaltProcessStep(master, target, 'pkg.install', [dockerPackages.join(',')])
 }
 
 
