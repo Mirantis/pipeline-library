@@ -567,7 +567,7 @@ def checkContrailApiReadiness(master, extra_tgt = '') {
     def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
 
-    def apiCheckResult = salt.getReturnValues(salt.runSaltProcessStep(master, "I@opencontrail:control:role:primary ${extra_tgt}", 'contrail_health.get_api_status', ['wait_for=300', 'tries=20']))
+    def apiCheckResult = salt.getReturnValues(salt.runSaltProcessStep(master, "I@opencontrail:control:role:primary ${extra_tgt}", 'contrail_health.get_api_status', ['wait_for=900', 'tries=50']))
     if (!apiCheckResult){
         throw new Exception("Contrail is not working after deployment: contrail-api service is not in healthy state")
     } else {
