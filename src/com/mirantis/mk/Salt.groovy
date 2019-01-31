@@ -1119,3 +1119,46 @@ def runPepperCommand(data, venv)   {
     }
     return outputObj
 }
+
+/**
+* Check time settings on defined nodes, compares them
+* and evaluates the results
+*
+* @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
+* @param target Targeted nodes to be checked
+* @param diff   Maximum time difference (in seconds) to be accepted during time sync check
+* @return bool  Return true if time difference is <= diff and returns false if time difference is > diff
+*/
+
+def checkClusterTimeSync(saltId, target) {
+    def common = new com.mirantis.mk.Common()
+    def salt = new com.mirantis.mk.Salt()
+
+    times = []
+    try {
+        diff = salt.getReturnValues(salt.getPillar(saltId, 'I@salt:master', 'linux:system:time_diff'))
+        if (diff != null && diff != "" && diff.isInteger()) {
+            diff = diff.toInteger()
+        } else {
+            diff = 5
+        }
+        out = salt.runSaltProcessStep(saltId, target, 'status.time', '%s')
+        outParsed = out['return'][0]
+        def outKeySet = outParsed.keySet()
+        for (key in outKeySet) {
+            def time = outParsed[key].readLines().get(0)
+            common.infoMsg(time)
+            if (time.isInteger()) {
+                times.add(time.toInteger())
+            }
+        }
+        if ((times.max() - times.min()) <= diff) {
+            return true
+        } else {
+            return false
+        }
+    } catch(Exception e) {
+        common.errorMsg("Could not check cluster time sync.")
+        return false
+    }
+}
