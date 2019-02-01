@@ -720,7 +720,7 @@ def getGaleraLastShutdownNode(env) {
  * @param env Salt Connection object or pepperEnv
  * @return output of salt commands
  */
-def restoreGaleraDb(env, type) {
+def restoreGaleraDb(env) {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
     try {
