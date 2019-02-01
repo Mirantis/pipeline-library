@@ -387,7 +387,8 @@ def installOpenstackControl(master, extra_tgt = '') {
 
     // Install DogTag server service
     salt.enforceStateWithTest([saltId: master, target: "I@dogtag:server:role:master ${extra_tgt}", state: 'dogtag.server', testTargetMatcher: "I@dogtag:server ${extra_tgt}"])
-    salt.enforceStateWithTest([saltId: master, target: "I@dogtag:server ${extra_tgt}", state: 'dogtag.server'])
+    // Run dogtag state on slaves in serial to avoid races during replications PROD-26810
+    salt.enforceStateWithTest([saltId: master, target: "I@dogtag:server ${extra_tgt}", state: 'dogtag.server', batch: 1])
 
     // Install barbican server service
     salt.enforceStateWithTest([saltId: master, target: "I@barbican:server:role:primary ${extra_tgt}", state: 'barbican.server', testTargetMatcher: "I@barbican:server ${extra_tgt}"])
