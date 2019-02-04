@@ -394,6 +394,16 @@ def installOpenstackControl(master, extra_tgt = '') {
     salt.enforceStateWithTest([saltId: master, target: "I@barbican:server:role:primary ${extra_tgt}", state: 'barbican.server', testTargetMatcher: "I@barbican:server ${extra_tgt}"])
     salt.enforceStateWithTest([saltId: master, target: "I@barbican:server ${extra_tgt}", state: 'barbican.server'])
 
+    if (salt.testTarget(master, "I@barbican:server ${extra_tgt}")) {
+      // Restart apache to make sure we don't have races between barbican-api and barbican-worker on db init.
+      // For more info please see PROD-26988
+      // The permanent fix is prepared to barbican formula https://gerrit.mcp.mirantis.com/#/c/35097/ but due to rush in release
+      // add this workaround here as well.
+      // TODO(vsaienko): cleanup once release passed in favor of permanent fix.
+      salt.runSaltProcessStep(master, "I@barbican:server ${extra_tgt}", 'service.restart', ['apache2'])
+      sleep(30)
+    }
+
     // Install barbican client
     salt.enforceStateWithTest([saltId: master, target: "I@barbican:client ${extra_tgt}", state: 'barbican.client'])
 
