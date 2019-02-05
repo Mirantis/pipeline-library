@@ -301,7 +301,7 @@ def generateModel(context, contextName, saltMasterName, virtualenv, modelEnv, te
     def templateOutputDir = templateBaseDir
     dir(templateEnvDir) {
         common.infoMsg("Generating model from context ${contextName}")
-        def productList = ["infra", "cicd", "opencontrail", "kubernetes", "openstack", "oss", "stacklight", "ceph"]
+        def productList = ["infra", "cicd", "kdt", "opencontrail", "kubernetes", "openstack", "oss", "stacklight", "ceph"]
         for (product in productList) {
             // get templateOutputDir and productDir
             templateOutputDir = "${templateEnvDir}/output/${product}"
