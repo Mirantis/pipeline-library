@@ -989,3 +989,14 @@ def debianExtraRepos(repoConfig) {
         sh('cat /etc/apt/apt.conf.d/99setupAndTestNode')
     }
 }
+
+/**
+ * Parse date from string
+ * @param String date - date to parse
+ * @param String format - date format in provided date string value
+ *
+ * return new Date() object
+ */
+Date parseDate(String date, String format) {
+    return Date.parse(format, date)
+}
