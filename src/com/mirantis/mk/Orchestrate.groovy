@@ -44,15 +44,11 @@ def installFoundationInfra(master, staticMgmtNet=false, extra_tgt = '') {
     } catch (Throwable e) {
         common.warningMsg('Salt state salt.minion.base is not present in the Salt-formula yet.')
     }
-    common.retry(2,5){
-        salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: ['linux.system']])
-    }
+    salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: ['linux.system'], retries: 2])
     if (staticMgmtNet) {
         salt.runSaltProcessStep(master, "* ${extra_tgt}", 'cmd.shell', ["salt-call state.sls linux.network; salt-call service.restart salt-minion"], null, true, 60)
     }
-    common.retry(2,5){
-        salt.enforceState([saltId: master, target: "I@linux:network:interface ${extra_tgt}", state: ['linux.network.interface']])
-    }
+    salt.enforceState([saltId: master, target: "I@linux:network:interface ${extra_tgt}", state: ['linux.network.interface'], retries: 2])
     sleep(5)
     salt.enforceState([saltId: master, target: "I@linux:system ${extra_tgt}", state: ['linux', 'openssh', 'ntp', 'rsyslog']])
 
@@ -91,9 +87,7 @@ def installFoundationInfraOnTarget(master, target, staticMgmtNet=false, extra_tg
     } catch (Throwable e) {
         common.warningMsg('Salt state salt.minion.base is not present in the Salt-formula yet.')
     }
-    common.retry(2,5){
-        salt.enforceState([saltId: master, target: target, state: ['linux.system']])
-    }
+    salt.enforceState([saltId: master, target: target, state: ['linux.system'], retries: 2])
     if (staticMgmtNet) {
         salt.runSaltProcessStep(master, target, 'cmd.shell', ["salt-call state.sls linux.network; salt-call service.restart salt-minion"], null, true, 60)
     }
@@ -824,8 +818,8 @@ def installCicd(master, extra_tgt = '') {
 def installStacklight(master, extra_tgt = '') {
     def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
-    def retries_wait = 20
-    def retries = 15
+    def step_retries_wait = 20
+    def step_retries = 15
     def first_target
 
     // Install core services for K8S environments:
@@ -834,9 +828,7 @@ def installStacklight(master, extra_tgt = '') {
     // In case of OpenStack, those are already installed
     if (common.checkContains('STACK_INSTALL', 'k8s')) {
         salt.enforceStateWithTest([saltId: master, target: "I@glusterfs:client ${extra_tgt}", state: 'glusterfs.client', retries: 2])
-        common.retry(3, 5){
-            salt.enforceState([saltId: master, target: "I@nginx:server ${extra_tgt}", state: 'salt.minion.cert'])
-        }
+        salt.enforceState([saltId: master, target: "I@nginx:server ${extra_tgt}", state: 'salt.minion.cert', retries: 3])
 
         salt.enforceState([saltId: master, target: "I@haproxy:proxy ${extra_tgt}", state: 'haproxy'])
         salt.runSaltProcessStep(master, "I@haproxy:proxy ${extra_tgt}", 'service.status', ['haproxy'])
@@ -849,9 +841,7 @@ def installStacklight(master, extra_tgt = '') {
         salt.enforceState([saltId: master, target: "I@mongodb:server ${extra_tgt}", state: 'mongodb.server'])
 
         // Initialize mongodb replica set
-        common.retry(5,20){
-             salt.enforceState([saltId: master, target: "I@mongodb:server ${extra_tgt}", state: 'mongodb.cluster'])
-        }
+        salt.enforceState([saltId: master, target: "I@mongodb:server ${extra_tgt}", state: 'mongodb.cluster', retries: 5, retries_wait: 20])
     }
 
     //Install Telegraf
@@ -887,18 +877,14 @@ def installStacklight(master, extra_tgt = '') {
     } else {
         common.errorMsg('[ERROR] Elasticsearch VIP port could not be retrieved')
     }
-    common.retry(retries,retries_wait) {
+    common.retry(step_retries,step_retries_wait) {
         common.infoMsg('Waiting for Elasticsearch to become green..')
         salt.cmdRun(master, "I@elasticsearch:client ${extra_tgt}", "curl -sf ${elasticsearch_vip}:${elasticsearch_port}/_cat/health | awk '{print \$4}' | grep green")
     }
 
-    common.retry(retries,retries_wait) {
-        salt.enforceState([saltId: master, target: "I@elasticsearch:client ${extra_tgt}", state: 'elasticsearch.client'])
-    }
+    salt.enforceState([saltId: master, target: "I@elasticsearch:client ${extra_tgt}", state: 'elasticsearch.client', retries: step_retries, retries_wait: step_retries_wait])
 
-    common.retry(retries,retries_wait) {
-        salt.enforceState([saltId: master, target: "I@kibana:client ${extra_tgt}", state: 'kibana.client'])
-    }
+    salt.enforceState([saltId: master, target: "I@kibana:client ${extra_tgt}", state: 'kibana.client', retries: step_retries, retries_wait: step_retries_wait])
 
     //Install InfluxDB
     if (salt.testTarget(master, "I@influxdb:server ${extra_tgt}")) {
