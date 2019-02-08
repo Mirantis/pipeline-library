@@ -525,6 +525,9 @@ def shCmdStatus(cmd) {
 /**
  * Retry commands passed to body
  *
+ * Don't use common.retry method for retrying salt.enforceState method. Use retries parameter
+ * built-in the salt.enforceState method instead to ensure correct functionality.
+ *
  * @param times Number of retries
  * @param delay Delay between retries (in seconds)
  * @param body Commands to be in retry block
