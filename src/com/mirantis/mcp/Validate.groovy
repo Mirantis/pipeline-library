@@ -56,6 +56,7 @@ def runContainer(master, target, dockerImageLink, name='cvp', env_var=[], entryp
         entry_point = '--entrypoint /bin/bash'
     }
     salt.cmdRun(master, target, "docker run -tid --net=host --name=${name} " +
+                                "-v /etc/ssl/certs/:/etc/ssl/certs/ " +
                                 "-u root ${entry_point} ${variables} ${dockerImageLink}")
 }
 
@@ -101,6 +102,7 @@ def _get_keystone_creds_v3(master){
         keystone.add("OS_ENDPOINT_TYPE=admin")
         keystone.add("OS_PROJECT_DOMAIN_NAME=${_pillar.auth.project_domain_name}")
         keystone.add("OS_USER_DOMAIN_NAME=${_pillar.auth.user_domain_name}")
+        keystone.add("OS_CACERT=/etc/ssl/certs/ca-certificates.crt")
         return keystone
     }
     else {
