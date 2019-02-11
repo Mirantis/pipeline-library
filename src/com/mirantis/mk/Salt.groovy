@@ -277,7 +277,7 @@ def enforceState(Map params) {
                 out = runSaltCommand(params.saltId, 'local', ['expression': params.target, 'type': 'compound'], 'state.sls', params.batch, params.saltArgs.reverse(), kwargs, -1, params.read_timeout)
                 // failOnError should be passed as true because we need to throw exception for retry block handler
                 checkResult(out, true, params.output, true, retriesCounter < params.retries) //disable ask on error for every interation except last one
-                sleep(retries_wait)
+                sleep(params['retries_wait'])
             }
         } else {
             // we have to reverse order in saltArgs because salt state have to be first
