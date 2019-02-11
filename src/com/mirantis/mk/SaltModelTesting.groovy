@@ -55,11 +55,11 @@ def setupDockerAndTest(LinkedHashMap config) {
             def repoDateUsed = new Date().parse(releaseNaming, distribRevision)
             def extraAvailableFrom = new Date().parse(releaseNaming, '2018.11.0')
             if (repoDateUsed < extraAvailableFrom) {
-              extraRepoSource = "deb http://apt.mcp.mirantis.net/xenial ${distribRevision} extra"
+                extraRepoSource = "deb http://apt.mcp.mirantis.net/xenial ${distribRevision} extra"
             }
         } catch (Exception e) {
             common.warningMsg(e)
-            if ( !(distribRevision in [ 'nightly', 'proposed', 'testing' ] )) {
+            if (!(distribRevision in ['nightly', 'proposed', 'testing'])) {
                 extraRepoSource = "deb [arch=amd64] http://apt.mcp.mirantis.net/xenial ${distribRevision} extra"
             }
         }
@@ -195,16 +195,16 @@ def compareReclassVersions(config) {
     sh "mkdir -p ${env.WORKSPACE}/old ${env.WORKSPACE}/new"
     def configRun = [
         'distribRevision': distribRevision,
-        'dockerExtraOpts' : [
+        'dockerExtraOpts': [
             "-v /srv/salt/reclass:/srv/salt/reclass:ro",
             "-v /etc/salt:/etc/salt:ro",
             "-v /usr/share/salt-formulas/:/usr/share/salt-formulas/:ro"
         ],
-        'envOpts'         : [
+        'envOpts'        : [
             "WORKSPACE=${env.WORKSPACE}",
             "NODES_LIST=${targetNodes.join(' ')}"
         ],
-        'runCommands'     : [
+        'runCommands'    : [
             '001_Update_Reclass_package'    : {
                 sh('apt-get update && apt-get install -y reclass')
             },
@@ -291,7 +291,13 @@ def testNode(LinkedHashMap config) {
         },
 
         '002_Prepare_something'          : {
-            sh('''rsync -ah ${RECLASS_ENV}/* /srv/salt/reclass && echo '127.0.1.2  salt' >> /etc/hosts
+            sh('''#!/bin/bash -x
+              rsync -ah ${RECLASS_ENV}/* /srv/salt/reclass && echo '127.0.1.2  salt' >> /etc/hosts
+              if [ -f '/srv/salt/reclass/salt_master_pillar.asc' ] ; then
+                mkdir -p /etc/salt/gpgkeys
+                chmod 700 /etc/salt/gpgkeys
+                GNUPGHOME=/etc/salt/gpgkeys gpg --import /srv/salt/reclass/salt_master_pillar.asc
+              fi
               cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt-mk.mirantis.com/apt.mcp.mirantis.net/g' {} \\;
               cd /srv/salt && find . -type f \\( -name '*.yml' -or -name '*.sh' \\) -exec sed -i 's/apt.mirantis.com/apt.mcp.mirantis.net/g' {} \\;
             ''')
