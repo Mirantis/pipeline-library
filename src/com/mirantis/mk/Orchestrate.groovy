@@ -781,8 +781,9 @@ def installCicd(master, extra_tgt = '') {
     }
 
     // Jenkins
-    def jenkins_master_url_pillar = salt.getPillar(master, jenkins_compound, '_param:jenkins_master_url')
-    jenkins_master_url = salt.getReturnValues(jenkins_master_url_pillar)
+    def jenkins_master_host_pillar = salt.getPillar(master, jenkins_compound, '_param:jenkins_master_host')
+    def jenkins_master_port_pillar = salt.getPillar(master, jenkins_compound, '_param:jenkins_master_port')
+    jenkins_master_url = "http://${salt.getReturnValues(jenkins_master_host_pillar)}:${salt.getReturnValues(jenkins_master_port_pillar)}"
 
     timeout(wait_timeout) {
       common.infoMsg('Waiting for Jenkins to come up..')
