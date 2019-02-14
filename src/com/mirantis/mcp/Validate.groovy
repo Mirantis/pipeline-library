@@ -56,7 +56,8 @@ def runContainer(master, target, dockerImageLink, name='cvp', env_var=[], entryp
         entry_point = '--entrypoint /bin/bash'
     }
     salt.cmdRun(master, target, "docker run -tid --net=host --name=${name} " +
-                                "-u root ${entry_point} ${variables} ${dockerImageLink}")
+                                "-u root ${entry_point} ${variables} " +
+                                "-v /srv/salt/pki/${cluster_name}/:/etc/certs ${dockerImageLink}")
 }
 
 
@@ -98,9 +99,11 @@ def _get_keystone_creds_v3(master){
         keystone.add("OS_AUTH_URL=${_pillar.auth.auth_url}/v3")
         keystone.add("OS_REGION_NAME=${_pillar.region_name}")
         keystone.add("OS_IDENTITY_API_VERSION=${_pillar.identity_api_version}")
-        keystone.add("OS_ENDPOINT_TYPE=admin")
+        keystone.add("OS_ENDPOINT_TYPE=internal")
         keystone.add("OS_PROJECT_DOMAIN_NAME=${_pillar.auth.project_domain_name}")
         keystone.add("OS_USER_DOMAIN_NAME=${_pillar.auth.user_domain_name}")
+        // we mount /srv/salt/pki/${cluster_name}/:/etc/certs with certs for cvp container
+        keystone.add("OS_CACERT='/etc/certs/proxy-with-chain.crt'")
         return keystone
     }
     else {
