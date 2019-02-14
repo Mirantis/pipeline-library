@@ -558,7 +558,7 @@ def verifyGaleraStatus(env, slave=false, checkTimeSync=false) {
         return 131
     }
     try {
-        out = salt.cmdRun(env, "I@salt:master", "salt -C '${testNode}' mysql.status")
+        out = salt.runSaltProcessStep(env, "${testNode}", "mysql.status", [], null, false)
     } catch (Exception e) {
         common.errorMsg('Could not determine mysql status.')
         return 256
@@ -603,8 +603,8 @@ def validateAndPrintGaleraStatusReport(env, out, minion) {
     sizeOut = salt.getReturnValues(salt.getPillar(env, minion, "galera:${role}:members"))
     expected_cluster_size = sizeOut.size()
     outlist = out['return'][0]
-    resultString = outlist.get(outlist.keySet()[0]).replace("\n        ", " ").replace("    ", "").replace("Salt command execution success", "").replace("----------", "").replace(": \n", ": no value\n")
-    resultYaml = readYaml text: resultString
+    resultYaml = outlist.get(outlist.keySet()[0]).sort()
+    common.prettyPrint(resultYaml)
     parameters = [
         wsrep_cluster_status: [title: 'Cluster status', expectedValues: ['Primary'], description: ''],
         wsrep_cluster_size: [title: 'Current cluster size', expectedValues: [expected_cluster_size], description: ''],
@@ -616,6 +616,9 @@ def validateAndPrintGaleraStatusReport(env, out, minion) {
         ]
     for (key in parameters.keySet()) {
         value = resultYaml[key]
+        if (value instanceof String && value.isBigDecimal()) {
+            value = value.toBigDecimal()
+        }
         parameters.get(key) << [actualValue: value]
     }
     for (key in parameters.keySet()) {
