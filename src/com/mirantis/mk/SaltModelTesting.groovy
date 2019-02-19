@@ -268,6 +268,7 @@ def compareReclassVersions(config) {
 def testNode(LinkedHashMap config) {
     def common = new com.mirantis.mk.Common()
     def dockerHostname = config.get('dockerHostname')
+    def domain = config.get('domain')
     def reclassEnv = config.get('reclassEnv')
     def clusterName = config.get('clusterName', "")
     def formulasSource = config.get('formulasSource', 'pkg')
@@ -278,8 +279,8 @@ def testNode(LinkedHashMap config) {
     def testContext = config.get('testContext', 'test')
     config['envOpts'] = [
         "RECLASS_ENV=${reclassEnv}", "SALT_STOPSTART_WAIT=5",
-        "MASTER_HOSTNAME=${dockerHostname}", "CLUSTER_NAME=${clusterName}",
-        "MINION_ID=${dockerHostname}", "FORMULAS_SOURCE=${formulasSource}",
+        "HOSTNAME=${dockerHostname}", "CLUSTER_NAME=${clusterName}",
+        "DOMAIN=${domain}", "FORMULAS_SOURCE=${formulasSource}",
         "EXTRA_FORMULAS=${extraFormulas}", "EXTRA_FORMULAS_PKG_ALL=true",
         "RECLASS_IGNORE_CLASS_NOTFOUND=${ignoreClassNotfound}", "DEBUG=1",
         "APT_REPOSITORY=${aptRepoUrl}", "APT_REPOSITORY_GPG=${aptRepoGPG}"
@@ -293,6 +294,7 @@ def testNode(LinkedHashMap config) {
         '002_Prepare_something'          : {
             sh('''#!/bin/bash -x
               rsync -ah ${RECLASS_ENV}/* /srv/salt/reclass && echo '127.0.1.2  salt' >> /etc/hosts
+              echo "127.0.0.1 ${HOSTNAME}.${DOMAIN}" >> /etc/hosts
               if [ -f '/srv/salt/reclass/salt_master_pillar.asc' ] ; then
                 mkdir -p /etc/salt/gpgkeys
                 chmod 700 /etc/salt/gpgkeys
