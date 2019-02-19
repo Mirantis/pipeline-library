@@ -81,13 +81,13 @@ def verifyGaleraStatus(env, slave=false, checkTimeSync=false) {
             common.errorMsg("Cannot obtain Galera slave minions list.")
             return 129
         }
-        for (slave in galeraSlaves) {
+        for (minion in galeraSlaves) {
             try {
-                salt.minionsReachable(env, "I@salt:master", slave)
-                testNode = slave
+                salt.minionsReachable(env, "I@salt:master", minion)
+                testNode = minion
                 break
             } catch (Exception e) {
-                common.warningMsg("Slave '${slave}' is not reachable.")
+                common.warningMsg("Slave '${minion}' is not reachable.")
             }
         }
     }
