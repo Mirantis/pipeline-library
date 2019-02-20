@@ -9,17 +9,17 @@ package com.mirantis.mk
 /**
  * Install python virtualenv
  *
- * @param path          Path to virtualenv
- * @param python        Version of Python (python/python3)
- * @param reqs          Environment requirements in list format
- * @param reqs_path     Environment requirements path in str format
+ * @param path Path to virtualenv
+ * @param python Version of Python (python/python3)
+ * @param reqs Environment requirements in list format
+ * @param reqs_path Environment requirements path in str format
  */
-def setupVirtualenv(path, python = 'python2', reqs=[], reqs_path=null, clean=false, useSystemPackages=false) {
+def setupVirtualenv(path, python = 'python2', reqs = [], reqs_path = null, clean = false, useSystemPackages = false) {
     def common = new com.mirantis.mk.Common()
 
     def offlineDeployment = env.getEnvironment().containsKey("OFFLINE_DEPLOYMENT") && env["OFFLINE_DEPLOYMENT"].toBoolean()
     def virtualenv_cmd = "virtualenv ${path} --python ${python}"
-    if (useSystemPackages){
+    if (useSystemPackages) {
         virtualenv_cmd += " --system-site-packages"
     }
     if (clean) {
@@ -27,19 +27,19 @@ def setupVirtualenv(path, python = 'python2', reqs=[], reqs_path=null, clean=fal
         sh("rm -rf \"${path}\"")
     }
 
-    if(offlineDeployment){
-       virtualenv_cmd+=" --no-download"
+    if (offlineDeployment) {
+        virtualenv_cmd += " --no-download"
     }
     common.infoMsg("[Python ${path}] Setup ${python} environment")
     sh(returnStdout: true, script: virtualenv_cmd)
-    if(!offlineDeployment){
-      try {
-          runVirtualenvCommand(path, "pip install -U setuptools pip")
-      } catch(Exception e) {
-          common.warningMsg("Setuptools and pip cannot be updated, you might be offline but OFFLINE_DEPLOYMENT global property not initialized!")
-      }
+    if (!offlineDeployment) {
+        try {
+            runVirtualenvCommand(path, "pip install -U setuptools pip")
+        } catch (Exception e) {
+            common.warningMsg("Setuptools and pip cannot be updated, you might be offline but OFFLINE_DEPLOYMENT global property not initialized!")
+        }
     }
-    if (reqs_path==null) {
+    if (reqs_path == null) {
         def args = ""
         for (req in reqs) {
             args = args + "${req}\n"
@@ -53,15 +53,15 @@ def setupVirtualenv(path, python = 'python2', reqs=[], reqs_path=null, clean=fal
 /**
  * Run command in specific python virtualenv
  *
- * @param path   Path to virtualenv
- * @param cmd    Command to be executed
+ * @param path Path to virtualenv
+ * @param cmd Command to be executed
  * @param silent dont print any messages (optional, default false)
  */
-def runVirtualenvCommand(path, cmd, silent=false) {
+def runVirtualenvCommand(path, cmd, silent = false) {
     def common = new com.mirantis.mk.Common()
 
     virtualenv_cmd = "set +x; . ${path}/bin/activate; ${cmd}"
-    if(!silent){
+    if (!silent) {
         common.infoMsg("[Python ${path}] Run command ${cmd}")
     }
     output = sh(
@@ -71,15 +71,14 @@ def runVirtualenvCommand(path, cmd, silent=false) {
     return output
 }
 
-
 /**
  * Install docutils in isolated environment
  *
- * @param path        Path where virtualenv is created
+ * @param path Path where virtualenv is created
  */
 def setupDocutilsVirtualenv(path) {
     requirements = [
-      'docutils',
+        'docutils',
     ]
     setupVirtualenv(path, 'python2', requirements)
 }
@@ -93,9 +92,9 @@ def loadJson(rawData) {
 /**
  * Parse content from markup-text tables to variables
  *
- * @param tableStr   String representing the table
- * @param mode       Either list (1st row are keys) or item (key, value rows)
- * @param format     Format of the table
+ * @param tableStr String representing the table
+ * @param mode Either list (1st row are keys) or item (key, value rows)
+ * @param format Format of the table
  */
 def parseTextTable(tableStr, type = 'item', format = 'rest', path = none) {
     parserFile = "${env.WORKSPACE}/textTableParser.py"
@@ -226,9 +225,8 @@ print json.dumps(final_data)
     cmd = "python ${parserFile} --file '${tableFile}' --type ${type}"
     if (path) {
         rawData = runVirtualenvCommand(path, cmd)
-    }
-    else {
-        rawData = sh (
+    } else {
+        rawData = sh(
             script: cmd,
             returnStdout: true
         ).trim()
@@ -241,7 +239,7 @@ print json.dumps(final_data)
 /**
  * Install cookiecutter in isolated environment
  *
- * @param path        Path where virtualenv is created
+ * @param path Path where virtualenv is created
  */
 def setupCookiecutterVirtualenv(path) {
     requirements = [
@@ -265,19 +263,10 @@ def buildCookiecutterTemplate(template, context, outputDir = '.', path = null, t
     def common = new com.mirantis.mk.Common()
     configFile = "default_config.yaml"
     writeFile file: configFile, text: context
-    if (fileExists(new File(templatePath, 'tox.ini').toString())) {
-        withEnv(["CONFIG_FILE=$configFile",
-                 "OUTPUT_DIR=$outputDir",
-                 "TEMPLATE=$template"
-        ]) {
-            output = sh(returnStdout: true, script: "tox -ve generate")
-        }
-    } else {
         common.warningMsg('Old Cookiecutter env detected!')
         command = ". ${path}/bin/activate; if [ -f ${templatePath}/generate.py ]; then python ${templatePath}/generate.py --config-file ${configFile} --template ${template} --output-dir ${outputDir}; else cookiecutter --config-file ${configFile} --output-dir ${outputDir} --overwrite-if-exists --verbose --no-input ${template}; fi"
         output = sh(returnStdout: true, script: command)
-    }
-    common.infoMsg("[Cookiecutter build] Result: ${output}")
+        common.infoMsg('[Cookiecutter build] Result:' +  output)
 }
 
 /**
@@ -300,54 +289,21 @@ def generateModel(context, contextName, saltMasterName, virtualenv, modelEnv, te
     def templateDir = "${templateEnvDir}/dir"
     def templateOutputDir = templateBaseDir
     dir(templateEnvDir) {
-        common.infoMsg("Generating model from context ${contextName}")
-        def productList = ["infra", "cicd", "kdt", "opencontrail", "kubernetes", "openstack", "oss", "stacklight", "ceph"]
-        for (product in productList) {
-            // get templateOutputDir and productDir
-            templateOutputDir = "${templateEnvDir}/output/${product}"
-            productDir = product
-            templateDir = "${templateEnvDir}/cluster_product/${productDir}"
-            // Bw for 2018.8.1 and older releases
-            if (product.startsWith("stacklight") && (!fileExists(templateDir))) {
-                common.warningMsg("Old release detected! productDir => 'stacklight2' ")
-                productDir = "stacklight2"
-                templateDir = "${templateEnvDir}/cluster_product/${productDir}"
+        if (fileExists(new File(templateEnvDir, 'tox.ini').toString())) {
+            tempContextFile = 'tempContext.yaml'
+            writeFile file: tempContextFile, text: context
+            common.warningMsg('Generating models using context:\n')
+            print(context)
+            withEnv(["CONFIG_FILE=$tempContextFile",
+                     "OUTPUT_DIR=$templateOutputDir",
+            ]) {
+                print('[Cookiecutter build] Result:\n' +
+                    sh(returnStdout: true, script: 'tox -ve generate_auto'))
             }
-            // generate infra unless its explicitly disabled
-            if ((product == "infra" && templateContext.default_context.get("infra_enabled", "True").toBoolean())
-                 || (templateContext.default_context.get(product + "_enabled", "False").toBoolean())) {
-
-                common.infoMsg("Generating product " + product + " from " + templateDir + " to " + templateOutputDir)
-
-                sh "rm -rf ${templateOutputDir} || true"
-                sh "mkdir -p ${templateOutputDir}"
-                sh "mkdir -p ${outputDestination}"
-
-                buildCookiecutterTemplate(templateDir, context, templateOutputDir, virtualenv, templateBaseDir)
-                sh "mv -v ${templateOutputDir}/${clusterName}/* ${outputDestination}"
-            } else {
-                common.warningMsg("Product " + product + " is disabled")
-            }
-        }
-
-        def localRepositories = templateContext.default_context.local_repositories
-        localRepositories = localRepositories ? localRepositories.toBoolean() : false
-        def offlineDeployment = templateContext.default_context.offline_deployment
-        offlineDeployment = offlineDeployment ? offlineDeployment.toBoolean() : false
-        if (localRepositories && !offlineDeployment) {
-            def mcpVersion = templateContext.default_context.mcp_version
-            def aptlyModelUrl = templateContext.default_context.local_model_url
-            def ssh = new com.mirantis.mk.Ssh()
-            dir(path: modelEnv) {
-                ssh.agentSh "git submodule add \"${aptlyModelUrl}\" \"classes/cluster/${clusterName}/cicd/aptly\""
-                if (!(mcpVersion in ["nightly", "testing", "stable"])) {
-                    ssh.agentSh "cd \"classes/cluster/${clusterName}/cicd/aptly\";git fetch --tags;git checkout ${mcpVersion}"
-                }
-            }
-        }
-
-        def nodeFile = "${generatedModel}/nodes/${saltMasterName}.${clusterDomain}.yml"
-        def nodeString = """classes:
+            // dropme after impelementation new format
+            sh "mkdir -p ${generatedModel}/nodes/"
+            def nodeFile = "${generatedModel}/nodes/${saltMasterName}.${clusterDomain}.yml"
+            def nodeString = """classes:
 - cluster.${clusterName}.infra.config
 parameters:
   _param:
@@ -358,20 +314,82 @@ parameters:
       name: ${saltMasterName}
       domain: ${clusterDomain}
     """
-        sh "mkdir -p ${generatedModel}/nodes/"
-        writeFile(file: nodeFile, text: nodeString)
+            writeFile(file: nodeFile, text: nodeString)
+            //
+        } else {
+            common.warningMsg("Old format: Generating model from context ${contextName}")
+            def productList = ["infra", "cicd", "kdt", "opencontrail", "kubernetes", "openstack", "oss", "stacklight", "ceph"]
+            for (product in productList) {
+                // get templateOutputDir and productDir
+                templateOutputDir = "${templateEnvDir}/output/${product}"
+                productDir = product
+                templateDir = "${templateEnvDir}/cluster_product/${productDir}"
+                // Bw for 2018.8.1 and older releases
+                if (product.startsWith("stacklight") && (!fileExists(templateDir))) {
+                    common.warningMsg("Old release detected! productDir => 'stacklight2' ")
+                    productDir = "stacklight2"
+                    templateDir = "${templateEnvDir}/cluster_product/${productDir}"
+                }
+                // generate infra unless its explicitly disabled
+                if ((product == "infra" && templateContext.default_context.get("infra_enabled", "True").toBoolean())
+                    || (templateContext.default_context.get(product + "_enabled", "False").toBoolean())) {
+
+                    common.infoMsg("Generating product " + product + " from " + templateDir + " to " + templateOutputDir)
+
+                    sh "rm -rf ${templateOutputDir} || true"
+                    sh "mkdir -p ${templateOutputDir}"
+                    sh "mkdir -p ${outputDestination}"
+
+                    buildCookiecutterTemplate(templateDir, context, templateOutputDir, virtualenv, templateBaseDir)
+                    sh "mv -v ${templateOutputDir}/${clusterName}/* ${outputDestination}"
+                } else {
+                    common.warningMsg("Product " + product + " is disabled")
+                }
+            }
+
+            def localRepositories = templateContext.default_context.local_repositories
+            localRepositories = localRepositories ? localRepositories.toBoolean() : false
+            def offlineDeployment = templateContext.default_context.offline_deployment
+            offlineDeployment = offlineDeployment ? offlineDeployment.toBoolean() : false
+            if (localRepositories && !offlineDeployment) {
+                def mcpVersion = templateContext.default_context.mcp_version
+                def aptlyModelUrl = templateContext.default_context.local_model_url
+                def ssh = new com.mirantis.mk.Ssh()
+                dir(path: modelEnv) {
+                    ssh.agentSh "git submodule add \"${aptlyModelUrl}\" \"classes/cluster/${clusterName}/cicd/aptly\""
+                    if (!(mcpVersion in ["nightly", "testing", "stable"])) {
+                        ssh.agentSh "cd \"classes/cluster/${clusterName}/cicd/aptly\";git fetch --tags;git checkout ${mcpVersion}"
+                    }
+                }
+            }
+
+            def nodeFile = "${generatedModel}/nodes/${saltMasterName}.${clusterDomain}.yml"
+            def nodeString = """classes:
+- cluster.${clusterName}.infra.config
+parameters:
+  _param:
+    linux_system_codename: xenial
+    reclass_data_revision: master
+  linux:
+    system:
+      name: ${saltMasterName}
+      domain: ${clusterDomain}
+    """
+            sh "mkdir -p ${generatedModel}/nodes/"
+            writeFile(file: nodeFile, text: nodeString)
+        }
     }
 }
 
 /**
  * Install jinja rendering in isolated environment
  *
- * @param path        Path where virtualenv is created
+ * @param path Path where virtualenv is created
  */
 def setupJinjaVirtualenv(path) {
     requirements = [
-      'jinja2-cli',
-      'pyyaml',
+        'jinja2-cli',
+        'pyyaml',
     ]
     setupVirtualenv(path, 'python2', requirements)
 }
@@ -379,9 +397,9 @@ def setupJinjaVirtualenv(path) {
 /**
  * Generate the Jinja templates with given context
  *
- * @param path        Path where virtualenv is created
+ * @param path Path where virtualenv is created
  */
-def jinjaBuildTemplate (template, context, path = none) {
+def jinjaBuildTemplate(template, context, path = none) {
     contextFile = "jinja_context.yml"
     contextString = ""
     for (parameter in context) {
@@ -389,7 +407,7 @@ def jinjaBuildTemplate (template, context, path = none) {
     }
     writeFile file: contextFile, text: contextString
     cmd = "jinja2 ${template} ${contextFile} --format=yaml"
-    data = sh (returnStdout: true, script: cmd)
+    data = sh(returnStdout: true, script: cmd)
     echo(data)
     return data
 }
@@ -397,9 +415,9 @@ def jinjaBuildTemplate (template, context, path = none) {
 /**
  * Install salt-pepper in isolated environment
  *
- * @param path        Path where virtualenv is created
- * @param url         SALT_MASTER_URL
- * @param credentialsId        Credentials to salt api
+ * @param path Path where virtualenv is created
+ * @param url SALT_MASTER_URL
+ * @param credentialsId Credentials to salt api
  */
 def setupPepperVirtualenv(path, url, credentialsId) {
     def common = new com.mirantis.mk.Common()
@@ -426,10 +444,10 @@ SALTAPI_PASS=${creds.password.toString()}
 /**
  * Install devops in isolated environment
  *
- * @param path        Path where virtualenv is created
- * @param clean       Define to true is the venv have to cleaned up before install a new one
+ * @param path Path where virtualenv is created
+ * @param clean Define to true is the venv have to cleaned up before install a new one
  */
-def setupDevOpsVenv(venv, clean=false) {
+def setupDevOpsVenv(venv, clean = false) {
     requirements = ['git+https://github.com/openstack/fuel-devops.git']
     setupVirtualenv(venv, 'python2', requirements, null, false, clean)
 }
