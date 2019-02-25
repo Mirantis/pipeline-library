@@ -166,7 +166,7 @@ def validateAndPrintGaleraStatusReport(env, out, minion) {
     for (key in parameters.keySet()) {
         param = parameters.get(key)
         if (key == 'wsrep_local_recv_queue_avg' || key == 'wsrep_local_send_queue_avg') {
-            if (param.get('actualValue') > param.get('expectedThreshold').get('error')) {
+            if (param.get('actualValue') == null || (param.get('actualValue') > param.get('expectedThreshold').get('error'))) {
                 param << [match: 'error']
             } else if (param.get('actualValue') > param.get('expectedThreshold').get('warn')) {
                 param << [match: 'warn']
