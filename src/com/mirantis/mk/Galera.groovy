@@ -25,23 +25,18 @@ def getWsrepParameters(env, target, parameters=[], print=false) {
         common.prettyPrint(resultYaml)
     }
     if (parameters instanceof String) {
-        value = resultYaml[key]
-        if (value instanceof String && value.isBigDecimal()) {
-            value = value.toBigDecimal()
-        }
-        result = [key: value]
+        parameters = [parameters]
+    }
+    if (parameters == [] || parameters == ['']) {
+        result = resultYaml
     } else {
-            if (parameters == []) {
-                result = resultYaml
-            } else {
-                for (key in parameters) {
-                value = resultYaml[key]
-                if (value instanceof String && value.isBigDecimal()) {
-                    value = value.toBigDecimal()
-                }
-                result << [key: value]
-                }
+        for (key in parameters) {
+            value = resultYaml[key]
+            if (value instanceof String && value.isBigDecimal()) {
+                value = value.toBigDecimal()
             }
+            result = ["${key}": value] + result
+        }
     }
     return result
 }
