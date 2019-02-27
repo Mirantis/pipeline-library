@@ -1163,3 +1163,33 @@ def checkClusterTimeSync(saltId, target) {
         return false
     }
 }
+
+/**
+* Finds out IP address of the given node or a list of nodes
+*
+* @param saltId     Salt Connection object or pepperEnv (the command will be sent using the selected method)
+* @param nodes      Targeted node hostnames to be checked (String or List of strings)
+* @param useGrains  If the, the value will be taken from grains. If false, it will be taken from 'hostname' command.
+* @return Map       Return result Map in format ['nodeName1': 'ipAdress1', 'nodeName2': 'ipAdress2', ...]
+*/
+
+def getIPAddressesForNodenames(saltId, nodes = [], useGrains = true) {
+    result = [:]
+
+    if (nodes instanceof String) {
+        nodes = [nodes]
+    }
+
+    if (useGrains) {
+        for (String node in nodes) {
+            ip = getReturnValues(getGrain(saltId, node, "fqdn_ip4"))["fqdn_ip4"][0]
+            result[node] = ip
+        }
+    } else {
+        for (String node in nodes) {
+            ip = getReturnValues(cmdRun(saltId, node, "hostname -i")).readLines()[0]
+            result[node] = ip
+        }
+    }
+    return result
+}
