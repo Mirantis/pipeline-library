@@ -295,11 +295,27 @@ def generateModel(context, contextName, saltMasterName, virtualenv, modelEnv, te
             common.warningMsg('Generating models using context:\n')
             print(context)
             withEnv(["CONFIG_FILE=$tempContextFile",
-                     "OUTPUT_DIR=${modelEnv}",
+                     "OUTPUT_DIR=${generatedModel}/classes/cluster/",
             ]) {
                 print('[Cookiecutter build] Result:\n' +
                     sh(returnStdout: true, script: 'tox -ve generate_auto'))
             }
+            // dropme after impelementation new format
+            sh "mkdir -p ${generatedModel}/nodes/"
+            def nodeFile = "${generatedModel}/nodes/${saltMasterName}.${clusterDomain}.yml"
+            def nodeString = """classes:
+- cluster.${clusterName}.infra.config
+parameters:
+  _param:
+    linux_system_codename: xenial
+    reclass_data_revision: master
+  linux:
+    system:
+      name: ${saltMasterName}
+      domain: ${clusterDomain}
+    """
+            writeFile(file: nodeFile, text: nodeString)
+            //
         } else {
             common.warningMsg("Old format: Generating model from context ${contextName}")
             def productList = ["infra", "cicd", "kdt", "opencontrail", "kubernetes", "openstack", "oss", "stacklight", "ceph"]
