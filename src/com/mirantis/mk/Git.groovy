@@ -99,12 +99,17 @@ def createGitBranch(path, branch) {
  *
  * @param path            Path to the git repository
  * @param message         A commit message
+ * @param global          Use global config
  */
-def commitGitChanges(path, message, gitEmail='jenkins@localhost', gitName='jenkins-slave') {
+def commitGitChanges(path, message, gitEmail='jenkins@localhost', gitName='jenkins-slave', global=false) {
     def git_cmd
+    def global_arg = ''
+    if (global) {
+        global_arg = '--global'
+    }
     dir(path) {
-        sh "git config --global user.email '${gitEmail}'"
-        sh "git config --global user.name '${gitName}'"
+        sh "git config ${global_arg} user.email '${gitEmail}'"
+        sh "git config ${global_arg} user.name '${gitName}'"
 
         sh(
             script: 'git add -A',
