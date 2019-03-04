@@ -722,8 +722,8 @@ def setupKubeAddonForContrail(master, extra_tgt = '') {
 def installCicd(master, extra_tgt = '') {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
-    def gerrit_compound = "I@gerrit:client and ci* ${extra_tgt}"
-    def jenkins_compound = "I@jenkins:client and ci* ${extra_tgt}"
+    def gerrit_compound = "I@gerrit:client ${extra_tgt}"
+    def jenkins_compound = "I@jenkins:client ${extra_tgt}"
 
     salt.fullRefresh(master, gerrit_compound)
     salt.fullRefresh(master, jenkins_compound)
@@ -731,13 +731,13 @@ def installCicd(master, extra_tgt = '') {
     // Temporary exclude cfg node from docker.client state (PROD-24934)
     def dockerClientExclude = !salt.getPillar(master, 'I@salt:master', 'docker:client:stack:jenkins').isEmpty() ? 'and not I@salt:master' : ''
     // Pull images first if any
-    def listCIMinions = salt.getMinions(master, "ci* ${dockerClientExclude} ${extra_tgt}")
+    def listCIMinions = salt.getMinions(master, "* ${dockerClientExclude} ${extra_tgt}")
     for (int i = 0; i < listCIMinions.size(); i++) {
         if (!salt.getReturnValues(salt.getPillar(master, listCIMinions[i], 'docker:client:images')).isEmpty()) {
-            salt.enforceState([saltId: master, target: listCIMinions[i], state: 'docker.client.images', retries: 2])
+            salt.enforceStateWithTest([saltId: master, target: listCIMinions[i], state: 'docker.client.images', retries: 2])
         }
     }
-    salt.enforceState([saltId: master, target: "I@docker:swarm:role:master and I@jenkins:client ${dockerClientExclude} ${extra_tgt}", state: 'docker.client', retries: 2])
+    salt.enforceStateWithTest([saltId: master, target: "I@docker:swarm:role:master and I@jenkins:client ${dockerClientExclude} ${extra_tgt}", state: 'docker.client', retries: 2])
 
     // API timeout in minutes
     def wait_timeout = 10
@@ -760,6 +760,7 @@ def installCicd(master, extra_tgt = '') {
       def gerrit_host
       def gerrit_http_port
       def gerrit_http_scheme
+      def gerrit_http_prefix
 
       def host_pillar = salt.getPillar(master, gerrit_compound, 'gerrit:client:server:host')
       gerrit_host = salt.getReturnValues(host_pillar)
@@ -770,7 +771,10 @@ def installCicd(master, extra_tgt = '') {
       def scheme_pillar = salt.getPillar(master, gerrit_compound, 'gerrit:client:server:protocol')
       gerrit_http_scheme = salt.getReturnValues(scheme_pillar)
 
-      gerrit_master_url = gerrit_http_scheme + '://' + gerrit_host + ':' + gerrit_http_port
+      def prefix_pillar = salt.getPillar(master, gerrit_compound, 'gerrit:client:server:url_prefix')
+      gerrit_http_prefix = salt.getReturnValues(prefix_pillar)
+
+      gerrit_master_url = gerrit_http_scheme + '://' + gerrit_host + ':' + gerrit_http_port + gerrit_http_prefix
 
     }
 
@@ -783,7 +787,9 @@ def installCicd(master, extra_tgt = '') {
     // Jenkins
     def jenkins_master_host_pillar = salt.getPillar(master, jenkins_compound, '_param:jenkins_master_host')
     def jenkins_master_port_pillar = salt.getPillar(master, jenkins_compound, '_param:jenkins_master_port')
-    jenkins_master_url = "http://${salt.getReturnValues(jenkins_master_host_pillar)}:${salt.getReturnValues(jenkins_master_port_pillar)}"
+    def jenkins_master_url_prefix_pillar = salt.getPillar(master, jenkins_compound, '_param:jenkins_master_url_prefix')
+
+    jenkins_master_url = "http://${salt.getReturnValues(jenkins_master_host_pillar)}:${salt.getReturnValues(jenkins_master_port_pillar)}${salt.getReturnValues(jenkins_master_url_prefix_pillar)}"
 
     timeout(wait_timeout) {
       common.infoMsg('Waiting for Jenkins to come up..')
@@ -798,7 +804,7 @@ def installCicd(master, extra_tgt = '') {
     withEnv(['ASK_ON_ERROR=false']){
         retry(2){
             try{
-                salt.enforceState([saltId: master, target: "I@gerrit:client ${extra_tgt}", state: 'gerrit'])
+                salt.enforceStateWithTest([saltId: master, target: "I@gerrit:client ${extra_tgt}", state: 'gerrit'])
             }catch(e){
                 salt.fullRefresh(master, "I@gerrit:client ${extra_tgt}")
                 throw e //rethrow for retry handler
@@ -806,7 +812,7 @@ def installCicd(master, extra_tgt = '') {
         }
         retry(2){
             try{
-                salt.enforceState([saltId: master, target: "I@jenkins:client ${extra_tgt}", state: 'jenkins'])
+                salt.enforceStateWithTest([saltId: master, target: "I@jenkins:client ${extra_tgt}", state: 'jenkins'])
             }catch(e){
                 salt.fullRefresh(master, "I@jenkins:client ${extra_tgt}")
                 throw e //rethrow for retry handler
