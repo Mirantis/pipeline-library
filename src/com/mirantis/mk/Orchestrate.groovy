@@ -695,6 +695,13 @@ def installKubernetesCompute(master, extra_tgt = '') {
     salt.runSaltProcessStep(master, "I@kubernetes:pool and not I@kubernetes:master ${extra_tgt}", 'service.restart', ['kubelet'])
 }
 
+def installKubernetesClient(master, extra_tgt = '') {
+    def salt = new com.mirantis.mk.Salt()
+
+    // Install kubernetes client
+    salt.enforceStateWithTest([saltId: master, target: "I@kubernetes:client ${extra_tgt}", state: 'kubernetes.client'])
+}
+
 
 def installDockerSwarm(master, extra_tgt = '') {
     def salt = new com.mirantis.mk.Salt()
