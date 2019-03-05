@@ -650,12 +650,12 @@ def installKubernetesControl(master, extra_tgt = '') {
         // Run k8s on first node without master.setup and master.kube-addons
         salt.enforceStateWithExclude([saltId: master, target: "${first_target} ${extra_tgt}", state: "kubernetes.master", excludedStates: "kubernetes.master.setup,kubernetes.master.kube-addons"])
         // Run k8s without master.setup and master.kube-addons
-        salt.enforceStateWithExclude([saltId: master, target: "I@kubernetes:master ${extra_tgt}", state: "kubernetes", excludedStates: "kubernetes.master.setup,kubernetes.master.kube-addons"])
+        salt.enforceStateWithExclude([saltId: master, target: "I@kubernetes:master ${extra_tgt}", state: "kubernetes", excludedStates: "kubernetes.master.setup,kubernetes.master.kube-addons,kubernetes.client"])
     } else {
         // Run k8s on first node without master.setup and master.kube-addons
         salt.enforceStateWithExclude([saltId: master, target: "${first_target} ${extra_tgt}", state: "kubernetes.master", excludedStates: "kubernetes.master.setup"])
         // Run k8s without master.setup
-        salt.enforceStateWithExclude([saltId: master, target: "I@kubernetes:master ${extra_tgt}", state: "kubernetes", excludedStates: "kubernetes.master.setup"])
+        salt.enforceStateWithExclude([saltId: master, target: "I@kubernetes:master ${extra_tgt}", state: "kubernetes", excludedStates: "kubernetes.master.setup,kubernetes.client"])
     }
 
     // Run k8s master setup
