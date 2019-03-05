@@ -55,6 +55,7 @@ def setupOpenstackVirtualenv(path, version = 'latest') {
         'cmd2>=0.9.1;python_version=="3.4"',
         'cmd2>=0.9.1;python_version=="3.5"',
         'python-openstackclient',
+        'python-octaviaclient',
         'python-heatclient',
         'docutils'
     ]
