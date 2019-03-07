@@ -277,6 +277,7 @@ def testNode(LinkedHashMap config) {
     def aptRepoUrl = config.get('aptRepoUrl', "")
     def aptRepoGPG = config.get('aptRepoGPG', "")
     def testContext = config.get('testContext', 'test')
+    def nodegenerator = config.get('nodegenerator', false)
     config['envOpts'] = [
         "RECLASS_ENV=${reclassEnv}", "SALT_STOPSTART_WAIT=5",
         "HOSTNAME=${dockerHostname}", "CLUSTER_NAME=${clusterName}",
@@ -342,6 +343,31 @@ def testNode(LinkedHashMap config) {
             archiveArtifacts artifacts: "nodesinfo.tar.gz"
         }
     ]
+    // this tool should be tested in master branch only
+    // and not for all jobs, as pilot will be used cc-reclass-chunk
+    if (nodegenerator) {
+        config['runCommands']['005_Test_new_nodegenerator'] = {
+            try {
+                sh('''#!/bin/bash
+                new_generated_dir=/srv/salt/_new_generated
+                mkdir -p ${new_generated_dir}
+                nodegenerator -b /srv/salt/reclass/classes/ -o ${new_generated_dir} ${CLUSTER_NAME}
+                diff -r /srv/salt/reclass/nodes/_generated ${new_generated_dir} > /tmp/nodegenerator.diff
+                tar -czf /tmp/_generated.tar.gz /srv/salt/reclass/nodes/_generated/
+                tar -czf /tmp/_new_generated.tar.gz ${new_generated_dir}/
+                tar -czf /tmp/_model.tar.gz /srv/salt/reclass/classes/cluster/*
+                ''')
+            } catch (Exception e) {
+                print "Test new nodegenerator tool is failed: ${e}"
+            }
+        }
+        config['runFinally']['002_Archive_nodegenerator_artefact'] = {
+            sh(script: "cd /tmp; [ -f nodegenerator.diff ] && tar -czf ${env.WORKSPACE}/nodegenerator.tar.gz nodegenerator.diff _generated.tar.gz _new_generated.tar.gz _model.tar.gz", returnStatus: true)
+            if (fileExists('nodegenerator.tar.gz')) {
+                archiveArtifacts artifacts: "nodegenerator.tar.gz"
+            }
+        }
+    }
     testResult = setupDockerAndTest(config)
     if (testResult) {
         common.infoMsg("Node test for context: ${testContext} model: ${reclassEnv} finished: SUCCESS")
