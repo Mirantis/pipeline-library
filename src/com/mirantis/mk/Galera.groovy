@@ -309,8 +309,7 @@ def restoreGaleraDb(env) {
     if(backup_dir == null || backup_dir.isEmpty()) { backup_dir='/var/backups/mysql/xtrabackup' }
     salt.runSaltProcessStep(env, lastNodeTarget, 'file.remove', ["${backup_dir}/dbrestored"])
     salt.cmdRun(env, 'I@xtrabackup:client', "su root -c 'salt-call state.sls xtrabackup'")
-    salt.runSaltProcessStep(env, lastNodeTarget, 'service.start', ['mysql'])
-
+    salt.enforceState(env, lastNodeTarget, 'galera')
     // wait until mysql service on galera master is up
     try {
         salt.commandStatus(env, lastNodeTarget, 'service mysql status', 'running')
