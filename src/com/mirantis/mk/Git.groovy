@@ -211,3 +211,24 @@ def mirrorGit(sourceUrl, targetUrl, credentialsId, branches, followTags = false,
     }
     sh "git remote rm target"
 }
+
+
+/**
+ * Return all branches for the defined git repository that match the matcher.
+ *
+ * @param repoUrl        URL of git repository
+ * @param branchMatcher  matcher to filter out the branches (If '' or '*', returns all branches without filtering)
+ * @return branchesList  list of branches
+ */
+
+def getBranchesForGitRepo(repoUrl, branchMatcher = ''){
+
+    if (branchMatcher.equals("*")) {
+        branchMatcher = ''
+    }
+    branchesList = sh (
+                script: "git ls-remote --heads ${repoUrl} | cut -f2 | grep -e '${branchMatcher}' | sed 's/refs\\/heads\\///g'",
+                returnStdout: true
+        ).trim()
+    return branchesList.tokenize('\n')
+}
