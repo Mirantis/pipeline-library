@@ -353,6 +353,7 @@ def uploadJobArtifactsToArtifactory(LinkedHashMap config) {
                         {
                             "pattern": "*",
                             "target": "${config.get('artifactoryRepo')}/",
+                            "flat": false,
                             "props": "${properties}"
                         }
                     ]
