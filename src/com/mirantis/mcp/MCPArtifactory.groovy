@@ -342,7 +342,7 @@ def uploadJobArtifactsToArtifactory(LinkedHashMap config) {
     }
     dir(artifactDir) {
         try {
-            unarchive(mapping: ['*' : '.'])
+            unarchive(mapping: ['**/*' : '.'])
             // Mandatory and additional properties
             def properties = getBinaryBuildProperties(config.get('buildProps', []) << "buildUser=${user}")
 
