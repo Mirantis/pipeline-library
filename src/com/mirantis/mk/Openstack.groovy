@@ -435,26 +435,40 @@ def stopServices(env, probe, target, services=[], confirm=false) {
 /**
  * Return intersection of globally installed services and those are
  * defined on specific target according to theirs priorities.
+ * By default services are added to the result list only if
+ * <service>.upgrade.enabled pillar is set to "True". However if it
+ * is needed to obtain list of upgrade services regardless of
+ * <service>.upgrade.enabled pillar value it is needed to set
+ * "upgrade_condition" param to "False".
  *
  * @param env     Salt Connection object or env
- * @param target  The target node to get list of apps for.
+ * @param target  The target node to get list of apps for
+ * @param upgrade_condition  Whether to take "upgrade:enabled"
+ *                           service pillar into consideration
+ *                           when obtaining list of upgrade services
 **/
-def getOpenStackUpgradeServices(env, target){
+def getOpenStackUpgradeServices(env, target, upgrade_condition=true){
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
 
     def global_apps = salt.getConfig(env, 'I@salt:master:enabled:true', 'orchestration.upgrade.applications')
     def node_apps = salt.getPillar(env, target, '__reclass__:applications')['return'][0].values()[0]
-    def node_pillar = salt.getPillar(env, target)
+    if (upgrade_condition) {
+        node_pillar = salt.getPillar(env, target)
+    }
     def node_sorted_apps = []
     if ( !global_apps['return'][0].values()[0].isEmpty() ) {
         Map<String,Integer> _sorted_apps = [:]
         for (k in global_apps['return'][0].values()[0].keySet()) {
             if (k in node_apps) {
-                if (node_pillar['return'][0].values()[k]['upgrade']['enabled'][0] != null) {
-                    if (node_pillar['return'][0].values()[k]['upgrade']['enabled'][0].toBoolean()) {
-                      _sorted_apps[k] = global_apps['return'][0].values()[0][k].values()[0].toInteger()
+                if (upgrade_condition) {
+                    if (node_pillar['return'][0].values()[k]['upgrade']['enabled'][0] != null) {
+                        if (node_pillar['return'][0].values()[k]['upgrade']['enabled'][0].toBoolean()) {
+                            _sorted_apps[k] = global_apps['return'][0].values()[0][k].values()[0].toInteger()
+                        }
                     }
+                } else {
+                    _sorted_apps[k] = global_apps['return'][0].values()[0][k].values()[0].toInteger()
                 }
             }
         }
@@ -466,7 +480,6 @@ def getOpenStackUpgradeServices(env, target){
 
   return node_sorted_apps
 }
-
 
 /**
  * Run specified upgrade phase for all services on given node.
