@@ -730,9 +730,7 @@ def comparePillars(compRoot, b_url, grepOpts) {
                     description += "<li><a href=\"${httpWS}/old/${item}/*view*/\">${item}</a></li>"
                 }
             }
-            def cwd = sh(script: 'basename $(pwd)', returnStdout: true)
-            sh "tar -cf old_${cwd}.tar.gz old/ && rm -rf old/"
-            sh "tar -cf new_${cwd}.tar.gz new/ && rm -rf new/"
+
         }
     }
 
