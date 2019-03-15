@@ -46,6 +46,7 @@ def runContainer(master, target, dockerImageLink, name='cvp', env_var=[], entryp
     def common = new com.mirantis.mk.Common()
     def variables = ''
     def entry_point = ''
+    def cluster_name = salt.getPillar(master, 'I@salt:master', '_param:cluster_name')['return'][0].values()[0]
     if ( salt.cmdRun(master, target, "docker ps -f name=${name} -q", false, null, false)['return'][0].values()[0] ) {
         salt.cmdRun(master, target, "docker rm -f ${name}")
     }
