@@ -272,11 +272,12 @@ def getGaleraLastShutdownNode(env, nodes = []) {
 }
 
 /**
- * Restores Galera database
- * @param env Salt Connection object or pepperEnv
+ * Restores Galera cluster
+ * @param env           Salt Connection object or pepperEnv
+ * @param runRestoreDb  Boolean to determine if the restoration of DB should be run as well
  * @return output of salt commands
  */
-def restoreGaleraDb(env) {
+def restoreGaleraCluster(env, runRestoreDb=true) {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
     try {
@@ -320,12 +321,15 @@ def restoreGaleraDb(env) {
     } catch (Exception er) {
         common.warningMsg('File is not present')
     }
+
     salt.cmdRun(env, lastNodeTarget, "sed -i '/gcomm/c\\wsrep_cluster_address=\"gcomm://\"' /etc/mysql/my.cnf")
-    def backup_dir = salt.getReturnValues(salt.getPillar(env, lastNodeTarget, 'xtrabackup:client:backup_dir'))
-    if(backup_dir == null || backup_dir.isEmpty()) { backup_dir='/var/backups/mysql/xtrabackup' }
-    salt.runSaltProcessStep(env, lastNodeTarget, 'file.remove', ["${backup_dir}/dbrestored"])
-    salt.cmdRun(env, 'I@xtrabackup:client', "su root -c 'salt-call state.sls xtrabackup'")
+
+    if (runRestoreDb) {
+        restoreGaleraDb(env, lastNodeTarget)
+    }
+
     salt.enforceState(env, lastNodeTarget, 'galera')
+
     // wait until mysql service on galera master is up
     try {
         salt.commandStatus(env, lastNodeTarget, 'service mysql status', 'running')
@@ -335,4 +339,21 @@ def restoreGaleraDb(env) {
 
     salt.runSaltProcessStep(env, "I@galera:master and not ${lastNodeTarget}", 'service.start', ['mysql'])
     salt.runSaltProcessStep(env, "I@galera:slave and not ${lastNodeTarget}", 'service.start', ['mysql'])
+}
+
+/**
+ * Restores Galera database
+ * @param env           Salt Connection object or pepperEnv
+ * @param targetNode    Node to be targeted
+ */
+def restoreGaleraDb(env, targetNode) {
+    def backup_dir = salt.getReturnValues(salt.getPillar(env, targetNode, 'xtrabackup:client:backup_dir'))
+    if(backup_dir == null || backup_dir.isEmpty()) { backup_dir='/var/backups/mysql/xtrabackup' }
+    salt.runSaltProcessStep(env, targetNode, 'file.remove', ["${backup_dir}/dbrestored"])
+    salt.cmdRun(env, 'I@xtrabackup:client', "su root -c 'salt-call state.sls xtrabackup'")
+}
+
+def restoreGaleraDb(env) {
+    common.warningMsg("This method was renamed to 'restoreGaleraCluster'. Please change your pipeline to use this call instead! If you think that you really wanted to call 'restoreGaleraDb' you may be missing 'targetNode' parameter in you call.")
+    return restoreGaleraCluster(env)
 }
