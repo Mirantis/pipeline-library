@@ -384,7 +384,7 @@ def bundle_up_scenarios(scenarios_path, skip_scenarios, bundle_file = '' ) {
             skip_names += "! -name ${scen} "
           }
           else {
-            skip_dirs += "-path ${scenarios_path}/${scen} -prune -o "
+            skip_dirs += "-path '${scenarios_path}/${scen}' -prune -o "
           }
         }
       }
@@ -397,190 +397,95 @@ def bundle_up_scenarios(scenarios_path, skip_scenarios, bundle_file = '' ) {
           "sed -i '/---/d' ${bundle_file}; fi; "
       } else {
         result = "find -L ${scenarios_path} " + skip_dirs +
-            " -name '*.yaml' " + skip_names
+            " -name '*.yaml' -print " + skip_names
       }
 
       return result
 }
 
 /**
- * Execute rally tests
+ * Prepare setupDockerAndTest() commands to start Rally tests (optionally with K8S/Stacklight plugins)
  *
- * @param target            Host to run tests
- * @param dockerImageLink   Docker image link
- * @param platform          What do we have underneath (openstack/k8s)
- * @param output_dir        Directory for results
- * @param config_repo       Git repository with with files for Rally
- * @param config_branch     Git config repo branch which will be used during the checkout
- * @param plugins_repo      Git repository with Rally plugins
- * @param plugins_branch    Git plugins repo branch which will be used during the checkout
+ * @param platform          Map with underlay platform data
  * @param scenarios         Directory inside repo with specific scenarios
  * @param sl_scenarios      Directory inside repo with specific scenarios for stacklight
  * @param tasks_args_file   Argument file that is used for throttling settings
  * @param db_connection_str Rally-compliant external DB connection string
  * @param tags              Additional tags used for tagging tasks or building trends
  * @param trends            Build rally trends if enabled
- * @param ext_variables     The list of external variables
- * @param results           The reports directory
+ *
+ * Returns: map
+ *
  */
 def runRallyTests(
-        master, target, dockerImageLink,
-        platform, output_dir, config_repo,
-        config_branch, plugins_repo, plugins_branch,
-        scenarios, sl_scenarios = '', tasks_args_file = '',
+        platform, scenarios = '',
+        sl_scenarios = '', tasks_args_file = '',
         db_connection_str = '', tags = [],
-        trends = false, ext_variables = [],
-        results = '/root/qa_results', skip_list = ''
-        ) {
+        trends = false, skip_list = ''
+    ) {
 
-    def salt = new com.mirantis.mk.Salt()
-    def output_file = 'docker-rally.log'
-    def dest_folder = '/home/rally/qa_results'
-    def env_vars = []
-    def work_dir = 'test_config'
-
-    // compile rally deployment name from env name, platform name,
-    // date, cmp nodes count
-    def deployment_name = ''
-    def cluster_name = salt.getPillar(
-        master, 'I@salt:master', '_param:cluster_name'
-    )['return'][0].values()[0]
-    def rcs_str_node = salt.getPillar(
-        master, 'I@salt:master', 'reclass:storage:node'
-    )['return'][0].values()[0]
+    def dest_folder = '/home/rally'
+    def pluginsDir = "${dest_folder}/rally-plugins"
+    def scenariosDir = "${dest_folder}/rally-scenarios"
+    def resultsDir = "${dest_folder}/test_results"
     def date = new Date()
     date = date.format("yyyyMMddHHmm")
-    def cmp_count
+    // compile rally deployment name
+    deployment_name = "env=${platform.cluster_name}:platform=${platform.type}:" +
+        "date=${date}:cmp=${platform.cmp_count}"
 
-    if (platform['type'] == 'openstack') {
-        cmp_count = rcs_str_node.openstack_compute_rack01['repeat']['count']
-    } else if (platform['type'] == 'k8s') {
-        cmp_count = rcs_str_node.kubernetes_compute_rack01['repeat']['count']
-    } else {
-      throw new Exception("Platform ${platform} is not supported yet")
-    }
-    deployment_name = "env=${cluster_name}:platform=${platform.type}:" +
-        "date=${date}:cmp=${cmp_count}"
-
-    // set up rally cmds
-    def rally_extra_args = ''
-    def cmd_rally_plugins =
-        "git clone -b ${plugins_branch ?: 'master'} ${plugins_repo} /tmp/plugins; " +
-        "sudo pip install --upgrade /tmp/plugins; "
-    def cmd_rally_init = 'rally db ensure; '
+    // set up Rally DB
+    def cmd_rally_init = ''
     if (db_connection_str) {
         cmd_rally_init = "sudo sed -i -e " +
             "'s#connection=.*#connection=${db_connection_str}#' " +
             "/etc/rally/rally.conf; "
     }
-    def cmd_rally_checkout = "git clone -b ${config_branch ?: 'master'} ${config_repo} ${work_dir}; "
-    def cmd_rally_start = ''
-    def cmd_rally_task_args = ''
-    def cmd_rally_stacklight = ''
-    def cmd_rally_report = "rally task export " +
-        "--uuid \\\$(rally task list --uuids-only --status finished) " +
-        "--type junit-xml --to ${dest_folder}/report-rally.xml; " +
-        "rally task report --uuid \\\$(rally task list --uuids-only --status finished) " +
-        "--out ${dest_folder}/report-rally.html"
+    cmd_rally_init += 'rally db ensure; '
+    // if several jobs are running in parallel (same deployment name),
+    // then try to find and use existing in db env
+    if (db_connection_str) {
+        cmd_rally_init += 'rally env use --env $(rally env list|awk \'/' +
+            deployment_name + '/ {print $2}\') ||'
+    }
+
+    def cmd_rally_start
+    def cmd_rally_stacklight
+    def cmd_rally_task_args = tasks_args_file ?: 'job-params-light.yaml'
+    def cmd_rally_report = 'rally task export ' +
+        '--uuid $(rally task list --uuids-only --status finished) ' +
+        "--type junit-xml --to ${resultsDir}/report-rally.xml; " +
+        'rally task report --uuid $(rally task list --uuids-only --status finished) ' +
+        "--out ${resultsDir}/report-rally.html"
     def cmd_filter_tags = ''
+    def trends_limit = 20
 
     // build rally trends if required
     if (trends && db_connection_str) {
         if (tags) {
             cmd_filter_tags = "--tag " + tags.join(' ')
         }
-        cmd_rally_report += "; rally task trends --tasks " +
-            "\\\$(rally task list " + cmd_filter_tags +
-            " --all-deployments --uuids-only --status finished) " +
-            "--out ${dest_folder}/trends-rally.html"
+        cmd_rally_report += '; rally task trends --tasks ' +
+            '$(rally task list ' + cmd_filter_tags +
+            ' --all-deployments --uuids-only --status finished ' +
+            "| head -${trends_limit} ) " +
+            "--out ${resultsDir}/trends-rally.html"
     }
 
     // add default env tags for inserting into rally tasks
     tags = tags + [
-        "env=${cluster_name}",
+        "env=${platform.cluster_name}",
         "platform=${platform.type}",
-        "cmp=${cmp_count}"
+        "cmp=${platform.cmp_count}"
     ]
 
-    // create results directory
-    salt.runSaltProcessStep(master, target, 'file.remove', ["${results}"])
-    salt.runSaltProcessStep(master, target, 'file.mkdir', ["${results}", "mode=777"])
-
-    // get required OS data
+    // set up rally deployment cmd
     if (platform['type'] == 'openstack') {
       cmd_rally_init += "rally deployment create --name='${deployment_name}' --fromenv; " +
           "rally deployment check; "
-
-      def keystone = salt.getPillar(
-          master, 'I@keystone:server', 'keystone'
-      )['return'][0].values()[0]
-      env_vars = ( ['tempest_version=15.0.0',
-          "OS_USERNAME=${keystone.server.admin_name}",
-          "OS_PASSWORD=${keystone.server.admin_password}",
-          "OS_TENANT_NAME=${keystone.server.admin_tenant}",
-          "OS_AUTH_URL=http://${keystone.server.bind.private_address}:${keystone.server.bind.private_port}" +
-          "/v${keystone.client.os_client_config.cfgs.root.content.clouds.admin_identity.identity_api_version}",
-          "OS_REGION_NAME=${keystone.server.region}",
-          'OS_ENDPOINT_TYPE=admin'] + ext_variables ).join(' -e ')
-
-      // get required SL data
-      if (platform['stacklight_enabled'] == true) {
-        def grafana = salt.getPillar(
-            master, 'I@grafana:client', 'grafana:client:server'
-        )['return'][0].values()[0]
-        cmd_rally_stacklight = bundle_up_scenarios(
-            work_dir + '/' + sl_scenarios,
-            skip_list,
-            "scenarios_${platform.type}_stacklight.yaml"
-        )
-        tags.add('stacklight')
-        cmd_rally_stacklight += "sed -i 's/grafana_password: .*/grafana_password: ${grafana.password}/' " +
-            "${work_dir}/job-params-stacklight.yaml; " +
-            "rally $rally_extra_args task start --tag " + tags.join(' ') +
-            " --task scenarios_${platform.type}_stacklight.yaml " +
-            "--task-args-file ${work_dir}/job-params-stacklight.yaml; "
-      }
-
-    // get required K8S data
     } else if (platform['type'] == 'k8s') {
       cmd_rally_init += "rally env create --name='${deployment_name}' --from-sysenv; " +
           "rally env check; "
-      rally_extra_args = "--debug --log-file ${dest_folder}/task.log"
-
-      def kubernetes = salt.getPillar(
-          master, 'I@kubernetes:master and *01*', 'kubernetes:master'
-      )['return'][0].values()[0]
-      env_vars = [
-          "KUBERNETES_HOST=http://${kubernetes.apiserver.vip_address}" +
-          ":${kubernetes.apiserver.insecure_port}",
-          "KUBERNETES_CERT_AUTH=${dest_folder}/k8s-ca.crt",
-          "KUBERNETES_CLIENT_KEY=${dest_folder}/k8s-client.key",
-          "KUBERNETES_CLIENT_CERT=${dest_folder}/k8s-client.crt"].join(' -e ')
-
-      def k8s_ca = salt.getFileContent(
-          master, 'I@kubernetes:master and *01*', '/etc/kubernetes/ssl/ca-kubernetes.crt'
-      )
-      def k8s_client_key = salt.getFileContent(
-          master, 'I@kubernetes:master and *01*', '/etc/kubernetes/ssl/kubelet-client.key'
-      )
-      def k8s_client_crt = salt.getFileContent(
-          master, 'I@kubernetes:master and *01*', '/etc/kubernetes/ssl/kubelet-client.crt'
-      )
-      def tmp_dir = '/tmp/kube'
-
-      salt.runSaltProcessStep(master, target, 'file.mkdir', ["${tmp_dir}"])
-      salt.runSaltProcessStep(
-          master, target, 'file.write', ["${tmp_dir}/k8s-ca.crt","${k8s_ca}"]
-      )
-      salt.runSaltProcessStep(
-          master, target, 'file.write', ["${tmp_dir}/k8s-client.key", "${k8s_client_key}"]
-      )
-      salt.runSaltProcessStep(
-          master, target, 'file.write', ["${tmp_dir}/k8s-client.crt", "${k8s_client_crt}"]
-      )
-      salt.cmdRun(master, target, "mv ${tmp_dir}/* ${results}/")
-      salt.runSaltProcessStep(master, target, 'file.rmdir', ["${tmp_dir}"])
-
     } else {
       throw new Exception("Platform ${platform} is not supported yet")
     }
@@ -588,56 +493,72 @@ def runRallyTests(
     // set up rally task args file
     switch(tasks_args_file) {
       case 'none':
-        cmd_rally_task_args = '; '
+        cmd_rally_task_args = ''
         break
       case '':
-        cmd_rally_task_args = "--task-args-file ${work_dir}/job-params-light.yaml; "
+        cmd_rally_task_args = "--task-args-file ${scenariosDir}/job-params-light.yaml"
         break
       default:
-        cmd_rally_task_args = "--task-args-file ${work_dir}/${tasks_args_file}; "
+        cmd_rally_task_args = "--task-args-file ${scenariosDir}/${tasks_args_file}"
       break
     }
-    if (platform['type'] == 'k8s') {
-      cmd_rally_start = "for task in \\\$(" +
-          bundle_up_scenarios(work_dir + '/' + scenarios, skip_list) +
-          "); do " +
-          "rally $rally_extra_args task start --tag " + tags.join(' ') +
-          " --task \\\$task ${cmd_rally_task_args}" +
-          "done; "
-    } else {
-      cmd_rally_checkout += bundle_up_scenarios(
-          work_dir + '/' + scenarios,
+
+    // configure Rally for Stacklight (only with Openstack for now)
+    if (platform['stacklight']['enabled'] && (platform['type'] == 'openstack')) {
+      if (! sl_scenarios) {
+        throw new Exception("There's no Stacklight scenarios to execute")
+      }
+      def scenBundle = "${resultsDir}/scenarios_${platform.type}_stacklight.yaml"
+      cmd_rally_stacklight = bundle_up_scenarios(
+          scenariosDir + '/' + sl_scenarios,
           skip_list,
-          "scenarios_${platform.type}.yaml"
+          scenBundle,
       )
-      cmd_rally_start = "rally $rally_extra_args task start --tag " + tags.join(' ') +
-          " --task scenarios_${platform.type}.yaml ${cmd_rally_task_args}"
+      tags.add('stacklight')
+      cmd_rally_stacklight += "sed -i 's/grafana_password: .*/grafana_password: ${platform.stacklight.grafanaPass}/' " +
+          "${scenariosDir}/${tasks_args_file}; rally --log-file ${resultsDir}/tasks_stacklight.log task start --tag " + tags.join(' ') +
+          " --task ${scenBundle} ${cmd_rally_task_args} || true "
     }
 
-    // compile full rally cmd
-    full_cmd = 'set -xe; ' + cmd_rally_plugins +
-        cmd_rally_init + cmd_rally_checkout +
-        'set +e; ' + cmd_rally_start +
-        cmd_rally_stacklight + cmd_rally_report
-
-    // run rally
-    salt.runSaltProcessStep(master, target, 'file.touch', ["${results}/rally.db"])
-    salt.cmdRun(master, target, "chmod 666 ${results}/rally.db")
-    salt.cmdRun(
-        master, target,
-        "docker run -w /home/rally -i --rm --net=host -e ${env_vars} " +
-        "-v ${results}:${dest_folder} " +
-        "-v ${results}/rally.db:/home/rally/data/rally.db " +
-        "--entrypoint /bin/bash ${dockerImageLink} " +
-        "-c \"${full_cmd}\" > ${results}/${output_file}")
-
-    // remove k8s secrets
-    if (platform['type'] == 'k8s') {
-        salt.cmdRun(master, target, "rm ${results}/k8s-*")
+    // prepare scenarios and rally task cmd
+    if (scenarios) {
+      switch (platform['type']) {
+        case 'openstack':
+          def scenBundle = "${resultsDir}/scenarios_${platform.type}.yaml"
+          cmd_rally_start = bundle_up_scenarios(
+              scenariosDir + '/' + scenarios,
+              skip_list,
+              scenBundle,
+          )
+          cmd_rally_start += "rally --log-file ${resultsDir}/tasks_openstack.log task start --tag " + tags.join(' ') +
+              " --task ${scenBundle} ${cmd_rally_task_args} || true; "
+        break
+        // due to the bug in Rally threads, K8S plugin gets stuck on big all-in-one scenarios
+        // so we have to feed them separately for K8S case
+        case 'k8s':
+          cmd_rally_start = 'for task in $(' +
+              bundle_up_scenarios(scenariosDir + '/' + scenarios, skip_list) + '); do ' +
+              "rally --log-file ${resultsDir}/tasks_k8s.log task start --tag " + tags.join(' ') +
+              ' --task $task ' + cmd_rally_task_args + ' || true; done; '
+        break
+      }
+    } else {
+      if (! cmd_rally_stacklight) {
+        throw new Exception("No scenarios found to run Rally on")
+      }
     }
 
-    // save artifacts
-    addFiles(master, target, results, output_dir)
+    // compile full rally cmd map
+    def full_cmd = [
+        '001_install_plugins': "sudo pip install --upgrade ${pluginsDir}",
+        '002_init_rally': cmd_rally_init,
+        '003_start_rally': cmd_rally_start ?: "echo no tasks to run",
+        '004_start_rally_stacklight': cmd_rally_stacklight ?: "echo no tasks to run",
+        '005_rally_report': cmd_rally_report,
+    ]
+
+    return full_cmd
+
 }
 
 /**
