@@ -316,6 +316,7 @@ def copyTestsOutput(master, image) {
 }
 
 /**
+ * DEPRECATED
  * Execute tempest tests
  *
  * @param dockerImageLink   Docker image link with rally and tempest
@@ -335,6 +336,9 @@ def runTempestTests(master, dockerImageLink, target, pattern = "", logDir = "/ho
                     skipList="mcp_skip.list", localKeystone="/root/keystonercv3" , localLogDir="/root/rally_reports",
                     doCleanupResources = "false") {
     def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+    common.errorMsg('You are using deprecated method! This method will be removed')
+    error('You are using deprecated method! This method will be removed')
     salt.runSaltProcessStep(master, target, 'file.mkdir', ["${localLogDir}"])
     def custom = ''
     if (pattern) {
@@ -357,6 +361,7 @@ def runTempestTests(master, dockerImageLink, target, pattern = "", logDir = "/ho
 
 
 /**
+ * DEPRECATED
  * Execute Rally scenarios
  *
  * @param dockerImageLink      Docker image link with rally and tempest
@@ -368,6 +373,9 @@ def runTempestTests(master, dockerImageLink, target, pattern = "", logDir = "/ho
 def runRallyScenarios(master, dockerImageLink, target, scenario, logDir = "/home/rally/rally_reports/",
                       doCleanupResources = "false", containerName = "rally_ci") {
     def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+    common.errorMsg('You are using deprecated method! This method will be removed')
+    error('You are using deprecated method! This method will be removed')
     salt.runSaltProcessStep(master, target, 'file.mkdir', ["/root/rally_reports"])
     salt.cmdRun(master, target, "docker run --net=host -dit " +
                                 "--name ${containerName} " +
@@ -382,11 +390,15 @@ def runRallyScenarios(master, dockerImageLink, target, scenario, logDir = "/home
 
 
 /**
+ * DEPRECATED
  * Upload results to cfg01 node
  *
  */
 def copyTempestResults(master, target) {
     def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+    common.errorMsg('You are using deprecated method! Use validate.addFiles instead. This method will be removed')
+    error('You are using deprecated method! Use validate.addFiles instead. This method will be removed')
     if (! target.contains('cfg')) {
         salt.cmdRun(master, target, "mkdir -p /root/rally_reports/ && rsync -av /root/rally_reports/ cfg01:/root/rally_reports/")
     }
@@ -417,6 +429,7 @@ def install_docker(master, target) {
 
 /** Upload Tempest test results to Testrail
  *
+ * DEPRECATED
  * @param report              Source report to upload
  * @param image               Testrail reporter image
  * @param testGroup           Testrail test group
@@ -432,6 +445,8 @@ def install_docker(master, target) {
 def uploadResultsTestrail(report, image, testGroup, credentialsId, plan, milestone, suite, master = null, target = 'cfg01*') {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
+    common.errorMsg('You are using deprecated method! Try Common.uploadResultsTestRail instead. This method will be removed')
+    error('You are using deprecated method! Try Common.uploadResultsTestRail instead. This method will be removed')
     creds = common.getPasswordCredentials(credentialsId)
     command =  "docker run --rm --net=host " +
                            "-v ${report}:/srv/report.xml " +
@@ -451,6 +466,7 @@ def uploadResultsTestrail(report, image, testGroup, credentialsId, plan, milesto
 
 /** Archive Rally results in Artifacts
  *
+ * DEPRECATED
  * @param master              Salt connection.
  * @param target              Target node to install docker pkg
  * @param reports_dir         Source directory to archive
@@ -458,7 +474,9 @@ def uploadResultsTestrail(report, image, testGroup, credentialsId, plan, milesto
 
 def archiveRallyArtifacts(master, target, reports_dir='/root/rally_reports') {
     def salt = new com.mirantis.mk.Salt()
-
+    def common = new com.mirantis.mk.Common()
+    common.errorMsg('You are using deprecated method! This method will be removed')
+    error('You are using deprecated method! This method will be removed')
     def artifacts_dir = '_artifacts/'
     def output_file = 'rally_reports.tar'
 
@@ -495,12 +513,16 @@ def collectJUnitResults(testResultAction) {
 
 /** Cleanup: Remove reports directory
  *
+ * DEPRECATED
  * @param target                   Target node to remove repo
  * @param reports_dir_name         Reports directory name to be removed (that is in /root/ on target node)
  * @param archive_artifacts_name   Archive of the artifacts
  */
 def removeReports(master, target, reports_dir_name = 'rally_reports', archive_artifacts_name = 'rally_reports.tar') {
     def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+    common.errorMsg('You are using deprecated method! This method will be removed')
+    error('You are using deprecated method! This method will be removed')
     salt.runSaltProcessStep(master, target, 'file.find', ["/root/${reports_dir_name}", '\\*', 'delete'])
     salt.runSaltProcessStep(master, target, 'file.remove', ["/root/${archive_artifacts_name}"])
 }
@@ -508,10 +530,14 @@ def removeReports(master, target, reports_dir_name = 'rally_reports', archive_ar
 
 /** Cleanup: Remove Docker container
  *
+ * DEPREACTED
  * @param target              Target node to remove Docker container
  * @param image_link          The link of the Docker image that was used for the container
  */
 def removeDockerContainer(master, target, containerName) {
     def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+    common.errorMsg('You are using deprecated method! Use validate.runCleanup instead. This method will be removed')
+    error('You are using deprecated method! Use validate.runCleanup instead. This method will be removed')
     salt.cmdRun(master, target, "docker rm -f ${containerName}")
 }

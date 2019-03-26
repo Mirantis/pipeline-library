@@ -1,7 +1,7 @@
 package com.mirantis.mcp
 
 /**
- *
+ * DEPRECATED
  * Tests providing functions
  *
  */
@@ -17,6 +17,8 @@ package com.mirantis.mcp
 def runBasicContainer(master, target, dockerImageLink="xrally/xrally-openstack:0.10.1"){
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
+    common.errorMsg('You are using deprecated method! Please migrate to validate.runContainer. This method will be removed')
+    error('You are using deprecated method! Please migrate to validate.runContainer. This method will be removed')
     def _pillar = salt.getPillar(master, 'I@keystone:server', 'keystone:server')
     def keystone = _pillar['return'][0].values()[0]
     if ( salt.cmdRun(master, target, "docker ps -f name=cvp -q", false, null, false)['return'][0].values()[0] ) {
@@ -160,6 +162,7 @@ def addFiles(master, target, folder, output_dir) {
 }
 
 /**
+ * DEPRECATED
  * Get reclass value
  *
  * @param target            The host for which the values will be provided
@@ -168,6 +171,8 @@ def addFiles(master, target, folder, output_dir) {
  */
 def getReclassValue(master, target, filter) {
     def common = new com.mirantis.mk.Common()
+    common.errorMsg('You are using deprecated method! This method will be removed')
+    error('You are using deprecated method! This method will be removed')
     def salt = new com.mirantis.mk.Salt()
     def items = filter.tokenize('.')
     def _result = salt.cmdRun(master, 'I@salt:master', "reclass-salt -o json -p ${target}", false, null, false)
@@ -181,6 +186,7 @@ def getReclassValue(master, target, filter) {
 }
 
 /**
+ * DEPRECATED
  * Create list of nodes in JSON format.
  *
  * @param filter            The Salt's matcher
@@ -189,6 +195,8 @@ def getReclassValue(master, target, filter) {
 def getNodeList(master, filter = null) {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
+    common.errorMsg('You are using deprecated method! This method will be removed')
+    error('You are using deprecated method! This method will be removed')
     def nodes = []
     def filtered_list = null
     def controllers = salt.getMinions(master, 'I@nova:controller')
@@ -220,6 +228,7 @@ def getNodeList(master, filter = null) {
 }
 
 /**
+ * DEPRECATED
  * Execute mcp sanity tests
  * Deprecated. Will be removed soon
  *
@@ -231,6 +240,8 @@ def getNodeList(master, filter = null) {
  */
 def runSanityTests(salt_url, salt_credentials, test_set="", output_dir="validation_artifacts/", env_vars="") {
     def common = new com.mirantis.mk.Common()
+    common.errorMsg('You are using deprecated method! Please migrate to validate.runTests. This method will be removed')
+    error('You are using deprecated method! Please migrate to validate.runTests. This method will be removed')
     def creds = common.getCredentials(salt_credentials)
     def username = creds.username
     def password = creds.password
@@ -248,6 +259,7 @@ def runSanityTests(salt_url, salt_credentials, test_set="", output_dir="validati
 }
 
 /**
+ * DEPRECATED
  * Execute pytest framework tests
  *
  * @param salt_url          Salt master url
@@ -259,6 +271,8 @@ def runSanityTests(salt_url, salt_credentials, test_set="", output_dir="validati
 def runPyTests(salt_url, salt_credentials, test_set="", env_vars="", name='cvp', container_node="", remote_dir='/root/qa_results/', artifacts_dir='validation_artifacts/') {
     def xml_file = "${name}_report.xml"
     def common = new com.mirantis.mk.Common()
+    common.errorMsg('You are using deprecated method! Please migrate to validate.runTests. This method will be removed')
+    error('You are using deprecated method! Please migrate to validate.runTests. This method will be removed')
     def salt = new com.mirantis.mk.Salt()
     def creds = common.getCredentials(salt_credentials)
     def username = creds.username
@@ -316,6 +330,7 @@ def runTests(salt_url, salt_credentials, test_set="", output_dir="validation_art
 }
 
 /**
+ * DEPRECATED
  * Execute tempest tests
  *
  * @param target            Host to run tests
@@ -330,6 +345,9 @@ def runTests(salt_url, salt_credentials, test_set="", output_dir="validation_art
  */
 def runTempestTests(master, target, dockerImageLink, output_dir, confRepository, confBranch, repository, version, pattern = "false", results = '/root/qa_results') {
     def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+    common.errorMsg('You are using deprecated method! This method will be removed')
+    error('You are using deprecated method! This method will be removed')
     def output_file = 'docker-tempest.log'
     def dest_folder = '/home/rally/qa_results'
     def skip_list = '--skip-list /opt/devops-qa-tools/deployment/skip_contrail.list'
@@ -562,6 +580,7 @@ def runRallyTests(
 }
 
 /**
+ * DEPRECATED
  * Generate test report
  *
  * @param target            Host to run script from
@@ -573,6 +592,8 @@ def generateTestReport(master, target, dockerImageLink, output_dir, results = '/
     def report_file = 'jenkins_test_report.html'
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
+    common.errorMsg('You are using deprecated method! This method will be removed')
+    error('You are using deprecated method! This method will be removed')
     def dest_folder = '/opt/devops-qa-tools/generate_test_report/test_results'
     salt.runSaltProcessStep(master, target, 'file.remove', ["${results}"])
     salt.runSaltProcessStep(master, target, 'file.mkdir', ["${results}", "mode=777"])
@@ -608,6 +629,7 @@ def generateTestReport(master, target, dockerImageLink, output_dir, results = '/
 }
 
 /**
+ * DEPRECATED
  * Execute SPT tests
  *
  * @param target            Host to run tests
@@ -618,6 +640,9 @@ def generateTestReport(master, target, dockerImageLink, output_dir, results = '/
  */
 def runSptTests(master, target, dockerImageLink, output_dir, ext_variables = [], results = '/root/qa_results') {
     def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+    common.errorMsg('You are using deprecated method! This method will be removed')
+    error('You are using deprecated method! This method will be removed')
     def dest_folder = '/home/rally/qa_results'
     salt.runSaltProcessStep(master, target, 'file.remove', ["${results}"])
     salt.runSaltProcessStep(master, target, 'file.mkdir', ["${results}", "mode=777"])
