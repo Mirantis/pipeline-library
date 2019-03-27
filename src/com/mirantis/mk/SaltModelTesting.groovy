@@ -50,17 +50,21 @@ def setupDockerAndTest(LinkedHashMap config) {
     if (baseRepoPreConfig) {
         // extra repo on mirror.mirantis.net, which is not supported before 2018.11.0 release
         def extraRepoSource = "deb [arch=amd64] http://mirror.mirantis.com/${distribRevision}/extra/xenial xenial main"
+        def releaseVersionQ4 = '2018.11.0'
+        def oldRelease = false
         try {
             def releaseNaming = 'yyyy.MM.dd'
             def repoDateUsed = new Date().parse(releaseNaming, distribRevision)
-            def extraAvailableFrom = new Date().parse(releaseNaming, '2018.11.0')
+            def extraAvailableFrom = new Date().parse(releaseNaming, releaseVersionQ4)
             if (repoDateUsed < extraAvailableFrom) {
                 extraRepoSource = "deb http://apt.mcp.mirantis.net/xenial ${distribRevision} extra"
+                oldRelease = true
             }
         } catch (Exception e) {
             common.warningMsg(e)
             if (!(distribRevision in ['nightly', 'proposed', 'testing'])) {
                 extraRepoSource = "deb [arch=amd64] http://apt.mcp.mirantis.net/xenial ${distribRevision} extra"
+                oldRelease = true
             }
         }
 
@@ -96,6 +100,12 @@ repo:
         def extraRepoMergeStrategy = config.get('extraRepoMergeStrategy', 'override')
         def extraRepos = config.get('extraRepos', [:])
         def defaultRepos = readYaml text: defaultExtraReposYaml
+        if (! oldRelease && distribRevision != releaseVersionQ4) {
+            defaultRepos['repo']['mcp_saltformulas_update'] = [
+                'source': "deb [arch=amd64]  http://mirror.mirantis.com/update/${distribRevision}/salt-formulas/xenial xenial main",
+                'repo_key': "http://mirror.mirantis.com/update/${distribRevision}/salt-formulas/xenial/archive-salt-formulas.key"
+            ]
+        }
         if (extraRepoMergeStrategy == 'merge') {
             extraReposConfig = common.mergeMaps(defaultRepos, extraRepos)
         } else {
