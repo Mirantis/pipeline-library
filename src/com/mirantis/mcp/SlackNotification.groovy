@@ -29,11 +29,13 @@ def sendPostRequest(String urlString, String paramString){
  * @param buildUrl build url param, if empty env.BUILD_URL will be used
  * @param channel param, default is '#mk-ci'
  * @param credentialsId slack hook url credential, default is 'SLACK_WEBHOOK_URL'
+ * @param description Additional text related to Job result
  */
 def jobResultNotification(String buildStatusParam, String channel = "#mk-ci",
                           String jobName=null,
                           Number buildNumber=null, String buildUrl=null,
-                          String credentialsId="SLACK_WEBHOOK_URL") {
+                          String credentialsId="SLACK_WEBHOOK_URL",
+                          String description='') {
     def jobNameParam = jobName != null && jobName != "" ? jobName : env.JOB_NAME
     def buildUrlParam = buildUrl != null && buildUrl != "" ? buildUrl : env.BUILD_URL
     def buildNumberParam = buildNumber != null && buildNumber != "" ? buildNumber : env.BUILD_NUMBER
@@ -54,7 +56,7 @@ def jobResultNotification(String buildStatusParam, String channel = "#mk-ci",
     }
 
     queryString = 'payload={' +
-            "'text':'${buildStatusParam.toUpperCase()}: Job <${buildUrlParam}|${jobNameParam} [${buildNumberParam}]>', " +
+            "'text':'${buildStatusParam.toUpperCase()}: Job <${buildUrlParam}|${jobNameParam} [${buildNumberParam}]>\\n ${description}', " +
             "'color':'${colorCode}'," +
             "'pretext': '', " +
             '"icon_url": "https://cfr.slack-edge.com/ae7f/img/services/jenkins-ci_192.png",' +
