@@ -508,7 +508,7 @@ def checkTargetMinionsReady(LinkedHashMap config) {
         if (checkAvailability) {
             minionsReachable(saltId, 'I@salt:master', target_reachable)
         }
-        def running = salt.runSaltProcessStep(saltId, target, 'saltutil.running', [], null, true, timeout)
+        def running = runSaltProcessStep(saltId, target, 'saltutil.running', [], null, true, timeout)
         for (value in running.get("return")[0].values()) {
             if (value != []) {
                 throw new Exception("Not all salt-minions are ready for execution")
