@@ -484,6 +484,39 @@ def minionsReachable(saltId, target, target_nodes, batch=null, wait = 10, maxRet
 }
 
 /**
+ * You can call this function when need to check that all minions are available, free and ready for command execution
+ * @param config LinkedHashMap config parameter, which contains next:
+ *   @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
+ *   @param target unique identification of a minion or group of salt minions
+ *   @param target_reachable unique identification of a minion or group of salt minions to check availability
+ *   @param wait timeout between retries to check target minions (default 5)
+ *   @param retries finite number of iterations to check minions (default 10)
+ *   @param timeout timeout for the salt command if minions do not return (default 5)
+ *   @param availability check that minions also are available before checking readiness (default true)
+ */
+def checkTargetMinionsReady(LinkedHashMap config) {
+    def common = new com.mirantis.mk.Common()
+    def saltId = config.get('saltId')
+    def target = config.get('target')
+    def target_reachable = config.get('target_reachable', target)
+    def wait = config.get('wait', 30)
+    def retries = config.get('retries', 10)
+    def timeout = config.get('timeout', 5)
+    def checkAvailability = config.get('availability', true)
+    common.retry(retries, wait) {
+        if (checkAvailability) {
+            minionsReachable(saltId, 'I@salt:master', target_reachable)
+        }
+        def running = runSaltProcessStep(saltId, target, 'saltutil.running', [], null, true, timeout)
+        for (value in running.get("return")[0].values()) {
+            if (value != []) {
+                throw new Exception("Not all salt-minions are ready for execution")
+            }
+        }
+    }
+}
+
+/**
  * Run command on salt minion (salt cmd.run wrapper)
  * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Get pillar target
