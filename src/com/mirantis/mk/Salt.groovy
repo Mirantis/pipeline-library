@@ -1226,3 +1226,66 @@ def getIPAddressesForNodenames(saltId, nodes = [], useGrains = true) {
     }
     return result
 }
+
+/**
+* Checks if required package is installed and returns averaged IO stats for selected disks.
+* Allows getting averaged values of specific parameter for all disks or a specified disk.
+* Interval between checks and its number is parametrized and configurable.
+*
+* @param saltId         Salt Connection object or pepperEnv (the command will be sent using the selected method)
+* @param target         Node to be targeted (Should only match 1 node)
+* @param parameterName  Name of parameter from 'iostat' output (default = '' -- returns all variables)
+* @param interval       Interval between checks (default = 1)
+* @param count          Number of checks (default = 5)
+* @param disks          Disks to be checked (default = '' -- returns all disks)
+* @param output         Print Salt command return (default = true)
+* @return Map           Map containing desired values in format ['disk':'value']
+*/
+
+def getIostatValues(Map params) {
+    def common = new com.mirantis.mk.Common()
+    def ret = [:]
+    if (isPackageInstalled(params.saltId, params.target, 'sysstat', false)) {
+        def arg = [params.get('interval', 1), params.get('count', 5), params.get('disks', '')]
+        def res = getReturnValues(runSaltProcessStep(params.saltId, params.target, 'disk.iostat', arg, null, params.output))
+        if (res instanceof Map) {
+            for (int i = 0; i < res.size(); i++) {
+                def key = res.keySet()[i]
+                if (params.containsKey('parameterName')) {
+                    if (res[key].containsKey(params.parameterName)){
+                        ret[key] = res[key][params.parameterName]
+                    } else {
+                        common.errorMsg("Parameter '${params.parameterName}' not found for disk '${key}'. Valid parameter for this disk are: '${res[key].keySet()}'")
+                    }
+                } else {
+                    return res      // If no parameterName is defined, return all of them.
+                }
+            }
+        }
+    } else {
+        common.errorMsg("Package 'sysstat' seems not to be installed on at least one of tageted nodes: ${params.target}. Please fix this to be able to check 'iostat' values. Find more in the docs TODO:<Add docs link>")
+    }
+    return ret
+}
+
+/**
+* Checks if defined package is installed on all nodes defined by target parameter.
+*
+* @param saltId         Salt Connection object or pepperEnv (the command will be sent using the selected method)
+* @param target         Node or nodes to be targeted
+* @param packageName    Name of package to be checked
+* @param output         Print Salt command return (default = true)
+* @return boolean       True if package is installed on all defined nodes. False if not found on at least one of defined nodes.
+*/
+
+def isPackageInstalled(Map params) {
+    def output = params.get('output', true)
+    def res = runSaltProcessStep(params.saltId, params.target, "pkg.info_installed", params.packageName, null, output)['return'][0]
+    for (int i = 0; i < res.size(); i++) {
+        def key = res.keySet()[i]
+        if (!(res[key] instanceof Map && res[key].containsKey(params.packageName))) {
+            return false
+        }
+    }
+    return true
+}
