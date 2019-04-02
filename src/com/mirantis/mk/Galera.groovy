@@ -97,6 +97,25 @@ def verifyGaleraStatus(env, slave=false, checkTimeSync=false) {
         common.errorMsg("No Galera slave was reachable.")
         return 130
     }
+    def checkTargets = salt.getMinions(env, "I@xtrabackup:client or I@xtrabackup:server")
+    for (checkTarget in checkTargets) {
+        def nodeStatus = salt.minionsReachable(env, 'I@salt:master', checkTarget, null, 10, 5)
+        if (nodeStatus != null) {
+            def iostatRes = salt.getIostatValues(['saltId': env, 'target': checkTarget, 'parameterName': "%util", 'output': true])
+            if (iostatRes == [:]) {
+                common.errorMsg("Recevived empty response from iostat call on ${checkTarget}. Maybe 'sysstat' package is not installed?")
+                return 140
+            }
+            for (int i = 0; i < iostatRes.size(); i++) {
+                def diskKey = iostatRes.keySet()[i]
+                if (!(iostatRes[diskKey].toString().isBigDecimal() && (iostatRes[diskKey].toBigDecimal() < 50 ))) {
+                    common.errorMsg("Disk ${diskKey} has to high i/o utilization. Maximum value is 50 and current value is ${iostatRes[diskKey]}.")
+                    return 141
+                }
+            }
+        }
+    }
+    common.infoMsg("Disk i/o utilization was checked and everything seems to be in order.")
     if (checkTimeSync && !salt.checkClusterTimeSync(env, "I@galera:master or I@galera:slave")) {
         common.errorMsg("Time in cluster is desynchronized or it couldn't be detemined. You should fix this issue manually before proceeding.")
         return 131
