@@ -68,6 +68,7 @@ def verifyGaleraStatus(env, slave=false, checkTimeSync=false) {
             testNode = "I@galera:master"
         } catch (Exception e) {
             common.errorMsg('Galera master is not reachable.')
+            common.errorMsg(e.getMessage())
             return 128
         }
     } else {
@@ -76,6 +77,7 @@ def verifyGaleraStatus(env, slave=false, checkTimeSync=false) {
             common.infoMsg("Testing Galera slave minions: ${galeraSlaves}")
         } catch (Exception e) {
             common.errorMsg("Cannot obtain Galera slave minions list.")
+            common.errorMsg(e.getMessage())
             return 129
         }
         for (minion in galeraSlaves) {
@@ -100,6 +102,7 @@ def verifyGaleraStatus(env, slave=false, checkTimeSync=false) {
         out = salt.runSaltProcessStep(env, "${testNode}", "mysql.status", [], null, false)
     } catch (Exception e) {
         common.errorMsg('Could not determine mysql status.')
+        common.errorMsg(e.getMessage())
         return 256
     }
     if (out) {
@@ -107,6 +110,7 @@ def verifyGaleraStatus(env, slave=false, checkTimeSync=false) {
             status = validateAndPrintGaleraStatusReport(env, out, testNode)
         } catch (Exception e) {
             common.errorMsg('Could not parse the mysql status output. Check it manually.')
+            common.errorMsg(e.getMessage())
             return 1
         }
     } else {
@@ -240,8 +244,9 @@ def getGaleraLastShutdownNode(env, nodes = []) {
         } else {
             members = salt.getReturnValues(salt.getPillar(env, "I@galera:master", "galera:master:members"))
         }
-    } catch (Exception er) {
+    } catch (Exception e) {
         common.errorMsg('Could not retrieve members list')
+        common.errorMsg(e.getMessage())
         return 'I@galera:master'
     }
     if (members) {
@@ -259,8 +264,9 @@ def getGaleraLastShutdownNode(env, nodes = []) {
                 if (seqno > highestSeqno) {
                     lastNode << [ip: "${member.host}", seqno: seqno]
                 }
-            } catch (Exception er) {
+            } catch (Exception e) {
                 common.warningMsg("Could not determine 'seqno' value for node ${member.host} ")
+                common.warningMsg(e.getMessage())
             }
         }
     }
