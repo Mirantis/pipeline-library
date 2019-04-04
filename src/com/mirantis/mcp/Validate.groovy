@@ -639,6 +639,7 @@ def configureContainer(master, target, proxy, testing_tools_repo, tempest_repo,
                        tempest_endpoint_type="internalURL", tempest_version="",
                        conf_script_path="", ext_variables = []) {
     def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
     if (testing_tools_repo != "" ) {
         if (testing_tools_repo.contains('http://') || testing_tools_repo.contains('https://')) {
             salt.cmdRun(master, target, "docker exec cvp git clone ${testing_tools_repo} cvp-configuration")
@@ -653,7 +654,7 @@ def configureContainer(master, target, proxy, testing_tools_repo, tempest_repo,
         salt.cmdRun(master, target, "docker exec -e " + ext_variables.join(' -e ') + " cvp bash -c ${configure_script}")
     }
     else {
-        common.infoMsg("TOOLS_REPO is empty, no confguration is needed for container")
+        common.infoMsg("TOOLS_REPO is empty, no configuration is needed for this container")
     }
 }
 
