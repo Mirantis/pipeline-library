@@ -1245,7 +1245,7 @@ def getIPAddressesForNodenames(saltId, nodes = [], useGrains = true) {
 def getIostatValues(Map params) {
     def common = new com.mirantis.mk.Common()
     def ret = [:]
-    if (isPackageInstalled(params.saltId, params.target, 'sysstat', false)) {
+    if (isPackageInstalled(['saltId': params.saltId, 'target': params.target, 'packageName': 'sysstat', 'output': false])) {
         def arg = [params.get('interval', 1), params.get('count', 5), params.get('disks', '')]
         def res = getReturnValues(runSaltProcessStep(params.saltId, params.target, 'disk.iostat', arg, null, params.output))
         if (res instanceof Map) {
