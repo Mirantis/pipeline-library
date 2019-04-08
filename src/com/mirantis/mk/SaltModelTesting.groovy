@@ -120,6 +120,7 @@ repo:
         img.inside(dockerOptsFinal) {
             withEnv(envOpts) {
                 try {
+                    sh('printenv |sort -u')
                     // Currently, we don't have any other point to install
                     // runtime dependencies for tests.
                     if (baseRepoPreConfig) {
