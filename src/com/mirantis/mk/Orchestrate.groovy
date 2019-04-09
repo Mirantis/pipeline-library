@@ -683,9 +683,6 @@ def installKubernetesCompute(master, extra_tgt = '') {
 
     // Install Kubernetes and Calico
     salt.enforceState([saltId: master, target: "I@kubernetes:pool and not I@kubernetes:master ${extra_tgt}", state: 'kubernetes.pool'])
-
-    // Install Tiller and all configured releases
-    salt.enforceStateWithTest([saltId: master, target: "I@helm:client ${extra_tgt}", state: 'helm'])
     salt.runSaltProcessStep(master, "I@kubernetes:pool and not I@kubernetes:master ${extra_tgt}", 'service.restart', ['kubelet'])
 }
 
