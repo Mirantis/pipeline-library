@@ -445,8 +445,7 @@ def install_docker(master, target) {
 def uploadResultsTestrail(report, image, testGroup, credentialsId, plan, milestone, suite, master = null, target = 'cfg01*') {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
-    common.errorMsg('You are using deprecated method! Try Common.uploadResultsTestRail instead. This method will be removed')
-    error('You are using deprecated method! Try Common.uploadResultsTestRail instead. This method will be removed')
+    common.errorMsg('We may deprecated this method! Check tcp_qa Common.uploadResultsTestRail instead.')
     creds = common.getPasswordCredentials(credentialsId)
     command =  "docker run --rm --net=host " +
                            "-v ${report}:/srv/report.xml " +
