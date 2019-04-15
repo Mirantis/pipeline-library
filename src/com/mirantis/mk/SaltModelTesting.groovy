@@ -33,7 +33,7 @@ def setupDockerAndTest(LinkedHashMap config) {
     def dockerContainerName = config.get('dockerContainerName', defaultContainerName)
     //  def dockerImageName = config.get('image', "mirantis/salt:saltstack-ubuntu-xenial-salt-2017.7")
     // FIXME /PROD-25244
-    def dockerImageName = config.get('image', "docker-dev-virtual.docker.mirantis.net/mirantis/salt:saltstack-ubuntu-xenial-salt-2017.7")
+    def dockerImageName = config.get('image', "docker-prod-virtual.docker.mirantis.net/mirantis/salt:saltstack-ubuntu-xenial-salt-2017.7")
     def dockerMaxCpus = config.get('dockerMaxCpus', 4)
     def dockerExtraOpts = config.get('dockerExtraOpts', [])
     def envOpts = config.get('envOpts', [])
