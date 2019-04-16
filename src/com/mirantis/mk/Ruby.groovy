@@ -9,13 +9,12 @@ package com.mirantis.mk
  * @param rubyVersion target ruby version (optional, default 2.2.3)
  */
 def ensureRubyEnv(rubyVersion="2.4.1"){
-    def ruby_build_root = "${env.WORKSPACE}/.rbenv/plugins/ruby-build"
     if (!fileExists("/var/lib/jenkins/.rbenv/versions/${rubyVersion}/bin/ruby")){
         //XXX: patch ruby-build because debian package is quite old
+        sh "git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build || git -C ~/.rbenv/plugins/ruby-build pull"
         sh "rbenv install ${rubyVersion} -sv";
     }
     sh "rbenv local ${rubyVersion};rbenv exec gem update --system"
-    sh "rm -rf ${ruby_build_root}"
 }
 
 /**
