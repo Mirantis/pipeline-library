@@ -628,7 +628,7 @@ def installKubernetesControl(master, extra_tgt = '') {
     salt.enforceStateWithTest([saltId: master, target: "I@docker:host ${extra_tgt}", state: 'docker.host'])
 
      // If network engine is not opencontrail, run addons state for kubernetes
-    if (!salt.getPillar(master, "I@kubernetes:master ${extra_tgt}", 'kubernetes:master:network:opencontrail:enabled')) {
+    if (!salt.getReturnValues(salt.getPillar(master, "I@kubernetes:master ${extra_tgt}", 'kubernetes:master:network:opencontrail:enabled'))) {
         salt.enforceState([saltId: master, target: "I@kubernetes:master ${extra_tgt}", state: 'kubernetes.master.kube-addons'])
     }
 
@@ -646,16 +646,18 @@ def installKubernetesControl(master, extra_tgt = '') {
 
     // If network engine is opencontrail, run master state for kubernetes without kube-addons
     // The kube-addons state will be called later only in case of opencontrail
-    if (salt.getPillar(master, "I@kubernetes:master ${extra_tgt}", 'kubernetes:master:network:opencontrail:enabled')) {
+    if (salt.getReturnValues(salt.getPillar(master, "I@kubernetes:master ${extra_tgt}", 'kubernetes:master:network:opencontrail:enabled'))) {
         // Run k8s on first node without master.setup and master.kube-addons
         salt.enforceStateWithExclude([saltId: master, target: "${first_target} ${extra_tgt}", state: "kubernetes.master", excludedStates: "kubernetes.master.setup,kubernetes.master.kube-addons"])
         // Run k8s without master.setup and master.kube-addons
         salt.enforceStateWithExclude([saltId: master, target: "I@kubernetes:master ${extra_tgt}", state: "kubernetes", excludedStates: "kubernetes.master.setup,kubernetes.master.kube-addons,kubernetes.client"])
     } else {
         // Run k8s on first node without master.setup and master.kube-addons
-        salt.enforceStateWithExclude([saltId: master, target: "${first_target} ${extra_tgt}", state: "kubernetes.master", excludedStates: "kubernetes.master.setup"])
+        salt.enforceStateWithExclude([saltId: master, target: "${first_target} ${extra_tgt}", state: "kubernetes.master", excludedStates: "kubernetes.master.setup,kubernetes.master.kube-addons"])
         // Run k8s without master.setup
-        salt.enforceStateWithExclude([saltId: master, target: "I@kubernetes:master ${extra_tgt}", state: "kubernetes", excludedStates: "kubernetes.master.setup,kubernetes.client"])
+        salt.enforceStateWithExclude([saltId: master, target: "I@kubernetes:master ${extra_tgt}", state: "kubernetes", excludedStates: "kubernetes.master.setup,kubernetes.client,kubernetes.control*"])
+        // Run k8s control on first node only
+        salt.enforceState([saltId: master, target: "${first_target} ${extra_tgt}", state: 'kubernetes.control'])
     }
 
     // Run k8s master setup
