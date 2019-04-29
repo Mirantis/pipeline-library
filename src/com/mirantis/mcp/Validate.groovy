@@ -91,15 +91,26 @@ def _get_keystone_creds_v2(master){
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
     def keystone = []
+    _pillar = false
     common.infoMsg("Fetching Keystone v2 credentials")
-    _pillar = salt.getPillar(master, 'I@keystone:server', 'keystone:server')['return'][0].values()[0]
-    keystone.add("OS_USERNAME=${_pillar.admin_name}")
-    keystone.add("OS_PASSWORD=${_pillar.admin_password}")
-    keystone.add("OS_TENANT_NAME=${_pillar.admin_tenant}")
-    keystone.add("OS_AUTH_URL=http://${_pillar.bind.private_address}:${_pillar.bind.private_port}/v2.0")
-    keystone.add("OS_REGION_NAME=${_pillar.region}")
-    keystone.add("OS_ENDPOINT_TYPE=admin")
-    return keystone
+    _response = salt.runSaltProcessStep(master, 'I@keystone:server', 'pillar.get', 'keystone:server', null, false, 1)['return'][0]
+    for (i = 0; i < _response.keySet().size(); i++) {
+        if ( _response.values()[i] ) {
+            _pillar = _response.values()[i]
+        }
+    }
+    if (_pillar) {
+        keystone.add("OS_USERNAME=${_pillar.admin_name}")
+        keystone.add("OS_PASSWORD=${_pillar.admin_password}")
+        keystone.add("OS_TENANT_NAME=${_pillar.admin_tenant}")
+        keystone.add("OS_AUTH_URL=http://${_pillar.bind.private_address}:${_pillar.bind.private_port}/v2.0")
+        keystone.add("OS_REGION_NAME=${_pillar.region}")
+        keystone.add("OS_ENDPOINT_TYPE=admin")
+        return keystone
+    }
+    else {
+        throw new Exception("Cannot fetch Keystone v2 credentials. Response: ${_response}")
+    }
 }
 
 /**
@@ -109,9 +120,15 @@ def _get_keystone_creds_v2(master){
 def _get_keystone_creds_v3(master){
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
+    _pillar = false
     pillar_name = 'keystone:client:os_client_config:cfgs:root:content:clouds:admin_identity'
     common.infoMsg("Fetching Keystone v3 credentials")
-    def _pillar = salt.getPillar(master, 'I@keystone:client', pillar_name)['return'][0].values()[0]
+    _response = salt.runSaltProcessStep(master, 'I@keystone:server', 'pillar.get', pillar_name, null, false, 1)['return'][0]
+    for (i = 0; i < _response.keySet().size(); i++) {
+        if ( _response.values()[i] ) {
+            _pillar = _response.values()[i]
+        }
+    }
     def keystone = []
     if (_pillar) {
         keystone.add("OS_USERNAME=${_pillar.auth.username}")
