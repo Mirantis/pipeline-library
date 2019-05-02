@@ -94,18 +94,21 @@ def verifyGaleraStatus(env, slave=false, checkTimeSync=false) {
         common.errorMsg("No Galera slave was reachable.")
         return 130
     }
-    def checkTargets = salt.getMinions(env, "I@salt:master or I@salt:minion")
+    def checkTargets = salt.getMinions(env, "I@xtrabackup:client or I@xtrabackup:server")
     for (checkTarget in checkTargets) {
-        def iostatRes = salt.getIostatValues(['saltId': env, 'target': checkTarget, 'parameterName': "%util", 'output': true])
-        if (iostatRes == [:]) {
-            common.errorMsg("Recevived empty response from iostat call on ${checkTarget}. Maybe 'sysstat' package is not installed?")
-            return 140
-        }
-        for (int i = 0; i < iostatRes.size(); i++) {
-            def diskKey = iostatRes.keySet()[i]
-            if (!(iostatRes[diskKey].toString().isBigDecimal() && (iostatRes[diskKey].toBigDecimal() < 0.5 ))) {
-                common.errorMsg("Disk ${diskKey} has to high i/o utilization. Maximum value is 0.5 and current value is ${iostatRes[diskKey]}.")
-                return 141
+        def nodeStatus = salt.minionsReachable(env, 'I@salt:master', checkTarget, null, 10, 5)
+        if (nodeStatus != null) {
+            def iostatRes = salt.getIostatValues(['saltId': env, 'target': checkTarget, 'parameterName': "%util", 'output': true])
+            if (iostatRes == [:]) {
+                common.errorMsg("Recevived empty response from iostat call on ${checkTarget}. Maybe 'sysstat' package is not installed?")
+                return 140
+            }
+            for (int i = 0; i < iostatRes.size(); i++) {
+                def diskKey = iostatRes.keySet()[i]
+                if (!(iostatRes[diskKey].toString().isBigDecimal() && (iostatRes[diskKey].toBigDecimal() < 0.5 ))) {
+                    common.errorMsg("Disk ${diskKey} has to high i/o utilization. Maximum value is 0.5 and current value is ${iostatRes[diskKey]}.")
+                    return 141
+                }
             }
         }
     }
