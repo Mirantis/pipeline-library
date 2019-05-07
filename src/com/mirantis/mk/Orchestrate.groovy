@@ -973,7 +973,8 @@ def installStacklight(master, extra_tgt = '') {
 
     common.infoMsg("Waiting for service on http://${stacklight_vip}:15013/ to start")
     sleep(120)
-    salt.enforceState([saltId: master, target: "I@grafana:client ${extra_tgt}", state: 'grafana.client'])
+
+    salt.enforceState([saltId: master, target: "I@grafana:client ${extra_tgt}", state: 'grafana.client', retries: step_retries, retries_wait: step_retries_wait])
 }
 
 def installStacklightv1Control(master, extra_tgt = '') {
