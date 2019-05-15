@@ -99,12 +99,16 @@ repo:
         // override for now
         def extraRepoMergeStrategy = config.get('extraRepoMergeStrategy', 'override')
         def extraRepos = config.get('extraRepos', [:])
+        def updateSaltFormulas = config.get('updateSaltFormulas', true).toBoolean()
         def defaultRepos = readYaml text: defaultExtraReposYaml
-        if (! oldRelease && distribRevision != releaseVersionQ4) {
-            defaultRepos['repo']['mcp_saltformulas_update'] = [
-                'source': "deb [arch=amd64]  http://mirror.mirantis.com/update/${distribRevision}/salt-formulas/xenial xenial main",
-                'repo_key': "http://mirror.mirantis.com/update/${distribRevision}/salt-formulas/xenial/archive-salt-formulas.key"
-            ]
+        // Don't check for magic, if set explicitly
+        if (updateSaltFormulas) {
+            if (!oldRelease && distribRevision != releaseVersionQ4) {
+                defaultRepos['repo']['mcp_saltformulas_update'] = [
+                    'source'  : "deb [arch=amd64]  http://mirror.mirantis.com/update/${distribRevision}/salt-formulas/xenial xenial main",
+                    'repo_key': "http://mirror.mirantis.com/update/${distribRevision}/salt-formulas/xenial/archive-salt-formulas.key"
+                ]
+            }
         }
         if (extraRepoMergeStrategy == 'merge') {
             extraReposConfig = common.mergeMaps(defaultRepos, extraRepos)
