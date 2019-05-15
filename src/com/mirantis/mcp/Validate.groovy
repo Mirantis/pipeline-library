@@ -634,14 +634,15 @@ def runSptTests(master, target, dockerImageLink, output_dir, ext_variables = [],
  * @param tempest_version	        Version of tempest to use. This value will be just passed to configure.sh script (cvp-configuration repo).
  * @param conf_script_path              Path to configuration script.
  * @param ext_variables                 Some custom extra variables to add into container
+ * @param container_name                Name of container to use
  */
 def configureContainer(master, target, proxy, testing_tools_repo, tempest_repo,
                        tempest_endpoint_type="internalURL", tempest_version="",
-                       conf_script_path="", ext_variables = []) {
+                       conf_script_path="", ext_variables = [], container_name="cvp") {
     def salt = new com.mirantis.mk.Salt()
     if (testing_tools_repo != "" ) {
         if (testing_tools_repo.contains('http://') || testing_tools_repo.contains('https://')) {
-            salt.cmdRun(master, target, "docker exec cvp git clone ${testing_tools_repo} cvp-configuration")
+            salt.cmdRun(master, target, "docker exec ${container_name} git clone ${testing_tools_repo} cvp-configuration")
             configure_script = conf_script_path != "" ? conf_script_path : "cvp-configuration/configure.sh"
         }
         else {
@@ -650,7 +651,7 @@ def configureContainer(master, target, proxy, testing_tools_repo, tempest_repo,
         ext_variables.addAll("PROXY=${proxy}", "TEMPEST_REPO=${tempest_repo}",
                              "TEMPEST_ENDPOINT_TYPE=${tempest_endpoint_type}",
                              "tempest_version=${tempest_version}")
-        salt.cmdRun(master, target, "docker exec -e " + ext_variables.join(' -e ') + " cvp bash -c ${configure_script}")
+        salt.cmdRun(master, target, "docker exec -e " + ext_variables.join(' -e ') + " ${container_name} bash -c ${configure_script}")
     }
     else {
         common.infoMsg("TOOLS_REPO is empty, no confguration is needed for container")
@@ -689,16 +690,17 @@ def runCVPtempest(master, target, test_pattern="set=smoke", skip_list="", output
  * @param test_pattern                  Test pattern to run
  * @param scenarios_path                Path to Rally scenarios
  * @param output_dir                    Directory on target host for storing results (containers is not a good place)
+ * @param container_name                Name of container to use
  */
-def runCVPrally(master, target, scenarios_path, output_dir, output_filename="docker-rally") {
+def runCVPrally(master, target, scenarios_path, output_dir, output_filename="docker-rally", container_name="cvp") {
     def salt = new com.mirantis.mk.Salt()
     def xml_file = "${output_filename}.xml"
     def html_file = "${output_filename}.html"
-    salt.cmdRun(master, target, "docker exec cvp rally task start ${scenarios_path}")
-    salt.cmdRun(master, target, "docker exec cvp rally task report --out ${html_file}")
-    salt.cmdRun(master, target, "docker exec cvp rally task report --junit --out ${xml_file}")
-    salt.cmdRun(master, target, "docker cp cvp:/home/rally/${xml_file} ${output_dir}")
-    salt.cmdRun(master, target, "docker cp cvp:/home/rally/${html_file} ${output_dir}")
+    salt.cmdRun(master, target, "docker exec ${container_name} rally task start ${scenarios_path}")
+    salt.cmdRun(master, target, "docker exec ${container_name} rally task report --out ${html_file}")
+    salt.cmdRun(master, target, "docker exec ${container_name} rally task report --junit --out ${xml_file}")
+    salt.cmdRun(master, target, "docker cp ${container_name}:/home/rally/${xml_file} ${output_dir}")
+    salt.cmdRun(master, target, "docker cp ${container_name}:/home/rally/${html_file} ${output_dir}")
 }
 
 
