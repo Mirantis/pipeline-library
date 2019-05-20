@@ -696,9 +696,9 @@ def runCVPrally(master, target, scenarios_path, output_dir, output_filename="doc
     def salt = new com.mirantis.mk.Salt()
     def xml_file = "${output_filename}.xml"
     def html_file = "${output_filename}.html"
-    salt.cmdRun(master, target, "docker exec ${container_name} rally task start ${scenarios_path}")
-    salt.cmdRun(master, target, "docker exec ${container_name} rally task report --out ${html_file}")
-    salt.cmdRun(master, target, "docker exec ${container_name} rally task report --junit --out ${xml_file}")
+    salt.cmdRun(master, target, "docker exec ${container_name} rally task start ${scenarios_path}", false)
+    salt.cmdRun(master, target, "docker exec ${container_name} rally task report --out /home/rally/${html_file}", false)
+    salt.cmdRun(master, target, "docker exec ${container_name} rally task report --junit --out /home/rally/${xml_file}", false)
     salt.cmdRun(master, target, "docker cp ${container_name}:/home/rally/${xml_file} ${output_dir}")
     salt.cmdRun(master, target, "docker cp ${container_name}:/home/rally/${html_file} ${output_dir}")
 }
