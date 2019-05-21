@@ -903,10 +903,12 @@ def get_vip_node(master, target) {
  * Find vip on nodes
  *
  * @param target          Host with cvp container
+ * @param container_name  Name of container
+ * @param script_path     Path to cleanup script (inside container)
  */
-def openstack_cleanup(master, target, script_path="/home/rally/cvp-configuration/cleanup.sh") {
+def openstack_cleanup(master, target, container_name="cvp", script_path="/home/rally/cleanup.sh") {
     def salt = new com.mirantis.mk.Salt()
-    salt.runSaltProcessStep(master, "${target}", 'cmd.run', ["docker exec cvp bash -c ${script_path}"])
+    salt.runSaltProcessStep(master, "${target}", 'cmd.run', ["docker exec ${container_name} bash -c ${script_path}"])
 }
 
 
