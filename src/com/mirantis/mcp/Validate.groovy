@@ -33,34 +33,55 @@ def runBasicContainer(master, target, dockerImageLink="xrally/xrally-openstack:0
 /**
  * Run docker container with parameters
  *
- * @param target            Host to run container
- * @param dockerImageLink   Docker image link. May be custom or default rally image
- * @param name              Name for container
- * @param env_var           Environment variables to set in container
- * @param entrypoint        Set entrypoint to /bin/bash or leave default
+ * @param target                Host to run container
+ * @param dockerImageLink       Docker image link. May be custom or default rally image
+ * @param name                  Name for container
+ * @param env_var               Environment variables to set in container
+ * @param entrypoint            Set entrypoint to /bin/bash or leave default
+ * @param mounts                Map with mounts for container
 **/
 
-
-def runContainer(master, target, dockerImageLink, name='cvp', env_var=[], entrypoint=true){
-    def salt = new com.mirantis.mk.Salt()
+def runContainer(Map params){
     def common = new com.mirantis.mk.Common()
+    defaults = ["name": "cvp", "env_var": [], "entrypoint": true]
+    params = defaults + params
+    def salt = new com.mirantis.mk.Salt()
     def variables = ''
     def entry_point = ''
-    def cluster_name = salt.getPillar(master, 'I@salt:master', '_param:cluster_name')['return'][0].values()[0]
-    if ( salt.cmdRun(master, target, "docker ps -f name=${name} -q", false, null, false)['return'][0].values()[0] ) {
-        salt.cmdRun(master, target, "docker rm -f ${name}")
+    def tempest_conf_mount = ''
+    def mounts = ''
+    def cluster_name = salt.getPillar(params.master, 'I@salt:master', '_param:cluster_name')['return'][0].values()[0]
+    default_mounts = ["/etc/ssl/certs/": "/etc/ssl/certs/",
+                      "/srv/salt/pki/${cluster_name}/": "/etc/certs",
+                      "/root/test/": "/root/tempest/",
+                      "/tmp/": "/tmp/",
+                      "/etc/hosts": "/etc/hosts"]
+    params.mounts = default_mounts + params.mounts
+    if ( salt.cmdRun(params.master, params.target, "docker ps -f name=${params.name} -q", false, null, false)['return'][0].values()[0] ) {
+        salt.cmdRun(params.master, params.target, "docker rm -f ${params.name}")
     }
-    if (env_var.size() > 0) {
-        variables = ' -e ' + env_var.join(' -e ')
+    if (params.env_var.size() > 0) {
+        variables = ' -e ' + params.env_var.join(' -e ')
     }
-    if (entrypoint) {
+    if (params.entrypoint) {
         entry_point = '--entrypoint /bin/bash'
     }
-    salt.cmdRun(master, target, "docker run -tid --net=host --name=${name} " +
-                                "-u root ${entry_point} ${variables} " +
-                                "-v /srv/salt/pki/${cluster_name}/:/etc/certs ${dockerImageLink}")
+    params.mounts.each { local, container ->
+        mounts = mounts + " -v ${local}:${container}"
+    }
+    salt.cmdRun(params.master, params.target, "docker run -tid --net=host --name=${params.name}" +
+                                "${mounts} -u root ${entry_point} ${variables} ${params.dockerImageLink}")
 }
 
+def runContainer(master, target, dockerImageLink, name='cvp', env_var=[], entrypoint=true, mounts=[:]){
+    def common = new com.mirantis.mk.Common()
+    common.infoMsg("This method will be deprecated. Convert you method call to use Map as input parameter")
+    // Convert to Map
+    params = ['master': master, 'target': target, 'dockerImageLink': dockerImageLink, 'name': name, 'env_var': env_var,
+              'entrypoint': entrypoint, 'mounts': mounts]
+    // Call new method with Map as parameter
+    return runContainer(params)
+}
 
 /**
  * Get v2 Keystone credentials from pillars
