@@ -265,8 +265,8 @@ def osUpgrade(env, target){
   common.infoMsg("Running upgrade on ${target}")
 
   salt.runSaltProcessStep(env, target, 'pkg.refresh_db', [], null, true)
-  def cmd = 'export DEBIAN_FRONTEND=noninteractive; apt-get -y -q --allow-downgrades -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" upgrade;'
-  salt.runSaltProcessStep(env, target, 'cmd.run', [cmd])
+  def cmd = 'export DEBIAN_FRONTEND=noninteractive; apt-get -y -q --allow-downgrades -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" upgrade'
+  salt.cmdRun(env, target, cmd)
 }
 
 /**
@@ -281,8 +281,8 @@ def osDistUpgrade(env, target){
 
   common.infoMsg("Running dist-upgrade on ${target}")
   salt.runSaltProcessStep(env, target, 'pkg.refresh_db', [], null, true)
-  def cmd = 'export DEBIAN_FRONTEND=noninteractive; apt-get -y -q --allow-downgrades -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" dist-upgrade;'
-  salt.runSaltProcessStep(env, target, 'cmd.run', [cmd])
+  def cmd = 'export DEBIAN_FRONTEND=noninteractive; apt-get -y -q --allow-downgrades -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" dist-upgrade'
+  salt.cmdRun(env, target, cmd)
 }
 
 /**
