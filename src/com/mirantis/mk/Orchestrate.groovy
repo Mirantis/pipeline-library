@@ -878,7 +878,7 @@ def installStacklight(master, extra_tgt = '') {
     // Check ES health cluster status
     def pillar = salt.getReturnValues(salt.getPillar(master, "I@elasticsearch:client ${extra_tgt}", 'elasticsearch:client:server:host'))
     def elasticsearch_vip
-    if(!pillar.isEmpty()) {
+    if(pillar) {
         elasticsearch_vip = pillar
     } else {
         common.errorMsg('[ERROR] Elasticsearch VIP address could not be retrieved')
@@ -886,7 +886,7 @@ def installStacklight(master, extra_tgt = '') {
 
     pillar = salt.getReturnValues(salt.getPillar(master, "I@elasticsearch:client ${extra_tgt}", 'elasticsearch:client:server:port'))
     def elasticsearch_port
-    if(!pillar.isEmpty()) {
+    if(pillar) {
         elasticsearch_port = pillar
     } else {
         common.errorMsg('[ERROR] Elasticsearch VIP port could not be retrieved')
@@ -894,7 +894,7 @@ def installStacklight(master, extra_tgt = '') {
 
     pillar = salt.getReturnValues(salt.getPillar(master, "I@elasticsearch:client ${extra_tgt}", 'elasticsearch:client:server:scheme'))
     def elasticsearch_scheme
-    if(!pillar.isEmpty()) {
+    if(pillar) {
         elasticsearch_scheme = pillar
         common.infoMsg("[INFO] Using elasticsearch scheme: ${elasticsearch_scheme}")
     } else {
