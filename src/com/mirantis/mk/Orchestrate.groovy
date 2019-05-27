@@ -869,26 +869,29 @@ def installStacklight(master, extra_tgt = '') {
     salt.enforceStateWithTest([saltId: master, target: "I@kibana:server:enabled:true ${extra_tgt}", state: 'kibana.server'])
 
     // Check ES health cluster status
-    def pillar = salt.getPillar(master, "I@elasticsearch:client ${extra_tgt}", 'elasticsearch:client:server:host')
+    def pillar = salt.getReturnValues(salt.getPillar(master, "I@elasticsearch:client ${extra_tgt}", 'elasticsearch:client:server:host'))
     def elasticsearch_vip
-    if(!pillar['return'].isEmpty()) {
-        elasticsearch_vip = pillar['return'][0].values()[0]
+    if(pillar) {
+        elasticsearch_vip = pillar
     } else {
         common.errorMsg('[ERROR] Elasticsearch VIP address could not be retrieved')
     }
-    pillar = salt.getPillar(master, "I@elasticsearch:client ${extra_tgt}", 'elasticsearch:client:server:port')
+
+    pillar = salt.getReturnValues(salt.getPillar(master, "I@elasticsearch:client ${extra_tgt}", 'elasticsearch:client:server:port'))
     def elasticsearch_port
-    if(!pillar['return'].isEmpty()) {
-        elasticsearch_port = pillar['return'][0].values()[0]
+    if(pillar) {
+        elasticsearch_port = pillar
     } else {
         common.errorMsg('[ERROR] Elasticsearch VIP port could not be retrieved')
     }
-    pillar = salt.getPillar(master, "I@elasticsearch:client ${extra_tgt}", 'elasticsearch:client:server:scheme')
+
+    pillar = salt.getReturnValues(salt.getPillar(master, "I@elasticsearch:client ${extra_tgt}", 'elasticsearch:client:server:scheme'))
     def elasticsearch_scheme
-    if(!pillar['return'].isEmpty()) {
-        elasticsearch_scheme = pillar['return'][0].values()[0]
+    if(pillar) {
+        elasticsearch_scheme = pillar
+        common.infoMsg("[INFO] Using elasticsearch scheme: ${elasticsearch_scheme}")
     } else {
-        common.infoMsg('No pillar with Elasticsearch server scheme, using http')
+        common.infoMsg('[INFO] No pillar with Elasticsearch server scheme, using scheme: http')
         elasticsearch_scheme = "http"
     }
 
