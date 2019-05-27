@@ -944,7 +944,7 @@ def installStacklight(master, extra_tgt = '') {
     salt.enforceState([saltId: master, target: "I@docker:swarm and I@prometheus:server ${extra_tgt}", state: 'prometheus'])
 
     //Configure Remote Collector in Docker Swarm for Openstack deployments
-    if (!common.checkContains('STACK_INSTALL', 'k8s')) {
+    if (salt.testTarget(master, "I@heka:remote_collector ${extra_tgt}")) {
         salt.enforceState([saltId: master, target: "I@docker:swarm and I@prometheus:server ${extra_tgt}", state: 'heka.remote_collector', failOnError: false])
     }
 
