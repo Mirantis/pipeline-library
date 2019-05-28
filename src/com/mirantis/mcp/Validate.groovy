@@ -475,10 +475,9 @@ def bundle_up_scenarios(scenarios_path, skip_scenarios, bundle_file = '' ) {
  *
  */
 def runRallyTests(
-        platform, scenarios = '',
-        sl_scenarios = '', tasks_args_file = '',
-        db_connection_str = '', tags = [],
-        trends = false, skip_list = ''
+        platform, scenarios = '', sl_scenarios = '',
+        tasks_args_file = '', db_connection_str = '', tags = [],
+        trends = false, skip_list = '', generateReport = true
     ) {
 
     def dest_folder = '/home/rally'
@@ -509,20 +508,25 @@ def runRallyTests(
     def cmd_rally_start
     def cmd_rally_stacklight
     def cmd_rally_task_args = tasks_args_file ?: 'job-params-light.yaml'
-    def cmd_rally_report = 'rally task export ' +
-        '--uuid $(rally task list --uuids-only --status finished) ' +
-        "--type junit-xml --to ${resultsDir}/report-rally.xml; " +
-        'rally task report --uuid $(rally task list --uuids-only --status finished) ' +
-        "--out ${resultsDir}/report-rally.html"
+    def cmd_rally_report = ''
     def cmd_filter_tags = ''
     def trends_limit = 20
+
+    // generate html report if required
+    if (generateReport) {
+        cmd_rally_report = 'rally task export ' +
+            '--uuid $(rally task list --uuids-only --status finished) ' +
+            "--type junit-xml --to ${resultsDir}/report-rally.xml; " +
+            'rally task report --uuid $(rally task list --uuids-only --status finished) ' +
+            "--out ${resultsDir}/report-rally.html; "
+    }
 
     // build rally trends if required
     if (trends && db_connection_str) {
         if (tags) {
             cmd_filter_tags = "--tag " + tags.join(' ')
         }
-        cmd_rally_report += '; rally task trends --tasks ' +
+        cmd_rally_report += 'rally task trends --tasks ' +
             '$(rally task list ' + cmd_filter_tags +
             ' --all-deployments --uuids-only --status finished ' +
             "| head -${trends_limit} ) " +
@@ -611,7 +615,7 @@ def runRallyTests(
         '002_init_rally': cmd_rally_init,
         '003_start_rally': cmd_rally_start ?: "echo no tasks to run",
         '004_start_rally_stacklight': cmd_rally_stacklight ?: "echo no tasks to run",
-        '005_rally_report': cmd_rally_report,
+        '005_rally_report': cmd_rally_report ?: "echo no tasks to run",
     ]
 
     return full_cmd
