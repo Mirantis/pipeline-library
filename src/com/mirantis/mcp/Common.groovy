@@ -1,10 +1,12 @@
 package com.mirantis.mcp
 
+import static org.yaml.snakeyaml.DumperOptions.FlowStyle.BLOCK
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
 
 @Grab(group='org.yaml', module='snakeyaml', version='1.17')
 import org.yaml.snakeyaml.Yaml
+import org.yaml.snakeyaml.DumperOptions
 
 /**
  * https://issues.jenkins-ci.org/browse/JENKINS-26481
@@ -53,7 +55,10 @@ def loadYAML(String data) {
  */
 @NonCPS
 def dumpYAML(Map map) {
-  def yaml = new Yaml()
+  DumperOptions options = new DumperOptions()
+  options.setPrettyFlow(true)
+  options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK)
+  def yaml = new Yaml(options)
   return yaml.dump(map)
 }
 
