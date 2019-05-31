@@ -133,6 +133,7 @@ def uploadConformanceContainerdResults(LinkedHashMap config) {
     def target = config.get('target', 'I@kubernetes:master and ctl01*')
     def status = config.get('status')
     def ctl_target = config.get('ctl_target', 'I@kubernetes:master')
+    def k8s_pool_target = config.get('k8s_pool_target', 'I@kubernetes:pool')
     def results_dir = config.get('results_dir', '/tmp/conformance')
     def artifacts_dir = config.get('artifacts_dir', '_artifacts/')
     def output_file = config.get('output_file', 'conformance.tar')
@@ -142,7 +143,7 @@ def uploadConformanceContainerdResults(LinkedHashMap config) {
     def short_node = locateConformancePod(master, target)
     print("Pod located on $short_node")
 
-    minions = salt.getMinionsSorted(master, ctl_target)
+    minions = salt.getMinionsSorted(master, k8s_pool_target)
     conformance_target = minions.find {it =~ short_node}
 
     if (status == 'NOTEXECUTED') {
@@ -183,12 +184,13 @@ def cleanUpConformancePod(LinkedHashMap config) {
     // Listing defaults
     def master = config.get('master', 'pepperVenv')
     def target = config.get('target', 'I@kubernetes:master and ctl01*')
+    def ctl_target = config.get('ctl_target', 'I@kubernetes:master and ctl01*')
     def pod_path = config.get('pod_path', '/srv/kubernetes/conformance.yml')
     def results_dir = config.get('results_dir', '/tmp/conformance')
     def output_file = config.get('output_file', )
     // End listing defaults
 
-    salt.cmdRun(master, target, "kubectl delete -f ${pod_path}")
+    salt.cmdRun(master, ctl_target, "kubectl delete -f ${pod_path}")
     salt.cmdRun(master, target, "rm -rf ${results_dir}", false)
     salt.cmdRun(master, target, "rm -f ${output_file}", false)
 }
