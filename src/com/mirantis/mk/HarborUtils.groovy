@@ -39,13 +39,11 @@ def getHarborProjectsByPattern(harborApi, projectPattern){
  */
 def getHarborProjectByName(harborApi, projectName){
     def plist = getHarborProjectsByPattern(harborApi, projectName)
-    def id = null
     for (i in plist){
         if (i.get('name') == projectName){
-            id = i['project_id']
+            return i['project_id']
         }
     }
-    return id
 }
 
  /**
