@@ -274,7 +274,9 @@ def installOpenstackControl(master, extra_tgt = '') {
     // Running minion states in a batch to avoid races related to certificates which are placed on glusterfs
     // Details on races: https://mirantis.jira.com/browse/PROD-25796
     // TODO: Run in parallel when glusterfs for certificates is dropped in cookiecutter
-    salt.enforceStateWithTest([saltId: master, target: "I@nginx:server ${extra_tgt}", state: 'salt.minion', batch: 1])
+    salt.enforceStateWithTest([saltId: master, target: "I@nginx:server ${extra_tgt}", state: 'salt.minion', batch: 1, failOnError: false, retries: 2])
+    salt.enforceState([saltId: master, target: "I@nginx:server ${extra_tgt}", state: ['salt.minion']])
+
     salt.enforceStateWithTest([saltId: master, target: "I@nginx:server ${extra_tgt}", state: 'nginx'])
 
     // setup keystone service
@@ -1042,7 +1044,7 @@ def installStacklightv1Client(master, extra_tgt = '') {
     // Install collectd, heka and sensu services on the nodes, this will also
     // generate the metadata that goes into the grains and eventually into Salt Mine
     salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: 'collectd'])
-    salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: 'salt.minion'])
+    salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: 'salt.minion', retries: 2])
     salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: 'heka'])
 
     // Gather the Grafana metadata as grains
