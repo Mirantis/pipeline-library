@@ -312,3 +312,74 @@ LinkedHashMap getDependentPatches(LinkedHashMap changeInfo) {
     }
     return dependentPatches
 }
+
+/**
+ * Find Gerrit change(s) according to various input parameters like owner, topic, etc.
+ * @param gerritAuth        A map containing information about Gerrit. Should include
+ *                          HOST, PORT and USER
+ * @param changeParams      Parameters to identify Geriit change e.g.: owner, topic,
+ *                          status, branch, project
+ */
+def findGerritChange(credentialsId, LinkedHashMap gerritAuth, LinkedHashMap changeParams) {
+    scriptText = """
+                 ssh -p ${gerritAuth['PORT']} ${gerritAuth['USER']}@${gerritAuth['HOST']} \
+                 gerrit query \
+                 --format JSON \
+                 """
+    changeParams.each {
+        scriptText += " ${it.key}:${it.value}"
+    }
+    scriptText += " | fgrep -v runTimeMilliseconds || :"
+    sshagent([credentialsId]) {
+        jsonChange = sh(
+             script:scriptText,
+             returnStdout: true,
+           ).trim()
+    }
+    return jsonChange
+}
+
+/**
+ * Download Gerrit review by number
+ *
+ * @param credentialsId            credentials ID
+ * @param virtualenv               virtualenv path
+ * @param repoDir                  repository directory
+ * @param gitRemote                the value of git remote
+ * @param changeNum                the number of change to download
+ */
+def getGerritChangeByNum(credentialsId, virtualEnv, repoDir, gitRemote, changeNum) {
+    def python = new com.mirantis.mk.Python()
+    sshagent([credentialsId]) {
+        dir(repoDir) {
+            python.runVirtualenvCommand(virtualEnv, "git review -r ${gitRemote} -d ${changeNum}")
+        }
+    }
+}
+
+/**
+ * Post Gerrit review
+ * @param credentialsId            credentials ID
+ * @param virtualenv               virtualenv path
+ * @param repoDir                  repository directory
+ * @param gitName                  committer name
+ * @param gitEmail                 committer email
+ * @param gitRemote                the value of git remote
+ * @param gitTopic                 the name of the topic
+ * @param gitBranch                the name of git branch
+ */
+def postGerritReview(credentialsId, virtualEnv, repoDir, gitName, gitEmail, gitRemote, gitTopic, gitBranch) {
+    def python = new com.mirantis.mk.Python()
+    def cmdText = """
+                    GIT_COMMITTER_NAME=${gitName} \
+                    GIT_COMMITTER_EMAIL=${gitEmail} \
+                    git review -r ${gitRemote} \
+                    -t ${gitTopic} \
+                    ${gitBranch}
+                  """
+    sshagent([credentialsId]) {
+        dir(repoDir) {
+            python.runVirtualenvCommand(virtualEnv, cmdText)
+        }
+    }
+}

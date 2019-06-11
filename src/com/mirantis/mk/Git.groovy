@@ -100,12 +100,19 @@ def createGitBranch(path, branch) {
  * @param path            Path to the git repository
  * @param message         A commit message
  * @param global          Use global config
+ * @param amend           Whether to use "--amend" in commit command
  */
-def commitGitChanges(path, message, gitEmail='jenkins@localhost', gitName='jenkins-slave', global=false) {
+def commitGitChanges(path, message, gitEmail='jenkins@localhost', gitName='jenkins-slave', global=false, amend=false) {
     def git_cmd
+    def gitOpts
     def global_arg = ''
     if (global) {
         global_arg = '--global'
+    }
+    if (amend) {
+        gitOpts = '--amend'
+    } else {
+        gitOpts = ''
     }
     dir(path) {
         sh "git config ${global_arg} user.email '${gitEmail}'"
@@ -116,13 +123,12 @@ def commitGitChanges(path, message, gitEmail='jenkins@localhost', gitName='jenki
             returnStdout: true
         ).trim()
         git_cmd = sh(
-            script: "git commit -m '${message}'",
+            script: "git commit ${gitOpts} -m '${message}'",
             returnStdout: true
         ).trim()
     }
     return git_cmd
 }
-
 
 /**
  * Push git changes to remote repo
@@ -232,3 +238,4 @@ def getBranchesForGitRepo(repoUrl, branchMatcher = ''){
         ).trim()
     return branchesList.tokenize('\n')
 }
+
