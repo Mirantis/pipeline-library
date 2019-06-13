@@ -53,22 +53,27 @@ def setupVirtualenv(path, python = 'python2', reqs = [], reqs_path = null, clean
 /**
  * Run command in specific python virtualenv
  *
- * @param path Path to virtualenv
- * @param cmd Command to be executed
+ * @param path   Path to virtualenv
+ * @param cmd    Command to be executed
  * @param silent dont print any messages (optional, default false)
+ * @param flexAnswer return answer like a dict, with format ['status' : int, 'stderr' : str, 'stdout' : str ]
  */
-def runVirtualenvCommand(path, cmd, silent = false) {
+def runVirtualenvCommand(path, cmd, silent = false, flexAnswer = false) {
     def common = new com.mirantis.mk.Common()
-
-    virtualenv_cmd = "set +x; . ${path}/bin/activate; ${cmd}"
+    def res
+    def virtualenv_cmd = "set +x; . ${path}/bin/activate; ${cmd}"
     if (!silent) {
         common.infoMsg("[Python ${path}] Run command ${cmd}")
     }
-    output = sh(
-        returnStdout: true,
-        script: virtualenv_cmd
-    ).trim()
-    return output
+    if (flexAnswer) {
+        res = common.shCmdStatus(virtualenv_cmd)
+    } else {
+        res = sh(
+            returnStdout: true,
+            script: virtualenv_cmd
+        ).trim()
+    }
+    return res
 }
 
 /**
