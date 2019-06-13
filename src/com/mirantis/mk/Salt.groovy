@@ -1125,34 +1125,52 @@ def setSaltOverrides(saltId, salt_overrides, reclass_dir="/srv/salt/reclass", ex
 * @param venv   Path to virtualenv with
 */
 
-def runPepperCommand(data, venv)   {
+def runPepperCommand(data, venv) {
     def common = new com.mirantis.mk.Common()
     def python = new com.mirantis.mk.Python()
     def dataStr = new groovy.json.JsonBuilder(data).toString()
+    // TODO(alexz): parametrize?
+    int retry = 10
 
     def pepperCmdFile = "${venv}/pepper-cmd.json"
     writeFile file: pepperCmdFile, text: dataStr
     def pepperCmd = "pepper -c ${venv}/pepperrc --make-token -x ${venv}/.peppercache --json-file ${pepperCmdFile}"
 
-    if (venv) {
-        output = python.runVirtualenvCommand(venv, pepperCmd, true)
-    } else {
-        echo("[Command]: ${pepperCmd}")
-        output = sh (
-            script: pepperCmd,
-            returnStdout: true
-        ).trim()
-    }
-
+    int tries = 0
+    def FullOutput = ['status': 1]
     def outputObj
+    while (tries++ < retry) {
+        try {
+            if (venv) {
+                FullOutput = python.runVirtualenvCommand(venv, pepperCmd, true, true)
+            } else {
+                FullOutput = common.shCmdStatus(pepperCmd)
+            }
+            if (FullOutput['status'] != 0) {
+                error()
+            }
+            break
+        } catch (e) {
+            // Check , if we get failed pepper HTTP call, and retry
+            common.errorMsg("Command: ${pepperCmd} failed to execute with error:\n${FullOutput['stderr']}")
+            if (FullOutput['stderr'].contains('Error with request: HTTP Error 50') || FullOutput['stderr'].contains('Pepper error: Server error')) {
+                common.errorMsg("Pepper HTTP Error detected. Most probably, " +
+                    "master SaltReqTimeoutError in master zmq thread issue...lets retry ${tries}/${retry}")
+                sleep(5)
+                continue
+            }
+        }
+    }
+    // Try to parse json output. No sense to check exit code, since we always expect json answer only.
     try {
-       outputObj = new groovy.json.JsonSlurperClassic().parseText(output)
-    } catch(Exception e) {
-       common.errorMsg("Parsing Salt API JSON response failed! Response: " + output)
-       throw e
+        outputObj = new groovy.json.JsonSlurperClassic().parseText(FullOutput['stdout'])
+    } catch (Exception jsonE) {
+        common.errorMsg('Parsing Salt API JSON response failed! Response: ' + FullOutput)
+        throw jsonE
     }
     return outputObj
 }
+
 
 /**
 * Check time settings on defined nodes, compares them

@@ -505,18 +505,19 @@ def countHashMapEquals(lm, param, eq) {
  */
 
 def shCmdStatus(cmd) {
+    // Set +x , to hide odd messages about temp file manipulations
     def res = [:]
-    def stderr = sh(script: 'mktemp', returnStdout: true).trim()
-    def stdout = sh(script: 'mktemp', returnStdout: true).trim()
+    def stderr = sh(script: 'set +x ; mktemp', returnStdout: true).trim()
+    def stdout = sh(script: 'set +x ; mktemp', returnStdout: true).trim()
 
     try {
         def status = sh(script: "${cmd} 1>${stdout} 2>${stderr}", returnStatus: true)
-        res['stderr'] = sh(script: "cat ${stderr}", returnStdout: true)
-        res['stdout'] = sh(script: "cat ${stdout}", returnStdout: true)
+        res['stderr'] = sh(script: "set +x; cat ${stderr}", returnStdout: true).trim()
+        res['stdout'] = sh(script: "set +x; cat ${stdout}", returnStdout: true).trim()
         res['status'] = status
     } finally {
-        sh(script: "rm ${stderr}", returnStdout: true)
-        sh(script: "rm ${stdout}", returnStdout: true)
+        sh(script: "set +x; rm ${stderr}")
+        sh(script: "set +x; rm ${stdout}")
     }
 
     return res
