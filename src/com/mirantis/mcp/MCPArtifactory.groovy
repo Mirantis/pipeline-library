@@ -40,9 +40,10 @@ def getBinaryBuildProperties(ArrayList customProperties) {
  *        which should determine artifact in Artifactory
  * @param onlyLastItem Boolean, return only last URL if true(by default),
  *        else return list of all found artifact URLS
+ * @param repos ArrayList, a list of repositories to search in
  *
  */
-def uriByProperties(String artifactoryURL, LinkedHashMap properties, Boolean onlyLastItem=true) {
+def uriByProperties(String artifactoryURL, LinkedHashMap properties, Boolean onlyLastItem=true, ArrayList repos=[]) {
     def key, value
     def properties_str = ''
     for (int i = 0; i < properties.size(); i++) {
@@ -51,7 +52,13 @@ def uriByProperties(String artifactoryURL, LinkedHashMap properties, Boolean onl
         value = properties.entrySet().toArray()[i].value.trim()
         properties_str += /${key}=${value}&/
     }
-    def search_url = "${artifactoryURL}/api/search/prop?${properties_str}"
+    def repos_str = (repos) ? repos.join(',') : ''
+    def search_url
+    if (repos_str) {
+        search_url = "${artifactoryURL}/api/search/prop?${properties_str}&repos=${repos_str}"
+    } else {
+        search_url = "${artifactoryURL}/api/search/prop?${properties_str}"
+    }
 
     def result = sh(script: /curl -X GET '${search_url}'/,
             returnStdout: true).trim()
