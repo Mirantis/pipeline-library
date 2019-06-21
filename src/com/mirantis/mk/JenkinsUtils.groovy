@@ -49,7 +49,7 @@ def userInGroups(username, groups) {
 def currentUsername() {
     username = ''
     wrap([$class: 'BuildUser']) {
-        username = BUILD_USER
+        username = env.BUILD_USER_ID ?: 'jenkins'
     }
     if (username) {
         return username
