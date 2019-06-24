@@ -33,34 +33,55 @@ def runBasicContainer(master, target, dockerImageLink="xrally/xrally-openstack:0
 /**
  * Run docker container with parameters
  *
- * @param target            Host to run container
- * @param dockerImageLink   Docker image link. May be custom or default rally image
- * @param name              Name for container
- * @param env_var           Environment variables to set in container
- * @param entrypoint        Set entrypoint to /bin/bash or leave default
+ * @param target                Host to run container
+ * @param dockerImageLink       Docker image link. May be custom or default rally image
+ * @param name                  Name for container
+ * @param env_var               Environment variables to set in container
+ * @param entrypoint            Set entrypoint to /bin/bash or leave default
+ * @param mounts                Map with mounts for container
 **/
 
-
-def runContainer(master, target, dockerImageLink, name='cvp', env_var=[], entrypoint=true){
-    def salt = new com.mirantis.mk.Salt()
+def runContainer(Map params){
     def common = new com.mirantis.mk.Common()
+    defaults = ["name": "cvp", "env_var": [], "entrypoint": true]
+    params = defaults + params
+    def salt = new com.mirantis.mk.Salt()
     def variables = ''
     def entry_point = ''
-    def cluster_name = salt.getPillar(master, 'I@salt:master', '_param:cluster_name')['return'][0].values()[0]
-    if ( salt.cmdRun(master, target, "docker ps -f name=${name} -q", false, null, false)['return'][0].values()[0] ) {
-        salt.cmdRun(master, target, "docker rm -f ${name}")
+    def tempest_conf_mount = ''
+    def mounts = ''
+    def cluster_name = salt.getPillar(params.master, 'I@salt:master', '_param:cluster_name')['return'][0].values()[0]
+    default_mounts = ["/etc/ssl/certs/": "/etc/ssl/certs/",
+                      "/srv/salt/pki/${cluster_name}/": "/etc/certs",
+                      "/root/test/": "/root/tempest/",
+                      "/tmp/": "/tmp/",
+                      "/etc/hosts": "/etc/hosts"]
+    params.mounts = default_mounts + params.mounts
+    if ( salt.cmdRun(params.master, params.target, "docker ps -f name=${params.name} -q", false, null, false)['return'][0].values()[0] ) {
+        salt.cmdRun(params.master, params.target, "docker rm -f ${params.name}")
     }
-    if (env_var.size() > 0) {
-        variables = ' -e ' + env_var.join(' -e ')
+    if (params.env_var.size() > 0) {
+        variables = ' -e ' + params.env_var.join(' -e ')
     }
-    if (entrypoint) {
+    if (params.entrypoint) {
         entry_point = '--entrypoint /bin/bash'
     }
-    salt.cmdRun(master, target, "docker run -tid --net=host --name=${name} " +
-                                "-u root ${entry_point} ${variables} " +
-                                "-v /srv/salt/pki/${cluster_name}/:/etc/certs ${dockerImageLink}")
+    params.mounts.each { local, container ->
+        mounts = mounts + " -v ${local}:${container}"
+    }
+    salt.cmdRun(params.master, params.target, "docker run -tid --net=host --name=${params.name}" +
+                                "${mounts} -u root ${entry_point} ${variables} ${params.dockerImageLink}")
 }
 
+def runContainer(master, target, dockerImageLink, name='cvp', env_var=[], entrypoint=true, mounts=[:]){
+    def common = new com.mirantis.mk.Common()
+    common.infoMsg("This method will be deprecated. Convert you method call to use Map as input parameter")
+    // Convert to Map
+    params = ['master': master, 'target': target, 'dockerImageLink': dockerImageLink, 'name': name, 'env_var': env_var,
+              'entrypoint': entrypoint, 'mounts': mounts]
+    // Call new method with Map as parameter
+    return runContainer(params)
+}
 
 /**
  * Get v2 Keystone credentials from pillars
@@ -70,15 +91,26 @@ def _get_keystone_creds_v2(master){
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
     def keystone = []
+    _pillar = false
     common.infoMsg("Fetching Keystone v2 credentials")
-    _pillar = salt.getPillar(master, 'I@keystone:server', 'keystone:server')['return'][0].values()[0]
-    keystone.add("OS_USERNAME=${_pillar.admin_name}")
-    keystone.add("OS_PASSWORD=${_pillar.admin_password}")
-    keystone.add("OS_TENANT_NAME=${_pillar.admin_tenant}")
-    keystone.add("OS_AUTH_URL=http://${_pillar.bind.private_address}:${_pillar.bind.private_port}/v2.0")
-    keystone.add("OS_REGION_NAME=${_pillar.region}")
-    keystone.add("OS_ENDPOINT_TYPE=admin")
-    return keystone
+    _response = salt.runSaltProcessStep(master, 'I@keystone:server', 'pillar.get', 'keystone:server', null, false, 1)['return'][0]
+    for (i = 0; i < _response.keySet().size(); i++) {
+        if ( _response.values()[i] ) {
+            _pillar = _response.values()[i]
+        }
+    }
+    if (_pillar) {
+        keystone.add("OS_USERNAME=${_pillar.admin_name}")
+        keystone.add("OS_PASSWORD=${_pillar.admin_password}")
+        keystone.add("OS_TENANT_NAME=${_pillar.admin_tenant}")
+        keystone.add("OS_AUTH_URL=http://${_pillar.bind.private_address}:${_pillar.bind.private_port}/v2.0")
+        keystone.add("OS_REGION_NAME=${_pillar.region}")
+        keystone.add("OS_ENDPOINT_TYPE=admin")
+        return keystone
+    }
+    else {
+        throw new Exception("Cannot fetch Keystone v2 credentials. Response: ${_response}")
+    }
 }
 
 /**
@@ -88,9 +120,15 @@ def _get_keystone_creds_v2(master){
 def _get_keystone_creds_v3(master){
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
+    _pillar = false
     pillar_name = 'keystone:client:os_client_config:cfgs:root:content:clouds:admin_identity'
     common.infoMsg("Fetching Keystone v3 credentials")
-    def _pillar = salt.getPillar(master, 'I@keystone:client', pillar_name)['return'][0].values()[0]
+    _response = salt.runSaltProcessStep(master, 'I@keystone:server', 'pillar.get', pillar_name, null, false, 1)['return'][0]
+    for (i = 0; i < _response.keySet().size(); i++) {
+        if ( _response.values()[i] ) {
+            _pillar = _response.values()[i]
+        }
+    }
     def keystone = []
     if (_pillar) {
         keystone.add("OS_USERNAME=${_pillar.auth.username}")
@@ -634,26 +672,30 @@ def runSptTests(master, target, dockerImageLink, output_dir, ext_variables = [],
  * @param tempest_version	        Version of tempest to use. This value will be just passed to configure.sh script (cvp-configuration repo).
  * @param conf_script_path              Path to configuration script.
  * @param ext_variables                 Some custom extra variables to add into container
+ * @param container_name                Name of container to use
  */
 def configureContainer(master, target, proxy, testing_tools_repo, tempest_repo,
                        tempest_endpoint_type="internalURL", tempest_version="",
-                       conf_script_path="", ext_variables = []) {
+                       conf_script_path="", ext_variables = [], container_name="cvp") {
     def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
     if (testing_tools_repo != "" ) {
+        workdir = ''
         if (testing_tools_repo.contains('http://') || testing_tools_repo.contains('https://')) {
-            salt.cmdRun(master, target, "docker exec cvp git clone ${testing_tools_repo} cvp-configuration")
+            salt.cmdRun(master, target, "docker exec ${container_name} git clone ${testing_tools_repo} cvp-configuration")
             configure_script = conf_script_path != "" ? conf_script_path : "cvp-configuration/configure.sh"
         }
         else {
             configure_script = testing_tools_repo
+            workdir = ' -w /var/lib/'
         }
         ext_variables.addAll("PROXY=${proxy}", "TEMPEST_REPO=${tempest_repo}",
                              "TEMPEST_ENDPOINT_TYPE=${tempest_endpoint_type}",
                              "tempest_version=${tempest_version}")
-        salt.cmdRun(master, target, "docker exec -e " + ext_variables.join(' -e ') + " cvp bash -c ${configure_script}")
+        salt.cmdRun(master, target, "docker exec -e " + ext_variables.join(' -e ') + " ${workdir} ${container_name} bash -c ${configure_script}")
     }
     else {
-        common.infoMsg("TOOLS_REPO is empty, no confguration is needed for container")
+        common.infoMsg("TOOLS_REPO is empty, no configuration is needed for this container")
     }
 }
 
@@ -689,16 +731,17 @@ def runCVPtempest(master, target, test_pattern="set=smoke", skip_list="", output
  * @param test_pattern                  Test pattern to run
  * @param scenarios_path                Path to Rally scenarios
  * @param output_dir                    Directory on target host for storing results (containers is not a good place)
+ * @param container_name                Name of container to use
  */
-def runCVPrally(master, target, scenarios_path, output_dir, output_filename="docker-rally") {
+def runCVPrally(master, target, scenarios_path, output_dir, output_filename="docker-rally", container_name="cvp") {
     def salt = new com.mirantis.mk.Salt()
     def xml_file = "${output_filename}.xml"
     def html_file = "${output_filename}.html"
-    salt.cmdRun(master, target, "docker exec cvp rally task start ${scenarios_path}")
-    salt.cmdRun(master, target, "docker exec cvp rally task report --out ${html_file}")
-    salt.cmdRun(master, target, "docker exec cvp rally task report --junit --out ${xml_file}")
-    salt.cmdRun(master, target, "docker cp cvp:/home/rally/${xml_file} ${output_dir}")
-    salt.cmdRun(master, target, "docker cp cvp:/home/rally/${html_file} ${output_dir}")
+    salt.cmdRun(master, target, "docker exec ${container_name} rally task start ${scenarios_path}", false)
+    salt.cmdRun(master, target, "docker exec ${container_name} rally task report --out /home/rally/${html_file}", false)
+    salt.cmdRun(master, target, "docker exec ${container_name} rally task report --junit --out /home/rally/${xml_file}", false)
+    salt.cmdRun(master, target, "docker cp ${container_name}:/home/rally/${xml_file} ${output_dir}")
+    salt.cmdRun(master, target, "docker cp ${container_name}:/home/rally/${html_file} ${output_dir}")
 }
 
 
@@ -805,10 +848,12 @@ def get_vip_node(master, target) {
  * Find vip on nodes
  *
  * @param target          Host with cvp container
+ * @param container_name  Name of container
+ * @param script_path     Path to cleanup script (inside container)
  */
-def openstack_cleanup(master, target, script_path="/home/rally/cvp-configuration/cleanup.sh") {
+def openstack_cleanup(master, target, container_name="cvp", script_path="/home/rally/cleanup.sh") {
     def salt = new com.mirantis.mk.Salt()
-    salt.runSaltProcessStep(master, "${target}", 'cmd.run', ["docker exec cvp bash -c ${script_path}"])
+    salt.runSaltProcessStep(master, "${target}", 'cmd.run', ["docker exec ${container_name} bash -c ${script_path}"])
 }
 
 

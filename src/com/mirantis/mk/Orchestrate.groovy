@@ -274,7 +274,9 @@ def installOpenstackControl(master, extra_tgt = '') {
     // Running minion states in a batch to avoid races related to certificates which are placed on glusterfs
     // Details on races: https://mirantis.jira.com/browse/PROD-25796
     // TODO: Run in parallel when glusterfs for certificates is dropped in cookiecutter
-    salt.enforceStateWithTest([saltId: master, target: "I@nginx:server ${extra_tgt}", state: 'salt.minion', batch: 1])
+    salt.enforceStateWithTest([saltId: master, target: "I@nginx:server ${extra_tgt}", state: 'salt.minion', batch: 1, failOnError: false, retries: 2])
+    salt.enforceStateWithTest([saltId: master, target: "I@nginx:server ${extra_tgt}", state: 'salt.minion', batch: 1, failOnError: true, retries: 1])
+
     salt.enforceStateWithTest([saltId: master, target: "I@nginx:server ${extra_tgt}", state: 'nginx'])
 
     // setup keystone service
@@ -785,8 +787,10 @@ def installCicd(master, extra_tgt = '') {
     }
 
     // Jenkins
-    def jenkins_master_url_pillar = salt.getPillar(master, jenkins_compound, '_param:jenkins_master_url')
-    jenkins_master_url = salt.getReturnValues(jenkins_master_url_pillar)
+    def jenkins_master_host = salt.getReturnValues(salt.getPillar(master, jenkins_compound, '_param:jenkins_master_host'))
+    def jenkins_master_port = salt.getReturnValues(salt.getPillar(master, jenkins_compound, '_param:jenkins_master_port'))
+    def jenkins_master_protocol = salt.getReturnValues(salt.getPillar(master, jenkins_compound, '_param:jenkins_master_protocol'))
+    jenkins_master_url = "${jenkins_master_protocol}://${jenkins_master_host}:${jenkins_master_port}"
 
     timeout(wait_timeout) {
       common.infoMsg('Waiting for Jenkins to come up..')
@@ -867,23 +871,35 @@ def installStacklight(master, extra_tgt = '') {
     salt.enforceStateWithTest([saltId: master, target: "I@kibana:server:enabled:true ${extra_tgt}", state: 'kibana.server'])
 
     // Check ES health cluster status
-    def pillar = salt.getPillar(master, "I@elasticsearch:client ${extra_tgt}", 'elasticsearch:client:server:host')
+    def pillar = salt.getReturnValues(salt.getPillar(master, "I@elasticsearch:client ${extra_tgt}", 'elasticsearch:client:server:host'))
     def elasticsearch_vip
-    if(!pillar['return'].isEmpty()) {
-        elasticsearch_vip = pillar['return'][0].values()[0]
+    if(pillar) {
+        elasticsearch_vip = pillar
     } else {
         common.errorMsg('[ERROR] Elasticsearch VIP address could not be retrieved')
     }
-    pillar = salt.getPillar(master, "I@elasticsearch:client ${extra_tgt}", 'elasticsearch:client:server:port')
+
+    pillar = salt.getReturnValues(salt.getPillar(master, "I@elasticsearch:client ${extra_tgt}", 'elasticsearch:client:server:port'))
     def elasticsearch_port
-    if(!pillar['return'].isEmpty()) {
-        elasticsearch_port = pillar['return'][0].values()[0]
+    if(pillar) {
+        elasticsearch_port = pillar
     } else {
         common.errorMsg('[ERROR] Elasticsearch VIP port could not be retrieved')
     }
+
+    pillar = salt.getReturnValues(salt.getPillar(master, "I@elasticsearch:client ${extra_tgt}", 'elasticsearch:client:server:scheme'))
+    def elasticsearch_scheme
+    if(pillar) {
+        elasticsearch_scheme = pillar
+        common.infoMsg("[INFO] Using elasticsearch scheme: ${elasticsearch_scheme}")
+    } else {
+        common.infoMsg('[INFO] No pillar with Elasticsearch server scheme, using scheme: http')
+        elasticsearch_scheme = "http"
+    }
+
     common.retry(step_retries,step_retries_wait) {
         common.infoMsg('Waiting for Elasticsearch to become green..')
-        salt.cmdRun(master, "I@elasticsearch:client ${extra_tgt}", "curl -sf ${elasticsearch_vip}:${elasticsearch_port}/_cat/health | awk '{print \$4}' | grep green")
+        salt.cmdRun(master, "I@elasticsearch:client ${extra_tgt}", "curl -skf ${elasticsearch_scheme}://${elasticsearch_vip}:${elasticsearch_port}/_cat/health | awk '{print \$4}' | grep green")
     }
 
     salt.enforceState([saltId: master, target: "I@elasticsearch:client ${extra_tgt}", state: 'elasticsearch.client', retries: step_retries, retries_wait: step_retries_wait])
@@ -930,7 +946,7 @@ def installStacklight(master, extra_tgt = '') {
     salt.enforceState([saltId: master, target: "I@docker:swarm and I@prometheus:server ${extra_tgt}", state: 'prometheus'])
 
     //Configure Remote Collector in Docker Swarm for Openstack deployments
-    if (!common.checkContains('STACK_INSTALL', 'k8s')) {
+    if (salt.testTarget(master, "I@heka:remote_collector ${extra_tgt}")) {
         salt.enforceState([saltId: master, target: "I@docker:swarm and I@prometheus:server ${extra_tgt}", state: 'heka.remote_collector', failOnError: false])
     }
 
@@ -964,7 +980,8 @@ def installStacklight(master, extra_tgt = '') {
 
     common.infoMsg("Waiting for service on http://${stacklight_vip}:15013/ to start")
     sleep(120)
-    salt.enforceState([saltId: master, target: "I@grafana:client ${extra_tgt}", state: 'grafana.client'])
+
+    salt.enforceState([saltId: master, target: "I@grafana:client ${extra_tgt}", state: 'grafana.client', retries: step_retries, retries_wait: step_retries_wait])
 }
 
 def installStacklightv1Control(master, extra_tgt = '') {
@@ -1020,7 +1037,7 @@ def installStacklightv1Client(master, extra_tgt = '') {
     // Install collectd, heka and sensu services on the nodes, this will also
     // generate the metadata that goes into the grains and eventually into Salt Mine
     salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: 'collectd'])
-    salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: 'salt.minion'])
+    salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: 'salt.minion', retries: 2])
     salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: 'heka'])
 
     // Gather the Grafana metadata as grains
