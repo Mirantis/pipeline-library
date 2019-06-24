@@ -531,6 +531,42 @@ def checkTargetMinionsReady(LinkedHashMap config) {
 }
 
 /**
+ * Restart and wait for salt-minions on target nodes.
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
+ * @param target unique identification of a minion or group of salt minions
+ * @param wait timeout for the salt command if minions do not return (default 5)
+ * @param maxRetries finite number of iterations to check status of a command (default 10)
+ * @return output of salt command
+ */
+def restartSaltMinion(saltId, target, wait = 5, maxRetries = 10) {
+    def common = new com.mirantis.mk.Common()
+    common.infoMsg("Restarting salt-minion on ${target} and waiting for they are reachable.")
+    runSaltProcessStep(saltId, target, 'cmd.shell', ['salt-call service.restart salt-minion'], null, true, 60)
+    checkTargetMinionsReady(['saltId': saltId, 'target_reachable': target, timeout: wait, retries: maxRetries])
+    common.infoMsg("All ${target} minions are alive...")
+}
+
+/**
+ * Upgrade package and restart salt minion.
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
+ * @param target unique identification of a minion or group of salt minions
+ * @param the name of pkg_name to upgrade
+ * @param wait timeout for the salt command if minions do not return (default 5)
+ * @param maxRetries finite number of iterations to check status of a command (default 10)
+ * @return output of salt command
+ */
+def upgradePackageAndRestartSaltMinion(saltId, target, pkg_name, wait = 5, maxRetries = 10) {
+    def common = new com.mirantis.mk.Common()
+    def latest_version = getReturnValues(runSaltProcessStep(saltId, target, 'pkg.latest_version', [pkg_name, 'show_installed=True'])).split('\n')[0]
+    def current_version = getReturnValues(runSaltProcessStep(saltId, target, 'pkg.version', [pkg_name])).split('\n')[0]
+    if (current_version && latest_version != current_version) {
+        common.infoMsg("Upgrading current ${pkg_name}: ${current_version} to ${latest_version}")
+        runSaltProcessStep(saltId, target, 'pkg.install', [pkg_name], 'only_upgrade=True')
+        restartSaltMinion(saltId, target, wait, maxRetries)
+    }
+}
+
+/**
  * Run command on salt minion (salt cmd.run wrapper)
  * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Get pillar target
