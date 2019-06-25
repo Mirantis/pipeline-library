@@ -7,14 +7,9 @@ package com.mirantis.mk
 
 /**
  * Update release metadata after image build
- *
- * @param key metadata key
- * @param value metadata value
- * @param image image name
- * @param imageRelease image release name
  */
 
-def updateReleaseMetadata(key, value, image, imageRelease){
+def updateReleaseMetadata(){
     def python = new com.mirantis.mk.Python()
     def gerrit = new com.mirantis.mk.Gerrit()
     def git = new com.mirantis.mk.Git()
@@ -43,7 +38,7 @@ def updateReleaseMetadata(key, value, image, imageRelease){
             }
         }
         stage('Cloning release-metadata repository') {
-            git.checkoutGitRepository(repoDir, env["METADATA_REPO_URL"], env["METADATA_GERRIT_BRANCH"], env["CREDENTIALS_ID"], true, 10, 0)
+            git.checkoutGitRepository(repoDir, METADATA_REPO_URL, METADATA_GERRIT_BRANCH, CREDENTIALS_ID, true, 10, 0)
             dir(repoDir) {
                 gitRemote = sh(
                         script:
@@ -76,7 +71,8 @@ def updateReleaseMetadata(key, value, image, imageRelease){
 
                 for (component in resultBuiltImages[openstackRelease].keySet()) {
                     resultBuiltImages[openstackRelease][component].each {
-                        cmdText = "python ${repoDir}/utils/app.py --path ${metadataDir} update --key images:${image}:${imageRelease}:${component}:${key} --value ${value}"
+                        //runReleaseMetadataApp(venvDir, repoDir, metadataDir, "update", "images:openstack:${openstackRelease}:${component}:${it.key}", "${it.value}")
+                        cmdText = "python ${repoDir}/utils/app.py --path ${metadataDir} update --key images:openstack:${openstackRelease}:${component}:${it.key} --value ${it.value}"
                         python.runVirtualenvCommand(venvDir, cmdText)
                     }
                 }
