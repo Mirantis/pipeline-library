@@ -16,6 +16,7 @@ def updateReleaseMetadata(key, value, String[] params) {
     credentialsID = params['credentialsID'] ?: "mcp-ci-gerrit"
     metadataRepoUrl = params['metadataRepoUrl'] ?: "ssh://mcp-ci-gerrit@gerrit.mcp.mirantis.net:29418/mcp/release-matadata"
     metadataGerritBranch = params['metadataGerritBranch'] ?: "master"
+    comment = params['comment'] ?: ""
     crTopic = params['crTopic'] ?: ""
     def python = new com.mirantis.mk.Python()
     def gerrit = new com.mirantis.mk.Gerrit()
@@ -71,7 +72,7 @@ def updateReleaseMetadata(key, value, String[] params) {
         cmdText = "python ${repoDir}/utils/app.py --path ${metadataDir} update --key ${key} --value ${value}"
         python.runVirtualenvCommand(venvDir, cmdText)
         commitMessage =
-                """[oscore] Auto-update ${metadataProject}
+                """${comment}
 
                |${ChangeId}
             """.stripMargin()
