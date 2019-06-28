@@ -1,7 +1,7 @@
 package com.mirantis.mcp
 
-import org.jfrog.hudson.pipeline.types.ArtifactoryServer
-import org.jfrog.hudson.pipeline.types.buildInfo.BuildInfo
+import org.jfrog.hudson.pipeline.common.types.ArtifactoryServer
+import org.jfrog.hudson.pipeline.common.types.buildInfo.BuildInfo
 
 /**
  * Return string of mandatory build properties for binaries
