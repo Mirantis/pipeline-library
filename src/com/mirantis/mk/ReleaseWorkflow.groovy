@@ -12,12 +12,13 @@ package com.mirantis.mk
  * @param params string map with credentialsID, metadataRepoUrl, metadataGerritBranch and crTopic
  */
 
-def updateReleaseMetadata(key, value, String[] params) {
+def updateReleaseMetadata(String key, String value, Map params) {
     credentialsID = params['credentialsID'] ?: "mcp-ci-gerrit"
     metadataRepoUrl = params['metadataRepoUrl'] ?: "ssh://mcp-ci-gerrit@gerrit.mcp.mirantis.net:29418/mcp/release-matadata"
     metadataGerritBranch = params['metadataGerritBranch'] ?: "master"
     comment = params['comment'] ?: ""
     crTopic = params['crTopic'] ?: ""
+    def common = new com.mirantis.mk.Common()
     def python = new com.mirantis.mk.Python()
     def gerrit = new com.mirantis.mk.Gerrit()
     def git = new com.mirantis.mk.Git()
