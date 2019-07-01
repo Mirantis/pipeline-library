@@ -458,31 +458,44 @@ def minionsPresentFromList(saltId, target = 'I@salt:master', target_minions = []
  * You can call this function when salt-master already contains salt keys of the target_nodes
  * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Should always be salt-master
- * @param target_nodes unique identification of a minion or group of salt minions
+ * @param targetNodes unique identification of a minion or group of salt minions
  * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
- * @param wait timeout for the salt command if minions do not return (default 10)
+ * @param cmdTimeout timeout for the salt command if minions do not return (default 10)
  * @param maxRetries finite number of iterations to check status of a command (default 200)
  * @return output of salt command
  */
-def minionsReachable(saltId, target, target_nodes, batch=null, wait = 10, maxRetries = 200) {
+
+def minionsReachable(saltId, target, targetNodes, batch=null, cmdTimeout = 10, maxRetries = 200) {
     def common = new com.mirantis.mk.Common()
-    def cmd = "salt -t${wait} -C '${target_nodes}' test.ping"
-    common.infoMsg("Checking if all ${target_nodes} minions are reachable")
-    def count = 0
-    while(count < maxRetries) {
+    def cmd = "salt -t${cmdTimeout} -C '${targetNodes}' test.ping"
+    common.infoMsg("Checking if all ${targetNodes} minions are reachable")
+    def retriesCount = 0
+    while(retriesCount < maxRetries) {
         Calendar timeout = Calendar.getInstance();
-        timeout.add(Calendar.SECOND, wait);
-        def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd], null, wait)
+        timeout.add(Calendar.SECOND, cmdTimeout);
+        def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd], null, cmdTimeout)
         Calendar current = Calendar.getInstance();
         if (current.getTime().before(timeout.getTime())) {
-           printSaltCommandResult(out)
-           return out
+            common.infoMsg("Successful response received from all targeted nodes.")
+            printSaltCommandResult(out)
+            return out
         }
-        common.infoMsg("Not all of the targeted '${target_nodes}' minions returned yet. Waiting ...")
-        count++
+        def outYaml = readYaml text: getReturnValues(out)
+        def successfulNodes = []
+        def failedNodes = []
+        for (node in outYaml.keySet()) {
+            if (outYaml[node] == true || outYaml[node].toString().toLowerCase() == 'true') {
+                successfulNodes.add(node)
+            } else {
+                failedNodes.add(node)
+            }
+        }
+        common.infoMsg("Not all of the targeted minions returned yet. Successful response from ${successfulNodes}. Still waiting for ${failedNodes}.")
+        retriesCount++
         sleep(time: 500, unit: 'MILLISECONDS')
     }
 }
+
 
 /**
  * You can call this function when need to check that all minions are available, free and ready for command execution
