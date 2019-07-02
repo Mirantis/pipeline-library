@@ -70,7 +70,7 @@ def updateReleaseMetadata(String key, String value, Map params) {
             ChangeId = ''
             git.createGitBranch(repoDir, crTopic)
         }
-        cmdText = "python ${repoDir}/utils/app.py --path ${metadataDir} update --key ${key} --value ${value}"
+        cmdText = "python '${repoDir}/utils/app.py' --path '${metadataDir}' update --key '${key}' --value '${value}'"
         python.runVirtualenvCommand(venvDir, cmdText)
         commitMessage =
                 """${comment}
