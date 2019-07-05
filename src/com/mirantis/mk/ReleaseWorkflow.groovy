@@ -14,7 +14,7 @@ package com.mirantis.mk
 
 def updateReleaseMetadata(String key, String value, Map params) {
     credentialsID = params['credentialsID'] ?: "mcp-ci-gerrit"
-    metadataRepoUrl = params['metadataRepoUrl'] ?: "ssh://mcp-ci-gerrit@gerrit.mcp.mirantis.net:29418/mcp/release-matadata"
+    metadataRepoUrl = params['metadataRepoUrl'] ?: "ssh://mcp-ci-gerrit@gerrit.mcp.mirantis.net:29418/mcp/release-metadata"
     metadataGerritBranch = params['metadataGerritBranch'] ?: "master"
     comment = params['comment'] ?: ""
     crTopic = params['crTopic'] ?: ""
