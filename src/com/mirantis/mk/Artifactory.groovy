@@ -394,3 +394,66 @@ def uploadPackageStep(art, file, properties, distribution, component, timestamp)
         )
     }
 }
+
+/**
+ * Get Helm repo for Artifactory
+ *
+ * @param art           Artifactory connection object
+ * @param repoName      Chart repository name
+ */
+def getArtifactoryProjectByName(art, repoName){
+    return restGet(art, "/repositories/${repoName}")
+}
+
+/**
+ * Get repo by packageType for Artifactory
+ *
+ * @param art           Artifactory connection object
+ * @param packageType   Repository package type
+ */
+def getArtifactoryProjectByPackageType(art, repoName){
+    return restGet(art, "/repositories?${packageType}")
+}
+
+/**
+ * Create Helm repo for Artifactory
+ *
+ * @param art           Artifactory connection object
+ * @param repoName      Chart repository name
+ * @param data          Transmitted data
+ */
+def createArtifactoryChartRepo(art, repoName){
+    return restPut(art, "/repositories/${repoName}", '{"rclass": "local","handleSnapshots": false,"packageType": "helm"}')
+}
+
+/**
+ * Delete Helm repo for Artifactory
+ *
+ * @param art           Artifactory connection object
+ * @param repoName      Chart repository name
+ */
+def deleteArtifactoryChartRepo(art, repoName){
+    return restDelete(art, "/repositories/${repoName}")
+}
+
+/**
+ * Create Helm repo for Artifactory
+ *
+ * @param art           Artifactory connection object
+ * @param repoName      Repository Chart name
+ * @param chartName     Chart name
+ */
+def publishArtifactoryHelmChart(art, repoName, chartName){
+    return restPut(art, "/repositories/${repoName}", "${chartName}")
+}
+
+/**
+ * Create Helm repo for Artifactory
+ *
+ * @param art           Artifactory connection object
+ * @param repoName      Repository Chart name
+ * @param chartName     Chart name
+ */
+def deleteArtifactoryHelmChart(art, repoName, chartName){
+    return restDelete(art, "/repositories/${repoName}", "${chartName}")
+}
