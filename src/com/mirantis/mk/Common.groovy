@@ -1006,3 +1006,16 @@ def debianExtraRepos(repoConfig) {
 Date parseDate(String date, String format) {
     return Date.parse(format, date)
 }
+
+/**
+ * Generate Random Hash string
+ * @param n Hash length
+ * @param pool Pool to use for hash generation
+*/
+def generateRandomHashString(int n, ArrayList pool = []) {
+    if (!pool) {
+        pool = ['a'..'z','A'..'Z',0..9,'_','+','='].flatten()
+    }
+    Random rand = new Random(System.currentTimeMillis())
+    return (1..n).collect { pool[rand.nextInt(pool.size())] }.join()
+}
