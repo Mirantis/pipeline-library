@@ -105,8 +105,8 @@ def verifyGaleraStatus(env, slave=false, checkTimeSync=false) {
             }
             for (int i = 0; i < iostatRes.size(); i++) {
                 def diskKey = iostatRes.keySet()[i]
-                if (!(iostatRes[diskKey].toString().isBigDecimal() && (iostatRes[diskKey].toBigDecimal() < 0.5 ))) {
-                    common.errorMsg("Disk ${diskKey} has to high i/o utilization. Maximum value is 0.5 and current value is ${iostatRes[diskKey]}.")
+                if (!(iostatRes[diskKey].toString().isBigDecimal() && (iostatRes[diskKey].toBigDecimal() < 50 ))) {
+                    common.errorMsg("Disk ${diskKey} has to high i/o utilization. Maximum value is 50 and current value is ${iostatRes[diskKey]}.")
                     return 141
                 }
             }
