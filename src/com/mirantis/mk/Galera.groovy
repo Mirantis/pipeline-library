@@ -347,23 +347,38 @@ def restoreGaleraCluster(env, runRestoreDb=true) {
         common.warningMsg('File is not present')
     }
 
+    // make sure that gcom parameter is empty
     salt.cmdRun(env, lastNodeTarget, "sed -i '/gcomm/c\\wsrep_cluster_address=\"gcomm://\"' /etc/mysql/my.cnf")
 
+    // run restore of DB
     if (runRestoreDb) {
         restoreGaleraDb(env, lastNodeTarget)
     }
 
-    salt.enforceState(env, lastNodeTarget, 'galera')
+    // start mysql service on the last node
+    salt.runSaltProcessStep(env, lastNodeTarget, 'service.start', ['mysql'])
 
-    // wait until mysql service on galera master is up
+    // wait until mysql service on the last node is up
     try {
         salt.commandStatus(env, lastNodeTarget, 'service mysql status', 'running')
     } catch (Exception er) {
         input message: "Database is not running please fix it first and only then click on PROCEED."
     }
 
+    // start mysql services on the rest of the nodes
     salt.runSaltProcessStep(env, "I@galera:master and not ${lastNodeTarget}", 'service.start', ['mysql'])
     salt.runSaltProcessStep(env, "I@galera:slave and not ${lastNodeTarget}", 'service.start', ['mysql'])
+
+    // wait until mysql service on the rest of the nodes is up
+    try {
+        salt.commandStatus(env, "( I@galera:master or I@galera:slave ) and not ${lastNodeTarget}", 'service mysql status', 'running')
+    } catch (Exception er) {
+        input message: "Database is not running please fix it first and only then click on PROCEED."
+    }
+
+    // apply any changes in configuration
+    salt.enforceState(env, lastNodeTarget, 'galera')
+
 }
 
 /**
