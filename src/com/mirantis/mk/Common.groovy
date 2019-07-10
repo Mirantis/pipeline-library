@@ -460,10 +460,14 @@ def mergeMaps(Map onto, Map... overrides){
     }
     else if (overrides.length == 1) {
         overrides[0]?.each { k, v ->
-            if (v in Map && onto[k] in Map){
-                mergeMaps((Map) onto[k], (Map) v)
-            } else if (v in List) {
-                onto[k] += v
+            if (k in onto.keySet()) {
+                if (v in Map && onto[k] in Map){
+                    mergeMaps((Map) onto[k], (Map) v)
+                } else if (v in List) {
+                    onto[k] += v
+                } else {
+                    onto[k] = v
+                }
             } else {
                 onto[k] = v
             }
