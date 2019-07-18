@@ -9,14 +9,15 @@ package com.mirantis.mk
 /**
  * Make generic call using Artifactory REST API and return parsed JSON
  *
- * @param art   Artifactory connection object
- * @param uri   URI which will be appended to artifactory server base URL
+ * @param art       Artifactory connection object
+ * @param uri       URI which will be appended to artifactory server base URL
  * @param method    HTTP method to use (default GET)
  * @param data      JSON data to POST or PUT
  * @param headers   Map of additional request headers
+ * @param prefix    Default prefix "/api"
  */
-def restCall(art, uri, method = 'GET', data = null, headers = [:]) {
-    def connection = new URL("${art.url}/api${uri}").openConnection()
+def restCall(art, uri, method = 'GET', data = null, headers = [:], prefix = '/api') {
+    def connection = new URL("${art.url}${prefix}${uri}").openConnection()
     if (method != 'GET') {
         connection.setRequestMethod(method)
     }
@@ -84,6 +85,18 @@ def restPut(art, uri, data = null) {
 }
 
 /**
+ * Make PUT request using Artifactory REST API for helm charts
+ *
+ * @param art       Artifactory connection object
+ * @param uri       URI which will be appended to artifactory server base URL
+ * @param data      JSON Data to PUT
+ * @param prefix    Default prefix "/api" (empty values should be for this way)
+ */
+def restPut2(art, uri, prefix,  data = null) {
+    return restCall(art, uri, 'PUT', data, ['Accept': '*/*'], prefix)
+}
+
+/**
  * Make DELETE request using Artifactory REST API
  *
  * @param art   Artifactory connection object
@@ -107,9 +120,9 @@ def restPost(art, uri, data = null) {
 /**
  * Query artifacts by properties
  *
- * @param art   Artifactory connection object
+ * @param art           Artifactory connection object
  * @param properties    String or list of properties in key=value format
- * @param repo  Optional repository to search in
+ * @param repo          Optional repository to search in
  */
 def findArtifactByProperties(art, properties, repo) {
     query = parseProperties(properties)
@@ -444,7 +457,7 @@ def deleteArtifactoryChartRepo(art, repoName){
  * @param chartName     Chart name
  */
 def publishArtifactoryHelmChart(art, repoName, chartName){
-    return restPut(art, "/repositories/${repoName}", "${chartName}")
+    return restPut2(art, "/${repoName}", "${chartName}")
 }
 
 /**
