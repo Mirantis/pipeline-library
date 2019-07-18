@@ -158,8 +158,7 @@ def pushGitChanges(path, branch = 'master', remote = 'origin', credentialsId = n
  *
  * @param sourceUrl      Source git repository
  * @param targetUrl      Target git repository
- * @param credentialsId  Credentials id to use for accessing source/target
- *                       repositories
+ * @param credentialsId  Credentials id to use for accessing target repositories
  * @param branches       List or comma-separated string of branches to sync
  * @param followTags     Mirror tags
  * @param pushSource     Push back into source branch, resulting in 2-way sync
@@ -167,25 +166,54 @@ def pushGitChanges(path, branch = 'master', remote = 'origin', credentialsId = n
  * @param gitEmail       Email for creation of merge commits
  * @param gitName        Name for creation of merge commits
  */
-def mirrorGit(sourceUrl, targetUrl, credentialsId, branches, followTags = false, pushSource = false, pushSourceTags = false, gitEmail = 'jenkins@localhost', gitName = 'Jenkins') {
+def mirrorGit(sourceUrl, targetUrl, credentialsId, branches, followTags = false, pushSource = false, pushSourceTags = false, gitEmail = 'jenkins@localhost', gitName = 'Jenkins', sourceRemote = 'origin') {
     def common = new com.mirantis.mk.Common()
     def ssh = new com.mirantis.mk.Ssh()
     if (branches instanceof String) {
         branches = branches.tokenize(',')
     }
+    // If both source and target repos are secured and accessible via http/https,
+    // we need to switch GIT_ASKPASS value when running git commands
+    def sourceAskPass
+    def targetAskPass
 
-    ssh.prepareSshAgentKey(credentialsId)
-    ssh.ensureKnownHosts(targetUrl)
+    def sshCreds = common.getCredentialsById(credentialsId, 'sshKey') // True if found
+    if (sshCreds) {
+        ssh.prepareSshAgentKey(credentialsId)
+        ssh.ensureKnownHosts(targetUrl)
+        sh "git config user.name '${gitName}'"
+    } else {
+        withCredentials([[$class          : 'UsernamePasswordMultiBinding',
+                          credentialsId   : credentialsId,
+                          passwordVariable: 'GIT_PASSWORD',
+                          usernameVariable: 'GIT_USERNAME']]) {
+            sh """
+                set +x
+                git config --global credential.${targetUrl}.username \${GIT_USERNAME}
+                echo "echo \${GIT_PASSWORD}" > ${WORKSPACE}/${credentialsId}_askpass.sh
+                chmod +x ${WORKSPACE}/${credentialsId}_askpass.sh
+                git config user.name \${GIT_USERNAME}
+            """
+            sourceAskPass = env.GIT_ASKPASS ?: ''
+            targetAskPass =  "${WORKSPACE}/${credentialsId}_askpass.sh"
+        }
+    }
     sh "git config user.email '${gitEmail}'"
-    sh "git config user.name '${gitName}'"
 
     def remoteExistence = sh(script: "git remote -v | grep ${TARGET_URL} | grep target", returnStatus: true)
-    if(remoteExistence != 0){
-       // silently try to remove target
-       sh(script:"git remote remove target", returnStatus: true)
-       sh("git remote add target ${TARGET_URL}")
+    if(remoteExistence == 0) {
+        // silently try to remove target
+        sh(script: "git remote remove target", returnStatus: true)
     }
-    ssh.agentSh "git remote update --prune"
+    sh("git remote add target ${TARGET_URL}")
+    if (sshCreds) {
+        ssh.agentSh "git remote update --prune"
+    } else {
+        env.GIT_ASKPASS = sourceAskPass
+        sh "git remote update ${sourceRemote} --prune"
+        env.GIT_ASKPASS = targetAskPass
+        sh "git remote update target --prune"
+    }
 
     for (i=0; i < branches.size; i++) {
         branch = branches[i]
@@ -201,21 +229,41 @@ def mirrorGit(sourceUrl, targetUrl, credentialsId, branches, followTags = false,
 
         sh "git ls-tree target/${branch} && git merge --no-edit --ff target/${branch} || echo 'Target repository is empty, skipping merge'"
         followTagsArg = followTags ? "--follow-tags" : ""
-        ssh.agentSh "git push ${followTagsArg} target HEAD:${branch}"
+        if (sshCreds) {
+            ssh.agentSh "git push ${followTagsArg} target HEAD:${branch}"
+        } else {
+            sh "git push ${followTagsArg} target HEAD:${branch}"
+        }
 
         if (pushSource == true) {
             followTagsArg = followTags && pushSourceTags ? "--follow-tags" : ""
-            ssh.agentSh "git push ${followTagsArg} origin HEAD:${branch}"
+            if (sshCreds) {
+                ssh.agentSh "git push ${followTagsArg} origin HEAD:${branch}"
+            } else {
+                sh "git push ${followTagsArg} origin HEAD:${branch}"
+            }
         }
     }
     if (followTags == true) {
-        ssh.agentSh "git push -f target --tags"
+        if (sshCreds) {
+            ssh.agentSh "git push -f target --tags"
+        } else {
+            sh "git push -f target --tags"
+        }
 
         if (pushSourceTags == true) {
-            ssh.agentSh "git push -f origin --tags"
+            if (sshCreds) {
+                ssh.agentSh "git push -f origin --tags"
+            } else {
+                sh "git push -f origin --tags"
+            }
         }
     }
     sh "git remote rm target"
+    if (!sshCreds) {
+        sh "set +x; rm -f ${targetAskPass}"
+        sh "git config --global --unset credential.${targetUrl}.username"
+    }
 }
 
 
