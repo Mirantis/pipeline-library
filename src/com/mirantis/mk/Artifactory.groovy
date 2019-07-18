@@ -16,7 +16,7 @@ package com.mirantis.mk
  * @param headers   Map of additional request headers
  */
 def restCall(art, uri, method = 'GET', data = null, headers = [:]) {
-    def connection = new URL("${art.url}${uri}").openConnection()
+    def connection = new URL("${art.url}/api${uri}").openConnection()
     if (method != 'GET') {
         connection.setRequestMethod(method)
     }
@@ -444,7 +444,7 @@ def deleteArtifactoryChartRepo(art, repoName){
  * @param chartName     Chart name
  */
 def publishArtifactoryHelmChart(art, repoName, chartName){
-    return restPut(art, "/${repoName}", "${chartName}")
+    return restPut(art, "/repositories/${repoName}", "${chartName}")
 }
 
 /**
@@ -455,5 +455,5 @@ def publishArtifactoryHelmChart(art, repoName, chartName){
  * @param chartName     Chart name
  */
 def deleteArtifactoryHelmChart(art, repoName, chartName){
-    return restDelete(art, "/${repoName}", "${chartName}")
+    return restDelete(art, "/repositories/${repoName}", "${chartName}")
 }
