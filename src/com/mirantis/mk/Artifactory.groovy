@@ -457,7 +457,7 @@ def deleteArtifactoryChartRepo(art, repoName){
  * @param chartName     Chart name
  */
 def publishArtifactoryHelmChart(art, repoName, chartName){
-    return restPut2(art, "/${repoName}", "${chartName}")
+    return restPut2(art, "/${repoName}", "/${chartName}")
 }
 
 /**
