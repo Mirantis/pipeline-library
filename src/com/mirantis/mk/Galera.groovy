@@ -17,7 +17,9 @@ package com.mirantis.mk
  */
 
 def getWsrepParameters(env, target, parameters=[], print=false) {
-    result = []
+    def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+    result = [:]
     out = salt.runSaltProcessStep(env, "${target}", "mysql.status", [], null, false)
     outlist = out['return'][0]
     resultYaml = outlist.get(outlist.keySet()[0]).sort()
@@ -25,23 +27,18 @@ def getWsrepParameters(env, target, parameters=[], print=false) {
         common.prettyPrint(resultYaml)
     }
     if (parameters instanceof String) {
-        value = resultYaml[key]
-        if (value instanceof String && value.isBigDecimal()) {
-            value = value.toBigDecimal()
-        }
-        result = [key: value]
+        parameters = [parameters]
+    }
+    if (parameters == [] || parameters == ['']) {
+        result = resultYaml
     } else {
-            if (parameters == []) {
-                result = resultYaml
-            } else {
-                for (key in parameters) {
-                value = resultYaml[key]
-                if (value instanceof String && value.isBigDecimal()) {
-                    value = value.toBigDecimal()
-                }
-                result << [key: value]
-                }
+        for (String param in parameters) {
+            value = resultYaml[param]
+            if (value instanceof String && value.isBigDecimal()) {
+                value = value.toBigDecimal()
             }
+            result[param] = value
+        }
     }
     return result
 }
@@ -245,13 +242,27 @@ def validateAndPrintGaleraStatusReport(env, out, minion) {
     }
 }
 
-def getGaleraLastShutdownNode(env) {
+/** Returns last shutdown node of Galera cluster
+@param env      Salt Connection object or pepperEnv
+@param nodes    List of nodes to check only (defaults to []). If not provided, it will check all nodes.
+                Use this parameter if the cluster splits to several components and you only want to check one fo them.
+@return status  ip address or hostname of last shutdown node
+*/
+
+def getGaleraLastShutdownNode(env, nodes = []) {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
-    members = ''
+    members = []
     lastNode = [ip: '', seqno: -2]
     try {
-        members = salt.getReturnValues(salt.getPillar(env, "I@galera:master", "galera:master:members"))
+        if (nodes) {
+            nodes = salt.getIPAddressesForNodenames(env, nodes)
+            for (node in nodes) {
+                members = [host: "${node.get(node.keySet()[0])}"] + members
+            }
+        } else {
+            members = salt.getReturnValues(salt.getPillar(env, "I@galera:master", "galera:master:members"))
+        }
     } catch (Exception e) {
         common.errorMsg('Could not retrieve members list')
         common.errorMsg(e.getMessage())
