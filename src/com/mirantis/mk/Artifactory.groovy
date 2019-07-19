@@ -92,8 +92,8 @@ def restPut(art, uri, data = null) {
  * @param data      JSON Data to PUT
  * @param prefix    Default prefix "/api" (empty values should be for this way)
  */
-def restPut2(art, uri, prefix, data) {
-    return restCall(art, uri, 'PUT', data, ['Accept': '*/*'], prefix)
+def restPut2(art, uri, data) {
+    return restCall(art, uri, 'PUT', data, ['Accept': '*/*'], '')
 }
 
 /**
