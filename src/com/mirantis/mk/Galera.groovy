@@ -397,3 +397,36 @@ def restoreGaleraDb(env) {
     common.warningMsg("This method was renamed to 'restoreGaleraCluster'. Please change your pipeline to use this call instead! If you think that you really wanted to call 'restoreGaleraDb' you may be missing 'targetNode' parameter in you call.")
     return restoreGaleraCluster(env)
 }
+
+/**
+ * Start first node in mysql cluster. Cluster members stay removed in mysql config, additional service restart will be needed once all nodes are up.
+ * https://docs.mirantis.com/mcp/q4-18/mcp-operations-guide/tshooting/
+ * tshoot-mcp-openstack/tshoot-galera/restore-galera-cluster/
+ * restore-galera-manually.html#restore-galera-manually
+ *
+ * @param env             Salt Connection object or pepperEnv
+ * @param target  last stopped Galera node
+ * @return                output of salt commands
+ */
+def startFirstNode(env, target) {
+    def salt = new com.mirantis.mk.Salt()
+    def common = new com.mirantis.mk.Common()
+
+    // make sure that gcom parameter is empty
+    salt.cmdRun(env, target, "sed -i '/wsrep_cluster_address/ s/^#*/#/' /etc/mysql/my.cnf")
+    salt.cmdRun(env, target, "sed -i '/wsrep_cluster_address/a wsrep_cluster_address=\"gcomm://\"' /etc/mysql/my.cnf")
+
+    // start mysql service on the last node
+    salt.runSaltProcessStep(env, target, 'service.start', ['mysql'])
+
+    // wait until mysql service on the last node is up
+
+    common.retry(30, 10) {
+        value = getWsrepParameters(env, target, 'wsrep_evs_state')
+        if (value['wsrep_evs_state'] == 'OPERATIONAL') {
+            common.infoMsg('WSREP state: OPERATIONAL')
+        } else {
+            throw new Exception("Mysql service is not running please fix it.")
+        }
+    }
+}
