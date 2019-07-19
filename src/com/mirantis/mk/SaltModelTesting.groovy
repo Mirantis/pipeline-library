@@ -104,7 +104,11 @@ repo:
     }
     def img = docker.image(dockerImageName)
 
-    img.pull()
+    def pull_enabled = config.get('dockerPull', true)
+
+    if ( pull_enabled ) {
+        img.pull()
+    }
 
     try {
         img.inside(dockerOptsFinal) {
