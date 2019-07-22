@@ -5,6 +5,42 @@ package com.mirantis.mk
  */
 
 /**
+ * Get release metadata value for given key
+ *
+ * @param key metadata key
+ * @param params map with expected parameters:
+ *    - toxDockerImage
+ *    - metadataCredentialsId
+ *    - metadataGitRepoUrl
+ *    - metadataGitRepoBranch
+ *    - repoDir
+ */
+def getReleaseMetadataValue(String key, Map params = [:]) {
+    String result
+    // Get params
+    String toxDockerImage   = params.get('toxDockerImage', 'docker-prod-virtual.docker.mirantis.net/mirantis/external/tox')
+    String gitCredentialsId = params.get('metadataCredentialsId', 'mcp-ci-gerrit')
+    String gitUrl           = params.get('metadataGitRepoUrl', "ssh://${gitCredentialsId}@gerrit.mcp.mirantis.net:29418/mcp/release-metadata")
+    String gitBranch        = params.get('metadataGitRepoBranch', 'master')
+    String repoDir          = params.get('repoDir', 'release-metadata')
+    String outputFormat     = params.get('outputFormat', 'json')
+
+    // Libs
+    def git = new com.mirantis.mk.Git()
+
+    String opts = ''
+    if (outputFormat && !outputFormat.isEmpty()) {
+        opts += " --${outputFormat}"
+    }
+    // TODO cache it somehow to not checkout it all the time
+    git.checkoutGitRepository(repoDir, gitUrl, gitBranch, gitCredentialsId, true, 10, 0)
+    docker.image(toxDockerImage).inside {
+        result = sh(script: "cd ${repoDir} && tox -qq -e metadata -- ${opts} get --key ${key}", returnStdout: true).trim()
+    }
+    return result
+}
+
+/**
  * Update release metadata after image build
  *
  * @param key metadata key
