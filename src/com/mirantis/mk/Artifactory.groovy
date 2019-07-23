@@ -404,6 +404,7 @@ def uploadPackageStep(art, file, properties, distribution, component, timestamp)
  */
 def getArtifactoryHelmChartRepoByName(art, repoName){
     def res
+    def common = new com.mirantis.mk.Common()
     try {
         res = restGet(art, "/repositories/${repoName}")
     } catch (IOException e) {
@@ -460,7 +461,7 @@ def publishArtifactoryHelmChart(art, repoName, chartPattern){
                 "files": [
                    {
                        "pattern": "${chartPattern}",
-                       "target": "${repoName}"
+                       "target": "${repoName}/"
                     }
                 ]
             }"""
