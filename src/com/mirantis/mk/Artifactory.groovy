@@ -85,18 +85,6 @@ def restPut(art, uri, data = null) {
 }
 
 /**
- * Make PUT request using Artifactory REST API for helm charts
- *
- * @param art       Artifactory connection object
- * @param uri       URI which will be appended to artifactory server base URL
- * @param data      JSON Data to PUT
- * @param prefix    Default prefix "/api" (empty values should be for this way)
- */
-def restPut2(art, uri, data) {
-    return restCall(art, uri, 'PUT', data, ['Accept': '*/*'], '')
-}
-
-/**
  * Make DELETE request using Artifactory REST API
  *
  * @param art   Artifactory connection object
@@ -414,8 +402,19 @@ def uploadPackageStep(art, file, properties, distribution, component, timestamp)
  * @param art           Artifactory connection object
  * @param repoName      Chart repository name
  */
-def getArtifactoryProjectByName(art, repoName){
-    return restGet(art, "/repositories/${repoName}")
+def getArtifactoryHelmChartRepoByName(art, repoName){
+    def res
+    try {
+        res = restGet(art, "/repositories/${repoName}")
+    } catch (IOException e) {
+        def error = e.message.tokenize(':')[1]
+        if (error.contains(' 400 for URL') || error.contains(' 404 for URL')) {
+            common.warningMsg("No projects found for the pattern ${repoName} error code ${error}")
+        }else {
+            throw e
+        }
+    }
+    return res
 }
 
 /**
@@ -424,7 +423,7 @@ def getArtifactoryProjectByName(art, repoName){
  * @param art           Artifactory connection object
  * @param packageType   Repository package type
  */
-def getArtifactoryProjectByPackageType(art, repoName){
+def getArtifactoryRepoByPackageType(art, repoName){
     return restGet(art, "/repositories?${packageType}")
 }
 
@@ -450,14 +449,22 @@ def deleteArtifactoryChartRepo(art, repoName){
 }
 
 /**
- * Create Helm repo for Artifactory
+ * Publish Helm chart to Artifactory
  *
- * @param art           Artifactory connection object
+ * @param art           Artifactory connection object from artifactory jenkins plugin
  * @param repoName      Repository Chart name
- * @param chartName     Chart name
+ * @param chartPattern  Chart pattern for publishing
  */
-def publishArtifactoryHelmChart(art, repoName, chartName){
-    return restPut2(art, "/${repoName}", "/${chartName}")
+def publishArtifactoryHelmChart(art, repoName, chartPattern){
+    def uploadSpec = """{
+                "files": [
+                   {
+                       "pattern": "${chartPattern}",
+                       "target": "${repoName}"
+                    }
+                ]
+            }"""
+    art.upload spec: uploadSpec
 }
 
 /**
