@@ -411,8 +411,9 @@ def installOpenstackControl(master, extra_tgt = '') {
     // races, apply on the first node initially
     if (salt.testTarget(master, "I@gnocchi:client ${extra_tgt}")) {
         first_target = salt.getFirstMinion(master, "I@gnocchi:client ${extra_tgt}")
-        salt.enforceState([saltId: master, target: "${first_target} ${extra_tgt}", state: 'gnocchi.client'])
-        salt.enforceState([saltId: master, target: "I@gnocchi:client ${extra_tgt}", state: 'gnocchi.client'])
+        // TODO(vsaienko) remove retries when they are moved to gnocchiv1 salt module. Related-Prod: PROD-32186
+        salt.enforceState([saltId: master, target: "${first_target} ${extra_tgt}", state: 'gnocchi.client', retries: 3])
+        salt.enforceState([saltId: master, target: "I@gnocchi:client ${extra_tgt}", state: 'gnocchi.client', retries: 3])
     }
 
     // Install gnocchi statsd
