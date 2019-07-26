@@ -1348,11 +1348,15 @@ def getIostatValues(Map params) {
 def isPackageInstalled(Map params) {
     def output = params.get('output', true)
     def res = runSaltProcessStep(params.saltId, params.target, "pkg.info_installed", params.packageName, null, output)['return'][0]
-    for (int i = 0; i < res.size(); i++) {
-        def key = res.keySet()[i]
-        if (!(res[key] instanceof Map && res[key].containsKey(params.packageName))) {
-            return false
+    if (res) {
+        for (int i = 0; i < res.size(); i++) {
+            def key = res.keySet()[i]
+            if (!(res[key] instanceof Map && res[key].containsKey(params.packageName))) {
+                return false
+            }
         }
+        return true
+    } else {
+        return false
     }
-    return true
 }
