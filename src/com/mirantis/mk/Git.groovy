@@ -16,8 +16,9 @@ package com.mirantis.mk
  * @param poll            Enable git polling (default true)
  * @param timeout         Set checkout timeout (default 10)
  * @param depth           Git depth param (default 0 means no depth)
+ * @param reference       Git reference param to checkout (default empyt, i.e. no reference)
  */
-def checkoutGitRepository(path, url, branch, credentialsId = null, poll = true, timeout = 10, depth = 0){
+def checkoutGitRepository(path, url, branch, credentialsId = null, poll = true, timeout = 10, depth = 0, reference = ''){
     dir(path) {
         checkout(
             changelog:true,
@@ -28,7 +29,7 @@ def checkoutGitRepository(path, url, branch, credentialsId = null, poll = true, 
             doGenerateSubmoduleConfigurations: false,
             extensions: [
                 [$class: 'CheckoutOption', timeout: timeout],
-                [$class: 'CloneOption', depth: depth, noTags: false, reference: '', shallow: depth > 0, timeout: timeout]],
+                [$class: 'CloneOption', depth: depth, noTags: false, reference: reference, shallow: depth > 0, timeout: timeout]],
             submoduleCfg: [],
             userRemoteConfigs: [[url: url, credentialsId: credentialsId]]]
         )
