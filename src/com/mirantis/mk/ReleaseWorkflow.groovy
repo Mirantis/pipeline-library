@@ -1,8 +1,34 @@
 package com.mirantis.mk
 /**
- * ReleaseWorkflow functions
+ * Checkout release metadata repo with clone or without, if cloneRepo parameter is set
  *
+ * @param params map with expected parameters:
+ *    - metadataCredentialsId
+ *    - metadataGitRepoUrl
+ *    - metadataGitRepoBranch
+ *    - repoDir
+ *    - cloneRepo
  */
+def checkoutReleaseMetadataRepo(Map params = [:]) {
+    def git = new com.mirantis.mk.Git()
+    Boolean cloneRepo       = params.get('cloneRepo', true)
+    String gitCredentialsId = params.get('metadataCredentialsId', 'mcp-ci-gerrit')
+    String gitUrl           = params.get('metadataGitRepoUrl', "ssh://${gitCredentialsId}@gerrit.mcp.mirantis.net:29418/mcp/release-metadata")
+    String gitBranch        = params.get('metadataGitRepoBranch', 'master')
+    String repoDir          = params.get('repoDir', 'release-metadata')
+    if (cloneRepo){
+        stage('Cleanup repo dir') {
+            dir(repoDir) {
+                deleteDir()
+            }
+        }
+        stage('Cloning release-metadata repository') {
+            git.checkoutGitRepository(repoDir, gitUrl, gitBranch, gitCredentialsId, true, 10, 0)
+        }
+    } else {
+        git.changeGitBranch(repoDir, gitBranch)
+    }
+}
 
 /**
  * Get release metadata value for given key
@@ -24,24 +50,31 @@ def getReleaseMetadataValue(String key, Map params = [:]) {
     String gitBranch        = params.get('metadataGitRepoBranch', 'master')
     String repoDir          = params.get('repoDir', 'release-metadata')
     String outputFormat     = params.get('outputFormat', 'json')
+    Boolean cloneRepo       = params.get('cloneRepo', true)
 
     // Libs
     def git = new com.mirantis.mk.Git()
+    def common = new com.mirantis.mk.Common()
 
     String opts = ''
     if (outputFormat && !outputFormat.isEmpty()) {
         opts += " --${outputFormat}"
     }
-    // TODO cache it somehow to not checkout it all the time
-    git.checkoutGitRepository(repoDir, gitUrl, gitBranch, gitCredentialsId, true, 10, 0)
+
+    checkoutReleaseMetadataRepo(params)
+
     docker.image(toxDockerImage).inside {
         result = sh(script: "cd ${repoDir} && tox -qq -e metadata -- ${opts} get --key ${key}", returnStdout: true).trim()
     }
+    common.infoMsg("""
+    Release metadata key ${key} has value:
+        ${result}
+    """)
     return result
 }
 
 /**
- * Update release metadata after image build
+ * Update release metadata value and upload CR to release metadata repository
  *
  * @param key metadata key
  * @param value metadata value
@@ -54,6 +87,7 @@ def updateReleaseMetadata(String key, String value, Map params) {
     metadataGerritBranch = params['metadataGerritBranch'] ?: "master"
     comment = params['comment'] ?: ""
     crTopic = params['crTopic'] ?: ""
+    Boolean cloneRepo = params.get('cloneRepo', true)
     def common = new com.mirantis.mk.Common()
     def python = new com.mirantis.mk.Python()
     def gerrit = new com.mirantis.mk.Gerrit()
@@ -67,7 +101,7 @@ def updateReleaseMetadata(String key, String value, Map params) {
     def gerritPort = metadataRepoUrl.tokenize(':')[-1].tokenize('/')[0]
     def workspace = common.getWorkspace()
     def venvDir = "${workspace}/gitreview-venv"
-    def repoDir = "${venvDir}/repo"
+    def repoDir = params.get('repoDir', "${venvDir}/repo")
     def metadataDir = "${repoDir}/metadata"
     def ChangeId
     def commitMessage
@@ -75,21 +109,19 @@ def updateReleaseMetadata(String key, String value, Map params) {
     stage("Installing virtualenv") {
         python.setupVirtualenv(venvDir, 'python3', ['git-review', 'PyYaml'])
     }
-    stage('Cleanup repo dir') {
-        dir(repoDir) {
-            deleteDir()
-        }
+    checkoutReleaseMetadataRepo(['metadataCredentialsId': credentialsID,
+                                 'metadataGitRepoBranch': metadataGerritBranch,
+                                 'metadataGitRepoUrl': metadataRepoUrl,
+                                 'repoDir': repoDir,
+                                 'cloneRepo': cloneRepo])
+    dir(repoDir) {
+        gitRemote = sh(
+            script:
+                'git remote -v | head -n1 | cut -f1',
+                returnStdout: true,
+        ).trim()
     }
-    stage('Cloning release-metadata repository') {
-        git.checkoutGitRepository(repoDir, metadataRepoUrl, metadataGerritBranch, credentialsID, true, 10, 0)
-        dir(repoDir) {
-            gitRemote = sh(
-                    script:
-                            'git remote -v | head -n1 | cut -f1',
-                    returnStdout: true,
-            ).trim()
-        }
-    }
+
     stage('Creating CR') {
         def gerritAuth = ['PORT': gerritPort, 'USER': gerritUser, 'HOST': gerritHost]
         def changeParams = ['owner': gerritUser, 'status': 'open', 'project': metadataProject, 'branch': metadataGerritBranch, 'topic': crTopic]
