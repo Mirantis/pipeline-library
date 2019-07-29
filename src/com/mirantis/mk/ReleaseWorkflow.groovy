@@ -15,18 +15,19 @@ def checkoutReleaseMetadataRepo(Map params = [:]) {
     String gitCredentialsId = params.get('metadataCredentialsId', 'mcp-ci-gerrit')
     String gitUrl           = params.get('metadataGitRepoUrl', "ssh://${gitCredentialsId}@gerrit.mcp.mirantis.net:29418/mcp/release-metadata")
     String gitBranch        = params.get('metadataGitRepoBranch', 'master')
+    String gitRef           = params.get('metadataGitRepoRef', '')
     String repoDir          = params.get('repoDir', 'release-metadata')
-    if (cloneRepo){
+    if (cloneRepo) {
         stage('Cleanup repo dir') {
             dir(repoDir) {
                 deleteDir()
             }
         }
         stage('Cloning release-metadata repository') {
-            git.checkoutGitRepository(repoDir, gitUrl, gitBranch, gitCredentialsId, true, 10, 0)
+            git.checkoutGitRepository(repoDir, gitUrl, gitBranch, gitCredentialsId, true, 10, 0, gitRef)
         }
     } else {
-        git.changeGitBranch(repoDir, gitBranch)
+        git.changeGitBranch(repoDir, gitRef ?: gitBranch)
     }
 }
 
