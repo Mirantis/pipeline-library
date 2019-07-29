@@ -11,12 +11,13 @@ package com.mirantis.mk
  */
 def checkoutReleaseMetadataRepo(Map params = [:]) {
     def git = new com.mirantis.mk.Git()
-    Boolean cloneRepo       = params.get('cloneRepo', true)
+
     String gitCredentialsId = params.get('metadataCredentialsId', 'mcp-ci-gerrit')
     String gitUrl           = params.get('metadataGitRepoUrl', "ssh://${gitCredentialsId}@gerrit.mcp.mirantis.net:29418/mcp/release-metadata")
     String gitBranch        = params.get('metadataGitRepoBranch', 'master')
     String gitRef           = params.get('metadataGitRepoRef', '')
     String repoDir          = params.get('repoDir', 'release-metadata')
+    Boolean cloneRepo       = params.get('cloneRepo', true)
     if (cloneRepo) {
         stage('Cleanup repo dir') {
             dir(repoDir) {
@@ -37,24 +38,17 @@ def checkoutReleaseMetadataRepo(Map params = [:]) {
  * @param key metadata key
  * @param params map with expected parameters:
  *    - toxDockerImage
- *    - metadataCredentialsId
- *    - metadataGitRepoUrl
- *    - metadataGitRepoBranch
+ *    - outputFormat
  *    - repoDir
  */
 def getReleaseMetadataValue(String key, Map params = [:]) {
     String result
     // Get params
     String toxDockerImage   = params.get('toxDockerImage', 'docker-prod-virtual.docker.mirantis.net/mirantis/external/tox')
-    String gitCredentialsId = params.get('metadataCredentialsId', 'mcp-ci-gerrit')
-    String gitUrl           = params.get('metadataGitRepoUrl', "ssh://${gitCredentialsId}@gerrit.mcp.mirantis.net:29418/mcp/release-metadata")
-    String gitBranch        = params.get('metadataGitRepoBranch', 'master')
-    String repoDir          = params.get('repoDir', 'release-metadata')
     String outputFormat     = params.get('outputFormat', 'json')
-    Boolean cloneRepo       = params.get('cloneRepo', true)
+    String repoDir          = params.get('repoDir', 'release-metadata')
 
     // Libs
-    def git = new com.mirantis.mk.Git()
     def common = new com.mirantis.mk.Common()
 
     String opts = ''
@@ -79,42 +73,47 @@ def getReleaseMetadataValue(String key, Map params = [:]) {
  *
  * @param key metadata key
  * @param value metadata value
- * @param params string map with credentialsID, metadataRepoUrl, metadataGerritBranch and crTopic
+ * @param params map with expected parameters:
+ *    - metadataCredentialsId
+ *    - metadataGitRepoUrl
+ *    - metadataGitRepoBranch
+ *    - repoDir
+ *    - comment
+ *    - crTopic
+ *    - crAuthorName
+ *    - crAuthorEmail
  */
 
 def updateReleaseMetadata(String key, String value, Map params) {
-    credentialsID = params['credentialsID'] ?: "mcp-ci-gerrit"
-    metadataRepoUrl = params['metadataRepoUrl'] ?: "ssh://mcp-ci-gerrit@gerrit.mcp.mirantis.net:29418/mcp/release-metadata"
-    metadataGerritBranch = params['metadataGerritBranch'] ?: "master"
-    comment = params['comment'] ?: ""
-    crTopic = params['crTopic'] ?: ""
-    Boolean cloneRepo = params.get('cloneRepo', true)
+    String gitCredentialsId     = params.get('metadataCredentialsId', 'mcp-ci-gerrit')
+    String metadataRepoUrl      = params.get('metadataGitRepoUrl', "ssh://${gitCredentialsId}@gerrit.mcp.mirantis.net:29418/mcp/release-metadata")
+    String metadataGerritBranch = params.get('metadataGitRepoBranch', 'master')
+    String repoDir              = params.get('repoDir', 'release-metadata')
+    String comment              = params.get('comment', '')
+    String crTopic              = params.get('crTopic', '')
+    String changeAuthorName     = params.get('crAuthorName', 'MCP-CI')
+    String changeAuthorEmail    = params.get('crAuthorEmail', 'mcp-ci-jenkins@ci.mcp.mirantis.net')
+
     def common = new com.mirantis.mk.Common()
     def python = new com.mirantis.mk.Python()
     def gerrit = new com.mirantis.mk.Gerrit()
-    def git = new com.mirantis.mk.Git()
-    def changeAuthorName = "MCP-CI"
-    def changeAuthorEmail = "mcp-ci-jenkins@ci.mcp.mirantis.net"
-    def cred = common.getCredentials(credentialsID, 'key')
+    def git    = new com.mirantis.mk.Git()
+
+    def cred = common.getCredentials(gitCredentialsId, 'key')
     String gerritUser = cred.username
-    def gerritHost = metadataRepoUrl.tokenize('@')[-1].tokenize(':')[0]
-    def metadataProject = metadataRepoUrl.tokenize('/')[-2..-1].join('/')
-    def gerritPort = metadataRepoUrl.tokenize(':')[-1].tokenize('/')[0]
-    def workspace = common.getWorkspace()
-    def venvDir = "${workspace}/gitreview-venv"
-    def repoDir = params.get('repoDir', "${venvDir}/repo")
-    def metadataDir = "${repoDir}/metadata"
-    def ChangeId
-    def commitMessage
-    def gitRemote
+    String gerritHost = metadataRepoUrl.tokenize('@')[-1].tokenize(':')[0]
+    String metadataProject = metadataRepoUrl.tokenize('/')[-2..-1].join('/')
+    String gerritPort = metadataRepoUrl.tokenize(':')[-1].tokenize('/')[0]
+    String workspace = common.getWorkspace()
+    String venvDir = "${workspace}/gitreview-venv"
+    String metadataDir = "${repoDir}/metadata"
+    String ChangeId
+    String commitMessage
+    String gitRemote
     stage("Installing virtualenv") {
         python.setupVirtualenv(venvDir, 'python3', ['git-review', 'PyYaml'])
     }
-    checkoutReleaseMetadataRepo(['metadataCredentialsId': credentialsID,
-                                 'metadataGitRepoBranch': metadataGerritBranch,
-                                 'metadataGitRepoUrl': metadataRepoUrl,
-                                 'repoDir': repoDir,
-                                 'cloneRepo': cloneRepo])
+    checkoutReleaseMetadataRepo(params)
     dir(repoDir) {
         gitRemote = sh(
             script:
@@ -126,7 +125,7 @@ def updateReleaseMetadata(String key, String value, Map params) {
     stage('Creating CR') {
         def gerritAuth = ['PORT': gerritPort, 'USER': gerritUser, 'HOST': gerritHost]
         def changeParams = ['owner': gerritUser, 'status': 'open', 'project': metadataProject, 'branch': metadataGerritBranch, 'topic': crTopic]
-        def gerritChange = gerrit.findGerritChange(credentialsID, gerritAuth, changeParams)
+        def gerritChange = gerrit.findGerritChange(gitCredentialsId, gerritAuth, changeParams)
         git.changeGitBranch(repoDir, metadataGerritBranch)
         if (gerritChange) {
             def jsonChange = readJSON text: gerritChange
@@ -134,7 +133,7 @@ def updateReleaseMetadata(String key, String value, Map params) {
             ChangeId = 'Change-Id: '
             ChangeId += jsonChange['id']
             //get existent change from gerrit
-            gerrit.getGerritChangeByNum(credentialsID, venvDir, repoDir, gitRemote, changeNum)
+            gerrit.getGerritChangeByNum(gitCredentialsId, venvDir, repoDir, gitRemote, changeNum)
         } else {
             ChangeId = ''
             git.createGitBranch(repoDir, crTopic)
@@ -153,6 +152,6 @@ def updateReleaseMetadata(String key, String value, Map params) {
             git.commitGitChanges(repoDir, commitMessage, changeAuthorEmail, changeAuthorName, false)
         }
         //post change
-        gerrit.postGerritReview(credentialsID, venvDir, repoDir, changeAuthorName, changeAuthorEmail, gitRemote, crTopic, metadataGerritBranch)
+        gerrit.postGerritReview(gitCredentialsId, venvDir, repoDir, changeAuthorName, changeAuthorEmail, gitRemote, crTopic, metadataGerritBranch)
     }
 }
