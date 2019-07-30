@@ -25,8 +25,11 @@ package com.mirantis.mk
  *                          {'PARAM_NAME': {'type': <job parameter $class name>, 'use_variable': <a key from global_variables>}, ...}
  * @param global_variables  Map that keeps the artifact URLs and used 'env' objects:
  *                          {'PARAM1_NAME': <param1 value>, 'PARAM2_NAME': 'http://.../artifacts/param2_value', ...}
+ * @param propagate         Boolean. If false: allows to collect artifacts after job is finished, even with FAILURE status
+ *                          If true: immediatelly fails the pipeline. DO NOT USE 'true' if you want to collect artifacts
+ *                          for 'finally' steps
  */
-def runJob(job_name, job_parameters, global_variables) {
+def runJob(job_name, job_parameters, global_variables, Boolean propagate = false) {
     def parameters = []
 
     // Collect required parameters from 'global_variables' or 'env'
@@ -39,7 +42,7 @@ def runJob(job_name, job_parameters, global_variables) {
     }
 
     // Build the job
-    def job_info = build job: "${job_name}", parameters: parameters, propagate: false
+    def job_info = build job: "${job_name}", parameters: parameters, propagate: propagate
     return job_info
 }
 
@@ -87,8 +90,10 @@ def storeArtifacts(build_url, step_artifacts, global_variables) {
  * @param steps                   List of steps (Jenkins jobs) to execute
  * @param global_variables        Map where the collected artifact URLs and 'env' objects are stored
  * @param failed_jobs             Map with failed job names and result statuses, to report it later
+ * @param propagate               Boolean. If false: allows to collect artifacts after job is finished, even with FAILURE status
+ *                                If true: immediatelly fails the pipeline. DO NOT USE 'true' with runScenario().
  */
-def runSteps(steps, global_variables, failed_jobs) {
+def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
     currentBuild.description = ''
     for (step in steps) {
         stage("Running job ${step['job']}") {
@@ -96,7 +101,7 @@ def runSteps(steps, global_variables, failed_jobs) {
             def job_name = step['job']
             def job_parameters = step['parameters']
             // Collect job parameters and run the job
-            def job_info = runJob(job_name, job_parameters, global_variables)
+            def job_info = runJob(job_name, job_parameters, global_variables, propagate)
             def job_result = job_info.getResult()
             def build_url = job_info.getAbsoluteUrl()
             def build_description = job_info.getDescription()
