@@ -1,0 +1,198 @@
+package com.mirantis.mk
+
+/**
+ *
+ * Run a simple workflow
+ *
+ * Function runScenario() executes a sequence of jobs, like
+ * - Parameters for the jobs are taken from the 'env' object
+ * - URLs of artifacts from completed jobs may be passed
+ *   as parameters to the next jobs.
+ *
+ * No constants, environment specific logic or other conditional dependencies.
+ * All the logic should be placed in the workflow jobs, and perform necessary
+ * actions depending on the job parameters.
+ * The runScenario() function only provides the
+ *
+ */
+
+
+/**
+ * Run a Jenkins job using the collected parameters
+ *
+ * @param job_name          Name of the running job
+ * @param job_parameters    Map that declares which values from global_variables should be used, in the following format:
+ *                          {'PARAM_NAME': {'type': <job parameter $class name>, 'use_variable': <a key from global_variables>}, ...}
+ * @param global_variables  Map that keeps the artifact URLs and used 'env' objects:
+ *                          {'PARAM1_NAME': <param1 value>, 'PARAM2_NAME': 'http://.../artifacts/param2_value', ...}
+ */
+def runJob(job_name, job_parameters, global_variables) {
+    def parameters = []
+
+    // Collect required parameters from 'global_variables' or 'env'
+    for (param in job_parameters) {
+        if (!global_variables[param.value.use_variable]) {
+            global_variables[param.value.use_variable] = env[param.value.use_variable] ?: ''
+        }
+        parameters.add([$class: "${param.value.type}", name: "${param.key}", value: global_variables[param.value.use_variable]])
+        println "${param.key}: <${param.value.type}> ${global_variables[param.value.use_variable]}"
+    }
+
+    // Build the job
+    def job_info = build job: "${job_name}", parameters: parameters, propagate: false
+    return job_info
+}
+
+/**
+ * Store URLs of the specified artifacts to the global_variables
+ *
+ * @param build_url         URL of the completed job
+ * @param step_artifacts    Map that contains artifact names in the job, and variable names
+ *                          where the URLs to that atrifacts should be stored, for example:
+ *                          {'ARTIFACT1': 'logs.tar.gz', 'ARTIFACT2': 'test_report.xml', ...}
+ * @param global_variables  Map that will keep the artifact URLs. Variable 'ARTIFACT1', for example,
+ *                          be used in next job parameters: {'ARTIFACT1_URL':{ 'use_variable': 'ARTIFACT1', ...}}
+ *
+ *                          If the artifact with the specified name not found, the parameter ARTIFACT1_URL
+ *                          will be empty.
+ *
+ */
+def storeArtifacts(build_url, step_artifacts, global_variables) {
+    def http = new com.mirantis.mk.Http()
+    def base = [:]
+    base["url"] = build_url
+    def job_config = http.restGet(base, "/api/json/")
+    def job_artifacts = job_config['artifacts']
+    for (artifact in step_artifacts) {
+        def job_artifact = job_artifacts.findAll { item -> artifact.value == item['fileName'] || artifact.value == item['relativePath'] }
+        if (job_artifact.size() == 1) {
+            // Store artifact URL
+            def artifact_url = "${build_url}artifact/${job_artifact[0]['relativePath']}"
+            global_variables[artifact.key] = artifact_url
+            println "Artifact URL ${artifact_url} stored to ${artifact.key}"
+        } else if (job_artifact.size() > 1) {
+            // Error: too many artifacts with the same name, fail the job
+            error "Multiple artifacts ${artifact.value} for ${artifact.key} found in the build results ${build_url}, expected one:\n${job_artifact}"
+        } else {
+            // Warning: no artifact with expected name
+            println "Artifact ${artifact.value} for ${artifact.key} not found in the build results ${build_url}, found the following artifacts:\n${job_artifacts}"
+        }
+    }
+}
+
+
+/**
+ * Run the workflow or final steps one by one
+ *
+ * @param steps                   List of steps (Jenkins jobs) to execute
+ * @param global_variables        Map where the collected artifact URLs and 'env' objects are stored
+ * @param failed_jobs             Map with failed job names and result statuses, to report it later
+ */
+def runSteps(steps, global_variables, failed_jobs) {
+    currentBuild.description = ''
+    for (step in steps) {
+        stage("Running job ${step['job']}") {
+
+            def job_name = step['job']
+            def job_parameters = step['parameters']
+            // Collect job parameters and run the job
+            def job_info = runJob(job_name, job_parameters, global_variables)
+            def job_result = job_info.getResult()
+            def build_url = job_info.getAbsoluteUrl()
+            def build_description = job_info.getDescription()
+
+            currentBuild.description += "<a href=${build_url}>${job_name}</a>: ${job_result}<br>"
+            // Import the remote build description into the current build
+            if (build_description) { // TODO -  add also the job status
+                currentBuild.description += build_description
+            }
+
+            // Store links to the resulting artifacts into 'global_variables'
+            storeArtifacts(build_url, step['artifacts'], global_variables)
+
+            // Job failed, fail the build or keep going depending on 'ignore_failed' flag
+            if (job_result != "SUCCESS") {
+                def job_ignore_failed = step['ignore_failed'] ?: false
+                failed_jobs[build_url] = job_result
+                if (job_ignore_failed) {
+                    println "Job ${build_url} finished with result: ${job_result}"
+                } else {
+                    currentBuild.result = job_result
+                    error "Job ${build_url} finished with result: ${job_result}"
+                }
+            } // if (job_result == "SUCCESS")
+        } // stage ("Running job ${step['job']}")
+    } // for (step in scenario['workflow'])
+}
+
+/**
+ * Run the workflow scenario
+ *
+ * @param scenario: Map with scenario steps.
+
+ * There are two keys in the scenario:
+ *   workflow: contains steps to run deploy and test jobs
+ *   finally: contains steps to run report and cleanup jobs
+ *
+ * Scenario execution example:
+ *
+ *     scenario_yaml = """\
+ *     workflow:
+ *     - job: deploy-kaas
+ *       ignore_failed: false
+ *       parameters:
+ *         KAAS_VERSION:
+ *           type: StringParameterValue
+ *           use_variable: KAAS_VERSION
+ *       artifacts:
+ *         KUBECONFIG_ARTIFACT: artifacts/management_kubeconfig
+ *
+ *     - job: test-kaas-ui
+ *       ignore_failed: false
+ *       parameters:
+ *         KUBECONFIG_ARTIFACT_URL:
+ *           type: StringParameterValue
+ *           use_variable: KUBECONFIG_ARTIFACT
+ *       artifacts:
+ *         REPORT_SI_KAAS_UI: artifacts/test_kaas_ui_result.xml
+ *
+ *     finally:
+ *     - job: testrail-report
+ *       ignore_failed: true
+ *       parameters:
+ *         REPORT_SI_KAAS_UI_URL:
+ *           type: StringParameterValue
+ *           use_variable: REPORT_SI_KAAS_UI
+ *     """
+ *
+ *     runScenario(scenario)
+ *
+ */
+
+def runScenario(scenario) {
+
+    // Collect the parameters for the jobs here
+    global_variables = [:]
+    // List of failed jobs to show at the end
+    failed_jobs = [:]
+
+    try {
+        // Run the 'workflow' jobs
+        runSteps(scenario['workflow'], global_variables, failed_jobs)
+
+    } catch (InterruptedException x) {
+        error "The job was aborted"
+
+    } catch (e) {
+        error("Build failed: " + e.toString())
+
+    } finally {
+        // Run the 'finally' jobs
+        runSteps(scenario['finally'], global_variables, failed_jobs)
+
+        if (failed_jobs) {
+            println "Failed jobs: ${failed_jobs}"
+            currentBuild.result = "FAILED"
+        }
+    } // try
+}
