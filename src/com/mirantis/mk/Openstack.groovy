@@ -18,79 +18,62 @@ package com.mirantis.mk
 /**
  * Install OpenStack service clients in isolated environment
  *
- * @param path Path where virtualenv is created
- * @param version Version of the OpenStack clients
+ * @param path        Path where virtualenv is created
+ * @param version     Version of the OpenStack clients
  */
 
 def setupOpenstackVirtualenv(path, version = 'latest') {
-    setupOpenstackVirtualenv(['path': path, 'version': version])
-}
-
-/**
- * Install OpenStack service clients in isolated environment
- *
- * @param config : Config map with opts:
- *        path Path where virtualenv is created
- *        version Version of the OpenStack clients
- *        pyversion Version of the Python exec.
- *        requirements list of additional pip packages to be installed
- *
- */
-
-def setupOpenstackVirtualenv(LinkedHashMap config) {
     def python = new com.mirantis.mk.Python()
+    python.setupDocutilsVirtualenv(path)
 
-    def path = config.path
-    def version = config.get('version', 'latest')
-    def pyversion = config.get('pyversion', 'python2')
-    def requirements = config.get('requirements', [])
-    def os_requirements = []
+    def openstack_kilo_packages = [
+        //XXX: hack to fix https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1635463
+        'cliff==2.8',
+        'python-cinderclient>=1.3.1,<1.4.0',
+        'python-glanceclient>=0.19.0,<0.20.0',
+        'python-heatclient>=0.6.0,<0.7.0',
+        'python-keystoneclient>=1.6.0,<1.7.0',
+        'python-neutronclient>=2.2.6,<2.3.0',
+        'python-novaclient>=2.19.0,<2.20.0',
+        'python-swiftclient>=2.5.0,<2.6.0',
+        'python-openstackclient>=1.7.0,<1.8.0',
+        'oslo.config>=2.2.0,<2.3.0',
+        'oslo.i18n>=2.3.0,<2.4.0',
+        'oslo.serialization>=1.8.0,<1.9.0',
+        'oslo.utils>=1.4.0,<1.5.0',
+        'docutils'
+    ]
 
+    def openstack_latest_packages = [
+        //XXX: hack to fix https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1635463
+        'cliff==2.8',
+        // NOTE(vsaienko): cmd2 is dependency for cliff, since we don't using upper-contstraints
+        // we have to pin cmd2 < 0.9.0 as later versions are not compatible with python2.
+        // the same for warlock package due: https://github.com/bcwaldon/warlock/commit/4241a7a9fbccfce7eb3298c2abdf00ca2dede64a
+        // TODO(vsaienko): use upper-constraints here, as in requirements we set only lowest library
+        //                 versions.
+        'cmd2<0.9.0;python_version=="2.7"',
+        'cmd2>=0.9.1;python_version=="3.4"',
+        'cmd2>=0.9.1;python_version=="3.5"',
+        'warlock<=1.3.1;python_version=="2.7"',
+        'warlock>1.3.1;python_version=="3.4"',
+        'warlock>1.3.1;python_version=="3.5"',
+        'python-openstackclient',
+        'python-octaviaclient',
+        'python-heatclient',
+        'docutils'
+    ]
 
-    if (version in ['kilo', 'liberty', 'mitaka']) {
-        os_requirements = [
-            //XXX: hack to fix https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1635463
-            'cliff==2.8',
-            'python-cinderclient>=1.3.1,<1.4.0',
-            'python-glanceclient>=0.19.0,<0.20.0',
-            'python-heatclient>=0.6.0,<0.7.0',
-            'python-keystoneclient>=1.6.0,<1.7.0',
-            'python-neutronclient>=2.2.6,<2.3.0',
-            'python-novaclient>=2.19.0,<2.20.0',
-            'python-swiftclient>=2.5.0,<2.6.0',
-            'python-openstackclient>=1.7.0,<1.8.0',
-            'oslo.config>=2.2.0,<2.3.0',
-            'oslo.i18n>=2.3.0,<2.4.0',
-            'oslo.serialization>=1.8.0,<1.9.0',
-            'oslo.utils>=1.4.0,<1.5.0',
-            'docutils'
-        ]
+    if (version == 'kilo') {
+        requirements = openstack_kilo_packages
+    } else if (version == 'liberty') {
+        requirements = openstack_kilo_packages
+    } else if (version == 'mitaka') {
+        requirements = openstack_kilo_packages
     } else {
-        pyversion = 'python3'
-        os_requirements = [
-            //XXX: hack to fix https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1635463
-            'cliff==2.8',
-            // NOTE(vsaienko): cmd2 is dependency for cliff, since we don't using upper-contstraints
-            // we have to pin cmd2 < 0.9.0 as later versions are not compatible with python2.
-            // the same for warlock package due: https://github.com/bcwaldon/warlock/commit/4241a7a9fbccfce7eb3298c2abdf00ca2dede64a
-            // TODO(vsaienko): use upper-constraints here, as in requirements we set only lowest library
-            //                 versions.
-            'cmd2<0.9.0;python_version=="2.7"',
-            'cmd2>=0.9.1;python_version=="3.4"',
-            'cmd2>=0.9.1;python_version=="3.5"',
-            'warlock<=1.3.1;python_version=="2.7"',
-            'warlock>1.3.1;python_version=="3.4"',
-            'warlock>1.3.1;python_version=="3.5"',
-            'python-openstackclient',
-            'python-octaviaclient',
-            'python-heatclient',
-            'docutils'
-        ]
+        requirements = openstack_latest_packages
     }
-    requirements = requirements + os_requirements
-    // (alexz): could we install docutils at single stage?
-    python.setupVirtualenv(path, pyversion, ['docutils'], null, true)
-    python.setupVirtualenv(path, pyversion, requirements.unique(), null, true)
+    python.setupVirtualenv(path, 'python2', requirements, null, true)
 }
 
 /**
