@@ -97,30 +97,46 @@ def setAcl(String gcloudBinDir, String path, ArrayList acls) {
  *   @param dest Destination path in Google Storage, in format: gs://<path>
  *   @param acls ACLs for uploaded files
  *   @param entireTree Copy entire directory to bucket
+ *   @param useDifferentGcloudSDKDir Allow to use different SDK config dirs/accounts in parallel
+ *   @param gcloudSDKDir Actual path to SDK config dir, defaults to gcloud default: /home/<user>/.gcloud
+ *   or if HOME is unset to /tmp/.gcloud
+ *   @param revokeAccount Revoke account after actions
  *
  * Returns URLs list of uploaded files
 */
 def uploadArtifactToGoogleStorageBucket(Map config) {
     def gcloudDir = config.get('gcloudDir', '/tmp/gcloud')
+    def gcloudSDKDir = config.get('gcloudSDKDir', "${env.HOME ?: '/tmp'}/.gcloud")
     def creds = config.get('creds')
     def project = config.get('project')
     def acls = config.get('acls', ['AllUsers:R'])
     def sources = config.get('sources')
     def dest = config.get('dest')
     def entireTree = config.get('entireTree', false)
+    def useDifferentGcloudSDKDir = config.get('useDifferentGcloudSDKDir', true)
+    def revokeAccount = config.get('revokeAccount', true)
     def fileURLs = []
     if (!checkGcloudBinary(gcloudDir)) {
         downloadGcloudUtil(gcloudDir)
     }
-    try {
-        authGcloud(gcloudDir, creds, project)
-        for(String src in sources) {
-            def fileURL = cpFile(gcloudDir, src, dest, entireTree)
-            setAcl(gcloudDir, fileURL, acls)
-            fileURLs << fileURL
+    if (useDifferentGcloudSDKDir) {
+        gcloudSDKDir = "${gcloudSDKDir}_" + UUID.randomUUID().toString()
+        sh "mkdir -p ${gcloudSDKDir}"
+    }
+    withEnv(["CLOUDSDK_CONFIG=${gcloudSDKDir}"]) {
+        try {
+            authGcloud(gcloudDir, creds, project)
+            for(String src in sources) {
+                def fileURL = cpFile(gcloudDir, src, dest, entireTree)
+                setAcl(gcloudDir, fileURL, acls)
+                fileURLs << fileURL
+            }
+        } finally {
+            if (revokeAccount) {
+                revokeGcloud(gcloudDir)
+                sh "rm -rf ${gcloudSDKDir}"
+            }
         }
-    } finally {
-        revokeGcloud(gcloudDir)
     }
     return fileURLs
 }
