@@ -534,15 +534,16 @@ def checkTargetMinionsReady(LinkedHashMap config) {
  * Restart and wait for salt-minions on target nodes.
  * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target unique identification of a minion or group of salt minions
- * @param wait timeout for the salt command if minions do not return (default 5)
- * @param maxRetries finite number of iterations to check status of a command (default 10)
+ * @param wait timeout for the salt command if minions do not return (default 10)
+ * @param maxRetries finite number of iterations to check status of a command (default 15)
+ * @param async Run salt minion restart and do not wait for response
  * @return output of salt command
  */
-def restartSaltMinion(saltId, target, wait = 5, maxRetries = 10) {
+def restartSaltMinion(saltId, target, wait = 10, maxRetries = 15, async = true) {
     def common = new com.mirantis.mk.Common()
     common.infoMsg("Restarting salt-minion on ${target} and waiting for they are reachable.")
-    runSaltProcessStep(saltId, target, 'cmd.shell', ['salt-call service.restart salt-minion'], null, true, 60)
-    checkTargetMinionsReady(['saltId': saltId, 'target_reachable': target, timeout: wait, retries: maxRetries])
+    runSaltProcessStep(saltId, target, 'cmd.shell', ['salt-call service.restart salt-minion'], null, true, 60, null, async)
+    checkTargetMinionsReady(['saltId': saltId, 'target': target, timeout: wait, retries: maxRetries])
     common.infoMsg("All ${target} minions are alive...")
 }
 
@@ -919,12 +920,13 @@ def orchestratePrePost(saltId, pillar_tree, extra_tgt = '') {
  * @param tgt Salt process step target
  * @param fun Salt process step function
  * @param arg process step arguments (optional, default [])
- * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
+ * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch). Can't be used with async
  * @param output print output (optional, default true)
  * @param timeout  Additional argument salt api timeout
+ * @param async Run the salt command but don't wait for a reply. Can't be used with batch
  * @return output of salt command
  */
-def runSaltProcessStep(saltId, tgt, fun, arg = [], batch = null, output = true, timeout = -1, kwargs = null) {
+def runSaltProcessStep(saltId, tgt, fun, arg = [], batch = null, output = true, timeout = -1, kwargs = null, async = false) {
     def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
     def out
@@ -933,6 +935,8 @@ def runSaltProcessStep(saltId, tgt, fun, arg = [], batch = null, output = true, 
 
     if (batch == true) {
         out = runSaltCommand(saltId, 'local_batch', ['expression': tgt, 'type': 'compound'], fun, String.valueOf(batch), arg, kwargs, timeout)
+    } else if (async == true) {
+        out = runSaltCommand(saltId, 'local_async', ['expression': tgt, 'type': 'compound'], fun, batch, arg, kwargs, timeout)
     } else {
         out = runSaltCommand(saltId, 'local', ['expression': tgt, 'type': 'compound'], fun, batch, arg, kwargs, timeout)
     }
