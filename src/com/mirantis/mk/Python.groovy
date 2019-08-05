@@ -77,6 +77,76 @@ def runVirtualenvCommand(path, cmd, silent = false, flexAnswer = false) {
 }
 
 /**
+ * Another command runner to control outputs and exit code
+ *
+ * - always print the executing command to control the pipeline execution
+ * - always allows to get the stdout/stderr/status in the result, even with enabled console enabled
+ * - throws an exception with stderr content, so it could be read from the job status and processed
+ *
+ * @param cmd           String, command to be executed
+ * @param virtualenv    String, path to Python virtualenv (optional, default: '')
+ * @param verbose       Boolean, true: (default) mirror stdout to console and to the result['stdout'] at the same time,
+ *                               false: store stdout only to result['stdout']
+ * @param check_status  Boolean, true: (default) throw an exception which contains result['stderr'] if exit code is not 0,
+ *                               false: only print stderr if not empty, and return the result
+ * @return              Map, ['status' : int, 'stderr' : str, 'stdout' : str ]
+ */
+def runCmd(String cmd, String virtualenv='', Boolean verbose=true, Boolean check_status=true) {
+    def common = new com.mirantis.mk.Common()
+
+    def script
+    def redirect_output
+    def result = [:]
+    def stdout_path = sh(script: '#!/bin/bash +x\nmktemp', returnStdout: true).trim()
+    def stderr_path = sh(script: '#!/bin/bash +x\nmktemp', returnStdout: true).trim()
+
+    if (verbose) {
+        // show stdout to console and store to stdout_path
+        redirect_output = " 1> >(tee -a ${stdout_path}) 2>${stderr_path}"
+    } else {
+        // only store stdout to stdout_path
+        redirect_output = " 1>${stdout_path} 2>${stderr_path}"
+    }
+
+    if (virtualenv) {
+        common.infoMsg("Run shell command in Python virtualenv [${virtualenv}]:\n" + cmd)
+        script = """#!/bin/bash +x
+            . ${virtualenv}/bin/activate
+            ( ${cmd.stripIndent()} ) ${redirect_output}
+        """
+    } else {
+        common.infoMsg('Run shell command:\n' + cmd)
+        script = """#!/bin/bash +x
+            ( ${cmd.stripIndent()} ) ${redirect_output}
+        """
+    }
+
+    result['status'] = sh(script: script, returnStatus: true)
+    result['stdout'] = readFile(stdout_path)
+    result['stderr'] = readFile(stderr_path)
+    def cleanup_script = """#!/bin/bash +x
+        rm ${stdout_path} || true
+        rm ${stderr_path} || true
+    """
+    sh(script: cleanup_script)
+
+    if (result['status'] != 0 && check_status) {
+        def error_message = '\nScript returned exit code: ' + result['status'] + '\n<<<<<< STDERR: >>>>>>\n' + result['stderr']
+        common.errorMsg(error_message)
+        common.printMsg('', 'reset')
+        throw new Exception(error_message)
+    }
+
+    if (result['stderr'] && verbose) {
+        def warning_message = '\nScript returned exit code: ' + result['status'] + '\n<<<<<< STDERR: >>>>>>\n' + result['stderr']
+        common.warningMsg(warning_message)
+        common.printMsg('', 'reset')
+    }
+
+    return result
+}
+
+/**
  * Install docutils in isolated environment
  *
  * @param path Path where virtualenv is created
