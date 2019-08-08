@@ -357,13 +357,16 @@ def restoreGaleraCluster(env, runRestoreDb=true) {
  * @param targetNode    Node to be targeted
  */
 def restoreGaleraDb(env, targetNode) {
+    def salt = new com.mirantis.mk.Salt()
     def backup_dir = salt.getReturnValues(salt.getPillar(env, targetNode, 'xtrabackup:client:backup_dir'))
     if(backup_dir == null || backup_dir.isEmpty()) { backup_dir='/var/backups/mysql/xtrabackup' }
     salt.runSaltProcessStep(env, targetNode, 'file.remove', ["${backup_dir}/dbrestored"])
-    salt.cmdRun(env, targetNode, "su root -c 'salt-call state.sls xtrabackup.client'")
+    salt.enforceState(['saltId': env, 'target': targetNode, 'state': 'xtrabackup.client'])
+    salt.enforceState(['saltId': env, 'target': targetNode, 'state': 'xtrabackup.client.restore'])
 }
 
 def restoreGaleraDb(env) {
+    def common = new com.mirantis.mk.Common()
     common.warningMsg("This method was renamed to 'restoreGaleraCluster'. Please change your pipeline to use this call instead! If you think that you really wanted to call 'restoreGaleraDb' you may be missing 'targetNode' parameter in you call.")
     return restoreGaleraCluster(env)
 }
