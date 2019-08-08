@@ -305,47 +305,17 @@ def getGaleraLastShutdownNode(env, nodes = []) {
 def restoreGaleraCluster(env, runRestoreDb=true) {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
-    try {
-        salt.runSaltProcessStep(env, 'I@galera:slave', 'service.stop', ['mysql'])
-    } catch (Exception er) {
-        common.warningMsg('Mysql service already stopped')
-    }
-    try {
-        salt.runSaltProcessStep(env, 'I@galera:master', 'service.stop', ['mysql'])
-    } catch (Exception er) {
-        common.warningMsg('Mysql service already stopped')
-    }
+    salt.runSaltProcessStep(env, 'I@galera:slave', 'service.stop', ['mysql'])
+    salt.runSaltProcessStep(env, 'I@galera:master', 'service.stop', ['mysql'])
     lastNodeTarget = getGaleraLastShutdownNode(env)
-    try {
-        salt.cmdRun(env, 'I@galera:slave', "rm /var/lib/mysql/ib_logfile*")
-    } catch (Exception er) {
-        common.warningMsg('Files are not present')
-    }
-    try {
-        salt.cmdRun(env, 'I@galera:slave', "rm  /var/lib/mysql/grastate.dat")
-    } catch (Exception er) {
-        common.warningMsg('Files are not present')
-    }
-    try {
-        salt.cmdRun(env, lastNodeTarget, "mkdir /root/mysql/mysql.bak")
-    } catch (Exception er) {
-        common.warningMsg('Directory already exists')
-    }
-    try {
+    salt.cmdRun(env, "( I@galera:master or I@galera:slave ) and not ${lastNodeTarget}", "rm -f /var/lib/mysql/ib_logfile*")
+    salt.cmdRun(env, "( I@galera:master or I@galera:slave ) and not ${lastNodeTarget}", "rm -f /var/lib/mysql/grastate.dat")
+    if (runRestoreDb) {
+        salt.cmdRun(env, lastNodeTarget, "mkdir -p /root/mysql/mysql.bak")
         salt.cmdRun(env, lastNodeTarget, "rm -rf /root/mysql/mysql.bak/*")
-    } catch (Exception er) {
-        common.warningMsg('Directory already empty')
-    }
-    try {
         salt.cmdRun(env, lastNodeTarget, "mv /var/lib/mysql/* /root/mysql/mysql.bak")
-    } catch (Exception er) {
-        common.warningMsg('Files were already moved')
     }
-    try {
-        salt.runSaltProcessStep(env, lastNodeTarget, 'file.remove', ["/var/lib/mysql/.galera_bootstrap"])
-    } catch (Exception er) {
-        common.warningMsg('File is not present')
-    }
+    salt.cmdRun(env, lastNodeTarget, "rm -f /var/lib/mysql/.galera_bootstrap")
 
     // make sure that gcom parameter is empty
     salt.cmdRun(env, lastNodeTarget, "sed -i '/gcomm/c\\wsrep_cluster_address=\"gcomm://\"' /etc/mysql/my.cnf")
@@ -376,8 +346,8 @@ def restoreGaleraCluster(env, runRestoreDb=true) {
         input message: "Database is not running please fix it first and only then click on PROCEED."
     }
 
-    // apply any changes in configuration
-    salt.enforceState(env, lastNodeTarget, 'galera')
+    // apply any changes in configuration and return value to gcom parameter
+    salt.enforceState(['saltId': env, 'target': lastNodeTarget, 'state': 'galera'])
 
 }
 
@@ -390,7 +360,7 @@ def restoreGaleraDb(env, targetNode) {
     def backup_dir = salt.getReturnValues(salt.getPillar(env, targetNode, 'xtrabackup:client:backup_dir'))
     if(backup_dir == null || backup_dir.isEmpty()) { backup_dir='/var/backups/mysql/xtrabackup' }
     salt.runSaltProcessStep(env, targetNode, 'file.remove', ["${backup_dir}/dbrestored"])
-    salt.cmdRun(env, 'I@xtrabackup:client', "su root -c 'salt-call state.sls xtrabackup'")
+    salt.cmdRun(env, targetNode, "su root -c 'salt-call state.sls xtrabackup.client'")
 }
 
 def restoreGaleraDb(env) {
