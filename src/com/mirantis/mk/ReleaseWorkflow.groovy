@@ -132,8 +132,6 @@ def updateReleaseMetadata(String key, String value, Map params) {
             changeNum = jsonChange['number']
             ChangeId = 'Change-Id: '
             ChangeId += jsonChange['id']
-            //get existent change from gerrit
-            gerrit.getGerritChangeByNum(gitCredentialsId, venvDir, repoDir, gitRemote, changeNum)
         } else {
             ChangeId = ''
             git.createGitBranch(repoDir, crTopic)
@@ -146,11 +144,7 @@ def updateReleaseMetadata(String key, String value, Map params) {
                |${ChangeId}
             """.stripMargin()
         //commit change
-        if (gerritChange) {
-            git.commitGitChanges(repoDir, commitMessage, changeAuthorEmail, changeAuthorName, false, true)
-        } else {
-            git.commitGitChanges(repoDir, commitMessage, changeAuthorEmail, changeAuthorName, false)
-        }
+        git.commitGitChanges(repoDir, commitMessage, changeAuthorEmail, changeAuthorName, false)
         //post change
         gerrit.postGerritReview(gitCredentialsId, venvDir, repoDir, changeAuthorName, changeAuthorEmail, gitRemote, crTopic, metadataGerritBranch)
     }
