@@ -407,3 +407,68 @@ def getVersion(repoDir, allowNonSemVer2 = false) {
         return "${next_version}-${pre_release_meta.join('.')}-${commit_sha}"
     }
 }
+
+
+/**
+ * Method for uploading a change request
+ *
+ * @param repo              String which contains path to directory with git repository
+ * @param credentialsId     Credentials id to use for accessing target repositories
+ * @param commit            Id of commit which should be uploaded
+ * @param branch            Name of the branch for uploading
+ * @param topic             Topic of the change
+ *
+ */
+def pushForReview(repo, credentialsId, commit, branch, topic='', remote='origin') {
+    def common = new com.mirantis.mk.Common()
+    def ssh = new com.mirantis.mk.Ssh()
+    common.infoMsg("Uploading commit ${commit} to ${branch} for review...")
+
+    def pushArg = "${commit}:refs/for/${branch}"
+    def process = [:]
+    if (topic){
+        pushArg += '%topic=' + topic
+    }
+    dir(repo){
+        ssh.prepareSshAgentKey(credentialsId)
+        ssh.runSshAgentCommand("git push ${remote} ${pushArg}")
+    }
+}
+
+/**
+ * Generates a commit message with predefined or auto generate change id. If change
+ * id isn't provided, changeIdSeed and current sha of git head will be used in
+ * generation of commit change id.
+ *
+ * @param repo              String which contains path to directory with git repository
+ * @param message           Commit message main part
+ * @param changeId          User defined change-id usually sha1 hash
+ * @param changeIdSeed      Custom part of change id which can be added during change id generation
+ *
+ *
+ * @return commitMessage    Multiline String with generated commit message
+ */
+def genCommitMessage(repo, message, changeId = '', changeIdSeed = ''){
+    def git = new com.mirantis.mk.Git()
+    def common = new com.mirantis.mk.Common()
+    def commitMessage
+    def id = changeId
+    def seed = changeIdSeed
+    if (!id) {
+        if (!seed){
+            seed = common.generateRandomHashString(32)
+        }
+        def head_sha
+        dir(repo){
+            head_sha = git.getGitCommit()
+        }
+        id = 'I' + sh(script: 'echo -n ' + seed + head_sha + ' | sha1sum | awk \'{print $1}\'', returnStdout: true)
+    }
+    commitMessage =
+            """${message}
+
+           |Change-Id: ${id}
+        """.stripMargin()
+
+    return commitMessage
+}
