@@ -1008,7 +1008,7 @@ def checkResult(result, failOnError = true, printResults = true, printOnlyChange
                                             outputResources.add(String.format("Resource: %s\n\u001B[33m%s\u001B[0m", resKey, common.prettify(resource)))
                                         }
                                     }else{
-                                        if(!printOnlyChanges || resource.changes.size() > 0){
+                                        if(!printOnlyChanges || (resource.changes && resource.changes.size() > 0)) {
                                             outputResources.add(String.format("Resource: %s\n\u001B[32m%s\u001B[0m", resKey, common.prettify(resource)))
                                         }
                                     }
