@@ -277,15 +277,18 @@ def getGaleraLastShutdownNode(env, nodes = []) {
                 if (seqno.isNumber()) {
                     seqno = seqno.toInteger()
                 } else {
-                    seqno = -2
-                }
-                highestSeqno = lastNode.get('seqno')
-                if (seqno > highestSeqno) {
-                    lastNode << [ip: "${member.host}", seqno: seqno]
+                    // in case if /var/lib/mysql/grastate.dat has no any seqno - set it to 0
+                    // thus node will be recovered if no other failed found
+                    seqno = 0
                 }
             } catch (Exception e) {
                 common.warningMsg("Could not determine 'seqno' value for node ${member.host} ")
                 common.warningMsg(e.getMessage())
+                seqno = 0
+            }
+            highestSeqno = lastNode.get('seqno')
+            if (seqno > highestSeqno) {
+                lastNode << [ip: "${member.host}", seqno: seqno]
             }
         }
     }
@@ -293,6 +296,25 @@ def getGaleraLastShutdownNode(env, nodes = []) {
         return "S@${lastNode.ip}"
     } else {
         return "I@galera:master"
+    }
+}
+
+/**
+ * Wrapper around Mysql systemd service
+ * @param env           Salt Connection object or pepperEnv
+ * @param targetNode    Node to apply changes
+ * @param checkStatus   Whether to check status of Mysql
+ * @param checkState    State of service to check
+*/
+def manageServiceMysql(env, targetNode, action, checkStatus=true, checkState='running') {
+    def salt = new com.mirantis.mk.Salt()
+    salt.runSaltProcessStep(env, lastNodeTarget, "service.${action}", ['mysql'])
+    if (checkStatus) {
+        try {
+            salt.commandStatus(env, lastNodeTarget, 'service mysql status', checkState)
+        } catch (Exception er) {
+            input message: "Database is not running please fix it first and only then click on PROCEED."
+        }
     }
 }
 
@@ -305,11 +327,8 @@ def getGaleraLastShutdownNode(env, nodes = []) {
 def restoreGaleraCluster(env, runRestoreDb=true) {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
-    salt.runSaltProcessStep(env, 'I@galera:slave', 'service.stop', ['mysql'])
-    salt.runSaltProcessStep(env, 'I@galera:master', 'service.stop', ['mysql'])
     lastNodeTarget = getGaleraLastShutdownNode(env)
-    salt.cmdRun(env, "( I@galera:master or I@galera:slave ) and not ${lastNodeTarget}", "rm -f /var/lib/mysql/ib_logfile*")
-    salt.cmdRun(env, "( I@galera:master or I@galera:slave ) and not ${lastNodeTarget}", "rm -f /var/lib/mysql/grastate.dat")
+    manageServiceMysql(env, lastNodeTarget, 'stop', false)
     if (runRestoreDb) {
         salt.cmdRun(env, lastNodeTarget, "mkdir -p /root/mysql/mysql.bak")
         salt.cmdRun(env, lastNodeTarget, "rm -rf /root/mysql/mysql.bak/*")
@@ -325,29 +344,11 @@ def restoreGaleraCluster(env, runRestoreDb=true) {
         restoreGaleraDb(env, lastNodeTarget)
     }
 
-    // start mysql service on the last node
-    salt.runSaltProcessStep(env, lastNodeTarget, 'service.start', ['mysql'])
+    manageServiceMysql(env, lastNodeTarget, 'start')
 
-    // wait until mysql service on galera master is up
-    try {
-        salt.commandStatus(env, lastNodeTarget, 'service mysql status', 'running')
-    } catch (Exception er) {
-        input message: "Database is not running please fix it first and only then click on PROCEED."
-    }
-
-    // start mysql services on the rest of the nodes
-    salt.runSaltProcessStep(env, "I@galera:master and not ${lastNodeTarget}", 'service.start', ['mysql'])
-    salt.runSaltProcessStep(env, "I@galera:slave and not ${lastNodeTarget}", 'service.start', ['mysql'])
-
-    // wait until mysql service on the rest of the nodes is up
-    try {
-        salt.commandStatus(env, "( I@galera:master or I@galera:slave ) and not ${lastNodeTarget}", 'service mysql status', 'running')
-    } catch (Exception er) {
-        input message: "Database is not running please fix it first and only then click on PROCEED."
-    }
-
-    // apply any changes in configuration and return value to gcom parameter
+    // apply any changes in configuration and return value to gcom parameter and then restart mysql to catch
     salt.enforceState(['saltId': env, 'target': lastNodeTarget, 'state': 'galera'])
+    manageServiceMysql(env, lastNodeTarget, 'restart')
 }
 
 /**
