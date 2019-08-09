@@ -94,7 +94,6 @@ def storeArtifacts(build_url, step_artifacts, global_variables) {
  *                                If true: immediatelly fails the pipeline. DO NOT USE 'true' with runScenario().
  */
 def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
-    currentBuild.description = ''
     for (step in steps) {
         stage("Running job ${step['job']}") {
 
@@ -176,6 +175,8 @@ def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
 
 def runScenario(scenario) {
 
+    // Clear description before adding new messages
+    currentBuild.description = ''
     // Collect the parameters for the jobs here
     global_variables = [:]
     // List of failed jobs to show at the end
