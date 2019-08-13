@@ -458,31 +458,44 @@ def minionsPresentFromList(saltId, target = 'I@salt:master', target_minions = []
  * You can call this function when salt-master already contains salt keys of the target_nodes
  * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Should always be salt-master
- * @param target_nodes unique identification of a minion or group of salt minions
+ * @param targetNodes unique identification of a minion or group of salt minions
  * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
- * @param wait timeout for the salt command if minions do not return (default 10)
+ * @param cmdTimeout timeout for the salt command if minions do not return (default 10)
  * @param maxRetries finite number of iterations to check status of a command (default 200)
  * @return output of salt command
  */
-def minionsReachable(saltId, target, target_nodes, batch=null, wait = 10, maxRetries = 200) {
+
+def minionsReachable(saltId, target, targetNodes, batch=null, cmdTimeout = 10, maxRetries = 200) {
     def common = new com.mirantis.mk.Common()
-    def cmd = "salt -t${wait} -C '${target_nodes}' test.ping"
-    common.infoMsg("Checking if all ${target_nodes} minions are reachable")
-    def count = 0
-    while(count < maxRetries) {
+    def cmd = "salt -t${cmdTimeout} -C '${targetNodes}' test.ping"
+    common.infoMsg("Checking if all ${targetNodes} minions are reachable")
+    def retriesCount = 0
+    while(retriesCount < maxRetries) {
         Calendar timeout = Calendar.getInstance();
-        timeout.add(Calendar.SECOND, wait);
-        def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd], null, wait)
+        timeout.add(Calendar.SECOND, cmdTimeout);
+        def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'cmd.shell', batch, [cmd], null, cmdTimeout)
         Calendar current = Calendar.getInstance();
         if (current.getTime().before(timeout.getTime())) {
-           printSaltCommandResult(out)
-           return out
+            common.infoMsg("Successful response received from all targeted nodes.")
+            printSaltCommandResult(out)
+            return out
         }
-        common.infoMsg("Not all of the targeted '${target_nodes}' minions returned yet. Waiting ...")
-        count++
+        def outYaml = readYaml text: getReturnValues(out)
+        def successfulNodes = []
+        def failedNodes = []
+        for (node in outYaml.keySet()) {
+            if (outYaml[node] == true || outYaml[node].toString().toLowerCase() == 'true') {
+                successfulNodes.add(node)
+            } else {
+                failedNodes.add(node)
+            }
+        }
+        common.infoMsg("Not all of the targeted minions returned yet. Successful response from ${successfulNodes}. Still waiting for ${failedNodes}.")
+        retriesCount++
         sleep(time: 500, unit: 'MILLISECONDS')
     }
 }
+
 
 /**
  * You can call this function when need to check that all minions are available, free and ready for command execution
@@ -514,6 +527,43 @@ def checkTargetMinionsReady(LinkedHashMap config) {
                 throw new Exception("Not all salt-minions are ready for execution")
             }
         }
+    }
+}
+
+/**
+ * Restart and wait for salt-minions on target nodes.
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
+ * @param target unique identification of a minion or group of salt minions
+ * @param wait timeout for the salt command if minions do not return (default 10)
+ * @param maxRetries finite number of iterations to check status of a command (default 15)
+ * @param async Run salt minion restart and do not wait for response
+ * @return output of salt command
+ */
+def restartSaltMinion(saltId, target, wait = 10, maxRetries = 15, async = true) {
+    def common = new com.mirantis.mk.Common()
+    common.infoMsg("Restarting salt-minion on ${target} and waiting for they are reachable.")
+    runSaltProcessStep(saltId, target, 'cmd.shell', ['salt-call service.restart salt-minion'], null, true, 60, null, async)
+    checkTargetMinionsReady(['saltId': saltId, 'target': target, timeout: wait, retries: maxRetries])
+    common.infoMsg("All ${target} minions are alive...")
+}
+
+/**
+ * Upgrade package and restart salt minion.
+ * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
+ * @param target unique identification of a minion or group of salt minions
+ * @param the name of pkg_name to upgrade
+ * @param wait timeout for the salt command if minions do not return (default 5)
+ * @param maxRetries finite number of iterations to check status of a command (default 10)
+ * @return output of salt command
+ */
+def upgradePackageAndRestartSaltMinion(saltId, target, pkg_name, wait = 5, maxRetries = 10) {
+    def common = new com.mirantis.mk.Common()
+    def latest_version = getReturnValues(runSaltProcessStep(saltId, target, 'pkg.latest_version', [pkg_name, 'show_installed=True'])).split('\n')[0]
+    def current_version = getReturnValues(runSaltProcessStep(saltId, target, 'pkg.version', [pkg_name])).split('\n')[0]
+    if (current_version && latest_version != current_version) {
+        common.infoMsg("Upgrading current ${pkg_name}: ${current_version} to ${latest_version}")
+        runSaltProcessStep(saltId, target, 'pkg.install', [pkg_name], 'only_upgrade=True')
+        restartSaltMinion(saltId, target, wait, maxRetries)
     }
 }
 
@@ -870,12 +920,13 @@ def orchestratePrePost(saltId, pillar_tree, extra_tgt = '') {
  * @param tgt Salt process step target
  * @param fun Salt process step function
  * @param arg process step arguments (optional, default [])
- * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch)
+ * @param batch salt batch parameter integer or string with percents (optional, default null - disable batch). Can't be used with async
  * @param output print output (optional, default true)
  * @param timeout  Additional argument salt api timeout
+ * @param async Run the salt command but don't wait for a reply. Can't be used with batch
  * @return output of salt command
  */
-def runSaltProcessStep(saltId, tgt, fun, arg = [], batch = null, output = true, timeout = -1, kwargs = null) {
+def runSaltProcessStep(saltId, tgt, fun, arg = [], batch = null, output = true, timeout = -1, kwargs = null, async = false) {
     def common = new com.mirantis.mk.Common()
     def salt = new com.mirantis.mk.Salt()
     def out
@@ -884,6 +935,8 @@ def runSaltProcessStep(saltId, tgt, fun, arg = [], batch = null, output = true, 
 
     if (batch == true) {
         out = runSaltCommand(saltId, 'local_batch', ['expression': tgt, 'type': 'compound'], fun, String.valueOf(batch), arg, kwargs, timeout)
+    } else if (async == true) {
+        out = runSaltCommand(saltId, 'local_async', ['expression': tgt, 'type': 'compound'], fun, batch, arg, kwargs, timeout)
     } else {
         out = runSaltCommand(saltId, 'local', ['expression': tgt, 'type': 'compound'], fun, batch, arg, kwargs, timeout)
     }
@@ -955,7 +1008,7 @@ def checkResult(result, failOnError = true, printResults = true, printOnlyChange
                                             outputResources.add(String.format("Resource: %s\n\u001B[33m%s\u001B[0m", resKey, common.prettify(resource)))
                                         }
                                     }else{
-                                        if(!printOnlyChanges || resource.changes.size() > 0){
+                                        if(!printOnlyChanges || (resource.changes && resource.changes.size() > 0)) {
                                             outputResources.add(String.format("Resource: %s\n\u001B[32m%s\u001B[0m", resKey, common.prettify(resource)))
                                         }
                                     }
@@ -1211,6 +1264,103 @@ def checkClusterTimeSync(saltId, target) {
         }
     } catch(Exception e) {
         common.errorMsg("Could not check cluster time sync.")
+        return false
+    }
+}
+
+/**
+* Finds out IP address of the given node or a list of nodes
+*
+* @param saltId     Salt Connection object or pepperEnv (the command will be sent using the selected method)
+* @param nodes      Targeted node hostnames to be checked (String or List of strings)
+* @param useGrains  If the, the value will be taken from grains. If false, it will be taken from 'hostname' command.
+* @return Map       Return result Map in format ['nodeName1': 'ipAdress1', 'nodeName2': 'ipAdress2', ...]
+*/
+
+def getIPAddressesForNodenames(saltId, nodes = [], useGrains = true) {
+    result = [:]
+
+    if (nodes instanceof String) {
+        nodes = [nodes]
+    }
+
+    if (useGrains) {
+        for (String node in nodes) {
+            ip = getReturnValues(getGrain(saltId, node, "fqdn_ip4"))["fqdn_ip4"][0]
+            result[node] = ip
+        }
+    } else {
+        for (String node in nodes) {
+            ip = getReturnValues(cmdRun(saltId, node, "hostname -i")).readLines()[0]
+            result[node] = ip
+        }
+    }
+    return result
+}
+
+/**
+* Checks if required package is installed and returns averaged IO stats for selected disks.
+* Allows getting averaged values of specific parameter for all disks or a specified disk.
+* Interval between checks and its number is parametrized and configurable.
+*
+* @param saltId         Salt Connection object or pepperEnv (the command will be sent using the selected method)
+* @param target         Node to be targeted (Should only match 1 node)
+* @param parameterName  Name of parameter from 'iostat' output (default = '' -- returns all variables)
+* @param interval       Interval between checks (default = 1)
+* @param count          Number of checks (default = 5)
+* @param disks          Disks to be checked (default = '' -- returns all disks)
+* @param output         Print Salt command return (default = true)
+* @return Map           Map containing desired values in format ['disk':'value']
+*/
+
+def getIostatValues(Map params) {
+    def common = new com.mirantis.mk.Common()
+    def ret = [:]
+    if (isPackageInstalled(['saltId': params.saltId, 'target': params.target, 'packageName': 'sysstat', 'output': false])) {
+        def arg = [params.get('interval', 1), params.get('count', 5), params.get('disks', '')]
+        def res = getReturnValues(runSaltProcessStep(params.saltId, params.target, 'disk.iostat', arg, null, params.output))
+        if (res instanceof Map) {
+            for (int i = 0; i < res.size(); i++) {
+                def key = res.keySet()[i]
+                if (params.containsKey('parameterName')) {
+                    if (res[key].containsKey(params.parameterName)){
+                        ret[key] = res[key][params.parameterName]
+                    } else {
+                        common.errorMsg("Parameter '${params.parameterName}' not found for disk '${key}'. Valid parameter for this disk are: '${res[key].keySet()}'")
+                    }
+                } else {
+                    return res      // If no parameterName is defined, return all of them.
+                }
+            }
+        }
+    } else {
+        common.errorMsg("Package 'sysstat' seems not to be installed on at least one of tageted nodes: ${params.target}. Please fix this to be able to check 'iostat' values. Find more in the docs TODO:<Add docs link>")
+    }
+    return ret
+}
+
+/**
+* Checks if defined package is installed on all nodes defined by target parameter.
+*
+* @param saltId         Salt Connection object or pepperEnv (the command will be sent using the selected method)
+* @param target         Node or nodes to be targeted
+* @param packageName    Name of package to be checked
+* @param output         Print Salt command return (default = true)
+* @return boolean       True if package is installed on all defined nodes. False if not found on at least one of defined nodes.
+*/
+
+def isPackageInstalled(Map params) {
+    def output = params.get('output', true)
+    def res = runSaltProcessStep(params.saltId, params.target, "pkg.list_pkgs", [], null, output)['return'][0]
+    if (res) {
+        for (int i = 0; i < res.size(); i++) {
+            def key = res.keySet()[i]
+            if (!(res[key] instanceof Map && res[key].get(params.packageName, false))) {
+                return false
+            }
+        }
+        return true
+    } else {
         return false
     }
 }
