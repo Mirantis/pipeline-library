@@ -158,7 +158,7 @@ def installInfraKvm(master, extra_tgt = '') {
     }
 
     common.infoMsg("All minions are up.")
-    salt.fullRefresh(master, "* and not kvm* ${extra_tgt}")
+    salt.fullRefresh(master, "* and not I@salt:control ${extra_tgt}")
 
 }
 
@@ -729,8 +729,8 @@ def setupKubeAddonForContrail(master, extra_tgt = '') {
 def installCicd(master, extra_tgt = '') {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
-    def gerrit_compound = "I@gerrit:client and ci* ${extra_tgt}"
-    def jenkins_compound = "I@jenkins:client and ci* ${extra_tgt}"
+    def gerrit_compound = "I@gerrit:client and I@_param:drivetrain_role:cicd ${extra_tgt}"
+    def jenkins_compound = "I@jenkins:client and I@_param:drivetrain_role:cicd ${extra_tgt}"
 
     salt.fullRefresh(master, gerrit_compound)
     salt.fullRefresh(master, jenkins_compound)
@@ -738,7 +738,7 @@ def installCicd(master, extra_tgt = '') {
     // Temporary exclude cfg node from docker.client state (PROD-24934)
     def dockerClientExclude = !salt.getPillar(master, 'I@salt:master', 'docker:client:stack:jenkins').isEmpty() ? 'and not I@salt:master' : ''
     // Pull images first if any
-    def listCIMinions = salt.getMinions(master, "ci* ${dockerClientExclude} ${extra_tgt}")
+    def listCIMinions = salt.getMinions(master, "I@_param:drivetrain_role:cicd ${dockerClientExclude} ${extra_tgt}")
     for (int i = 0; i < listCIMinions.size(); i++) {
         if (!salt.getReturnValues(salt.getPillar(master, listCIMinions[i], 'docker:client:images')).isEmpty()) {
             salt.enforceState([saltId: master, target: listCIMinions[i], state: 'docker.client.images', retries: 2])
@@ -969,7 +969,7 @@ def installStacklight(master, extra_tgt = '') {
     salt.enforceStateWithTest([saltId: master, target: "I@sphinx:server ${extra_tgt}", state: 'sphinx'])
 
     //Configure Grafana
-    pillar = salt.getPillar(master, "ctl01* ${extra_tgt}", '_param:stacklight_monitor_address')
+    pillar = salt.getPillar(master, "I@keystone:server:role:primary ${extra_tgt}", '_param:stacklight_monitor_address')
     common.prettyPrint(pillar)
 
     def stacklight_vip
@@ -1264,7 +1264,7 @@ def installOss(master, extra_tgt = '') {
   def salt = new com.mirantis.mk.Salt()
 
   //Get oss VIP address
-  def pillar = salt.getPillar(master, "cfg01* ${extra_tgt}", '_param:stacklight_monitor_address')
+  def pillar = salt.getPillar(master, "I@salt:master ${extra_tgt}", '_param:stacklight_monitor_address')
   common.prettyPrint(pillar)
 
   def oss_vip
