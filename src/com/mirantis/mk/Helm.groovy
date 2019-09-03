@@ -8,8 +8,10 @@ package com.mirantis.mk
 
 /**
  * Build index file for helm chart
+ * @param extra_params   additional params, e.g. --url repository_URL
+ * @param charts_dir     path to a directory
  */
 
-def helmIndex(){
-    sh("helm index")
+def helmRepoIndex(extra_params='', charts_dir='.'){
+    sh("helm repo index ${extra_params} ${charts_dir}")
 }
