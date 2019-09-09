@@ -473,3 +473,51 @@ def genCommitMessage(repo, message, changeId = '', changeIdSeed = ''){
 
     return commitMessage
 }
+
+/**
+ * Update (or create if cannot find) gerrit change request
+ *
+ * @param params   Map of parameters to customize commit
+ *   - gerritAuth         A map containing information about Gerrit. Should include HOST, PORT and USER
+ *   - credentialsId      Jenkins credentials id for gerrit
+ *   - repo               Local directory with repository
+ *   - comment            Commit comment
+ *   - change_id_seed     Custom part of change id which can be added during change id generation
+ *   - branch             Name of the branch for uploading
+ *   - topic              Topic of the change
+ *   - project            Gerrit project to search in for gerrit change request
+ *   - status             Change request's status to search for
+ *   - changeAuthorEmail  Author's email of the change
+ *   - changeAuthorName   Author's name of the change
+ */
+def updateChangeRequest(Map params) {
+    def gerrit = new com.mirantis.mk.Gerrit()
+
+    def commitMessage
+    def auth = params['gerritAuth']
+    def creds = params['credentialsId']
+    def repo = params['repo']
+    def comment = params['comment']
+    def change_id_seed = params.get('change_id_seed', JOB_NAME)
+    def branch = params['branch']
+    def topic = params['topic']
+    def project = params['project']
+    def status = params.get('status', 'open')
+    def changeAuthorEmail = params['changeAuthorEmail']
+    def changeAuthorName = params['changeAuthorName']
+
+    def changeParams = ['owner': auth['USER'], 'status': status, 'project': project, 'branch': branch, 'topic': topic]
+    def gerritChange = gerrit.findGerritChange(creds, auth, changeParams)
+    def changeId
+    def commit
+    if (gerritChange) {
+        def jsonChange = readJSON text: gerritChange
+        changeId = jsonChange['id']
+    }
+    commitMessage = genCommitMessage(repo, comment, changeId, change_id_seed)
+    commitGitChanges(repo, commitMessage, changeAuthorEmail, changeAuthorName, false, false)
+    dir(repo){
+        commit = getGitCommit()
+    }
+    pushForReview(repo, creds, commit, branch, topic)
+}
