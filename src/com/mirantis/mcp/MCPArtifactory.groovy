@@ -110,6 +110,25 @@ def setProperties(String artifactUrl, LinkedHashMap properties, Boolean recursiv
 }
 
 /**
+ * Create an empty directory in Artifactory repo
+ *
+ * @param artifactoryURL String, an URL to Artifactory
+ * @param path String, a path to the desired directory including repository name
+ * @param dir String, desired directory name
+ */
+def createDir (String artifactoryURL, String path, String dir) {
+    def url = "${artifactoryURL}/${path}/${dir}/"
+    withCredentials([
+            [$class          : 'UsernamePasswordMultiBinding',
+             credentialsId   : 'artifactory',
+             passwordVariable: 'ARTIFACTORY_PASSWORD',
+             usernameVariable: 'ARTIFACTORY_LOGIN']
+    ]) {
+        sh "bash -c \"curl -X PUT -u ${ARTIFACTORY_LOGIN}:${ARTIFACTORY_PASSWORD} \'${url}\'\""
+    }
+}
+
+/**
  * Get properties for specified artifact in Artifactory
  * Returns LinkedHashMap of properties
  *
