@@ -129,6 +129,45 @@ def createDir (String artifactoryURL, String path, String dir) {
 }
 
 /**
+ * Move/copy an artifact or a folder to the specified destination
+ *
+ * @param artifactoryURL String, an URL to Artifactory
+ * @param sourcePath String, a source path to the artifact including repository name
+ * @param dstPath String, a destination path to the artifact including repository name
+ * @param copy boolean, whether to copy or move the item, default is move
+ * @param dryRun boolean, whether to perform dry run on not, default is false
+ */
+def moveItem (String artifactoryURL, String sourcePath, String dstPath, boolean copy = false, boolean dryRun = false) {
+    def url = "${artifactoryURL}/api/${copy ? 'copy' : 'move'}/${sourcePath}?to=/${dstPath}&dry=${dryRun ? '1' : '0'}"
+    withCredentials([
+            [$class          : 'UsernamePasswordMultiBinding',
+             credentialsId   : 'artifactory',
+             passwordVariable: 'ARTIFACTORY_PASSWORD',
+             usernameVariable: 'ARTIFACTORY_LOGIN']
+    ]) {
+        sh "bash -c \"curl -X POST -u ${ARTIFACTORY_LOGIN}:${ARTIFACTORY_PASSWORD} \'${url}\'\""
+    }
+}
+
+/**
+ * Recursively delete the specified artifact or a folder
+ *
+ * @param artifactoryURL String, an URL to Artifactory
+ * @param itemPath String, a source path to the item including repository name
+ */
+def deleteItem (String artifactoryURL, String itemPath) {
+    def url = "${artifactoryURL}/${itemPath}"
+    withCredentials([
+            [$class          : 'UsernamePasswordMultiBinding',
+             credentialsId   : 'artifactory',
+             passwordVariable: 'ARTIFACTORY_PASSWORD',
+             usernameVariable: 'ARTIFACTORY_LOGIN']
+    ]) {
+        sh "bash -c \"curl -X DELETE -u ${ARTIFACTORY_LOGIN}:${ARTIFACTORY_PASSWORD} \'${url}\'\""
+    }
+}
+
+/**
  * Get properties for specified artifact in Artifactory
  * Returns LinkedHashMap of properties
  *
