@@ -1023,3 +1023,14 @@ def generateRandomHashString(int n, ArrayList pool = []) {
     Random rand = new Random(System.currentTimeMillis())
     return (1..n).collect { pool[rand.nextInt(pool.size())] }.join()
 }
+
+/**
+ * Checks whether string is semver complaint version
+ * @param string version
+*/
+
+def isSemVer(version){
+    // Official regex for Semver2 (https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string)
+    String semVerRegex = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
+    return version ==~ semVerRegex
+}
