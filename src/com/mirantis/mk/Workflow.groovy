@@ -23,6 +23,8 @@ package com.mirantis.mk
  * @param job_name          Name of the running job
  * @param job_parameters    Map that declares which values from global_variables should be used, in the following format:
  *                          {'PARAM_NAME': {'type': <job parameter $class name>, 'use_variable': <a key from global_variables>}, ...}
+ *                          or
+ *                          {'PARAM_NAME': {'type': <job parameter $class name>, 'use_template': <a GString multiline template with variables from global_variables>}, ...}
  * @param global_variables  Map that keeps the artifact URLs and used 'env' objects:
  *                          {'PARAM1_NAME': <param1 value>, 'PARAM2_NAME': 'http://.../artifacts/param2_value', ...}
  * @param propagate         Boolean. If false: allows to collect artifacts after job is finished, even with FAILURE status
@@ -31,14 +33,22 @@ package com.mirantis.mk
  */
 def runJob(job_name, job_parameters, global_variables, Boolean propagate = false) {
     def parameters = []
+    def engine = new groovy.text.GStringTemplateEngine()
+    def template
 
     // Collect required parameters from 'global_variables' or 'env'
     for (param in job_parameters) {
-        if (!global_variables[param.value.use_variable]) {
-            global_variables[param.value.use_variable] = env[param.value.use_variable] ?: ''
+        if (param.value.containsKey('use_variable')) {
+            if (!global_variables[param.value.use_variable]) {
+                global_variables[param.value.use_variable] = env[param.value.use_variable] ?: ''
+            }
+            parameters.add([$class: "${param.value.type}", name: "${param.key}", value: global_variables[param.value.use_variable]])
+            println "${param.key}: <${param.value.type}> ${global_variables[param.value.use_variable]}"
+        } else if (param.value.containsKey('use_template')) {
+            template = engine.createTemplate(param.value.use_template).make(global_variables)
+            parameters.add([$class: "${param.value.type}", name: "${param.key}", value: template.toString()])
+            println "${param.key}: <${param.value.type}>\n${template.toString()}"
         }
-        parameters.add([$class: "${param.value.type}", name: "${param.key}", value: global_variables[param.value.use_variable]])
-        println "${param.key}: <${param.value.type}> ${global_variables[param.value.use_variable]}"
     }
 
     // Build the job
@@ -164,9 +174,13 @@ def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
  *     - job: testrail-report
  *       ignore_failed: true
  *       parameters:
- *         REPORT_SI_KAAS_UI_URL:
+ *         KAAS_VERSION:
  *           type: StringParameterValue
- *           use_variable: REPORT_SI_KAAS_UI
+ *           use_variable: KAAS_VERSION
+ *         REPORTS_LIST:
+ *           type: TextParameterValue
+ *           use_template: |
+ *             REPORT_SI_KAAS_UI: \$REPORT_SI_KAAS_UI
  *     """
  *
  *     runScenario(scenario)
