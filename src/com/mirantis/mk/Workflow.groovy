@@ -24,6 +24,8 @@ package com.mirantis.mk
  * @param job_parameters    Map that declares which values from global_variables should be used, in the following format:
  *                          {'PARAM_NAME': {'type': <job parameter $class name>, 'use_variable': <a key from global_variables>}, ...}
  *                          or
+ *                          {'PARAM_NAME': {'type': <job parameter $class name>, 'get_variable_from_url': <a key from global_variables which contains URL with required content>}, ...}
+ *                          or
  *                          {'PARAM_NAME': {'type': <job parameter $class name>, 'use_template': <a GString multiline template with variables from global_variables>}, ...}
  * @param global_variables  Map that keeps the artifact URLs and used 'env' objects:
  *                          {'PARAM1_NAME': <param1 value>, 'PARAM2_NAME': 'http://.../artifacts/param2_value', ...}
@@ -33,8 +35,12 @@ package com.mirantis.mk
  */
 def runJob(job_name, job_parameters, global_variables, Boolean propagate = false) {
     def parameters = []
+    def http = new com.mirantis.mk.Http()
     def engine = new groovy.text.GStringTemplateEngine()
     def template
+    def base = [:]
+    base["url"] = ''
+    def variable_content
 
     // Collect required parameters from 'global_variables' or 'env'
     for (param in job_parameters) {
@@ -44,6 +50,13 @@ def runJob(job_name, job_parameters, global_variables, Boolean propagate = false
             }
             parameters.add([$class: "${param.value.type}", name: "${param.key}", value: global_variables[param.value.use_variable]])
             println "${param.key}: <${param.value.type}> ${global_variables[param.value.use_variable]}"
+        } else if (param.value.containsKey('get_variable_from_url')) {
+            if (!global_variables[param.value.get_variable_from_url]) {
+                global_variables[param.value.get_variable_from_url] = env[param.value.get_variable_from_url] ?: ''
+            }
+            variable_content = http.restGet(base, global_variables[param.value.get_variable_from_url])
+            parameters.add([$class: "${param.value.type}", name: "${param.key}", value: variable_content])
+            println "${param.key}: <${param.value.type}> ${variable_content}"
         } else if (param.value.containsKey('use_template')) {
             template = engine.createTemplate(param.value.use_template).make(global_variables)
             parameters.add([$class: "${param.value.type}", name: "${param.key}", value: template.toString()])
@@ -160,6 +173,7 @@ def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
  *           use_variable: KAAS_VERSION
  *       artifacts:
  *         KUBECONFIG_ARTIFACT: artifacts/management_kubeconfig
+ *         DEPLOYED_KAAS_VERSION: artifacts/management_version
  *
  *     - job: test-kaas-ui
  *       ignore_failed: false
@@ -167,6 +181,9 @@ def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
  *         KUBECONFIG_ARTIFACT_URL:
  *           type: StringParameterValue
  *           use_variable: KUBECONFIG_ARTIFACT
+ *         KAAS_VERSION:
+ *           type: StringParameterValue
+ *           get_variable_from_url: DEPLOYED_KAAS_VERSION
  *       artifacts:
  *         REPORT_SI_KAAS_UI: artifacts/test_kaas_ui_result.xml
  *
@@ -176,7 +193,7 @@ def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
  *       parameters:
  *         KAAS_VERSION:
  *           type: StringParameterValue
- *           use_variable: KAAS_VERSION
+ *           get_variable_from_url: DEPLOYED_KAAS_VERSION
  *         REPORTS_LIST:
  *           type: TextParameterValue
  *           use_template: |
