@@ -1392,3 +1392,18 @@ def isPackageInstalled(Map params) {
         return false
     }
 }
+
+/**
+* Returns nubmer of worker_threads set for Salt Master
+*
+* @param saltId  Salt Connection object or pepperEnv
+*
+*/
+def getWorkerThreads(saltId) {
+    if (env.getEnvironment().containsKey('SALT_MASTER_OPT_WORKER_THREADS')) {
+        return env['SALT_MASTER_OPT_WORKER_THREADS'].toString()
+    }
+    def threads = cmdRun(saltId, "I@salt:master", "cat /etc/salt/master.d/master.conf | grep worker_threads | cut -f 2 -d ':'", true, null, true)
+    return threads['return'][0].values()[0].replaceAll('Salt command execution success','').trim()
+}
+
