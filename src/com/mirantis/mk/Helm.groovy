@@ -77,3 +77,41 @@ def generateChartVersionFromGit(repoDir, devVersion = true, increment = false, d
         error "Version ${versionData} doesn't contain required suffix ${tagSuffix} or not in semver2 format"
     }
 }
+
+/**
+ * Takes a list of dependencies and a version, and sets a version for each dependency in requirements.yaml. If dependency isn't
+ * found in requirements.yaml or requirements.yaml does not exist - does nothing.
+ *
+ * @param chartPath      string, path to a directory with helm chart
+ * @param dependencies   list of hashes with names and versions of dependencies in format:
+ *                       [['name': 'chart-name1', 'version': '0.1.0-myversion'], ['name': 'chart-name2', 'version': '0.2.0-myversion']]
+ */
+
+def setChartDependenciesVersion(chartPath, List dependencies){
+    def common = new com.mirantis.mk.Common()
+    if (!dependencies){
+        error 'No list of target dependencies is specified'
+    }
+    def reqsFilePath = "${chartPath}/requirements.yaml"
+    def chartYaml = readYaml file: "${chartPath}/Chart.yaml"
+    def reqsUpdateNeeded = false
+    def reqsMap = [:]
+    if (fileExists(reqsFilePath)){
+        reqsMap = readYaml file: reqsFilePath
+        for (i in dependencies) {
+            for (item in reqsMap.get('dependencies', [])){
+                if (item['name'] == i['name']){
+                    common.infoMsg("Set version ${version} for dependency ${i} in chart ${chartYaml['name']}")
+                    item['version'] = i['version']
+                    reqsUpdateNeeded = true
+                }
+            }
+        }
+    }
+    if (reqsUpdateNeeded){
+        sh "rm ${reqsFilePath}"
+        writeYaml file: reqsFilePath, data: reqsMap
+    } else {
+        common.warningMsg("requirements.yaml doesn't exist at path ${reqsFilePath} or chart doesn't contain ${dependencies}, nothing to set")
+    }
+}
