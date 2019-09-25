@@ -13,7 +13,7 @@ def checkoutReleaseMetadataRepo(Map params = [:]) {
     def git = new com.mirantis.mk.Git()
 
     String gitCredentialsId = params.get('metadataCredentialsId', 'mcp-ci-gerrit')
-    String gitUrl           = params.get('metadataGitRepoUrl', "ssh://${gitCredentialsId}@gerrit.mcp.mirantis.net:29418/mcp/release-metadata")
+    String gitUrl           = params.get('metadataGitRepoUrl', "ssh://${gitCredentialsId}@gerrit.mcp.mirantis.net:29418/mcp/artifact-metadata")
     String gitBranch        = params.get('metadataGitRepoBranch', 'master')
     String gitRef           = params.get('metadataGitRepoRef', '')
     String repoDir          = params.get('repoDir', 'release-metadata')
@@ -86,7 +86,7 @@ def getReleaseMetadataValue(String key, Map params = [:]) {
 
 def updateReleaseMetadata(String key, String value, Map params) {
     String gitCredentialsId     = params.get('metadataCredentialsId', 'mcp-ci-gerrit')
-    String metadataRepoUrl      = params.get('metadataGitRepoUrl', "ssh://${gitCredentialsId}@gerrit.mcp.mirantis.net:29418/mcp/release-metadata")
+    String metadataRepoUrl      = params.get('metadataGitRepoUrl', "ssh://${gitCredentialsId}@gerrit.mcp.mirantis.net:29418/mcp/artifact-metadata")
     String metadataGerritBranch = params.get('metadataGitRepoBranch', 'master')
     String repoDir              = params.get('repoDir', 'release-metadata')
     String comment              = params.get('comment', '')
