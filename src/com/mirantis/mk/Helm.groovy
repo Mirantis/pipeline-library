@@ -101,7 +101,7 @@ def setChartDependenciesVersion(chartPath, List dependencies){
         for (i in dependencies) {
             for (item in reqsMap.get('dependencies', [])){
                 if (item['name'] == i['name']){
-                    common.infoMsg("Set version ${version} for dependency ${i} in chart ${chartYaml['name']}")
+                    common.infoMsg("Set version ${i['version']} for dependency ${i['name']} in chart ${chartYaml['name']}")
                     item['version'] = i['version']
                     reqsUpdateNeeded = true
                 }
