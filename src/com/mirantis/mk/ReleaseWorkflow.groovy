@@ -16,7 +16,7 @@ def checkoutReleaseMetadataRepo(Map params = [:]) {
     String gitUrl           = params.get('metadataGitRepoUrl', "ssh://${gitCredentialsId}@gerrit.mcp.mirantis.net:29418/mcp/artifact-metadata")
     String gitBranch        = params.get('metadataGitRepoBranch', 'master')
     String gitRef           = params.get('metadataGitRepoRef', '')
-    String repoDir          = params.get('repoDir', 'release-metadata')
+    String repoDir          = params.get('repoDir', 'artifact-metadata')
     Boolean cloneRepo       = params.get('cloneRepo', true)
     if (cloneRepo) {
         stage('Cleanup repo dir') {
@@ -24,7 +24,7 @@ def checkoutReleaseMetadataRepo(Map params = [:]) {
                 deleteDir()
             }
         }
-        stage('Cloning release-metadata repository') {
+        stage('Cloning artifact-metadata repository') {
             git.checkoutGitRepository(repoDir, gitUrl, gitBranch, gitCredentialsId, true, 10, 0, gitRef)
         }
     } else {
@@ -46,7 +46,7 @@ def getReleaseMetadataValue(String key, Map params = [:]) {
     // Get params
     String toxDockerImage   = params.get('toxDockerImage', 'docker-prod-virtual.docker.mirantis.net/mirantis/external/tox')
     String outputFormat     = params.get('outputFormat', 'json')
-    String repoDir          = params.get('repoDir', 'release-metadata')
+    String repoDir          = params.get('repoDir', 'artifact-metadata')
 
     // Libs
     def common = new com.mirantis.mk.Common()
@@ -88,7 +88,7 @@ def updateReleaseMetadata(String key, String value, Map params) {
     String gitCredentialsId     = params.get('metadataCredentialsId', 'mcp-ci-gerrit')
     String metadataRepoUrl      = params.get('metadataGitRepoUrl', "ssh://${gitCredentialsId}@gerrit.mcp.mirantis.net:29418/mcp/artifact-metadata")
     String metadataGerritBranch = params.get('metadataGitRepoBranch', 'master')
-    String repoDir              = params.get('repoDir', 'release-metadata')
+    String repoDir              = params.get('repoDir', 'artifact-metadata')
     String comment              = params.get('comment', '')
     String crTopic              = params.get('crTopic', '')
     String changeAuthorName     = params.get('crAuthorName', 'MCP-CI')
