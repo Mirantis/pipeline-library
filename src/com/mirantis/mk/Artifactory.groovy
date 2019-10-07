@@ -429,6 +429,22 @@ def getArtifactoryRepoByPackageType(art, repoName){
 }
 
 /**
+ * Get checksums of artifact
+ *
+ * @param art           Artifactory connection object
+ * @param artifactName  Artifactory object name
+ * @param checksum      Type of checksum (default md5)
+ * @param repoName      Artifact repository name
+ */
+
+def getArtifactChecksum(art, repoName, artifactName, checksum = 'md5'){
+    def artifactory = new com.mirantis.mk.Artifactory()
+    def uri = "/storage/${repoName}/${artifactName}"
+    def output = artifactory.restGet(art, uri)
+    return output['checksums']["${checksum}"]
+}
+
+/**
  * Create Helm repo for Artifactory
  *
  * @param art           Artifactory connection object
