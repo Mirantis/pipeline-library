@@ -190,6 +190,31 @@ def getPropertiesForArtifact(String artifactUrl) {
 }
 
 /**
+ * Get checksums of artifact
+ *
+ * @param artifactoryUrl   String, an URL ofArtifactory repo
+ * @param repoName         Artifact repository name
+ * @param artifactName     Artifactory object name
+ * @param checksumType     Type of checksum (default md5)
+ */
+
+def getArtifactChecksum(artifactoryUrl, repoName, artifactName, checksumType = 'md5'){
+    def url = "${artifactoryUrl}/api/storage/${repoName}/${artifactName}"
+    withCredentials([
+            [$class          : 'UsernamePasswordMultiBinding',
+             credentialsId   : 'artifactory',
+             passwordVariable: 'ARTIFACTORY_PASSWORD',
+             usernameVariable: 'ARTIFACTORY_LOGIN']
+    ]) {
+        def result = sh(script: "bash -c \"curl -X GET -u ${ARTIFACTORY_LOGIN}:${ARTIFACTORY_PASSWORD} \'${url}\'\"",
+                returnStdout: true).trim()
+    }
+
+    def properties = new groovy.json.JsonSlurperClassic().parseText(result)
+    return properties['checksums'][checksumType]
+}
+
+/**
  * Check if image with tag exist by provided path
  * Returns true or false
  *
