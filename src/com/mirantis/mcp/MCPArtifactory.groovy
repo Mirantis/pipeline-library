@@ -199,7 +199,7 @@ def getPropertiesForArtifact(String artifactUrl) {
  * @param artifactoryCreds String, artifactory creds to use. Optional, default is 'artifactory'
  */
 def imageExists(String artifactoryURL, String imageRepo, String tag, String artifactoryCreds = 'artifactory') {
-    def url = artifactoryURL + '/v2/' + imageRepo + '/manifest/' + tag
+    def url = artifactoryURL + '/v2/' + imageRepo + '/manifests/' + tag
     def result
     withCredentials([
             [$class          : 'UsernamePasswordMultiBinding',
