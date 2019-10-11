@@ -291,7 +291,7 @@ def runSanityTests(salt_url, salt_credentials, test_set="", output_dir="validati
         }
     }
     def script = ". ${env.WORKSPACE}/venv/bin/activate; ${settings}" +
-                 "pytest --junitxml ${output_dir}cvp_sanity.xml --tb=short -sv ${env.WORKSPACE}/cvp-sanity-checks/cvp_checks/tests/${test_set}"
+                 "pytest --junitxml ${output_dir}cvp_sanity.xml --tb=short -rs -sv ${env.WORKSPACE}/cvp-sanity-checks/cvp_checks/tests/${test_set}"
     withEnv(["SALT_USERNAME=${username}", "SALT_PASSWORD=${password}", "SALT_URL=${salt_url}"]) {
         def statusCode = sh script:script, returnStatus:true
     }
@@ -362,7 +362,7 @@ def runTests(salt_url, salt_credentials, test_set="", output_dir="validation_art
         }
     }
     def script = ". ${env.WORKSPACE}/venv/bin/activate; ${settings}" +
-                 "pytest --junitxml ${output_dir}report.xml --tb=short -sv ${env.WORKSPACE}/${test_set}"
+                 "pytest --junitxml ${output_dir}report.xml --tb=short -rs -sv ${env.WORKSPACE}/${test_set}"
     withEnv(["SALT_USERNAME=${username}", "SALT_PASSWORD=${password}", "SALT_URL=${salt_url}"]) {
         def statusCode = sh script:script, returnStatus:true
     }
