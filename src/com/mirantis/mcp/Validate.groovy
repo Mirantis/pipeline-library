@@ -280,7 +280,7 @@ def runSanityTests(salt_url, salt_credentials, test_set="", output_dir="validati
         }
     }
     def script = ". ${env.WORKSPACE}/venv/bin/activate; ${settings}" +
-                 "pytest --junitxml ${output_dir}cvp_sanity.xml --tb=short -sv ${env.WORKSPACE}/cvp-sanity-checks/cvp_checks/tests/${test_set}"
+                 "pytest --junitxml ${output_dir}cvp_sanity.xml --tb=short -rs -sv ${env.WORKSPACE}/cvp-sanity-checks/cvp_checks/tests/${test_set}"
     withEnv(["SALT_USERNAME=${username}", "SALT_PASSWORD=${password}", "SALT_URL=${salt_url}"]) {
         def statusCode = sh script:script, returnStatus:true
     }
@@ -305,7 +305,7 @@ def runPyTests(salt_url, salt_credentials, test_set="", env_vars="", name='cvp',
     if (container_node != "") {
         def saltMaster
         saltMaster = salt.connection(salt_url, salt_credentials)
-        def script = "pytest --junitxml ${xml_file} --tb=short -sv ${test_set}"
+        def script = "pytest --junitxml ${xml_file} --tb=short -rs -sv ${test_set}"
         env_vars.addAll("SALT_USERNAME=${username}", "SALT_PASSWORD=${password}",
                         "SALT_URL=${salt_url}")
         variables = ' -e ' + env_vars.join(' -e ')
@@ -318,7 +318,7 @@ def runPyTests(salt_url, salt_credentials, test_set="", env_vars="", name='cvp',
         variables = 'export ' + env_vars.join(';export ')
         }
         def script = ". ${env.WORKSPACE}/venv/bin/activate; ${variables}; " +
-                     "pytest --junitxml ${artifacts_dir}${xml_file} --tb=short -sv ${env.WORKSPACE}/${test_set}"
+                     "pytest --junitxml ${artifacts_dir}${xml_file} --tb=short -rs -sv ${env.WORKSPACE}/${test_set}"
         withEnv(["SALT_USERNAME=${username}", "SALT_PASSWORD=${password}", "SALT_URL=${salt_url}"]) {
             def statusCode = sh script:script, returnStatus:true
         }
@@ -348,7 +348,7 @@ def runTests(salt_url, salt_credentials, test_set="", output_dir="validation_art
         }
     }
     def script = ". ${env.WORKSPACE}/venv/bin/activate; ${settings}" +
-                 "pytest --junitxml ${output_dir}report.xml --tb=short -sv ${env.WORKSPACE}/${test_set}"
+                 "pytest --junitxml ${output_dir}report.xml --tb=short -rs -sv ${env.WORKSPACE}/${test_set}"
     withEnv(["SALT_USERNAME=${username}", "SALT_PASSWORD=${password}", "SALT_URL=${salt_url}"]) {
         def statusCode = sh script:script, returnStatus:true
     }
