@@ -17,6 +17,37 @@ def helmRepoIndex(extra_params='', charts_dir='.'){
 }
 
 /**
+ * Rebuild index file for helm chart repo
+ * @param helmRepoUrl  repository with helm charts
+ * @param md5Remote    md5 sum of index.yaml for check
+ */
+
+def helmMergeRepoIndex(helmRepoUrl, md5Remote='') {
+    def common      = new com.mirantis.mk.Common()
+
+    def helmRepoDir    = '.'
+    def helmExtraParams = "--url ${helmRepoUrl}"
+
+    def indexRes = common.shCmdStatus("wget -O index-upstream.yaml ${helmRepoUrl}/index.yaml")
+    if (indexRes['status']){
+        if (indexRes['status'] == 8 && indexRes['stderr'].contains('ERROR 404') && !md5Remote) {
+            common.warningMsg("Index.yaml not found in ${helmRepoUrl} and will be fully regenerated")
+        } else {
+            error("Something went wrong during index.yaml download: ${indexRes['stderr']}")
+        }
+    } else {
+        if (md5Remote) {
+            def md5Local = sh(script: "md5sum index-upstream.yaml | cut -d ' ' -f 1", returnStdout: true).readLines()[0]
+            if (md5Local != md5Remote) {
+                  error 'Target repository already exist, but upstream index.yaml broken or not found'
+            }
+        }
+        helmExtraParams += " --merge index-upstream.yaml"
+    }
+    helm.helmRepoIndex(helmExtraParams, helmRepoDir)
+}
+
+/**
  * Generates version for helm chart based on information from git repository. Tries to search
  * first parent git tag using pattern '[0-9]*-{tagSuffix}', if found that tag will be used
  * in final version, if not found - version will be formed as '{defaultVersion}-{tagSuffix}'. Number
