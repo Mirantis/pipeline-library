@@ -54,9 +54,13 @@ def runJob(job_name, job_parameters, global_variables, Boolean propagate = false
             if (!global_variables[param.value.get_variable_from_url]) {
                 global_variables[param.value.get_variable_from_url] = env[param.value.get_variable_from_url] ?: ''
             }
-            variable_content = http.restGet(base, global_variables[param.value.get_variable_from_url])
-            parameters.add([$class: "${param.value.type}", name: "${param.key}", value: variable_content])
-            println "${param.key}: <${param.value.type}> ${variable_content}"
+            if (global_variables[param.value.get_variable_from_url]) {
+                variable_content = http.restGet(base, global_variables[param.value.get_variable_from_url])
+                parameters.add([$class: "${param.value.type}", name: "${param.key}", value: variable_content])
+                println "${param.key}: <${param.value.type}> ${variable_content}"
+            } else {
+                println "${param.key} is empty, skipping get_variable_from_url"
+            }
         } else if (param.value.containsKey('use_template')) {
             template = engine.createTemplate(param.value.use_template).make(global_variables)
             parameters.add([$class: "${param.value.type}", name: "${param.key}", value: template.toString()])
@@ -102,6 +106,7 @@ def storeArtifacts(build_url, step_artifacts, global_variables) {
         } else {
             // Warning: no artifact with expected name
             println "Artifact ${artifact.value} for ${artifact.key} not found in the build results ${build_url}, found the following artifacts:\n${job_artifacts}"
+            global_variables[artifact.key] = ''
         }
     }
 }
