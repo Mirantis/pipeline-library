@@ -82,9 +82,10 @@ def getReleaseMetadataValue(String key, Map params = [:]) {
  *    - crTopic
  *    - crAuthorName
  *    - crAuthorEmail
+ * @param dirdepth level of creation dirs from key param
  */
 
-def updateReleaseMetadata(String key, String value, Map params) {
+def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth = 0) {
     String gitCredentialsId     = params.get('metadataCredentialsId', 'mcp-ci-gerrit')
     String metadataRepoUrl      = params.get('metadataGitRepoUrl', "ssh://${gitCredentialsId}@gerrit.mcp.mirantis.net:29418/mcp/artifact-metadata")
     String metadataGerritBranch = params.get('metadataGitRepoBranch', 'master')
@@ -136,6 +137,23 @@ def updateReleaseMetadata(String key, String value, Map params) {
             ChangeId = ''
             git.createGitBranch(repoDir, crTopic)
         }
+
+        def keySize = key.split(':').size() - 1
+        if (dirdepth > 0 && dirdepth - 1 <= keySize) {
+            def dirPath = metadataDir + key.split(':')[0..dirdepth - 1].join('/')
+            if (!new File(dirPath).exists()) {
+                File newDirs = new File(dirPath)
+                newDirs.mkdirs()
+            }
+            if (dirdepth - 1 != keySize) {
+                def pathToDummyFile = dirPath + '/' + key.split(':')[dirdepth] + '.yml'
+                if (!new File(pathToDummyFile).exists()) {
+                    File dummyFile = new File(pathToDummyFile)
+                    dummyFile.write ''
+                }
+            }
+        }
+
         cmdText = "python '${repoDir}/utils/app.py' --path '${metadataDir}' update --key '${key}' --value '${value}'"
         python.runVirtualenvCommand(venvDir, cmdText)
         commitMessage =
