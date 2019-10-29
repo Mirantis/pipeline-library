@@ -44,7 +44,7 @@ def helmMergeRepoIndex(helmRepoUrl, md5Remote='') {
         }
         helmExtraParams += " --merge index-upstream.yaml"
     }
-    helm.helmRepoIndex(helmExtraParams, helmRepoDir)
+    helmRepoIndex(helmExtraParams, helmRepoDir)
 }
 
 /**
