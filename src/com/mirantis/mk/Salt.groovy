@@ -1383,7 +1383,7 @@ def isPackageInstalled(Map params) {
     if (res) {
         for (int i = 0; i < res.size(); i++) {
             def key = res.keySet()[i]
-            if (!(res[key] instanceof Map && res[key].get(params.packageName, false))) {
+            if (!(res[key] instanceof Map && res[key].get(params.packageName.toString(), false))) {
                 return false
             }
         }
