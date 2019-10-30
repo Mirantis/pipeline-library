@@ -19,7 +19,7 @@ def validateFoundationInfra(master, extra_tgt = '') {
     salt.runSaltProcessStep(master, "I@salt:minion ${extra_tgt}", 'state.show_top')
 }
 
-def installFoundationInfra(master, staticMgmtNet=false, extra_tgt = '') {
+def installFoundationInfra(master, staticMgmtNet=false, extra_tgt = '', batch=20) {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
 
@@ -30,48 +30,48 @@ def installFoundationInfra(master, staticMgmtNet=false, extra_tgt = '') {
 
     salt.enforceState([saltId: master, target: "I@salt:master ${extra_tgt}", state: ['linux.system']])
     salt.enforceState([saltId: master, target: "I@salt:master ${extra_tgt}", state: ['salt.master'], failOnError: false, read_timeout: 120, retries: 2])
-    salt.fullRefresh(master, "* ${extra_tgt}")
+    salt.fullRefresh(master, "* ${extra_tgt}", batch)
 
     salt.enforceState([saltId: master, target: "I@salt:master ${extra_tgt}", state: ['salt.minion'], failOnError: false, read_timeout: 60, retries: 2])
     salt.enforceState([saltId: master, target: "I@salt:master ${extra_tgt}", state: ['salt.minion']])
-    salt.fullRefresh(master, "* ${extra_tgt}")
-    salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: ['linux.network.proxy'], failOnError: false, read_timeout: 60, retries: 2])
+    salt.fullRefresh(master, "* ${extra_tgt}", batch)
+    salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: ['linux.network.proxy'], batch: batch, failOnError: false, read_timeout: 180, retries: 2])
     // Make sure all repositories are in place before proceeding with package installation from other states
-    salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: ['linux.system.repo'], failOnError: false, read_timeout: 60, retries: 2])
+    salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: ['linux.system.repo'], batch: batch, failOnError: false, read_timeout: 180, retries: 2])
     try {
-        salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: ['salt.minion.base'], failOnError: false, read_timeout: 60, retries: 2])
+        salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: ['salt.minion.base'], batch: batch, failOnError: false, read_timeout: 180, retries: 2])
         sleep(5)
     } catch (Throwable e) {
         common.warningMsg('Salt state salt.minion.base is not present in the Salt-formula yet.')
     }
-    salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: ['linux.system'], retries: 2])
+    salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: ['linux.system'], batch: batch, retries: 2])
     if (staticMgmtNet) {
-        salt.runSaltProcessStep(master, "* ${extra_tgt}", 'cmd.shell', ["salt-call state.sls linux.network; salt-call service.restart salt-minion"], null, true, 60)
+        salt.runSaltProcessStep(master, "* ${extra_tgt}", 'cmd.shell', ["salt-call state.sls linux.network; salt-call service.restart salt-minion"], batch, true, 180)
     }
-    salt.enforceState([saltId: master, target: "I@linux:network:interface ${extra_tgt}", state: ['linux.network.interface'], retries: 2])
+    salt.enforceState([saltId: master, target: "I@linux:network:interface ${extra_tgt}", state: ['linux.network.interface'], batch: batch, retries: 2])
     sleep(5)
-    salt.enforceState([saltId: master, target: "I@linux:system ${extra_tgt}", state: ['linux', 'openssh', 'ntp', 'rsyslog']])
+    salt.enforceState([saltId: master, target: "I@linux:system ${extra_tgt}", state: ['linux', 'openssh', 'ntp', 'rsyslog'], batch: batch])
 
 
-    salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: ['salt.minion'], failOnError: false, read_timeout: 60, retries: 2])
+    salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: ['salt.minion'], failOnError: false, batch: batch, read_timeout: 180, retries: 2])
 
     sleep(5)
 
-    salt.fullRefresh(master, "* ${extra_tgt}")
-    salt.runSaltProcessStep(master, "* ${extra_tgt}", 'mine.update', [], null, true)
-    salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: ['linux.network.host']])
+    salt.fullRefresh(master, "* ${extra_tgt}", batch)
+    salt.runSaltProcessStep(master, "* ${extra_tgt}", 'mine.update', [], batch, true)
+    salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: ['linux.network.host'], batch: batch])
 
     // Install and configure iptables
-    salt.enforceStateWithTest([saltId: master, target: "I@iptables:service ${extra_tgt}", state: 'iptables'])
+    salt.enforceStateWithTest([saltId: master, target: "I@iptables:service ${extra_tgt}", state: 'iptables', batch: batch])
 
     // Install and configure logrotate
-    salt.enforceStateWithTest([saltId: master, target: "I@logrotate:server ${extra_tgt}", state: 'logrotate'])
+    salt.enforceStateWithTest([saltId: master, target: "I@logrotate:server ${extra_tgt}", state: 'logrotate', batch: batch])
 
     // Install and configure auditd
-    salt.enforceStateWithTest([saltId: master, target: "I@auditd:service ${extra_tgt}", state: 'auditd'])
+    salt.enforceStateWithTest([saltId: master, target: "I@auditd:service ${extra_tgt}", state: 'auditd', batch: batch])
 
     // Install and configure openscap
-    salt.enforceStateWithTest([saltId: master, target: "I@openscap:service ${extra_tgt}", state: 'openscap'])
+    salt.enforceStateWithTest([saltId: master, target: "I@openscap:service ${extra_tgt}", state: 'openscap', batch: batch])
 }
 
 def installFoundationInfraOnTarget(master, target, staticMgmtNet=false, extra_tgt = '') {
@@ -158,7 +158,7 @@ def installInfraKvm(master, extra_tgt = '') {
     }
 
     common.infoMsg("All minions are up.")
-    salt.fullRefresh(master, "* and not kvm* ${extra_tgt}")
+    salt.fullRefresh(master, "* and not I@salt:control ${extra_tgt}")
 
 }
 
@@ -498,20 +498,20 @@ def installOpenstackNetwork(master, extra_tgt = '') {
 }
 
 
-def installOpenstackCompute(master, extra_tgt = '') {
+def installOpenstackCompute(master, extra_tgt = '', batch=20) {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
     // Configure compute nodes
     def compute_compound = "I@nova:compute ${extra_tgt}"
-    if (salt.testTarget(master, compute_compound)) {
+    if (salt.testTarget(master, compute_compound, batch)) {
         // In case if infrastructure nodes are used as nova computes too
         def gluster_compound = "I@glusterfs:server ${extra_tgt}"
         def salt_ca_compound = "I@salt:minion:ca:salt_master_ca ${extra_tgt}"
         // Enforce highstate asynchronous only on compute nodes which are not glusterfs and not salt ca servers
         def hightstateTarget = "${compute_compound} and not ${gluster_compound} and not ${salt_ca_compound}"
-        if (salt.testTarget(master, hightstateTarget)) {
+        if (salt.testTarget(master, hightstateTarget, batch)) {
             retry(2) {
-                salt.enforceHighstate(master, hightstateTarget)
+                salt.enforceHighstate(master, hightstateTarget, false, true, batch)
             }
         } else {
             common.infoMsg("No minions matching highstate target found for target ${hightstateTarget}")
@@ -519,8 +519,8 @@ def installOpenstackCompute(master, extra_tgt = '') {
         // Iterate through salt ca servers and check if they have compute role
         // TODO: switch to batch once salt 2017.7+ would be used
         common.infoMsg("Checking whether ${salt_ca_compound} minions have ${compute_compound} compound")
-        for ( target in salt.getMinionsSorted(master, salt_ca_compound) ) {
-            for ( cmp_target in salt.getMinionsSorted(master, compute_compound) ) {
+        for ( target in salt.getMinionsSorted(master, salt_ca_compound, batch) ) {
+            for ( cmp_target in salt.getMinionsSorted(master, compute_compound, batch) ) {
                 if ( target == cmp_target ) {
                     // Enforce highstate one by one on salt ca servers which are compute nodes
                     retry(2) {
@@ -532,8 +532,8 @@ def installOpenstackCompute(master, extra_tgt = '') {
         // Iterate through glusterfs servers and check if they have compute role
         // TODO: switch to batch once salt 2017.7+ would be used
         common.infoMsg("Checking whether ${gluster_compound} minions have ${compute_compound} compound")
-        for ( target in salt.getMinionsSorted(master, gluster_compound) ) {
-            for ( cmp_target in salt.getMinionsSorted(master, compute_compound) ) {
+        for ( target in salt.getMinionsSorted(master, gluster_compound, batch) ) {
+            for ( cmp_target in salt.getMinionsSorted(master, compute_compound, batch) ) {
                 if ( target == cmp_target ) {
                     // Enforce highstate one by one on glusterfs servers which are compute nodes
                     retry(2) {
@@ -729,8 +729,8 @@ def setupKubeAddonForContrail(master, extra_tgt = '') {
 def installCicd(master, extra_tgt = '') {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
-    def gerrit_compound = "I@gerrit:client and ci* ${extra_tgt}"
-    def jenkins_compound = "I@jenkins:client and ci* ${extra_tgt}"
+    def gerrit_compound = "I@gerrit:client and I@_param:drivetrain_role:cicd ${extra_tgt}"
+    def jenkins_compound = "I@jenkins:client and I@_param:drivetrain_role:cicd ${extra_tgt}"
 
     salt.fullRefresh(master, gerrit_compound)
     salt.fullRefresh(master, jenkins_compound)
@@ -738,7 +738,7 @@ def installCicd(master, extra_tgt = '') {
     // Temporary exclude cfg node from docker.client state (PROD-24934)
     def dockerClientExclude = !salt.getPillar(master, 'I@salt:master', 'docker:client:stack:jenkins').isEmpty() ? 'and not I@salt:master' : ''
     // Pull images first if any
-    def listCIMinions = salt.getMinions(master, "ci* ${dockerClientExclude} ${extra_tgt}")
+    def listCIMinions = salt.getMinions(master, "I@_param:drivetrain_role:cicd ${dockerClientExclude} ${extra_tgt}")
     for (int i = 0; i < listCIMinions.size(); i++) {
         if (!salt.getReturnValues(salt.getPillar(master, listCIMinions[i], 'docker:client:images')).isEmpty()) {
             salt.enforceState([saltId: master, target: listCIMinions[i], state: 'docker.client.images', retries: 2])
@@ -969,7 +969,7 @@ def installStacklight(master, extra_tgt = '') {
     salt.enforceStateWithTest([saltId: master, target: "I@sphinx:server ${extra_tgt}", state: 'sphinx'])
 
     //Configure Grafana
-    pillar = salt.getPillar(master, "ctl01* ${extra_tgt}", '_param:stacklight_monitor_address')
+    pillar = salt.getPillar(master, "I@keystone:server:role:primary ${extra_tgt}", '_param:stacklight_monitor_address')
     common.prettyPrint(pillar)
 
     def stacklight_vip
@@ -1264,7 +1264,7 @@ def installOss(master, extra_tgt = '') {
   def salt = new com.mirantis.mk.Salt()
 
   //Get oss VIP address
-  def pillar = salt.getPillar(master, "cfg01* ${extra_tgt}", '_param:stacklight_monitor_address')
+  def pillar = salt.getPillar(master, "I@salt:master ${extra_tgt}", '_param:stacklight_monitor_address')
   common.prettyPrint(pillar)
 
   def oss_vip
