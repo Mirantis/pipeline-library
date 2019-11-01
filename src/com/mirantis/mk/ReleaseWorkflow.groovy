@@ -140,7 +140,7 @@ def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth
 
         def keySize = key.split(':').size() - 1
         if (dirdepth > 0 && dirdepth - 1 <= keySize) {
-            def dirPath = metadataDir + key.split(':')[0..dirdepth - 1].join('/')
+            def dirPath = metadataDir + '/' + key.split(':')[0..dirdepth - 1].join('/')
             if (!new File(dirPath).exists()) {
                 File newDirs = new File(dirPath)
                 newDirs.mkdirs()
