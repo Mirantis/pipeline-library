@@ -55,14 +55,13 @@ def installFoundationInfra(master, staticMgmtNet=false, extra_tgt = '', batch=20
 
     salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: ['salt.minion'], failOnError: false, batch: batch, read_timeout: 180, retries: 2])
 
-    // WA for PROD-33911
-    salt.enforceState([saltId: master, target: "I@linux:system ${extra_tgt}", state: ['openssh'], batch: batch])
-
     sleep(5)
 
     salt.fullRefresh(master, "* ${extra_tgt}", batch)
     salt.runSaltProcessStep(master, "* ${extra_tgt}", 'mine.update', [], batch, true)
     salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: ['linux.network.host'], batch: batch])
+    // WA for PROD-33911
+    salt.enforceState([saltId: master, target: "I@linux:system ${extra_tgt}", state: ['openssh'], batch: batch])
 
     // Install and configure iptables
     salt.enforceStateWithTest([saltId: master, target: "I@iptables:service ${extra_tgt}", state: 'iptables', batch: batch])
