@@ -41,11 +41,12 @@ def runBasicContainer(master, target, dockerImageLink="xrally/xrally-openstack:0
  * @param env_var               Environment variables to set in container
  * @param entrypoint            Set entrypoint to /bin/bash or leave default
  * @param mounts                Map with mounts for container
+ * @param output_replacing      Maps with regex with should be hide from output (passwords, etc)
 **/
 
 def runContainer(Map params){
     def common = new com.mirantis.mk.Common()
-    defaults = ["name": "cvp", "env_var": [], "entrypoint": true]
+    defaults = ["name": "cvp", "env_var": [], "entrypoint": true, "mounts": [:], "output_replacing": []]
     params = defaults + params
     def salt = new com.mirantis.mk.Salt()
     def variables = ''
@@ -71,8 +72,11 @@ def runContainer(Map params){
     params.mounts.each { local, container ->
         mounts = mounts + " -v ${local}:${container}"
     }
-    salt.cmdRun(params.master, params.target, "docker run -tid --net=host --name=${params.name}" +
-                                "${mounts} -u root ${entry_point} ${variables} ${params.dockerImageLink}")
+    salt.cmdRun(params.master, params.target,
+                "docker run -tid --net=host --name=${params.name}" +
+                    "${mounts} -u root ${entry_point} ${variables} ${params.dockerImageLink}",
+                true, null, true, [],
+                params.output_replacing)
 }
 
 def runContainer(master, target, dockerImageLink, name='cvp', env_var=[], entrypoint=true, mounts=[:]){
