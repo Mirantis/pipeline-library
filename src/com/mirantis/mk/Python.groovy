@@ -34,7 +34,12 @@ def setupVirtualenv(path, python = 'python2', reqs=[], reqs_path=null, clean=fal
     sh(returnStdout: true, script: virtualenv_cmd)
     if(!offlineDeployment){
       try {
-          runVirtualenvCommand(path, "pip install -U setuptools pip")
+          def pipPackage = 'pip'
+          if (python == 'python2') {
+              pipPackage = "\"pip<=19.3.1\""
+              common.infoMsg("Pinning pip package due to end of life of Python2 to ${pipPackage} version.")
+          }
+          runVirtualenvCommand(path, "pip install -U setuptools ${pipPackage}")
       } catch(Exception e) {
           common.warningMsg("Setuptools and pip cannot be updated, you might be offline but OFFLINE_DEPLOYMENT global property not initialized!")
       }
