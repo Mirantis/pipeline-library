@@ -55,7 +55,7 @@ def runJob(job_name, job_parameters, global_variables, Boolean propagate = false
                 global_variables[param.value.get_variable_from_url] = env[param.value.get_variable_from_url] ?: ''
             }
             if (global_variables[param.value.get_variable_from_url]) {
-                variable_content = http.restGet(base, global_variables[param.value.get_variable_from_url])
+                variable_content = http.restGet(base, global_variables[param.value.get_variable_from_url]).trim()
                 parameters.add([$class: "${param.value.type}", name: "${param.key}", value: variable_content])
                 println "${param.key}: <${param.value.type}> ${variable_content}"
             } else {
