@@ -383,3 +383,78 @@ def postGerritReview(credentialsId, virtualEnv, repoDir, gitName, gitEmail, gitR
         }
     }
 }
+
+/**
+ * Prepare and upload Gerrit commit from prepared repo
+ * @param LinkedHashMap params dict with parameters
+ *   venvDir - Absolute path to virtualenv dir
+ *   gerritCredentials - credentialsId
+ *   gerritHost - gerrit host
+ *   gerritPort - gerrit port
+ *   repoDir - path to repo dir
+ *   repoProject - repo name
+ *   repoBranch - repo branch
+ *   changeCommitComment - comment for commit message
+ *   changeAuthorName - change author
+ *   changeAuthorEmail - author email
+ *   changeTopic - change topic
+ *   gitRemote - git remote
+ *   returnChangeInfo - whether to return info about uploaded change
+ *
+ * @return map with change info if returnChangeInfo set to true
+*/
+def prepareGerritAutoCommit(LinkedHashMap params) {
+    def common = new com.mirantis.mk.Common()
+    def git = new com.mirantis.mk.Git()
+    String venvDir = params.get('venvDir')
+    String gerritCredentials = params.get('gerritCredentials')
+    String gerritHost = params.get('gerritHost', 'gerrit.mcp.mirantis.net')
+    String gerritPort = params.get('gerritPort', '29418')
+    String gerritUser = common.getCredentialsById(gerritCredentials, 'sshKey').username
+    String repoDir = params.get('repoDir')
+    String repoProject = params.get('repoProject')
+    String repoBranch = params.get('repoBranch', 'master')
+    String changeCommitComment = params.get('changeCommitComment')
+    String changeAuthorName = params.get('changeAuthorName', 'MCP-CI')
+    String changeAuthorEmail = params.get('changeAuthorEmail', 'mcp-ci-jenkins@ci.mcp.mirantis.net')
+    String changeTopic = params.get('changeTopic', 'auto_ci')
+    Boolean returnChangeInfo = params.get('returnChangeInfo', false)
+    String gitRemote = params.get('gitRemote', '')
+    if (! gitRemote) {
+        dir(repoDir) {
+            gitRemote = sh(
+                script:
+                    'git remote -v | head -n1 | cut -f1',
+                    returnStdout: true,
+            ).trim()
+        }
+    }
+    def gerritAuth = ['PORT': gerritPort, 'USER': gerritUser, 'HOST': gerritHost ]
+    def changeParams = ['owner': gerritUser, 'status': 'open', 'project': repoProject, 'branch': repoBranch, 'topic': changeTopic]
+    // find if there is old commit present
+    def gerritChange = findGerritChange(gerritCredentials, gerritAuth, changeParams)
+    def changeId = ''
+    if (gerritChange) {
+        try {
+            def jsonChange = readJSON text: gerritChange
+            changeId = "Change-Id: ${jsonChange['id']}".toString()
+        } catch (Exception error) {
+            common.errorMsg("Can't parse ouput from Gerrit. Check that user ${changeAuthorName} does not have several \
+                open commits to ${repoProject} repo and ${repoBranch} branch with topic ${changeTopic}")
+            throw error
+        }
+    }
+    def commitMessage =
+        """${changeCommitComment}
+
+       |${changeId}
+    """.stripMargin()
+    git.commitGitChanges(repoDir, commitMessage, changeAuthorEmail, changeAuthorName, false)
+    //post change
+    postGerritReview(gerritCredentials, venvDir, repoDir, changeAuthorName, changeAuthorEmail, gitRemote, changeTopic, repoBranch)
+    if (returnChangeInfo) {
+        gerritChange = findGerritChange(gerritCredentials, gerritAuth, changeParams)
+        jsonChange = readJSON text: gerritChange
+        return getGerritChange(gerritUser, gerritHost, jsonChange['number'], gerritCredentials, true)
+    }
+}
