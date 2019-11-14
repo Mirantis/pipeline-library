@@ -147,6 +147,16 @@ def infoMsg(msg, color = true) {
 }
 
 /**
+ * Print informational message
+ *
+ * @param msg
+ * @param color Colorful output or not
+ */
+def infoSensitivityMsg(msg, color = true, replacing = []) {
+    printSensitivityMsg(msg, "cyan", replacing)
+}
+
+/**
  * Print error message
  *
  * @param msg
@@ -212,6 +222,25 @@ def getColorizedString(msg, color) {
  */
 def printMsg(msg, color) {
     print getColorizedString(msg, color)
+}
+
+/**
+ * Print sensitivity message
+ *
+ * @param msg Message to be printed
+ * @param color Color to use for output
+ * @param replacing List with maps for deletion (passwords, logins, etc).
+ *                  The first () matching is mandatory !
+ *                  Example:
+ *                  [/ (OS_PASSWORD=)(.*?)+ /,
+ *                   / (password = )(.*?)+ /,
+ *                   / (password )(.*?) / ]
+ */
+def printSensitivityMsg(msg, color, replacing = []) {
+    for (i in replacing) {
+        msg = msg.replaceAll(i, ' $1XXXXXX ')
+    }
+    printMsg(msg, color)
 }
 
 /**
