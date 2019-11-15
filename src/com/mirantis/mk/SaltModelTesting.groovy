@@ -155,16 +155,16 @@ repo:
     }
 
     try {
-        common.warningMsg("IgnoreMe:Force cleanup slave.Ignore docker-daemon errors")
-        timeout(time: 10, unit: 'SECONDS') {
-            sh(script: "set -x; docker kill ${dockerContainerName} || true", returnStdout: true)
-        }
-        timeout(time: 10, unit: 'SECONDS') {
-            sh(script: "set -x; docker rm --force ${dockerContainerName} || true", returnStdout: true)
+        timeout(time: 30, unit: 'SECONDS') {
+          if (sh(script: "docker inspect ${dockerContainerName}", returnStatus: true) == 0) {
+              common.warningMsg("Verify that container is not running. Ignore further docker-daemon errors")
+              sh(script: "set -x; test \$(docker inspect -f '{{.State.Running}}' ${dockerContainerName} 2>/dev/null) = 'true' && docker kill ${dockerContainerName}", returnStdout: true)
+              sh(script: "set -x; docker rm --force ${dockerContainerName} || true", returnStdout: true)
+          }
         }
     }
     catch (Exception er) {
-        common.warningMsg("IgnoreMe:Timeout to delete test docker container with force!Message:\n" + er.toString())
+        common.warningMsg("IgnoreMe:Timeout to delete test docker container with force! Message:\n" + er.toString())
     }
 
     if (TestMarkerResult) {
