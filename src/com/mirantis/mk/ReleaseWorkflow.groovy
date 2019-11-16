@@ -69,10 +69,30 @@ def getReleaseMetadataValue(String key, Map params = [:]) {
 }
 
 /**
- * Update release metadata value and upload CR to release metadata repository
+ * Get release metadata value for given key
  *
  * @param key metadata key
- * @param value metadata value
+ * @param metadataDir metadata directory
+ * @param dirdepth the level at which YAML file should be created
+ */
+
+def precreateKeyReleaseMetadataFile(String key, String metadataDir, Integer dirdepth = 0) {
+    def keySize = key.split(':').size() - 1
+    if (dirdepth > 0 && dirdepth - 1 <= keySize) {
+        def dirPath = metadataDir + '/' + key.split(':')[0..dirdepth - 1].join('/')
+        sh "if ! test -d \"${dirPath}\" ; then mkdir -p \"${dirPath}\"; fi"
+        if (dirdepth - 1 != keySize) {
+            def pathToDummyFile = dirPath + '/' + key.split(':')[dirdepth] + '.yml'
+            sh "if ! test -f \"${pathToDummyFile}\" ; then touch \"${pathToDummyFile}\"; fi"
+        }
+    }
+}
+
+/**
+ * Update release metadata value and upload CR to release metadata repository
+ *
+ * @param key metadata key (Several keys could be passed joined by ';' character)
+ * @param value metadata value (Several values could be passed joined by ';' character)
  * @param params map with expected parameters:
  *    - metadataCredentialsId
  *    - metadataGitRepoUrl
@@ -138,18 +158,17 @@ def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth
             git.createGitBranch(repoDir, crTopic)
         }
 
-        def keySize = key.split(':').size() - 1
-        if (dirdepth > 0 && dirdepth - 1 <= keySize) {
-            def dirPath = metadataDir + '/' + key.split(':')[0..dirdepth - 1].join('/')
-            sh "if ! test -d \"${dirPath}\" ; then mkdir -p \"${dirPath}\"; fi"
-            if (dirdepth - 1 != keySize) {
-                def pathToDummyFile = dirPath + '/' + key.split(':')[dirdepth] + '.yml'
-                sh "if ! test -f \"${pathToDummyFile}\" ; then touch \"${pathToDummyFile}\"; fi"
+        def keyArr = key.split(';')
+        def valueArr = value.split(';')
+        if (keyArr.size() == valueArr.size()) {
+            for (i in 0..keyArr.size()-1) {
+                precreateKeyReleaseMetadataFile(keyArr[i], metadataDir, dirdepth)
+
+                cmdText = "python '${repoDir}/utils/app.py' --path '${metadataDir}' update --key '${keyArr[i]}' --value '${valueArr[i]}'"
+                python.runVirtualenvCommand(venvDir, cmdText)
             }
         }
 
-        cmdText = "python '${repoDir}/utils/app.py' --path '${metadataDir}' update --key '${key}' --value '${value}'"
-        python.runVirtualenvCommand(venvDir, cmdText)
         commitMessage =
                 """${comment}
 
