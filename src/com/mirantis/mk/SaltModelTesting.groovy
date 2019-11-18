@@ -103,10 +103,11 @@ repo:
         def defaultRepos = readYaml text: defaultExtraReposYaml
         // Don't check for magic, if set explicitly
         if (updateSaltFormulas) {
+            def updateSaltFormulasRev = config.get('updateSaltFormulasRev', distribRevision)
             if (!oldRelease && distribRevision != releaseVersionQ4) {
                 defaultRepos['repo']['mcp_saltformulas_update'] = [
-                    'source'  : "deb [arch=amd64]  http://mirror.mirantis.com/update/${distribRevision}/salt-formulas/xenial xenial main",
-                    'repo_key': "http://mirror.mirantis.com/update/${distribRevision}/salt-formulas/xenial/archive-salt-formulas.key"
+                    'source'  : "deb [arch=amd64]  http://mirror.mirantis.com/update/${updateSaltFormulasRev}/salt-formulas/xenial xenial main",
+                    'repo_key': "http://mirror.mirantis.com/update/${updateSaltFormulasRev}/salt-formulas/xenial/archive-salt-formulas.key"
                 ]
             }
         }
