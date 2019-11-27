@@ -85,4 +85,25 @@ def prepareSshAgentKey(credentialsId) {
     runSshAgentCommand("ssh-add ~/.ssh/id_rsa_${credentialsId}")
 }
 
+/**
+ * Copy files via SCP
+ *
+ * @param source source file
+ * @param destination desination file
+ * @param options additional scp options
+
+ */
+def executeMachineScpCommand(source, destination, options=null){
+    if (!options){
+        options = ['StrictHostKeyChecking': 'no', 'UserKnownHostsFile': '/dev/null']
+    }
+    String optionsString = ''
+    options.each { k,v ->
+        optionsString += "-o ${k}=${v} "
+    }
+
+    agentSh("scp ${optionsString} ${source} ${destination}")
+}
+
+
 return this;
