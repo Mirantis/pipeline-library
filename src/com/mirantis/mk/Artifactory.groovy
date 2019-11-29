@@ -494,3 +494,30 @@ def publishArtifactoryHelmChart(art, repoName, chartPattern){
 def deleteArtifactoryHelmChart(art, repoName, chartName){
     return restDelete(art, "/repositories/${repoName}", "${chartName}")
 }
+
+/**
+ * Get (recursively) list of all files in repo
+ *
+ * @param art           Artifactory connection object
+ * @param repoName      Repository name
+ * @param path          Folder path
+ *
+ * @return              List of paths to files in given repo and folder
+ */
+def getRepoFiles(art, repoName, path = '') {
+  List result = []
+  def response = restGet(art, "/storage/${repoName}/${path}")
+  List children = response.get('children', [])
+  // remove '/' to form more safe-looking path
+  path = path.replaceAll('/$', '')
+  for (child in children) {
+    // remove '/' to form more safe-looking path
+    String childUri = child['uri'].replaceAll('^/', '')
+    if (child['folder'].toBoolean()) {
+      result += getRepoFiles(art, repoName, "${path}/${childUri}")
+    } else {
+      result.add("${path}/${childUri}")
+    }
+  }
+  return result
+}
