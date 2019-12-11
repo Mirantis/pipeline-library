@@ -64,10 +64,14 @@ def helmMergeRepoIndex(helmRepoUrl, md5Remote='') {
 def generateChartVersionFromGit(repoDir, devVersion = true, increment = false, defaultVersion = '0.1.0', tagSuffix = 'mcp') {
     def common = new com.mirantis.mk.Common()
     def git = new com.mirantis.mk.Git()
-    String initialVersion = "${defaultVersion}-${tagSuffix}"
+    String initialVersion = "${defaultVersion}"
     String countRange
     String versionData
-    String tagPattern = "[0-9]*-${tagSuffix}"
+    String tagPattern = "[0-9]*"
+    if (tagSuffix) {
+        tagPattern = "${tagPattern}-${tagSuffix}"
+        initialVersion = "${initialVersion}-${tagSuffix}"
+    }
     dir(repoDir){
         Map cmd = common.shCmdStatus("git describe --tags --first-parent --abbrev=0 --match ${tagPattern}")
         String lastTag = cmd['stdout'].trim()
@@ -86,26 +90,29 @@ def generateChartVersionFromGit(repoDir, devVersion = true, increment = false, d
         }
         List versionParts = versionData.tokenize('-')
 
-        if (versionParts.size() == 2 && common.isSemVer(versionData) && versionParts[1] == tagSuffix){
-            String commitsSinceTag = sh(script: "git rev-list --count ${countRange}", returnStdout: true).trim()
-            String commitSha = sh(script: 'git rev-parse --short=7 HEAD', returnStdout: true).trim()
-
-            if (commitsSinceTag == '0'){
-                return versionData
-            }
-
-            if (devVersion){
-                versionParts.add(commitSha)
-            } else {
-                versionParts.add(commitsSinceTag)
-            }
-            // Patch version will be incremented e.g. 0.1.0 -> 0.1.1
-            if (increment) {
-                versionParts[0] = git.incrementVersion(versionParts[0])
-            }
-            return versionParts.join('-')
+        if (!common.isSemVer(versionData)){
+            error "Version ${versionData} is not in semver2 format"
         }
-        error "Version ${versionData} doesn't contain required suffix ${tagSuffix} or not in semver2 format"
+        if (tagSuffix && versionParts.size() == 2 && versionParts[1] != tagSuffix){
+            error "Tag suffix ${tagSuffix} was specified but not found in ${versionData}"
+        }
+        String commitsSinceTag = sh(script: "git rev-list --count ${countRange}", returnStdout: true).trim()
+        String commitSha = sh(script: 'git rev-parse --short=7 HEAD', returnStdout: true).trim()
+
+        if (commitsSinceTag == '0'){
+            return versionData
+        }
+
+        if (devVersion){
+            versionParts.add(commitSha)
+        } else {
+            versionParts.add(commitsSinceTag)
+        }
+        // Patch version will be incremented e.g. 0.1.0 -> 0.1.1
+        if (increment) {
+            versionParts[0] = git.incrementVersion(versionParts[0])
+        }
+        return versionParts.join('-')
     }
 }
 
