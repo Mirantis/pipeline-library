@@ -378,8 +378,8 @@ def restoreGaleraCluster(env, galeraStatus, restoreDb=true) {
 
     if (restoreDb) {
         def timestamp = common.getDatetime()
-        salt.cmdRun(env, lastNodeTarget, "mkdir -p /root/mysql")
-        def bakDir = salt.getReturnValues(salt.cmdRun(env, lastNodeTarget, "mktemp -d --suffix='_${timestamp}' /root/mysql/mysql.bak.XXXXXX", false))
+        def bakDir = "/root/mysql/mysql.bak.${timestamp}".toString()
+        salt.cmdRun(env, lastNodeTarget, "mkdir -p ${bakDir}")
         salt.cmdRun(env, lastNodeTarget, "mv /var/lib/mysql/* ${bakDir} || echo 'Nothing to backup from directory /var/lib/mysql/'")
     }
     if (total) {
