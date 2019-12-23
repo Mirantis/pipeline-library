@@ -444,6 +444,7 @@ def installOpenstackControl(master, extra_tgt = '') {
     }
 
     // Install horizon dashboard
+    salt.runSaltProcessStep(master, "* ${extra_tgt}", 'mine.update')
     salt.enforceStateWithTest([saltId: master, target: "I@horizon:server ${extra_tgt}", state: 'horizon'])
 }
 

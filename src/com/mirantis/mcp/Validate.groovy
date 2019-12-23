@@ -39,11 +39,12 @@ def runBasicContainer(master, target, dockerImageLink="xrally/xrally-openstack:0
  * @param env_var               Environment variables to set in container
  * @param entrypoint            Set entrypoint to /bin/bash or leave default
  * @param mounts                Map with mounts for container
+ * @param output_replacing      Maps with regex with should be hide from output (passwords, etc)
 **/
 
 def runContainer(Map params){
     def common = new com.mirantis.mk.Common()
-    defaults = ["name": "cvp", "env_var": [], "entrypoint": true]
+    defaults = ["name": "cvp", "env_var": [], "entrypoint": true, "mounts": [:], "output_replacing": []]
     params = defaults + params
     def salt = new com.mirantis.mk.Salt()
     def variables = ''
@@ -69,8 +70,11 @@ def runContainer(Map params){
     params.mounts.each { local, container ->
         mounts = mounts + " -v ${local}:${container}"
     }
-    salt.cmdRun(params.master, params.target, "docker run -tid --net=host --name=${params.name}" +
-                                "${mounts} -u root ${entry_point} ${variables} ${params.dockerImageLink}")
+    salt.cmdRun(params.master, params.target,
+                "docker run -tid --net=host --name=${params.name}" +
+                    "${mounts} -u root ${entry_point} ${variables} ${params.dockerImageLink}",
+                true, null, true, [],
+                params.output_replacing)
 }
 
 def runContainer(master, target, dockerImageLink, name='cvp', env_var=[], entrypoint=true, mounts=[:]){
@@ -280,7 +284,7 @@ def runSanityTests(salt_url, salt_credentials, test_set="", output_dir="validati
         }
     }
     def script = ". ${env.WORKSPACE}/venv/bin/activate; ${settings}" +
-                 "pytest --junitxml ${output_dir}cvp_sanity.xml --tb=short -sv ${env.WORKSPACE}/cvp-sanity-checks/cvp_checks/tests/${test_set}"
+                 "pytest --junitxml ${output_dir}cvp_sanity.xml --tb=short -rs -sv ${env.WORKSPACE}/cvp-sanity-checks/cvp_checks/tests/${test_set}"
     withEnv(["SALT_USERNAME=${username}", "SALT_PASSWORD=${password}", "SALT_URL=${salt_url}"]) {
         def statusCode = sh script:script, returnStatus:true
     }
@@ -305,7 +309,7 @@ def runPyTests(salt_url, salt_credentials, test_set="", env_vars="", name='cvp',
     if (container_node != "") {
         def saltMaster
         saltMaster = salt.connection(salt_url, salt_credentials)
-        def script = "pytest --junitxml ${xml_file} --tb=short -sv ${test_set}"
+        def script = "pytest --junitxml ${xml_file} --tb=short -rs -sv ${test_set}"
         env_vars.addAll("SALT_USERNAME=${username}", "SALT_PASSWORD=${password}",
                         "SALT_URL=${salt_url}")
         variables = ' -e ' + env_vars.join(' -e ')
@@ -318,7 +322,7 @@ def runPyTests(salt_url, salt_credentials, test_set="", env_vars="", name='cvp',
         variables = 'export ' + env_vars.join(';export ')
         }
         def script = ". ${env.WORKSPACE}/venv/bin/activate; ${variables}; " +
-                     "pytest --junitxml ${artifacts_dir}${xml_file} --tb=short -sv ${env.WORKSPACE}/${test_set}"
+                     "pytest --junitxml ${artifacts_dir}${xml_file} --tb=short -rs -sv ${env.WORKSPACE}/${test_set}"
         withEnv(["SALT_USERNAME=${username}", "SALT_PASSWORD=${password}", "SALT_URL=${salt_url}"]) {
             def statusCode = sh script:script, returnStatus:true
         }
@@ -348,7 +352,7 @@ def runTests(salt_url, salt_credentials, test_set="", output_dir="validation_art
         }
     }
     def script = ". ${env.WORKSPACE}/venv/bin/activate; ${settings}" +
-                 "pytest --junitxml ${output_dir}report.xml --tb=short -sv ${env.WORKSPACE}/${test_set}"
+                 "pytest --junitxml ${output_dir}report.xml --tb=short -rs -sv ${env.WORKSPACE}/${test_set}"
     withEnv(["SALT_USERNAME=${username}", "SALT_PASSWORD=${password}", "SALT_URL=${salt_url}"]) {
         def statusCode = sh script:script, returnStatus:true
     }
