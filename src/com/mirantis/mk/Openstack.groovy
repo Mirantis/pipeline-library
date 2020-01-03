@@ -377,6 +377,24 @@ def deleteKeyPair(env, name, path = null) {
 }
 
 /**
+ * Check if Nova keypair exists and delete it.
+ *
+ * @param env          Connection parameters for OpenStack API endpoint
+ * @param name         Name of the key pair to delete
+ * @param path         Path to virtualenv
+**/
+def ensureKeyPairRemoved(String name, env, path) {
+    def common = new com.mirantis.mk.Common()
+    def keypairs = runOpenstackCommand("openstack keypair list -f value -c Name", env, path).tokenize('\n')
+    if (name in keypairs) {
+        deleteKeyPair(env, name, path)
+        common.infoMsg("Keypair ${name} has been deleted")
+    } else {
+        common.warningMsg("Keypair ${name} not found")
+    }
+}
+
+/**
  * Get nova key pair
  *
  * @param env          Connection parameters for OpenStack API endpoint
