@@ -90,7 +90,7 @@ def runVirtualenvCommand(path, cmd, silent = false, flexAnswer = false) {
  */
 def setupDocutilsVirtualenv(path, python="python2") {
     requirements = [
-      'docutils',
+      'docutils==0.16',
     ]
     setupVirtualenv(path, python, requirements)
 }
@@ -371,8 +371,8 @@ parameters:
  */
 def setupJinjaVirtualenv(path) {
     requirements = [
-      'jinja2-cli',
-      'pyyaml',
+      'jinja2-cli==0.7.0',
+      'pyyaml==5.3',
     ]
     setupVirtualenv(path, 'python2', requirements)
 }
