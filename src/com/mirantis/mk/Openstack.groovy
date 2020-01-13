@@ -41,7 +41,7 @@ def setupOpenstackVirtualenv(path, version = 'latest', python="python2") {
         'oslo.i18n>=2.3.0,<2.4.0',
         'oslo.serialization>=1.8.0,<1.9.0',
         'oslo.utils>=1.4.0,<1.5.0',
-        'docutils'
+        'docutils==0.16'
     ]
 
     def openstack_latest_packages = [
@@ -58,10 +58,12 @@ def setupOpenstackVirtualenv(path, version = 'latest', python="python2") {
         'warlock<=1.3.1;python_version=="2.7"',
         'warlock>1.3.1;python_version=="3.4"',
         'warlock>1.3.1;python_version=="3.5"',
-        'python-openstackclient',
-        'python-octaviaclient',
-        'python-heatclient',
-        'docutils'
+        // NOTE: pin client packages to current latest to prevent
+        // downloading packages which are not support Python 2.7
+        'python-openstackclient==4.0.0',
+        'python-octaviaclient==1.11.0',
+        'python-heatclient=1.18.0',
+        'docutils==0.16'
     ]
 
     if (version == 'kilo') {
