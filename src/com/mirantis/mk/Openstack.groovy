@@ -22,9 +22,9 @@ package com.mirantis.mk
  * @param version     Version of the OpenStack clients
  */
 
-def setupOpenstackVirtualenv(path, version = 'latest') {
-    def python = new com.mirantis.mk.Python()
-    python.setupDocutilsVirtualenv(path)
+def setupOpenstackVirtualenv(path, version = 'latest', python="python2") {
+    def pythonLib = new com.mirantis.mk.Python()
+    pythonLib.setupDocutilsVirtualenv(path)
 
     def openstack_kilo_packages = [
         //XXX: hack to fix https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1635463
@@ -68,7 +68,7 @@ def setupOpenstackVirtualenv(path, version = 'latest') {
     } else {
         requirements = openstack_latest_packages
     }
-    python.setupVirtualenv(path, 'python2', requirements, null, true)
+    pythonLib.setupVirtualenv(path, python, requirements, null, true)
 }
 
 /**
