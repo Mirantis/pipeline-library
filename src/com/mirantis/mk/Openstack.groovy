@@ -62,7 +62,7 @@ def setupOpenstackVirtualenv(path, version = 'latest', python="python2") {
         // downloading packages which are not support Python 2.7
         'python-openstackclient==4.0.0',
         'python-octaviaclient==1.11.0',
-        'python-heatclient=1.18.0',
+        'python-heatclient==1.18.0',
         'docutils==0.16'
     ]
 
