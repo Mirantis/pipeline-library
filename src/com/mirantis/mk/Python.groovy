@@ -39,7 +39,8 @@ def setupVirtualenv(path, python = 'python2', reqs = [], reqs_path = null, clean
                 pipPackage = "\"pip<=19.3.1\""
                 common.infoMsg("Pinning pip package due to end of life of Python2 to ${pipPackage} version.")
             }
-            runVirtualenvCommand(path, "pip install -U setuptools ${pipPackage}")
+            // NOTE(vsaienko): pin setuptools explicitly for latest version that works with python2
+            runVirtualenvCommand(path, "pip install -U \"setuptools<45.0.0\" ${pipPackage}")
         } catch (Exception e) {
             common.warningMsg("Setuptools and pip cannot be updated, you might be offline but OFFLINE_DEPLOYMENT global property not initialized!")
         }
@@ -156,11 +157,11 @@ def runCmd(String cmd, String virtualenv='', Boolean verbose=true, Boolean check
  *
  * @param path Path where virtualenv is created
  */
-def setupDocutilsVirtualenv(path) {
+def setupDocutilsVirtualenv(path, python="python2") {
     requirements = [
         'docutils',
     ]
-    setupVirtualenv(path, 'python2', requirements)
+    setupVirtualenv(path, python, requirements)
 }
 
 
