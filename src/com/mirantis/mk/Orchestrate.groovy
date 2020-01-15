@@ -811,6 +811,8 @@ def installCicd(master, extra_tgt = '') {
 
     salt.enforceStateWithTest([saltId: master, target: "I@openldap:client ${extra_tgt}", state: 'openldap', retries: 2])
 
+    salt.enforceStateWithTest([saltId: master, target: "( I@keycloak:server or I@keycloak:proxy ) ${extra_tgt}", state: 'keycloak', retries: 2])
+
     salt.enforceStateWithTest([saltId: master, target: "I@python:environment ${extra_tgt}", state: 'python'])
 
     withEnv(['ASK_ON_ERROR=false']){
