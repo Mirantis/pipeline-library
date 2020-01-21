@@ -27,10 +27,9 @@ def setupVirtualenv(path, python = 'python2', reqs = [], reqs_path = null, clean
         sh("rm -rf \"${path}\"")
     }
 
-    // NOTE(vsaienko): unless is fixed in upstream https://github.com/pypa/pip/issues/7620
-    //if (offlineDeployment) {
+    if (offlineDeployment) {
         virtualenv_cmd += " --no-download"
-    //}
+    }
     common.infoMsg("[Python ${path}] Setup ${python} environment")
     sh(returnStdout: true, script: virtualenv_cmd)
     if (!offlineDeployment) {
@@ -41,7 +40,7 @@ def setupVirtualenv(path, python = 'python2', reqs = [], reqs_path = null, clean
                 common.infoMsg("Pinning pip package due to end of life of Python2 to ${pipPackage} version.")
             }
             // NOTE(vsaienko): pin setuptools explicitly for latest version that works with python2
-            runVirtualenvCommand(path, "pip install -U \"setuptools<45.0.0\"")
+            runVirtualenvCommand(path, "pip install -U \"setuptools<45.0.0\" ${pipPackage}")
         } catch (Exception e) {
             common.warningMsg("Setuptools and pip cannot be updated, you might be offline but OFFLINE_DEPLOYMENT global property not initialized!")
         }
