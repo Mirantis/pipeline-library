@@ -233,8 +233,20 @@ def runScenario(scenario) {
         runSteps(scenario['finally'], global_variables, failed_jobs)
 
         if (failed_jobs) {
+            statuses = []
+            failed_jobs.each {
+                statuses += it.split(":").last()
+                }
+            if (statuses.contains('FAILURE')) {
+                currentBuild.result = 'FAILURE'
+            }
+            else if (statuses.contains('UNSTABLE')) {
+                currentBuild.result = 'UNSTABLE'
+            }
+            else {
+                currentBuild.result = 'FAILURE'
+            }
             println "Failed jobs: ${failed_jobs}"
-            currentBuild.result = "FAILED"
         }
-    } // try
+    } // finally
 }
