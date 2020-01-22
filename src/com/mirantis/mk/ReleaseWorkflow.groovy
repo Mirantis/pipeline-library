@@ -109,6 +109,7 @@ def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth
     String gitCredentialsId     = params.get('metadataCredentialsId', 'mcp-ci-gerrit')
     String metadataRepoUrl      = params.get('metadataGitRepoUrl', "ssh://${gitCredentialsId}@gerrit.mcp.mirantis.net:29418/mcp/artifact-metadata")
     String metadataGerritBranch = params.get('metadataGitRepoBranch', 'master')
+    String toxDockerImage       = params.get('toxDockerImage', 'docker-prod-virtual.docker.mirantis.net/mirantis/external/tox')
     String repoDir              = params.get('repoDir', 'artifact-metadata')
     String comment              = params.get('comment', '')
     String crTopic              = params.get('crTopic', '')
@@ -161,11 +162,12 @@ def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth
         def keyArr = key.split(';')
         def valueArr = value.split(';')
         if (keyArr.size() == valueArr.size()) {
-            for (i in 0..keyArr.size()-1) {
-                precreateKeyReleaseMetadataFile(keyArr[i], metadataDir, dirdepth)
-
-                cmdText = "python '${repoDir}/utils/app.py' --path '${metadataDir}' update --key '${keyArr[i]}' --value '${valueArr[i]}'"
-                python.runVirtualenvCommand(venvDir, cmdText)
+            docker.image(toxDockerImage).inside {
+                for (i in 0..keyArr.size()-1) {
+                    // TODO remove/refactor it as app.py will have this functionality
+                    precreateKeyReleaseMetadataFile(keyArr[i], metadataDir, dirdepth)
+                    sh "cd ${repoDir} && tox -qq -e metadata -- update --key '${keyArr[i]}' --value '${valueArr[i]}'"
+                }
             }
         }
 
