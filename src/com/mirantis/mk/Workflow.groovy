@@ -235,7 +235,7 @@ def runScenario(scenario) {
         if (failed_jobs) {
             statuses = []
             failed_jobs.each {
-                statuses += it.split(":").last()
+                statuses += it.value
                 }
             if (statuses.contains('FAILURE')) {
                 currentBuild.result = 'FAILURE'
