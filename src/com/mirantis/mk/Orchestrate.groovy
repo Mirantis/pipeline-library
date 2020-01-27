@@ -194,10 +194,8 @@ def installInfra(master, extra_tgt = '') {
 
     // If galera is not enabled check if we need to install mysql:server
     } else {
-
-    salt.enforceStateWithTest([saltId: master, target: "I@mysql:server ${extra_tgt}", state: 'mysql.server'])
-    salt.enforceStateWithTest([saltId: master, target: "I@mysql:client ${extra_tgt}", state: 'mysql.client'])
-
+        salt.enforceStateWithTest([saltId: master, target: "I@mysql:server ${extra_tgt}", state: 'mysql.server'])
+        salt.enforceStateWithTest([saltId: master, target: "I@mysql:client ${extra_tgt}", state: 'mysql.client'])
     }
     installBackup(master, 'mysql', extra_tgt)
 
