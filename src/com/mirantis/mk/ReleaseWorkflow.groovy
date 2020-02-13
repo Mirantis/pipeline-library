@@ -1,4 +1,5 @@
 package com.mirantis.mk
+
 /**
  * Checkout release metadata repo with clone or without, if cloneRepo parameter is set
  *
@@ -11,13 +12,15 @@ package com.mirantis.mk
  */
 def checkoutReleaseMetadataRepo(Map params = [:]) {
     def git = new com.mirantis.mk.Git()
+    def common = new com.mirantis.mk.Common()
 
     String gitCredentialsId = params.get('metadataCredentialsId', 'mcp-ci-gerrit')
     String gitUrl           = params.get('metadataGitRepoUrl', "ssh://${gitCredentialsId}@gerrit.mcp.mirantis.net:29418/mcp/artifact-metadata")
     String gitBranch        = params.get('metadataGitRepoBranch', 'master')
     String gitRef           = params.get('metadataGitRepoRef', '')
-    String repoDir          = params.get('repoDir', 'artifact-metadata')
+    String repoDir          = common.getAbsolutePath(params.get('repoDir', 'artifact-metadata'))
     Boolean cloneRepo       = params.get('cloneRepo', true)
+
     if (cloneRepo) {
         stage('Cleanup repo dir') {
             dir(repoDir) {
@@ -42,14 +45,14 @@ def checkoutReleaseMetadataRepo(Map params = [:]) {
  *    - repoDir
  */
 def getReleaseMetadataValue(String key, Map params = [:]) {
+    // Libs
+    def common = new com.mirantis.mk.Common()
+
     String result
     // Get params
     String toxDockerImage   = params.get('toxDockerImage', 'docker-prod-virtual.docker.mirantis.net/mirantis/external/tox')
     String outputFormat     = params.get('outputFormat', 'json')
-    String repoDir          = params.get('repoDir', 'artifact-metadata')
-
-    // Libs
-    def common = new com.mirantis.mk.Common()
+    String repoDir          = common.getAbsolutePath(params.get('repoDir', 'artifact-metadata'))
 
     String opts = ''
     if (outputFormat && !outputFormat.isEmpty()) {
@@ -86,20 +89,20 @@ def getReleaseMetadataValue(String key, Map params = [:]) {
  */
 
 def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth = 0) {
-    String gitCredentialsId     = params.get('metadataCredentialsId', 'mcp-ci-gerrit')
-    String metadataRepoUrl      = params.get('metadataGitRepoUrl', "ssh://${gitCredentialsId}@gerrit.mcp.mirantis.net:29418/mcp/artifact-metadata")
-    String metadataGerritBranch = params.get('metadataGitRepoBranch', 'master')
-    String toxDockerImage       = params.get('toxDockerImage', 'docker-prod-virtual.docker.mirantis.net/mirantis/external/tox')
-    String repoDir              = params.get('repoDir', 'artifact-metadata')
-    String comment              = params.get('comment', '')
-    String crTopic              = params.get('crTopic', '')
-    String changeAuthorName     = params.get('crAuthorName', 'MCP-CI')
-    String changeAuthorEmail    = params.get('crAuthorEmail', 'mcp-ci-jenkins@ci.mcp.mirantis.net')
-
     def common = new com.mirantis.mk.Common()
     def python = new com.mirantis.mk.Python()
     def gerrit = new com.mirantis.mk.Gerrit()
     def git    = new com.mirantis.mk.Git()
+
+    String gitCredentialsId     = params.get('metadataCredentialsId', 'mcp-ci-gerrit')
+    String metadataRepoUrl      = params.get('metadataGitRepoUrl', "ssh://${gitCredentialsId}@gerrit.mcp.mirantis.net:29418/mcp/artifact-metadata")
+    String metadataGerritBranch = params.get('metadataGitRepoBranch', 'master')
+    String toxDockerImage       = params.get('toxDockerImage', 'docker-prod-virtual.docker.mirantis.net/mirantis/external/tox')
+    String repoDir              = common.getAbsolutePath(params.get('repoDir', 'artifact-metadata'))
+    String comment              = params.get('comment', '')
+    String crTopic              = params.get('crTopic', '')
+    String changeAuthorName     = params.get('crAuthorName', 'MCP-CI')
+    String changeAuthorEmail    = params.get('crAuthorEmail', 'mcp-ci-jenkins@ci.mcp.mirantis.net')
 
     def cred = common.getCredentials(gitCredentialsId, 'key')
     String gerritUser = cred.username

@@ -40,6 +40,17 @@ def getWorkspace(includeBuildNum = false) {
 }
 
 /**
+ * Get absolute path via 'realink'
+ *   -m, --canonicalize-missing
+ *     canonicalize by following every symlink in every component of the given name recursively,
+ *     without requirements on components existence
+ */
+def getAbsolutePath(String path) {
+    def absPath = sh script: "readlink -m ${path}", returnStdout: true
+    return absPath.trim()
+}
+
+/**
  * Get UID of jenkins user.
  * Must be run from context of node
  */
