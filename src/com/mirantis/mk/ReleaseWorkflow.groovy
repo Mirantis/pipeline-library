@@ -69,7 +69,7 @@ def getReleaseMetadataValue(String key, Map params = [:]) {
 }
 
 /**
- * Get release metadata value for given key
+ * Pre-create release metadata directory structure
  *
  * @param key metadata key
  * @param metadataDir metadata directory
@@ -77,6 +77,7 @@ def getReleaseMetadataValue(String key, Map params = [:]) {
  */
 
 def precreateKeyReleaseMetadataFile(String key, String metadataDir, Integer dirdepth = 0) {
+    common.infoMsg("This method is deprecated and should not be used with new metadata app")
     def keySize = key.split(':').size() - 1
     if (dirdepth > 0 && dirdepth - 1 <= keySize) {
         def dirPath = metadataDir + '/' + key.split(':')[0..dirdepth - 1].join('/')
@@ -164,8 +165,6 @@ def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth
         if (keyArr.size() == valueArr.size()) {
             docker.image(toxDockerImage).inside {
                 for (i in 0..keyArr.size()-1) {
-                    // TODO remove/refactor it as app.py will have this functionality
-                    precreateKeyReleaseMetadataFile(keyArr[i], metadataDir, dirdepth)
                     sh "cd ${repoDir} && tox -qq -e metadata -- update --key '${keyArr[i]}' --value '${valueArr[i]}'"
                 }
             }
