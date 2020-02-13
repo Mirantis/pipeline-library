@@ -58,8 +58,8 @@ def getReleaseMetadataValue(String key, Map params = [:]) {
 
     checkoutReleaseMetadataRepo(params)
 
-    docker.image(toxDockerImage).inside {
-        result = sh(script: "cd ${repoDir} && tox -qq -e metadata -- ${opts} get --key ${key}", returnStdout: true).trim()
+    docker.image(toxDockerImage).inside("--volume ${repoDir}:/workspace") {
+        result = sh(script: "cd /workspace && tox -qq -e metadata -- ${opts} get --key ${key}", returnStdout: true).trim()
     }
     common.infoMsg("""
     Release metadata key ${key} has value:
@@ -163,9 +163,9 @@ def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth
         def keyArr = key.split(';')
         def valueArr = value.split(';')
         if (keyArr.size() == valueArr.size()) {
-            docker.image(toxDockerImage).inside {
+            docker.image(toxDockerImage).inside("--volume ${repoDir}:/workspace") {
                 for (i in 0..keyArr.size()-1) {
-                    sh "cd ${repoDir} && tox -qq -e metadata -- update --key '${keyArr[i]}' --value '${valueArr[i]}'"
+                    sh "cd /workspace && tox -qq -e metadata -- update --key '${keyArr[i]}' --value '${valueArr[i]}'"
                 }
             }
         }
