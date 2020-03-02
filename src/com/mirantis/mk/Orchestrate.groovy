@@ -194,10 +194,8 @@ def installInfra(master, extra_tgt = '') {
 
     // If galera is not enabled check if we need to install mysql:server
     } else {
-
-    salt.enforceStateWithTest([saltId: master, target: "I@mysql:server ${extra_tgt}", state: 'mysql.server'])
-    salt.enforceStateWithTest([saltId: master, target: "I@mysql:client ${extra_tgt}", state: 'mysql.client'])
-
+        salt.enforceStateWithTest([saltId: master, target: "I@mysql:server ${extra_tgt}", state: 'mysql.server'])
+        salt.enforceStateWithTest([saltId: master, target: "I@mysql:client ${extra_tgt}", state: 'mysql.client'])
     }
     installBackup(master, 'mysql', extra_tgt)
 
@@ -803,6 +801,8 @@ def installCicd(master, extra_tgt = '') {
     }
 
     salt.enforceStateWithTest([saltId: master, target: "I@openldap:client ${extra_tgt}", state: 'openldap', retries: 2])
+
+    salt.enforceStateWithTest([saltId: master, target: "( I@keycloak:server or I@keycloak:proxy ) ${extra_tgt}", state: 'keycloak', retries: 2])
 
     salt.enforceStateWithTest([saltId: master, target: "I@python:environment ${extra_tgt}", state: 'python'])
 

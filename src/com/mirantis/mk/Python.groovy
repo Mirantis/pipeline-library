@@ -32,17 +32,18 @@ def setupVirtualenv(path, python = 'python2', reqs=[], reqs_path=null, clean=fal
     }
     common.infoMsg("[Python ${path}] Setup ${python} environment")
     sh(returnStdout: true, script: virtualenv_cmd)
-    if(!offlineDeployment){
-      try {
-          def pipPackage = 'pip'
-          if (python == 'python2') {
-              pipPackage = "\"pip<=19.3.1\""
-              common.infoMsg("Pinning pip package due to end of life of Python2 to ${pipPackage} version.")
-          }
-          runVirtualenvCommand(path, "pip install -U setuptools ${pipPackage}")
-      } catch(Exception e) {
-          common.warningMsg("Setuptools and pip cannot be updated, you might be offline but OFFLINE_DEPLOYMENT global property not initialized!")
-      }
+    if (!offlineDeployment) {
+        try {
+            def pipPackage = 'pip'
+            if (python == 'python2') {
+                pipPackage = "\"pip<=19.3.1\""
+                common.infoMsg("Pinning pip package due to end of life of Python2 to ${pipPackage} version.")
+            }
+            // NOTE(vsaienko): pin setuptools explicitly for latest version that works with python2
+            runVirtualenvCommand(path, "pip install -U \"setuptools<45.0.0\" ${pipPackage}")
+        } catch (Exception e) {
+            common.warningMsg("Setuptools and pip cannot be updated, you might be offline but OFFLINE_DEPLOYMENT global property not initialized!")
+        }
     }
     if (reqs_path==null) {
         def args = ""
@@ -87,11 +88,11 @@ def runVirtualenvCommand(path, cmd, silent = false, flexAnswer = false) {
  *
  * @param path        Path where virtualenv is created
  */
-def setupDocutilsVirtualenv(path) {
+def setupDocutilsVirtualenv(path, python="python2") {
     requirements = [
-      'docutils',
+      'docutils==0.16',
     ]
-    setupVirtualenv(path, 'python2', requirements)
+    setupVirtualenv(path, python, requirements)
 }
 
 
@@ -370,8 +371,8 @@ parameters:
  */
 def setupJinjaVirtualenv(path) {
     requirements = [
-      'jinja2-cli',
-      'pyyaml',
+      'jinja2-cli==0.7.0',
+      'pyyaml==5.3',
     ]
     setupVirtualenv(path, 'python2', requirements)
 }
