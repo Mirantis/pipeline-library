@@ -44,15 +44,23 @@ def jobResultNotification(String buildStatusParam, String channel = "#mk-ci",
     def common = new com.mirantis.mk.Common()
     cred = common.getCredentialsById(credentialsId)
     hook_url_parsed = cred.getSecret().toString()
-    if (buildStatusParam.toLowerCase().equals("success")) {
-        colorCode = "#00FF00"
-        colorName = "green"
-    } else if (buildStatusParam.toLowerCase().equals("unstable")) {
-        colorCode = "#FFFF00"
-        colorName = "yellow"
-    } else if (buildStatusParam.toLowerCase().equals("failure")) {
-        colorCode = "#FF0000"
-        colorName = "red"
+
+    switch(buildStatusParam.toLowerCase) {
+        case "success":
+            colorCode = "#00FF00"
+            colorName = "green"
+            break
+        case "unstable":
+            colorCode = "#FFFF00"
+            colorName = "yellow"
+            break
+        case "failure":
+            colorCode = "#FF0000"
+            colorName = "red"
+            break
+        default:
+            colorCode = "#808080"
+            colorName = "grey"
     }
 
     queryString = 'payload={' +
