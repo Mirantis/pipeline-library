@@ -45,7 +45,7 @@ def jobResultNotification(String buildStatusParam, String channel = "#mk-ci",
     cred = common.getCredentialsById(credentialsId)
     hook_url_parsed = cred.getSecret().toString()
 
-    switch(buildStatusParam.toLowerCase) {
+    switch(buildStatusParam.toLowerCase()) {
         case "success":
             colorCode = "#00FF00"
             colorName = "green"
