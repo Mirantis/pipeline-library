@@ -687,12 +687,22 @@ def syncAll(saltId, target, batch = null) {
  * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Get pillar target
  * @param batch Batch param to salt (integer or string with percents)
+ * @param oneByOne Refresh each node separately
  * @return output of salt command
  */
-def fullRefresh(saltId, target, batch=20){
-    runSaltProcessStep(saltId, target, 'saltutil.refresh_pillar', [], batch, true)
-    runSaltProcessStep(saltId, target, 'saltutil.refresh_grains', [], batch, true)
-    runSaltProcessStep(saltId, target, 'saltutil.sync_all', [], batch, true)
+def fullRefresh(saltId, target, batch=20, oneByOne=false) {
+    if (oneByOne) {
+        def minions = getMinions(saltId, target)
+        for (minion in minions) {
+            runSaltProcessStep(saltId, minion, 'saltutil.refresh_pillar', [], null, true, 60)
+            runSaltProcessStep(saltId, minion, 'saltutil.refresh_grains', [], null, true, 60)
+            runSaltProcessStep(saltId, minion, 'saltutil.sync_all', [], null, true, 180)
+        }
+    } else {
+        runSaltProcessStep(saltId, target, 'saltutil.refresh_pillar', [], batch, true)
+        runSaltProcessStep(saltId, target, 'saltutil.refresh_grains', [], batch, true)
+        runSaltProcessStep(saltId, target, 'saltutil.sync_all', [], batch, true)
+    }
 }
 
 /**
