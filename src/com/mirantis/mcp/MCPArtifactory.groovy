@@ -425,7 +425,7 @@ def uploadJobArtifactsToArtifactory(LinkedHashMap config) {
             return "Artifactory server is not found. Can't save artifacts in Artifactory."
         }
     }
-    def artifactDir = 'cur_build_artifacts'
+    def artifactDir = config.get('artifactDir') ?: 'cur_build_artifacts'
     def user = ''
     wrap([$class: 'BuildUser']) {
         user = env.BUILD_USER_ID
@@ -435,13 +435,14 @@ def uploadJobArtifactsToArtifactory(LinkedHashMap config) {
             unarchive(mapping: ['**/*' : '.'])
             // Mandatory and additional properties
             def properties = getBinaryBuildProperties(config.get('buildProps', []) << "buildUser=${user}")
+            def pattern = config.get('artifactPattern') ?: '*'
 
             // Build Artifactory spec object
             def uploadSpec = """{
                 "files":
                     [
                         {
-                            "pattern": "*",
+                            "pattern": "${pattern}",
                             "target": "${config.get('artifactoryRepo')}/",
                             "flat": false,
                             "props": "${properties}"
