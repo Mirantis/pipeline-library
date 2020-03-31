@@ -415,6 +415,11 @@ def uploadJobArtifactsToArtifactory(LinkedHashMap config) {
     def common = new com.mirantis.mk.Common()
     def artifactsDescription = ''
     def artifactoryServer
+
+    if (!config.containsKey('deleteArtifacts')) {
+        config.deleteArtifacts = true  // default behavior before add the flag
+    }
+
     try {
         artifactoryServer = Artifactory.server(config.get('artifactory'))
     } catch (Exception e) {
@@ -460,7 +465,9 @@ def uploadJobArtifactsToArtifactory(LinkedHashMap config) {
                 throw e
             }
         } finally {
-            deleteDir()
+            if (config.deleteArtifacts) {
+                deleteDir()
+            }
         }
     }
     return artifactsDescription
