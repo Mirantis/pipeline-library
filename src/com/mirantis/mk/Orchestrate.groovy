@@ -806,6 +806,9 @@ def installCicd(master, extra_tgt = '') {
 
     salt.enforceStateWithTest([saltId: master, target: "I@python:environment ${extra_tgt}", state: 'python'])
 
+    // Make sure salt minion is restarted and it loads latest python libs
+    salt.restartSaltMinion(master, gerrit_compound)
+    salt.restartSaltMinion(master, jenkins_compound)
     withEnv(['ASK_ON_ERROR=false']){
         retry(2){
             try{
