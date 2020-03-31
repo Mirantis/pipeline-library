@@ -209,7 +209,7 @@ def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
  *
  */
 
-def runScenario(scenario) {
+def runScenario(scenario, slackReportChannel = '') {
 
     // Clear description before adding new messages
     currentBuild.description = ''
@@ -247,6 +247,11 @@ def runScenario(scenario) {
                 currentBuild.result = 'FAILURE'
             }
             println "Failed jobs: ${failed_jobs}"
+        }
+
+        if (slackReportChannel) {
+            def slack = new com.mirantis.mcp.SlackNotification()
+            slack.jobResultNotification(currentBuild.result, slackReportChannel, '', null, '', 'slack_webhook_url')
         }
     } // finally
 }
