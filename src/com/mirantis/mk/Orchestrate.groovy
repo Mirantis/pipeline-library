@@ -813,23 +813,26 @@ def installCicd(master, extra_tgt = '') {
 
     salt.enforceStateWithTest([saltId: master, target: "I@python:environment ${extra_tgt}", state: 'python'])
 
-    // Make sure salt minion is restarted and it loads latest python libs
-    salt.restartSaltMinion(master, gerrit_compound)
-    salt.restartSaltMinion(master, jenkins_compound)
-    withEnv(['ASK_ON_ERROR=false']){
-        retry(2){
-            try{
-                salt.enforceStateWithTest([saltId: master, target: "I@gerrit:client ${extra_tgt}", state: 'gerrit'])
-            }catch(e){
-                salt.fullRefresh(master, "I@gerrit:client ${extra_tgt}")
+    // Workaround for PROD-35056: jeepyb package may trigger update of requests and urllib3 packages
+    // which are actively used by salt-minion, so salt-minion has to be restart to apply changes
+    salt.upgradePackageAndRestartSaltMinion(master, jenkins_compound, 'python-requests')
+    salt.upgradePackageAndRestartSaltMinion(master, jenkins_compound, 'python-urllib3')
+    withEnv(['ASK_ON_ERROR=false']) {
+        retry(2) {
+            try {
+                salt.enforceStateWithTest([saltId: master, target: gerrit_compound, state: 'gerrit'])
+            } catch (e) {
+                salt.restartSaltMinion(master, gerrit_compound)
+                salt.fullRefresh(master, gerrit_compound)
                 throw e //rethrow for retry handler
             }
         }
-        retry(2){
-            try{
-                salt.enforceStateWithTest([saltId: master, target: "I@jenkins:client ${extra_tgt}", state: 'jenkins'])
-            }catch(e){
-                salt.fullRefresh(master, "I@jenkins:client ${extra_tgt}")
+        retry(2) {
+            try {
+                salt.enforceStateWithTest([saltId: master, target: jenkins_compound, state: 'jenkins'])
+            } catch (e) {
+                salt.restartSaltMinion(master, jenkins_compound)
+                salt.fullRefresh(master, jenkins_compound)
                 throw e //rethrow for retry handler
             }
         }
