@@ -60,20 +60,14 @@ List extractJIRA(String commitMsg, String matcherRegex = '([A-Z]+-[0-9]+)') {
  *
  * @param uri (string) JIRA url to post message to
  * @param auth (string) authentication data
- * @param message (string) payload to post to a JIRA issue as comment
- * @param restrictPostTo string represents JIRA space name to which posting is restricted. Default: PRODX
+ * @param message (string) message to post to a JIRA issue as comment
  *
 **/
 
-def postComment(String uri, String auth, String message, String restrictPostTo = 'PRODX') {
-    String messageBody = message.replace('"', '\\"')
-    String commentMsg = """{"body": "${messageBody}"}""".replace('\n', '\\n')
-    String jiraSpace = uri.split('/').last().split('-').first()
-
-    // Skip adding worklog entry for some namespaces
-    if ( jiraSpace == restrictPostTo ) {
-        callREST("${uri}/worklog", auth, 'POST', commentMsg)
-    }
+def postComment(String uri, String auth, String message) {
+    String messageBody = message.replace('"', '\\"').replace('\n', '\\n')
+    String payload = """{"body": "${messageBody}"}"""
+    callREST("${uri}/comment", auth, 'POST', payload)
 }
 
 /**
@@ -90,7 +84,7 @@ def postComment(String uri, String auth, String message, String restrictPostTo =
 def postMessageToTickets(String uri, String auth, String message, List tickets) {
     tickets.each{
         if ( callREST("${uri}/${it}", auth)['responseCode'] == 200 ) {
-            println "Updating ${uri}/${it} ...".replaceAll('rest/api/2/isse', 'browse')
+            println "Updating ${uri}/${it} ...".replaceAll('rest/api/2/issue', 'browse')
             postComment("${uri}/${it}", auth, message)
         }
     }
