@@ -46,7 +46,7 @@ def callREST (String uri, String auth, String method = 'GET', String message = n
 **/
 
 List extractJIRA(String commitMsg, String matcherRegex = '([A-Z]+-[0-9]+)') {
-  String msg = commitMsg.decodeBase64()
+  String msg = new String(commitMsg.decodeBase64())
   def matcher = (msg =~ matcherRegex)
   List tickets = []
 
