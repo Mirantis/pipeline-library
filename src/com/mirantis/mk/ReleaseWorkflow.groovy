@@ -157,6 +157,19 @@ def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth
 
                |${ChangeId}
             """.stripMargin()
+
+        // Add some useful info (if it present) to commit message
+        if (env.BUILD_URL) {
+            commitMessage += "Build-Url: ${env.BUILD_URL}\n"
+        }
+        if (env.GERRIT_CHANGE_COMMIT_MESSAGE) {
+            def jira = new com.mirantis.mk.Atlassian()
+            jira.extractJIRA(env.GERRIT_CHANGE_COMMIT_MESSAGE).each {
+                commitMessage += "Related-To: ${it}\n"
+            }
+        }
+
+
         //commit change
         git.commitGitChanges(repoDir, commitMessage, changeAuthorEmail, changeAuthorName, false)
         //post change
