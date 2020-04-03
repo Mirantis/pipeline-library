@@ -28,6 +28,8 @@ def callREST (String uri, String auth, String method = 'GET', String message = n
     String responseText = ''
     if (responseCode == 200) {
         responseText = req.getInputStream().getText()
+    } else if (req.getErrorStream()) {
+        println "Request error: ${req.getErrorStream().getText()}"
     }
     req = null // to reset the connection
     return [ 'responseCode': responseCode, 'responseText': responseText ]
@@ -72,6 +74,23 @@ def postComment(String uri, String auth, String message) {
 
 /**
  *
+ * Update Jira field
+ *
+ * @param uri (string) JIRA url to post message to
+ * @param auth (string) authentication data
+ * @param field (string) name of field to update
+ * @param message (string) json which should update given field. Format depends on field to be updated
+ *
+**/
+
+def updateField(String uri, String auth, String field, String message) {
+    String messageBody = message.replace('"', '\\"').replace('\n', '\\n')
+    String payload = """{"fields": { "${field}": "${messageBody}" }}"""
+    callREST("${uri}", auth, 'PUT', payload)
+}
+
+/**
+ *
  * Post comment to list of JIRA issues.
  *
  * @param uri (string) base JIRA url, each ticket ID appends to it
@@ -84,8 +103,29 @@ def postComment(String uri, String auth, String message) {
 def postMessageToTickets(String uri, String auth, String message, List tickets) {
     tickets.each{
         if ( callREST("${uri}/${it}", auth)['responseCode'] == 200 ) {
-            println "Updating ${uri}/${it} ...".replaceAll('rest/api/2/issue', 'browse')
+            println "Add comment to ${uri}/${it} ...".replaceAll('rest/api/2/issue', 'browse')
             postComment("${uri}/${it}", auth, message)
+        }
+    }
+}
+
+/**
+ *
+ * Update Jira field on given list of Jira issues
+ *
+ * @param uri (string) base JIRA url, each ticket ID appends to it
+ * @param auth (string) authentication data
+ * @param field (string) name of field to update
+ * @param message (string) json which should update given field. Format depends on field to be updated
+ * @param tickets list of ticket IDs to post message to
+ *
+**/
+
+def updateFieldOnTickets(String uri, String auth, String field, String message, List tickets) {
+    tickets.each{
+        if (callREST("${uri}/${it}", auth)['responseCode'] == 200 ) {
+            println "Update '${field}' field on ${uri}/${it} ...".replaceAll('rest/api/2/issue', 'browse')
+            updateField("${uri}/${it}", auth, field, message)
         }
     }
 }
