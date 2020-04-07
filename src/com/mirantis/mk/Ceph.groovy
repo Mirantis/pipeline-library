@@ -40,8 +40,9 @@ def waitForHealthy(master, target, flags=[], count=0, attempts=300) {
 def removePartition(master, target, partition_uuid, type='', id=-1) {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
-    def partition = ""
+    def partition = ''
     def dev = ''
+    def part_id = ''
     def lvm_enabled = salt.getPillar(master, "I@ceph:osd", "ceph:osd:lvm_enabled")['return'].first().containsValue(true)
     if ( !lvm_enabled ){
         if (type == 'lockbox') {
@@ -55,7 +56,7 @@ def removePartition(master, target, partition_uuid, type='', id=-1) {
         } else if (type == 'data') {
             try {
                 // umount - partition = /dev/sdi2
-                partition = salt.cmdRun(master, target, "df | grep /var/lib/ceph/osd/ceph-${id}")['return'][0].values()[0].split()[0]
+                partition = salt.cmdRun(master, target, "lsblk -rp | grep /var/lib/ceph/osd/ceph-${id}")['return'][0].values()[0].split()[0]
                 salt.cmdRun(master, target, "umount ${partition}")
             } catch (Exception e) {
                 common.warningMsg(e)
@@ -80,14 +81,14 @@ def removePartition(master, target, partition_uuid, type='', id=-1) {
                 // dev = /dev/nvme1n1
                 dev = partition.replaceAll('p\\d+$', "")
                 // part_id = 2
-                def part_id = partition.substring(partition.lastIndexOf("p") + 1).replaceAll("[^0-9]+", "")
+                part_id = partition.substring(partition.lastIndexOf("p") + 1).replaceAll("[^0-9]+", "")
 
             } else {
                 // partition = /dev/sdi2
                 // dev = /dev/sdi
                 dev = partition.replaceAll('\\d+$', "")
                 // part_id = 2
-                def part_id = partition.substring(partition.lastIndexOf("/") + 1).replaceAll("[^0-9]+", "")
+                part_id = partition.substring(partition.lastIndexOf("/") + 1).replaceAll("[^0-9]+", "")
             }
         }
     }
