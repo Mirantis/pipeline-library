@@ -152,6 +152,14 @@ def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth
             }
         }
 
+        String status = sh(script: "git -C ${repoDir} status -s", returnStdout: true).trim()
+        if (!status){
+            common.warningMsg('All values seem up to date, nothing to update')
+            return
+        }
+        common.infoMsg("""Next files will be updated:
+                       ${status}
+                       """)
         commitMessage =
                 """${comment}
 
@@ -168,7 +176,6 @@ def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth
                 commitMessage += "Related-To: ${it}\n"
             }
         }
-
 
         //commit change
         git.commitGitChanges(repoDir, commitMessage, changeAuthorEmail, changeAuthorName, false)
