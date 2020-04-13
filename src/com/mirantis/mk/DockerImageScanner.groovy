@@ -1,5 +1,7 @@
 #!groovy
 
+package com.mirantis.mk
+
 import groovy.json.JsonSlurper
 
 def callREST (String uri, String auth,
