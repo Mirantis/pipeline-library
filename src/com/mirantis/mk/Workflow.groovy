@@ -87,17 +87,32 @@ def runJob(job_name, job_parameters, global_variables, Boolean propagate = false
  *                          will be empty.
  *
  */
-def storeArtifacts(build_url, step_artifacts, global_variables) {
+def storeArtifacts(build_url, step_artifacts, global_variables, job_name, build_num) {
+    def common = new com.mirantis.mk.Common()
     def http = new com.mirantis.mk.Http()
-    def base = [:]
-    base["url"] = build_url
-    def job_config = http.restGet(base, "/api/json/")
+    def baseJenkins = [:]
+    def baseArtifactory = [:]
+    build_url = build_url.replaceAll(~/\/+$/, "")
+    artifactory_url = "https://artifactory.mcp.mirantis.net/api/storage/si-local/jenkins-job-artifacts"
+    baseArtifactory["url"] = artifactory_url + "/${job_name}/${build_num}"
+
+    baseJenkins["url"] = build_url
+    def job_config = http.restGet(baseJenkins, "/api/json/")
     def job_artifacts = job_config['artifacts']
     for (artifact in step_artifacts) {
-        def job_artifact = job_artifacts.findAll { item -> artifact.value == item['fileName'] || artifact.value == item['relativePath'] }
+        try {
+            artifactoryResp = http.restGet(baseArtifactory, "/${artifact.value}")
+            global_variables[artifact.key] = artifactoryResp.downloadUri
+            println "Artifact URL ${artifactoryResp.downloadUri} stored to ${artifact.key}"
+            continue
+        } catch (Exception e) {
+            common.warningMsg("Can't find an artifact in ${artifactory_url}/${job_name}/${build_num}/${artifact.value} error code ${e.message}")
+        }
+
+        job_artifact = job_artifacts.findAll { item -> artifact.value == item['fileName'] || artifact.value == item['relativePath'] }
         if (job_artifact.size() == 1) {
             // Store artifact URL
-            def artifact_url = "${build_url}artifact/${job_artifact[0]['relativePath']}"
+            def artifact_url = "${build_url}/artifact/${job_artifact[0]['relativePath']}"
             global_variables[artifact.key] = artifact_url
             println "Artifact URL ${artifact_url} stored to ${artifact.key}"
         } else if (job_artifact.size() > 1) {
@@ -105,7 +120,7 @@ def storeArtifacts(build_url, step_artifacts, global_variables) {
             error "Multiple artifacts ${artifact.value} for ${artifact.key} found in the build results ${build_url}, expected one:\n${job_artifact}"
         } else {
             // Warning: no artifact with expected name
-            println "Artifact ${artifact.value} for ${artifact.key} not found in the build results ${build_url}, found the following artifacts:\n${job_artifacts}"
+            println "Artifact ${artifact.value} for ${artifact.key} not found in the build results ${build_url} and in the artifactory ${artifactory_url}/${job_name}/${build_num}/, found the following artifacts in Jenkins:\n${job_artifacts}"
             global_variables[artifact.key] = ''
         }
     }
@@ -132,6 +147,7 @@ def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
             def job_result = job_info.getResult()
             def build_url = job_info.getAbsoluteUrl()
             def build_description = job_info.getDescription()
+            def build_id = job_info.getId()
 
             currentBuild.description += "<a href=${build_url}>${job_name}</a>: ${job_result}<br>"
             // Import the remote build description into the current build
@@ -140,7 +156,7 @@ def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
             }
 
             // Store links to the resulting artifacts into 'global_variables'
-            storeArtifacts(build_url, step['artifacts'], global_variables)
+            storeArtifacts(build_url, step['artifacts'], global_variables, job_name, build_id)
 
             // Job failed, fail the build or keep going depending on 'ignore_failed' flag
             if (job_result != "SUCCESS") {
