@@ -5,23 +5,23 @@ package com.mirantis.mk
 import groovy.json.JsonSlurper
 
 def callREST (String uri, String auth,
-			  String method = 'GET', String message = null) {
-	String authEnc = auth.bytes.encodeBase64()
-	def req = new URL(uri).openConnection()
-	req.setRequestMethod(method)
-	req.setRequestProperty('Content-Type', 'application/json')
-	req.setRequestProperty('Authorization', "Basic ${authEnc}")
-	if (message) {
-		req.setDoOutput(true)
-		req.getOutputStream().write(message.getBytes('UTF-8'))
-	}
-	Integer responseCode = req.getResponseCode()
-	String responseText = ''
-	if (responseCode == 200 || responseCode == 201) {
-		responseText = req.getInputStream().getText()
-	}
-	req = null
-	return [ 'responseCode': responseCode, 'responseText': responseText ]
+              String method = 'GET', String message = null) {
+    String authEnc = auth.bytes.encodeBase64()
+    def req = new URL(uri).openConnection()
+    req.setRequestMethod(method)
+    req.setRequestProperty('Content-Type', 'application/json')
+    req.setRequestProperty('Authorization', "Basic ${authEnc}")
+    if (message) {
+        req.setDoOutput(true)
+        req.getOutputStream().write(message.getBytes('UTF-8'))
+    }
+    Integer responseCode = req.getResponseCode()
+    String responseText = ''
+    if (responseCode == 200 || responseCode == 201) {
+        responseText = req.getInputStream().getText()
+    }
+    req = null
+    return [ 'responseCode': responseCode, 'responseText': responseText ]
 }
 
 def getTeam (String image = '') {
@@ -259,4 +259,24 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                 print "\n\nNothing to process for for ${image_key} and ${image.key}"
             }
     }
+}
+
+def find_cves_by_severity(String reportJsonContent, String Severity) {
+    def cves = []
+    def reportJSON = new JsonSlurper().parseText(reportJsonContent)
+    reportJSON.each{
+        image ->
+            image.value.each{
+                pkg ->
+                    pkg.value.each{
+                        cve ->
+                            if (cve[2]) {
+                                if (cve[1].contains(Severity)) {
+                                    cves.add("${pkg.key} ${cve[0]} (${cve[2]})")
+                                }
+                            }
+                    }
+            }
+    }
+    return cves
 }
