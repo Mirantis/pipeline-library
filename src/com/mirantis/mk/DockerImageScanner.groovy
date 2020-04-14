@@ -95,7 +95,6 @@ def cacheLookUp(Map dict, String image_short_name, String image_full_name = '', 
                 if (s) {
                     if (image_full_name) {
                         def d = dict[issue_key_name.key]['description'] =~ /(?m)\b${image_full_name}\b/
-                        
                         if (d) {
                             found_key = [issue_key_name.key,'']
                         } else {
@@ -126,10 +125,11 @@ def cacheLookUp(Map dict, String image_short_name, String image_full_name = '', 
     return found_key
 }
 
-def reportJiraTickets(String pathToResultsJSON, String jiraCredentialsID, String jiraUserID) {
+def reportJiraTickets(String reportFileContents, String jiraCredentialsID, String jiraUserID) {
 
     def dict = [:]
 
+    def common = new com.mirantis.mk.Common()
     def cred = common.getCredentialsById(jiraCredentialsID)
     def auth = "${cred.username}:${cred.password}"
     def uri = "${cred.description}/rest/api/2/issue"
@@ -156,11 +156,9 @@ def reportJiraTickets(String pathToResultsJSON, String jiraCredentialsID, String
 
     InputJSON['issues'].each { jira_issue ->
         dict = updateDictionary(jira_issue['key'], dict, uri, auth, jiraUserID)
-        sleep(1000)
     }
 
-    def reportFile = new File(pathToResultsJSON)
-    def reportJSON = new JsonSlurper().parseText(reportFile.text)
+    def reportJSON = new JsonSlurper().parseText(reportFileContents)
     def imageDict = [:]
     def cves = []
     reportJSON.each{
@@ -260,6 +258,5 @@ def reportJiraTickets(String pathToResultsJSON, String jiraCredentialsID, String
             } else {
                 print "\n\nNothing to process for for ${image_key} and ${image.key}"
             }
-            sleep(10000)
     }
 }
