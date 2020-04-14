@@ -160,29 +160,22 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
 
     def reportJSON = new JsonSlurper().parseText(reportFileContents)
     def imageDict = [:]
-    def cves = []
     reportJSON.each{
         image ->
             if ("${image.value}".contains('issues')) { return }
             image.value.each{
                 pkg ->
-                    cves = []
                     pkg.value.each{
                         cve ->
                             if (cve[2] && (cve[1].contains('High') || cve[1].contains('Critical'))) {
-                                if (!imageDict.containsKey("${image.key}")) {
+                                if (!imageDict.containsKey(image.key)) {
                                     imageDict.put(image.key, [:])
                                 }
                                 if (!imageDict[image.key].containsKey(pkg.key)) {
                                     imageDict[image.key].put(pkg.key, [])
                                 }
-                                cves.add("${cve[0]} (${cve[2]})")
+                                imageDict[image.key][pkg.key].add("${cve[0]} (${cve[2]})")
                             }
-                    }
-                    if (cves) {
-                        imageDict[image.key] = [
-                                "${pkg.key}": cves
-                        ]
                     }
             }
     }
