@@ -185,8 +185,6 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
     imageDict.each{
         image ->
             def image_key = image.key.replaceAll(/(^[a-z0-9-.]+.mirantis.(net|com)\/|:.*$)/, '')
-            // Temporary exclude tungsten images
-            if (image_key.startsWith('tungsten/') || image_key.startsWith('tungsten-operator/')) { return }
             jira_summary = "[${image_key}] Found CVEs in Docker image"
             jira_description = "{noformat}${image.key}\\n"
             image.value.each{
@@ -237,6 +235,7 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                 def post_comment_response = callREST("${uri}/${jira_key[0]}/comment", auth, 'POST', post_comment_json)
                 if ( post_comment_response['responseCode'] == 201 ) {
                     def issueCommentJSON = new JsonSlurper().parseText(post_comment_response["responseText"])
+                    print "\n\nComment was posted to ${jira_key[0]} for ${image_key} and ${image.key}"
                 } else {
                     print "\nComment to ${jira_key[0]} Jira issue was not posted"
                 }
@@ -245,11 +244,12 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                 if (post_issue_response['responseCode'] == 201) {
                     def issueJSON = new JsonSlurper().parseText(post_issue_response["responseText"])
                     dict = updateDictionary(issueJSON['key'], dict, uri, auth, jiraUserID)
+                    print "\n\nJira issue was created ${issueJSON['key']} for ${image_key} and ${image.key}"
                 } else {
                     print "\n${image.key} CVE issues were not published\n"
                 }
             } else {
-                print "\n\nNothing to process for for ${image_key} and ${image.key}"
+                print "\n\nNothing to process for ${image_key} and ${image.key}"
             }
     }
 }
