@@ -158,17 +158,27 @@ def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
             // Store links to the resulting artifacts into 'global_variables'
             storeArtifacts(build_url, step['artifacts'], global_variables, job_name, build_id)
 
-            // Job failed, fail the build or keep going depending on 'ignore_failed' flag
-            if (job_result != "SUCCESS") {
-                def job_ignore_failed = step['ignore_failed'] ?: false
+            // Check job result, in case of SUCCESS, move to next step.
+            // In case job has status NOT_BUILT, fail the build or keep going depending on 'ignore_not_built)' flag
+            // In other cases check flag ignore_failed, if true ignore any statuses and keep going.
+            if (job_result != 'SUCCESS'){
+                def ignoreStepResult = false
                 failed_jobs[build_url] = job_result
-                if (job_ignore_failed) {
-                    println "Job ${build_url} finished with result: ${job_result}"
-                } else {
+                switch(job_result) {
+                    // In cases when job was waiting too long in queue or internal job logic allows to skip building,
+                    // job may have NOT_BUILT status. In that case ignore_not_built flag can be used not to fail scenario.
+                    case "NOT_BUILT":
+                        ignoreStepResult = step['ignore_not_built'] ?: false
+                        break;
+                    default:
+                        ignoreStepResult = step['ignore_failed'] ?: false
+                }
+                if (!ignoreStepResult) {
                     currentBuild.result = job_result
                     error "Job ${build_url} finished with result: ${job_result}"
-                }
-            } // if (job_result == "SUCCESS")
+                } // if (!ignoreStepResult)
+            } // if (job_result != 'SUCCESS')
+            println "Job ${build_url} finished with result: ${job_result}"
         } // stage ("Running job ${step['job']}")
     } // for (step in scenario['workflow'])
 }
@@ -197,7 +207,7 @@ def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
  *         DEPLOYED_KAAS_VERSION: artifacts/management_version
  *
  *     - job: test-kaas-ui
- *       ignore_failed: false
+ *       ignore_not_built: false
  *       parameters:
  *         KUBECONFIG_ARTIFACT_URL:
  *           type: StringParameterValue
