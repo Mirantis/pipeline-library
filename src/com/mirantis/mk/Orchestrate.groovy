@@ -30,11 +30,11 @@ def installFoundationInfra(master, staticMgmtNet=false, extra_tgt = '', batch=20
 
     salt.enforceState([saltId: master, target: "I@salt:master ${extra_tgt}", state: ['linux.system']])
     salt.enforceState([saltId: master, target: "I@salt:master ${extra_tgt}", state: ['salt.master'], failOnError: false, read_timeout: 120, retries: 2])
-    salt.fullRefresh(master, "* ${extra_tgt}", batch)
+    salt.fullRefresh(master, "* ${extra_tgt}", null, true)
 
     salt.enforceState([saltId: master, target: "I@salt:master ${extra_tgt}", state: ['salt.minion'], failOnError: false, read_timeout: 60, retries: 2])
     salt.enforceState([saltId: master, target: "I@salt:master ${extra_tgt}", state: ['salt.minion']])
-    salt.fullRefresh(master, "* ${extra_tgt}", batch)
+    salt.fullRefresh(master, "* ${extra_tgt}", null, true)
     salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: ['linux.network.proxy'], batch: batch, failOnError: false, read_timeout: 180, retries: 2])
     // Make sure all repositories are in place before proceeding with package installation from other states
     salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: ['linux.system.repo'], batch: batch, failOnError: false, read_timeout: 180, retries: 2])
@@ -52,12 +52,13 @@ def installFoundationInfra(master, staticMgmtNet=false, extra_tgt = '', batch=20
     sleep(5)
     salt.enforceState([saltId: master, target: "I@linux:system ${extra_tgt}", state: ['linux', 'openssh', 'ntp', 'rsyslog'], batch: batch])
 
-
-    salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: ['salt.minion'], failOnError: false, batch: batch, read_timeout: 180, retries: 2])
-
+    def saltMinionNodes = salt.getMinions(master, "* ${extra_tgt}")
+    for (minion in saltMinionNodes) {
+        salt.enforceState([saltId: master, target: minion, state: ['salt.minion'], failOnError: false, batch: null, read_timeout: 180, retries: 2])
+    }
     sleep(5)
 
-    salt.fullRefresh(master, "* ${extra_tgt}", batch)
+    salt.fullRefresh(master, "* ${extra_tgt}", null, true)
     salt.runSaltProcessStep(master, "* ${extra_tgt}", 'mine.update', [], batch, true)
     salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: ['linux.network.host'], batch: batch])
     // WA for PROD-33911
@@ -806,20 +807,26 @@ def installCicd(master, extra_tgt = '') {
 
     salt.enforceStateWithTest([saltId: master, target: "I@python:environment ${extra_tgt}", state: 'python'])
 
-    withEnv(['ASK_ON_ERROR=false']){
-        retry(2){
-            try{
-                salt.enforceState([saltId: master, target: "I@gerrit:client ${extra_tgt}", state: 'gerrit'])
-            }catch(e){
-                salt.fullRefresh(master, "I@gerrit:client ${extra_tgt}")
+    // Workaround for PROD-35056: jeepyb package may trigger update of requests and urllib3 packages
+    // which are actively used by salt-minion, so salt-minion has to be restart to apply changes
+    salt.upgradePackageAndRestartSaltMinion(master, jenkins_compound, 'python-requests')
+    salt.upgradePackageAndRestartSaltMinion(master, jenkins_compound, 'python-urllib3')
+    withEnv(['ASK_ON_ERROR=false']) {
+        retry(2) {
+            try {
+                salt.enforceState([saltId: master, target: gerrit_compound, state: 'gerrit'])
+            } catch (e) {
+                salt.restartSaltMinion(master, gerrit_compound)
+                salt.fullRefresh(master, gerrit_compound)
                 throw e //rethrow for retry handler
             }
         }
-        retry(2){
-            try{
-                salt.enforceState([saltId: master, target: "I@jenkins:client ${extra_tgt}", state: 'jenkins'])
-            }catch(e){
-                salt.fullRefresh(master, "I@jenkins:client ${extra_tgt}")
+        retry(2) {
+            try {
+                salt.enforceState([saltId: master, target: jenkins_compound, state: 'jenkins'])
+            } catch (e) {
+                salt.restartSaltMinion(master, jenkins_compound)
+                salt.fullRefresh(master, jenkins_compound)
                 throw e //rethrow for retry handler
             }
         }
@@ -1041,7 +1048,10 @@ def installStacklightv1Client(master, extra_tgt = '') {
     // Install collectd, heka and sensu services on the nodes, this will also
     // generate the metadata that goes into the grains and eventually into Salt Mine
     salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: 'collectd'])
-    salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: 'salt.minion', retries: 2])
+    def saltMinionsNodes = salt.getMinions(master, "* ${extra_tgt}")
+    for (minion in saltMinionsNodes) {
+        salt.enforceState([saltId: master, target: minion, state: 'salt.minion', retries: 2])
+    }
     salt.enforceState([saltId: master, target: "* ${extra_tgt}", state: 'heka'])
 
     // Gather the Grafana metadata as grains
