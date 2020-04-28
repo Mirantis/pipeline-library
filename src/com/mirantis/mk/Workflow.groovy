@@ -18,6 +18,32 @@ package com.mirantis.mk
 
 
 /**
+ * Get Jenkins parameter names, values and types from jobName
+ * @param jobName job name
+ * @return Map with parameter names as keys and the following map as values:
+ *  [
+ *    <str name1>: [type: <str cls1>, use_variable: <str name1>, defaultValue: <cls value1>],
+ *    <str name2>: [type: <str cls2>, use_variable: <str name2>, defaultValue: <cls value2>],
+ *  ]
+ */
+def getJobDefaultParameters(jobName) {
+    def jenkinsUtils = new com.mirantis.mk.JenkinsUtils()
+    def item = jenkinsUtils.getJobByName(env.JOB_NAME)
+    def parameters = [:]
+    def prop = item.getProperty(ParametersDefinitionProperty.class)
+    if(prop != null) {
+        for(param in prop.getParameterDefinitions()) {
+            def defaultParam = param.getDefaultParameterValue()
+            def cls = defaultParam.getClass().getName()
+            def value = defaultParam.getValue()
+            def name = defaultParam.getName()
+            parameters[name] = [type: cls, use_variable: name, defaultValue: value]
+        }
+    }
+    return parameters
+}
+
+/**
  * Run a Jenkins job using the collected parameters
  *
  * @param job_name          Name of the running job
@@ -141,7 +167,14 @@ def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
         stage("Running job ${step['job']}") {
 
             def job_name = step['job']
-            def job_parameters = step['parameters']
+            def job_parameters = [:]
+            if (step['inherit_parent_params'] ?: false) {
+                // add parameters from the current job for the child job
+                job_parameters << getJobDefaultParameters(env.JOB_NAME)
+            }
+            // add parameters from the workflow for the child job
+            job_parameters << step['parameters']
+
             // Collect job parameters and run the job
             def job_info = runJob(job_name, job_parameters, global_variables, propagate)
             def job_result = job_info.getResult()
@@ -206,6 +239,17 @@ def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
  *         KUBECONFIG_ARTIFACT: artifacts/management_kubeconfig
  *         DEPLOYED_KAAS_VERSION: artifacts/management_version
  *
+ *     - job: create-child
+ *       inherit_parent_params: true
+ *       ignore_failed: false
+ *       parameters:
+ *         KUBECONFIG_ARTIFACT_URL:
+ *           type: StringParameterValue
+ *           use_variable: KUBECONFIG_ARTIFACT
+ *         KAAS_VERSION:
+ *           type: StringParameterValue
+ *           get_variable_from_url: DEPLOYED_KAAS_VERSION
+ *
  *     - job: test-kaas-ui
  *       ignore_not_built: false
  *       parameters:
@@ -233,6 +277,13 @@ def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
  *
  *     runScenario(scenario)
  *
+ * Scenario workflow keys:
+ *
+ *   job: string. Jenkins job name
+ *   ignore_failed: bool. if true, keep running the workflow jobs if the job is failed, but fail the workflow at finish
+ *   ignore_not_built: bool. if true, keep running the workflow jobs if the job set own status to NOT_BUILT, do not fail the workflow at finish for such jobs
+ *   inherit_parent_params: bool. if true, provide all parameters from the parent job to the child job as defaults
+ *   parameters: dict. parameters name and type to inherit from parent to child job, or from artifact to child job
  */
 
 def runScenario(scenario, slackReportChannel = '') {
