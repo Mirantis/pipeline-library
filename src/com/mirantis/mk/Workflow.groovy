@@ -159,11 +159,10 @@ def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
             storeArtifacts(build_url, step['artifacts'], global_variables, job_name, build_id)
 
             // Check job result, in case of SUCCESS, move to next step.
-            // In case job has status NOT_BUILT, fail the build or keep going depending on 'ignore_not_built)' flag
+            // In case job has status NOT_BUILT, fail the build or keep going depending on 'ignore_not_built' flag
             // In other cases check flag ignore_failed, if true ignore any statuses and keep going.
             if (job_result != 'SUCCESS'){
                 def ignoreStepResult = false
-                failed_jobs[build_url] = job_result
                 switch(job_result) {
                     // In cases when job was waiting too long in queue or internal job logic allows to skip building,
                     // job may have NOT_BUILT status. In that case ignore_not_built flag can be used not to fail scenario.
@@ -172,6 +171,7 @@ def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
                         break;
                     default:
                         ignoreStepResult = step['ignore_failed'] ?: false
+                        failed_jobs[build_url] = job_result
                 }
                 if (!ignoreStepResult) {
                     currentBuild.result = job_result
