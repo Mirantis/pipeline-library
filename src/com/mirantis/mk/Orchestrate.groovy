@@ -1175,90 +1175,24 @@ def installBackup(master, component='common', extra_tgt = '') {
 //
 
 def installCephMon(master, target="I@ceph:mon", extra_tgt = '') {
-    def salt = new com.mirantis.mk.Salt()
-
-    salt.enforceState([saltId: master, target: "I@ceph:common ${extra_tgt}", state: 'salt.minion.grains'])
-
-    // generate keyrings
-    if (salt.testTarget(master, "( I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin ) ${extra_tgt}")) {
-        salt.enforceState([saltId: master, target: "( I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin ) ${extra_tgt}", state: 'ceph.mon'])
-        salt.runSaltProcessStep(master, "I@ceph:mon ${extra_tgt}", 'saltutil.sync_grains')
-        salt.runSaltProcessStep(master, "( I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin ) ${extra_tgt}", 'mine.update')
-
-        // on target nodes mine is used to get pillar from 'ceph:common:keyring:admin' via grain.items
-        // we need to refresh all pillar/grains to make data sharing work correctly
-        salt.fullRefresh(master, "( I@ceph:mon:keyring:mon or I@ceph:common:keyring:admin ) ${extra_tgt}")
-
-        sleep(5)
-    }
-    // install Ceph Mons
-    salt.enforceState([saltId: master, target: target, state: 'ceph.mon'])
-    salt.enforceStateWithTest([saltId: master, target: "I@ceph:mgr ${extra_tgt}", state: 'ceph.mgr'])
+    def ceph = new com.mirantis.mk.Ceph()
+    ceph.installMon(master, target, extra_tgt)
 }
 
 def installCephOsd(master, target="I@ceph:osd", setup=true, extra_tgt = '') {
-    def salt = new com.mirantis.mk.Salt()
-
-    // install Ceph OSDs
-    salt.enforceState([saltId: master, target: target, state: 'ceph.osd'])
-    salt.runSaltProcessStep(master, "I@ceph:osd ${extra_tgt}", 'saltutil.sync_grains')
-    salt.enforceState([saltId: master, target: target, state: 'ceph.osd.custom'])
-    salt.runSaltProcessStep(master, "I@ceph:osd ${extra_tgt}", 'saltutil.sync_grains')
-    salt.runSaltProcessStep(master, "I@ceph:osd ${extra_tgt}", 'mine.update')
-    installBackup(master, 'ceph')
-
-    // setup pools, keyrings and maybe crush
-    if (salt.testTarget(master, "I@ceph:setup ${extra_tgt}") && setup) {
-        sleep(5)
-        salt.enforceState([saltId: master, target: "I@ceph:setup ${extra_tgt}", state: 'ceph.setup'])
-    }
+    def ceph = new com.mirantis.mk.Ceph()
+    ceph.installOsd(master, target, setup, extra_tgt)
 }
 
 def installCephClient(master, extra_tgt = '') {
-    def salt = new com.mirantis.mk.Salt()
-
-    // install Ceph Radosgw
-    if (salt.testTarget(master, "I@ceph:radosgw ${extra_tgt}")) {
-        salt.runSaltProcessStep(master, "I@ceph:radosgw ${extra_tgt}", 'saltutil.sync_grains')
-        salt.enforceState([saltId: master, target: "I@ceph:radosgw ${extra_tgt}", state: 'ceph.radosgw'])
-    }
-
-    // setup keyring for Openstack services
-    salt.enforceStateWithTest([saltId: master, target: "I@ceph:common and I@glance:server ${extra_tgt}", state: ['ceph.common', 'ceph.setup.keyring']])
-
-    salt.enforceStateWithTest([saltId: master, target: "I@ceph:common and I@cinder:controller ${extra_tgt}", state: ['ceph.common', 'ceph.setup.keyring']])
-
-    if (salt.testTarget(master, "I@ceph:common and I@nova:compute ${extra_tgt}")) {
-        salt.enforceState([saltId: master, target: "I@ceph:common and I@nova:compute ${extra_tgt}", state: ['ceph.common', 'ceph.setup.keyring']])
-        salt.runSaltProcessStep(master, "I@ceph:common and I@nova:compute ${extra_tgt}", 'saltutil.sync_grains')
-    }
-
-    salt.enforceStateWithTest([saltId: master, target: "I@ceph:common and I@gnocchi:server ${extra_tgt}", state: ['ceph.common', 'ceph.setup.keyring']])
+    def ceph = new com.mirantis.mk.Ceph()
+    ceph.installClients(master, extra_tgt)
+    ceph.connectOS(master, extra_tgt)
 }
 
 def connectCeph(master, extra_tgt = '') {
-    def salt = new com.mirantis.mk.Salt()
-
-    // setup Keystone service and endpoints for swift or / and S3
-    salt.enforceStateWithTest([saltId: master, target: "I@keystone:client ${extra_tgt}", state: 'keystone.client'])
-
-    // connect Ceph to the env
-    if (salt.testTarget(master, "I@ceph:common and I@glance:server ${extra_tgt}")) {
-        salt.enforceState([saltId: master, target: "I@ceph:common and I@glance:server ${extra_tgt}", state: ['glance']])
-        salt.runSaltProcessStep(master, "I@ceph:common and I@glance:server ${extra_tgt}", 'service.restart', ['glance-api'])
-    }
-    if (salt.testTarget(master, "I@ceph:common and I@cinder:controller ${extra_tgt}")) {
-        salt.enforceState([saltId: master, target: "I@ceph:common and I@cinder:controller ${extra_tgt}", state: ['cinder']])
-        salt.runSaltProcessStep(master, "I@ceph:common and I@cinder:controller ${extra_tgt}", 'service.restart', ['cinder-volume'])
-    }
-    if (salt.testTarget(master, "I@ceph:common and I@nova:compute ${extra_tgt}")) {
-        salt.enforceState([saltId: master, target: "I@ceph:common and I@nova:compute ${extra_tgt}", state: ['nova']])
-        salt.runSaltProcessStep(master, "I@ceph:common and I@nova:compute ${extra_tgt}", 'service.restart', ['nova-compute'])
-    }
-    if (salt.testTarget(master, "I@ceph:common and I@gnocchi:server ${extra_tgt}")) {
-        salt.enforceState([saltId: master, target: "I@ceph:common and I@gnocchi:server:role:primary ${extra_tgt}", state: 'gnocchi.server'])
-        salt.enforceState([saltId: master, target: "I@ceph:common and I@gnocchi:server ${extra_tgt}", state: 'gnocchi.server'])
-    }
+    def ceph = new com.mirantis.mk.Ceph()
+    ceph.connectOS(master, extra_tgt)
 }
 
 def installOssInfra(master, extra_tgt = '') {
