@@ -854,7 +854,7 @@ def getNodeProvider(saltId, nodeName) {
  * @param saltId Salt Connection object or pepperEnv (the command will be sent using the selected method)
  * @param target Target to test
  * @param batch Batch param to salt (integer or string with percents)
- * @return bool indicating if target was succesful
+ * @return bool indicating if target was successful
  */
 
 def testTarget(saltId, target, batch = null) {
@@ -1405,7 +1405,7 @@ def isPackageInstalled(Map params) {
 }
 
 /**
-* Returns nubmer of worker_threads set for Salt Master
+* Returns number of worker_threads set for Salt Master
 *
 * @param saltId  Salt Connection object or pepperEnv
 *

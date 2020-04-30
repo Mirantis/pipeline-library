@@ -1099,7 +1099,7 @@ def installStacklightv1Client(master, extra_tgt = '') {
     salt.enforceState([saltId: master, target: "I@grafana:client and *03* ${extra_tgt}", state: 'grafana.client'])
     // nw salt -C "I@grafana:client' --async service.restart salt-minion; sleep 10
 
-    // Get the StackLight monitoring VIP addres
+    // Get the StackLight monitoring VIP address
     //vip=$(salt-call pillar.data _param:stacklight_monitor_address --out key|grep _param: |awk '{print $2}')
     //vip=${vip:=172.16.10.253}
     def pillar = salt.getPillar(master, "ctl01* ${extra_tgt}", '_param:stacklight_monitor_address')

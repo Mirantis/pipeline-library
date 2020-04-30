@@ -76,7 +76,7 @@ def gerritPatchsetCheckout(LinkedHashMap config, List extraScmExtensions = []) {
             scmUserRemoteConfigs.put('credentialsId',credentials)
         }
 
-        // Usefull, if we only need to clone branch. W\o any refspec magic
+        // Useful, if we only need to clone branch. W\o any refspec magic
         if (GerritTriggerBuildChooser) {
             scmExtensions.add([$class: 'BuildChooserSetting', buildChooser: [$class: 'GerritTriggerBuildChooser']],)
         }
@@ -441,7 +441,7 @@ def prepareGerritAutoCommit(LinkedHashMap params) {
             def jsonChange = readJSON text: gerritChange
             changeId = "Change-Id: ${jsonChange['id']}".toString()
         } catch (Exception error) {
-            common.errorMsg("Can't parse ouput from Gerrit. Check that user ${changeAuthorName} does not have several \
+            common.errorMsg("Can't parse output from Gerrit. Check that user ${changeAuthorName} does not have several \
                 open commits to ${repoProject} repo and ${repoBranch} branch with topic ${changeTopic}")
             throw error
         }
