@@ -168,12 +168,13 @@ def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
 
             def job_name = step['job']
             def job_parameters = [:]
+            def step_parameters = step['parameters'] ?: [:]
             if (step['inherit_parent_params'] ?: false) {
                 // add parameters from the current job for the child job
                 job_parameters << getJobDefaultParameters(env.JOB_NAME)
             }
             // add parameters from the workflow for the child job
-            job_parameters << step['parameters']
+            job_parameters << step_parameters
 
             // Collect job parameters and run the job
             def job_info = runJob(job_name, job_parameters, global_variables, propagate)
