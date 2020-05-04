@@ -1,5 +1,4 @@
 package com.mirantis.mk
-common = new com.mirantis.mk.Common()
 
 /**
  *
@@ -23,6 +22,8 @@ common = new com.mirantis.mk.Common()
 *                   ]
 */
 def checkDeploymentTestSuite() {
+    def common = new com.mirantis.mk.Common()
+
     // Available triggers and its sane defaults
     def deployChild = (env.DEPLOY_CHILD_CLUSTER != null ) ? env.DEPLOY_CHILD_CLUSTER.toBoolean() : false
     def upgradeChild = (env.UPGRADE_CHILD_CLUSTER != null ) ? env.UPGRADE_CHILD_CLUSTER.toBoolean() : false
@@ -109,6 +110,8 @@ def checkDeploymentTestSuite() {
  *                   ]
  */
 def checkCustomSIRefspec() {
+    def common = new com.mirantis.mk.Common()
+
     // Available triggers and its sane defaults
     def siTestsRefspec = (env.SI_TESTS_REFSPEC != null ) ? env.SI_TESTS_REFSPEC : 'master'
     def siPipelinesRefspec = (env.SI_PIPELINES_REFSPEC != null ) ? env.SI_PIPELINES_REFSPEC : 'master'
