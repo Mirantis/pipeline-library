@@ -472,3 +472,64 @@ def uploadJobArtifactsToArtifactory(LinkedHashMap config) {
     }
     return artifactsDescription
 }
+
+/**
+ * Save custom artifacts to Artifactory server if available.
+ * Returns link to Artifactory repo, where saved artifacts.
+ *
+ * @param config LinkedHashMap which contains next parameters:
+ *   @param artifactory String, Artifactory server id
+ *   @param artifactoryRepo String, repo to save job artifacts
+ *   @param buildProps ArrayList, additional props for saved artifacts. Optional, default: []
+ *   @param artifactory_not_found_fail Boolean, whether to fail if provided artifactory
+ *          id is not found or just print warning message. Optional, default: false
+ */
+def uploadArtifactsToArtifactory(LinkedHashMap config) {
+    def common = new com.mirantis.mk.Common()
+    def artifactsDescription = ''
+    def artifactoryServer
+
+    try {
+        artifactoryServer = Artifactory.server(config.get('artifactory'))
+    } catch (Exception e) {
+        if (config.get('artifactory_not_found_fail', false)) {
+            throw e
+        } else {
+            common.warningMsg(e)
+            return "Artifactory server is not found. Can't save artifacts in Artifactory."
+        }
+    }
+    def user = ''
+    wrap([$class: 'BuildUser']) {
+        user = env.BUILD_USER_ID
+    }
+    try {
+        // Mandatory and additional properties
+        def properties = getBinaryBuildProperties(config.get('buildProps', []) << "buildUser=${user}")
+        def pattern = config.get('artifactPattern') ?: '*'
+
+        // Build Artifactory spec object
+        def uploadSpec = """{
+            "files":
+                [
+                    {
+                        "pattern": "${pattern}",
+                        "target": "${config.get('artifactoryRepo')}/",
+                        "flat": false,
+                        "props": "${properties}"
+                    }
+                ]
+            }"""
+
+        artifactoryServer.upload(uploadSpec, newBuildInfo())
+        def linkUrl = "${artifactoryServer.getUrl()}/artifactory/${config.get('artifactoryRepo')}"
+        artifactsDescription = "Job artifacts uploaded to Artifactory: <a href=\"${linkUrl}\">${linkUrl}</a>"
+    } catch (Exception e) {
+        if (e =~ /no artifacts/) {
+            artifactsDescription = 'Build has no artifacts saved.'
+        } else {
+            throw e
+        }
+    }
+    return artifactsDescription
+}
