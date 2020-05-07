@@ -80,6 +80,19 @@ def getGitRemote(name = '', type = 'fetch') {
 }
 
 /**
+ * Get commit message for given commit reference
+ */
+def getGitCommitMessage(String path, String commitRef = 'HEAD') {
+    dir(path) {
+        commitMsg = sh (
+            script: "git log --format=%B -n 1 ${commitRef}",
+            returnStdout: true
+        ).trim()
+    }
+    return commitMsg
+}
+
+/**
  * Create new working branch for repo
  *
  * @param path            Path to the git repository
