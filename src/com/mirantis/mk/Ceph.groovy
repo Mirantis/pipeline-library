@@ -93,7 +93,7 @@ def removePartition(master, target, partition_uuid, type='', id=-1) {
         }
     }
     if (lvm_enabled && type != 'lockbox') {
-        salt.cmdRun(master, target, "ceph-volume lvm zap ${partition_uuid} --destroy")
+        salt.cmdRun(master, target, "ceph-volume lvm zap /dev/disk/by-partuuid/${partition_uuid} --destroy")
     } else if (dev != '') {
         salt.cmdRun(master, target, "parted ${dev} rm ${part_id}")
     } else {
