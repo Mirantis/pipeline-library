@@ -945,6 +945,29 @@ def mergeEnv(envVar, extraVars) {
     }
 }
 
+def setMapDefaults(Object base, Object defaults, Boolean recursive = false) {
+/**
+ *  Function to update dict with params, if its not set yet
+ *  Will not fail entire job in case any issues.
+ *  Those function will not overwrite current options if already passed.
+ * @param base - dict
+ * @param defaults - dict
+ */
+    if (base instanceof Map && defaults instanceof Map) {
+        defaults.inject(base) { result, key, value ->
+            if (result.containsKey(key)) {
+                setMapDefaults(result[key], value, recursive = true)
+            } else {
+                result.put(key, value)
+            }
+            return result
+        }
+    } else if (!recursive) {
+        echo("Can't update map parameters, wrong input data, skipping")
+    }
+}
+
+
 /**
  * Wrapper around parallel pipeline function
  * with ability to restrict number of parallel threads
