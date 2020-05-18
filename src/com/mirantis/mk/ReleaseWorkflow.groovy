@@ -85,6 +85,8 @@ def getReleaseMetadataValue(String key, Map params = [:]) {
  *    - crTopic
  *    - crAuthorName
  *    - crAuthorEmail
+ *    - valuesFromFile (allows to pass json strings, write them to temp files and pass files to
+ *                      app)
  * @param dirdepth level of creation dirs from key param
  */
 
@@ -103,6 +105,7 @@ def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth
     String crTopic              = params.get('crTopic', '')
     String changeAuthorName     = params.get('crAuthorName', 'MCP-CI')
     String changeAuthorEmail    = params.get('crAuthorEmail', 'mcp-ci-jenkins@ci.mcp.mirantis.net')
+    Boolean valuesFromFile      = params.get('valuesFromFile', false)
 
     def cred = common.getCredentials(gitCredentialsId, 'key')
     String gerritUser = cred.username
@@ -147,7 +150,23 @@ def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth
         if (keyArr.size() == valueArr.size()) {
             docker.image(toxDockerImage).inside("--volume ${repoDir}:/workspace") {
                 for (i in 0..keyArr.size()-1) {
-                    sh "cd /workspace && tox -qq -e metadata -- update --create --key '${keyArr[i]}' --value '${valueArr[i]}'"
+                    def valueExpression = "--value '${valueArr[i]}'"
+                    def tmpFile
+                    if (valuesFromFile){
+                        def data = readJSON text: valueArr[i]
+                        // just print temp file name, so writeyaml can write it
+                        tmpFile = sh(script: "mktemp -u -p ${workspace} meta_key_file.XXXXXX", returnStdout: true).trim()
+                        // yaml is native format for meta app for loading values
+                        writeYaml data: data, file: tmpFile
+                        valueExpression = "--file ${tmpFile}"
+                    }
+                    try {
+                        sh "cd /workspace && tox -qq -e metadata -- update --create --key '${keyArr[i]}' ${valueExpression}"
+                    } finally {
+                        if (valuesFromFile){
+                            sh "rm ${tmpFile}"
+                        }
+                    }
                 }
             }
         }
