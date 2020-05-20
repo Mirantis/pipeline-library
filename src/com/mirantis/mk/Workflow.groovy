@@ -325,6 +325,8 @@ def runScenario(scenario, slackReportChannel = '') {
                 currentBuild.result = 'FAILURE'
             }
             println "Failed jobs: ${failed_jobs}"
+        } else {
+            currentBuild.result = 'SUCCESS'
         }
 
         if (slackReportChannel) {
