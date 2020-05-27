@@ -6,6 +6,8 @@ import static groovy.json.JsonOutput.toJson
 import com.cloudbees.groovy.cps.NonCPS
 import groovy.json.JsonSlurperClassic
 
+import org.jenkinsci.plugins.workflow.cps.EnvActionImpl
+
 /**
  *
  * Common functions
@@ -933,15 +935,14 @@ def checkRemoteBinary(LinkedHashMap config, List extraScmExtensions = []) {
  *  @param extraVars - Multiline YAML text with extra vars
  */
 def mergeEnv(envVar, extraVars) {
-    def common = new com.mirantis.mk.Common()
     try {
         def extraParams = readYaml text: extraVars
         for(String key in extraParams.keySet()) {
             envVar[key] = extraParams[key]
-            common.warningMsg("Parameter ${key} is updated from EXTRA vars.")
+            println("INFO: Parameter ${key} is updated from EXTRA vars.")
         }
     } catch (Exception e) {
-        common.errorMsg("Can't update env parameteres, because: ${e.toString()}")
+        println("ERR: Can't update env parameteres, because: ${e.toString()}")
     }
 }
 
@@ -967,6 +968,29 @@ def setMapDefaults(Object base, Object defaults, Boolean recursive = false) {
     }
 }
 
+def setEnvDefaults(Object envVar, Object defaults) {
+    /**
+     * Function to set default values of an environment variables object
+     * at runtime(patches existing 'env' instance).
+     * @param env - instance of either EnvActionImpl
+     * @param defaults - Map with default values
+     * Example: setEnvDefaults(env, ['ENV_NAME': 'newENV_NAME', 'newvar': 'newval'])
+     * */
+
+    if (!(envVar instanceof EnvActionImpl)) {
+        error("setEnvDefaults 'env' is not an instance of EnvActionImpl")
+    } else if (!(defaults instanceof Map)) {
+        error("setEnvDefaults 'defaults' is not a Map")
+    }
+    defaults.each { key, value ->
+        if (envVar.getEnvironment().containsKey(key)) {
+            println("INFO:setEnvDefaults env variable ${key} already exist, not overwriting")
+        } else {
+            envVar[key] = value
+            println("INFO:setEnvDefaults env variable ${key} has been added")
+        }
+    }
+}
 
 /**
  * Wrapper around parallel pipeline function
