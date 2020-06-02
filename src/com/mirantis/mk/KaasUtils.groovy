@@ -135,3 +135,66 @@ def checkCustomSIRefspec() {
         Keywords: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/.git-message-template#59""")
     return [siTests: siTestsRefspec, siPipelines: siPipelinesRefspec, siTestsDockerImage: siTestsDockerImage]
 }
+
+
+/**
+ * Trigger KaaS demo jobs based on AWS/OS providers with customized test suite, parsed from external sources (gerrit commit/jj vars)
+ * Keyword list: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/.git-message-template
+ * Used for components team to test component changes w/ customized SI tests/refspecs using kaas/core deployment jobs
+ *
+ * @param:        (string) component name [iam, lcm, stacklight]
+ * @param:        (string) Patch for kaas/cluster releases in json format
+ */
+def triggerPatchedComponentDemo(component, patchSpec) {
+    def common = new com.mirantis.mk.Common()
+    // Determine if custom trigger keywords forwarded from gerrit
+    def triggers = checkDeploymentTestSuite()
+    // Determine SI refspecs
+    def siRefspec = checkCustomSIRefspec()
+
+    def jobs = [:]
+    // TODO manage SI_TESTS_FEATURE_FLAGS through checkCustomSIRefspec()
+    //string(name: "SI_TESTS_FEATURE_FLAGS", value: env.SI_TESTS_FEATURE_FLAGS),
+    def parameters = [
+        string(name: 'SI_TESTS_REFSPEC', value: siRefspec.siTests),
+        string(name: 'SI_PIPELINES_REFSPEC', value: siRefspec.siTests),
+        string(name: 'CUSTOM_RELEASE_PATCH_SPEC', value: patchSpec),
+        booleanParam(name: 'UPGRADE_MGMT', value: triggers.upgradeMgmtEnabled),
+        booleanParam(name: 'RUN_UI_E2E', value: triggers.runUie2eEnabled),
+        booleanParam(name: 'RUN_MGMT_CONFORMANCE', value: triggers.runMgmtConformanceEnabled),
+        booleanParam(name: 'DEPLOY_CHILD', value: triggers.deployChildEnabled),
+        booleanParam(name: 'UPGRADE_CHILD', value: triggers.upgradeChildEnabled),
+        booleanParam(name: 'RUN_CHILD_CONFORMANCE', value: triggers.runChildConformanceEnabled),
+    ]
+
+    jobs["kaas-core-openstack-patched-${component}"] = {
+        try {
+            common.infoMsg('Deploy: patched KaaS demo with Openstack provider')
+            job_info = build job: "kaas-testing-core-openstack-workflow-${component}", parameters: parameters
+            build_description = job_info.getDescription()
+            if (build_description) {
+                currentBuild.description += build_description
+            }
+        } finally {
+            common.infoMsg('Finished: patched KaaS demo with Openstack provider')
+        }
+    }
+    if (triggers.awsOnDemandDemoEnabled) {
+        jobs["kaas-core-aws-patched-${component}"] = {
+            try {
+                common.infoMsg('Deploy: patched KaaS demo with AWS provider')
+                job_info = build job: "kaas-testing-core-aws-workflow-${component}", parameters: parameters
+                build_description = job_info.getDescription()
+                if (build_description) {
+                    currentBuild.description += build_description
+                }
+            } finally {
+                common.infoMsg('Finished: patched KaaS demo with AWS provider')
+            }
+        }
+    }
+
+    common.infoMsg('Trigger KaaS demo deployments according to defined provider set')
+    // Limit build concurency workaround examples: https://issues.jenkins-ci.org/browse/JENKINS-44085
+    parallel jobs
+}
