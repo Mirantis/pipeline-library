@@ -294,10 +294,21 @@ def osUpgradeNode(env, target, mode, postponeReboot=false, timeout=30, attempts=
         common.retry(3, 5) {
             salt.cmdRun(env, target, 'salt-call pkg.refresh_db failhard=true', true, batch)
         }
+
         /* first try to upgrade salt components since they demand asynchronous upgrade */
         upgradeSaltPackages(env, target)
         def cmd = "export DEBIAN_FRONTEND=noninteractive; apt-get -y -q --allow-downgrades -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" ${mode}"
-        salt.cmdRun(env, target, cmd, true, batch)
+
+        /*
+         * This is a long running batch operation that may return empty response
+         * which is a pretty typical salt behavior. This does not represent an error
+         * but might hide the error if it's ignored. If there is no persistent error
+         * with the procedure itself, the consequent run will succeed.
+         */
+        common.retry(2, 120) {
+            salt.cmdRun(env, target, cmd, true, batch)
+        }
+
         rebootRequired = salt.runSaltProcessStep(env, target, 'file.file_exists', ['/var/run/reboot-required'], batch, true, 5)['return'][0].values()[0].toBoolean()
         if (rebootRequired) {
             if (!postponeReboot) {

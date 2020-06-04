@@ -357,14 +357,14 @@ def cmdRun(saltId, target, cmd, checkResponse = true, batch=null, output = true,
                     def nodeKey = node.keySet()[j]
                     if (node[nodeKey] instanceof String) {
                         if (!node[nodeKey].contains("Salt command execution success")) {
-                            throw new Exception("Execution of cmd ${originalCmd} failed. Server returns: ${node[nodeKey]}")
+                            throw new Exception("Execution of cmd ${originalCmd} failed. ${nodeKey} returns: ${node[nodeKey]}")
                         }
                     } else if (node[nodeKey] instanceof Boolean) {
                         if (!node[nodeKey]) {
-                            throw new Exception("Execution of cmd ${originalCmd} failed. Server returns: ${node[nodeKey]}")
+                            throw new Exception("Execution of cmd ${originalCmd} failed. ${nodeKey} returns: ${node[nodeKey]}")
                         }
                     } else {
-                        throw new Exception("Execution of cmd ${originalCmd} failed. Server returns unexpected data type: ${node[nodeKey]}")
+                        throw new Exception("Execution of cmd ${originalCmd} failed. ${nodeKey} returns unexpected data type: ${node[nodeKey]}")
                     }
                 }
             }
