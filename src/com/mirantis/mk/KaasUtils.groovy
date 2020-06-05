@@ -16,24 +16,25 @@ package com.mirantis.mk
  * New CR pushed in kubernetes/lcm-ansible -> parsing it's commit body and combine test-suite -> trigger deployment jobs from kaas/core
  * manage test-suite through Jenkins Job Parameters
  *
- * @return (map)[*                    deployChildEnabled: (bool) True if need to deploy child cluster during demo-run
- *                    runUie2eEnabled: (bool) True if need to run ui-e2e cluster during demo-run
+ * @return      (map)[
+ *                    deployChildEnabled: (bool) True if need to deploy child cluster during demo-run
+ *                    runUie2eEnabled:    (bool) True if need to run ui-e2e cluster during demo-run
  *                   ]
  */
 def checkDeploymentTestSuite() {
     def common = new com.mirantis.mk.Common()
 
     // Available triggers and its sane defaults
-    def deployChild = (env.DEPLOY_CHILD_CLUSTER != null) ? env.DEPLOY_CHILD_CLUSTER.toBoolean() : false
-    def upgradeChild = (env.UPGRADE_CHILD_CLUSTER != null) ? env.UPGRADE_CHILD_CLUSTER.toBoolean() : false
-    def upgradeMgmt = (env.UPGRADE_MGMT_CLUSTER != null) ? env.UPGRADE_MGMT_CLUSTER.toBoolean() : false
-    def runUie2e = (env.RUN_UI_E2E != null) ? env.RUN_UI_E2E.toBoolean() : false
-    def runMgmtConformance = (env.RUN_MGMT_CFM != null) ? env.RUN_MGMT_CFM.toBoolean() : false
-    def runChildConformance = (env.RUN_CHILD_CFM != null) ? env.RUN_CHILD_CFM.toBoolean() : false
-    def fetchServiceBinaries = (env.FETCH_BINARIES_FROM_UPSTREAM != null) ? env.FETCH_BINARIES_FROM_UPSTREAM.toBoolean() : false
-    def awsOnDemandDemo = (env.RUN_AWS_ON_DEMAND_DEMO != null) ? env.RUN_AWS_ON_DEMAND_DEMO.toBoolean() : false
+    def deployChild = env.DEPLOY_CHILD_CLUSTER ? env.DEPLOY_CHILD_CLUSTER.toBoolean() : false
+    def upgradeChild = env.UPGRADE_CHILD_CLUSTER ? env.UPGRADE_CHILD_CLUSTER.toBoolean() : false
+    def upgradeMgmt = env.UPGRADE_MGMT_CLUSTER ? env.UPGRADE_MGMT_CLUSTER.toBoolean() : false
+    def runUie2e = env.RUN_UI_E2E ? env.RUN_UI_E2E.toBoolean() : false
+    def runMgmtConformance = env.RUN_MGMT_CFM ? env.RUN_MGMT_CFM.toBoolean() : false
+    def runChildConformance = env.RUN_CHILD_CFM ? env.RUN_CHILD_CFM.toBoolean() : false
+    def fetchServiceBinaries = env.FETCH_BINARIES_FROM_UPSTREAM ? env.FETCH_BINARIES_FROM_UPSTREAM.toBoolean() : false
+    def awsOnDemandDemo = env.RUN_AWS_ON_DEMAND_DEMO ? env.RUN_AWS_ON_DEMAND_DEMO.toBoolean() : false
 
-    def commitMsg = (env.GERRIT_CHANGE_COMMIT_MESSAGE != null) ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
+    def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
     if (commitMsg ==~ /(?s).*\[child-deploy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-deploy.*/ || upgradeChild || runChildConformance) {
         deployChild = true
     }
@@ -111,10 +112,10 @@ def checkCustomSIRefspec() {
     def common = new com.mirantis.mk.Common()
 
     // Available triggers and its sane defaults
-    def siTestsRefspec = (env.SI_TESTS_REFSPEC != null) ? env.SI_TESTS_REFSPEC : 'master'
-    def siPipelinesRefspec = (env.SI_PIPELINES_REFSPEC != null) ? env.SI_PIPELINES_REFSPEC : 'master'
-    def siTestsDockerImage = (env.SI_TESTS_DOCKER_IMAGE != null) ? env.SI_TESTS_DOCKER_IMAGE : 'docker-dev-kaas-local.docker.mirantis.net/mirantis/kaas/si-test:master'
-    def commitMsg = (env.GERRIT_CHANGE_COMMIT_MESSAGE != null) ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
+    def siTestsRefspec = env.SI_TESTS_REFSPEC ?: 'master'
+    def siPipelinesRefspec = env.SI_PIPELINES_REFSPEC ?: 'master'
+    def siTestsDockerImage = env.SI_TESTS_DOCKER_IMAGE ?: 'docker-dev-kaas-local.docker.mirantis.net/mirantis/kaas/si-test:master'
+    def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
 
     def siTestMatches = (commitMsg =~ /(\[si-tests-ref\s*refs\/changes\/.*?\])/)
     def siPipelinesMatches = (commitMsg =~ /(\[si-pipelines-ref\s*refs\/changes\/.*?\])/)
