@@ -137,6 +137,45 @@ def checkCustomSIRefspec() {
     return [siTests: siTestsRefspec, siPipelines: siPipelinesRefspec, siTestsDockerImage: siTestsDockerImage]
 }
 
+/**
+ * Determine if custom kaas core/pipelines refspec forwarded from gerrit change request
+
+ * Keyword list: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/.git-message-template#59
+ * Used for components team to test component changes w/ custom Core refspecs using kaas/core deployment jobs
+ * Example scheme:
+ * New CR pushed in kubernetes/lcm-ansible -> parsing it's commit body and get custom test refspecs -> trigger deployment jobs from kaas/core
+ * manage refspecs through Jenkins Job Parameters
+ *
+ * @return          (map)[     core: (string) final refspec for kaas/core
+ *                             corePipelines: (string) final refspec for pipelines in kaas/core
+ *                       ]
+ */
+def checkCustomCoreRefspec() {
+    def common = new com.mirantis.mk.Common()
+
+    // Available triggers and its sane defaults
+    def coreRefspec = env.KAAS_CORE_REFSPEC ?: 'master'
+    // by default using value of GERRIT_REFSPEC parameter in *kaas/core jobs*
+    def corePipelinesRefspec = env.KAAS_PIPELINE_REFSPEC ?: '\$GERRIT_REFSPEC'
+    def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
+
+    def coreMatches = (commitMsg =~ /(\[core-ref\s*refs\/changes\/.*?\])/)
+    def corePipelinesMatches = (commitMsg =~ /(\[core-pipelines-ref\s*refs\/changes\/.*?\])/)
+
+    if (coreMatches.size() > 0) {
+        coreRefspec = coreMatches[0][0].split('core-ref')[1].replaceAll('[\\[\\]]', '').trim()
+    }
+    if (corePipelinesMatches.size() > 0) {
+        corePipelinesRefspec = corePipelinesMatches[0][0].split('core-pipelines-ref')[1].replaceAll('[\\[\\]]', '').trim()
+    }
+
+    common.infoMsg("""
+        kaas/core will be fetched from: ${coreRefspec}
+        kaas/core pipelines will be fetched from: ${corePipelinesRefspec}
+        Keywords: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/.git-message-template#59""")
+    return [core: coreRefspec, corePipelines: corePipelinesRefspec]
+}
+
 
 /**
  * Trigger KaaS demo jobs based on AWS/OS providers with customized test suite, parsed from external sources (gerrit commit/jj vars)
@@ -152,11 +191,15 @@ def triggerPatchedComponentDemo(component, patchSpec) {
     def triggers = checkDeploymentTestSuite()
     // Determine SI refspecs
     def siRefspec = checkCustomSIRefspec()
+    // Determine Core refspecs
+    def coreRefspec = checkCustomCoreRefspec()
 
     def jobs = [:]
     // TODO manage SI_TESTS_FEATURE_FLAGS through checkCustomSIRefspec()
     //string(name: "SI_TESTS_FEATURE_FLAGS", value: env.SI_TESTS_FEATURE_FLAGS),
     def parameters = [
+        string(name: 'GERRIT_REFSPEC', value: coreRefspec.core),
+        string(name: 'KAAS_PIPELINE_REFSPEC', value: coreRefspec.corePipelines),
         string(name: 'SI_TESTS_REFSPEC', value: siRefspec.siTests),
         string(name: 'SI_PIPELINES_REFSPEC', value: siRefspec.siTests),
         string(name: 'CUSTOM_RELEASE_PATCH_SPEC', value: patchSpec),
