@@ -201,7 +201,7 @@ def triggerPatchedComponentDemo(component, patchSpec) {
         string(name: 'GERRIT_REFSPEC', value: coreRefspec.core),
         string(name: 'KAAS_PIPELINE_REFSPEC', value: coreRefspec.corePipelines),
         string(name: 'SI_TESTS_REFSPEC', value: siRefspec.siTests),
-        string(name: 'SI_PIPELINES_REFSPEC', value: siRefspec.siTests),
+        string(name: 'SI_PIPELINES_REFSPEC', value: siRefspec.siPipelines),
         string(name: 'CUSTOM_RELEASE_PATCH_SPEC', value: patchSpec),
         booleanParam(name: 'UPGRADE_MGMT', value: triggers.upgradeMgmtEnabled),
         booleanParam(name: 'RUN_UI_E2E', value: triggers.runUie2eEnabled),
@@ -214,7 +214,7 @@ def triggerPatchedComponentDemo(component, patchSpec) {
     jobs["kaas-core-openstack-patched-${component}"] = {
         try {
             common.infoMsg('Deploy: patched KaaS demo with Openstack provider')
-            job_info = build job: "kaas-testing-core-openstack-workflow-${component}", parameters: parameters
+            job_info = build job: "kaas-testing-core-openstack-workflow-${component}", parameters: parameters, wait: true
             build_description = job_info.getDescription()
             if (build_description) {
                 currentBuild.description += build_description
@@ -227,7 +227,7 @@ def triggerPatchedComponentDemo(component, patchSpec) {
         jobs["kaas-core-aws-patched-${component}"] = {
             try {
                 common.infoMsg('Deploy: patched KaaS demo with AWS provider')
-                job_info = build job: "kaas-testing-core-aws-workflow-${component}", parameters: parameters
+                job_info = build job: "kaas-testing-core-aws-workflow-${component}", parameters: parameters, wait: true
                 build_description = job_info.getDescription()
                 if (build_description) {
                     currentBuild.description += build_description
