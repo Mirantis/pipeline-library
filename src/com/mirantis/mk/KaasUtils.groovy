@@ -32,7 +32,7 @@ def checkDeploymentTestSuite() {
     def runMgmtConformance = env.RUN_MGMT_CFM ? env.RUN_MGMT_CFM.toBoolean() : false
     def runChildConformance = env.RUN_CHILD_CFM ? env.RUN_CHILD_CFM.toBoolean() : false
     def fetchServiceBinaries = env.FETCH_BINARIES_FROM_UPSTREAM ? env.FETCH_BINARIES_FROM_UPSTREAM.toBoolean() : false
-    def awsOnDemandDemo = env.RUN_AWS_ON_DEMAND_DEMO ? env.RUN_AWS_ON_DEMAND_DEMO.toBoolean() : false
+    def awsOnDemandDemo = env.ALLOW_AWS_ON_DEMAND ? env.ALLOW_AWS_ON_DEMAND.toBoolean() : false
 
     def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
     if (commitMsg ==~ /(?s).*\[child-deploy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-deploy.*/ || upgradeChild || runChildConformance) {
@@ -209,7 +209,7 @@ def triggerPatchedComponentDemo(component, patchSpec) {
         booleanParam(name: 'DEPLOY_CHILD', value: triggers.deployChildEnabled),
         booleanParam(name: 'UPGRADE_CHILD', value: triggers.upgradeChildEnabled),
         booleanParam(name: 'RUN_CHILD_CONFORMANCE', value: triggers.runChildConformanceEnabled),
-        booleanParam(name: 'RUN_AWS_ON_DEMAND_DEMO', value: triggers.awsOnDemandDemoEnabled),
+        booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled),
     ]
 
     jobs["kaas-core-openstack-patched-${component}"] = {
