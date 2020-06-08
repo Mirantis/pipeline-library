@@ -209,6 +209,7 @@ def triggerPatchedComponentDemo(component, patchSpec) {
         booleanParam(name: 'DEPLOY_CHILD', value: triggers.deployChildEnabled),
         booleanParam(name: 'UPGRADE_CHILD', value: triggers.upgradeChildEnabled),
         booleanParam(name: 'RUN_CHILD_CONFORMANCE', value: triggers.runChildConformanceEnabled),
+        booleanParam(name: 'RUN_AWS_ON_DEMAND_DEMO', value: triggers.awsOnDemandDemoEnabled),
     ]
 
     jobs["kaas-core-openstack-patched-${component}"] = {
