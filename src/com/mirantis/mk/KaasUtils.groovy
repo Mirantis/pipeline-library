@@ -214,28 +214,32 @@ def triggerPatchedComponentDemo(component, patchSpec) {
 
     def jobResults = []
     jobs["kaas-core-openstack-patched-${component}"] = {
-        common.infoMsg('Deploy: patched KaaS demo with Openstack provider')
-        def job_info = build job: "kaas-testing-core-openstack-workflow-${component}", parameters: parameters, wait: true
-        def build_description = job_info.getDescription()
-        def build_result = job_info.getResult()
-
-        common.infoMsg("Patched KaaS demo with Openstack provider finished with status: ${build_result}")
-        jobResults.add(build_result)
-        if (build_description) {
-            currentBuild.description += build_description
+        try {
+            common.infoMsg('Deploy: patched KaaS demo with Openstack provider')
+            def job_info = build job: "kaas-testing-core-openstack-workflow-${component}", parameters: parameters, wait: true
+            def build_description = job_info.getDescription()
+            if (build_description) {
+                currentBuild.description += build_description
+            }
+        } finally {
+            def build_result = job_info.getResult()
+            common.infoMsg("Patched KaaS demo with Openstack provider finished with status: ${build_result}")
+            jobResults.add(build_result)
         }
     }
     if (triggers.awsOnDemandDemoEnabled) {
         jobs["kaas-core-aws-patched-${component}"] = {
-            common.infoMsg('Deploy: patched KaaS demo with AWS provider')
-            def job_info = build job: "kaas-testing-core-aws-workflow-${component}", parameters: parameters, wait: true
-            def build_description = job_info.getDescription()
-            def build_result = job_info.getResult()
-
-            common.infoMsg("Patched KaaS demo with AWS provider finished with status: ${build_result}")
-            jobResults.add(build_result)
-            if (build_description) {
-                currentBuild.description += build_description
+            try {
+                common.infoMsg('Deploy: patched KaaS demo with AWS provider')
+                def job_info = build job: "kaas-testing-core-aws-workflow-${component}", parameters: parameters, wait: true
+                def build_description = job_info.getDescription()
+                if (build_description) {
+                    currentBuild.description += build_description
+                }
+            } finally {
+                def build_result = job_info.getResult()
+                common.infoMsg("Patched KaaS demo with AWS provider finished with status: ${build_result}")
+                jobResults.add(build_result)
             }
         }
     }
@@ -245,6 +249,7 @@ def triggerPatchedComponentDemo(component, patchSpec) {
     parallel jobs
 
     if (jobResults.contains('FAILURE')) {
+        common.infoMsg('One of parallel downstream jobs is failed, mark executor job as failed')
         currentBuild.result = 'FAILURE'
     }
 }
