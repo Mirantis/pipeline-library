@@ -11,7 +11,7 @@ package com.mirantis.mk
 def ensureRubyEnv(rubyVersion="2.4.1"){
     if (!fileExists("/var/lib/jenkins/.rbenv/versions/${rubyVersion}/bin/ruby")){
         //XXX: patch ruby-build because debian package is quite old
-        sh "git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build || git -C ~/.rbenv/plugins/ruby-build pull"
+        sh "git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build || git -C ~/.rbenv/plugins/ruby-build pull origin master"
         sh "rbenv install ${rubyVersion} -sv";
     }
     sh "rbenv local ${rubyVersion};rbenv exec gem update --system"
