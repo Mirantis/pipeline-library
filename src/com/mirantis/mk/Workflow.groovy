@@ -152,6 +152,71 @@ def storeArtifacts(build_url, step_artifacts, global_variables, job_name, build_
     }
 }
 
+/**
+ * Update workflow job build description
+ *
+ * @param jobs_data               Map with all job names and result statuses, to showing it in description
+ */
+def updateDescription(jobs_data) {
+    table = ''
+    child_jobs_description = '<strong>Descriptions from jobs:</strong><br>'
+    table_template_start = "<div><table style='border: solid 1px;'><tr><th>Job:</th><th>Status:</th></tr>"
+    table_template_end = "</table></div>"
+
+    for (jobdata in jobs_data) {
+        // Grey background for 'finally' jobs in list
+        if (jobdata['type'] == 'finally') {
+            trstyle = "<tr style='background: #DDDDDD;'>"
+        } else {
+            trstyle = "<tr>"
+        }
+
+        // 'description' instead of job name if it exists
+        if(jobdata['desc'].toString() != "") {
+            display_name = jobdata['desc']
+        } else {
+            display_name = jobdata['name']
+        }
+
+        // Attach url for already builded jobs
+        if(jobdata['build_url'] != "0") {
+            build_url = "<a href=${jobdata['build_url']}>$display_name</a>"
+        } else {
+            build_url = display_name
+        }
+
+        // Styling the status of job result
+        switch(jobdata['status'].toString()) {
+            case "SUCCESS":
+                status_style = "<td style='color: green;'><img src='/images/16x16/blue.png' alt='SUCCESS'>"
+                break
+            case "UNSTABLE":
+                status_style = "<td style='color: #FF5733;'><img src='/images/16x16/yellow.png' alt='UNSTABLE'>"
+                break
+            case "ABORTED":
+                status_style = "<td style='color: red;'><img src='/images/16x16/aborted.png' alt='ABORTED'>"
+                break
+            case "NOT_BUILT":
+                status_style = "<td style='color: red;'><img src='/images/16x16/aborted.png' alt='NOT_BUILT'>"
+                break
+            case "FAILURE":
+                status_style = "<td style='color: red;'><img src='/images/16x16/red.png' alt='FAILURE'>"
+                break
+            default:
+                status_style = "<td>-"
+        }
+
+        // Collect table
+        table += "$trstyle<td>$build_url</td>$status_style</td></tr>"
+
+        // Collecting descriptions of builded child jobs
+        if (jobdata['child_desc'] != "") {
+            child_jobs_description += "<b><small><a href=${jobdata['build_url']}>- ${jobdata['name']} (${jobdata['status']}):</a></small></b><br>"
+            child_jobs_description += "<small>${jobdata['child_desc']}</small><br>"
+        }
+    }
+    currentBuild.description = table_template_start + table + table_template_end + child_jobs_description
+}
 
 /**
  * Run the workflow or final steps one by one
@@ -159,13 +224,19 @@ def storeArtifacts(build_url, step_artifacts, global_variables, job_name, build_
  * @param steps                   List of steps (Jenkins jobs) to execute
  * @param global_variables        Map where the collected artifact URLs and 'env' objects are stored
  * @param failed_jobs             Map with failed job names and result statuses, to report it later
+ * @param jobs_data               Map with all job names and result statuses, to showing it in description
+ * @param step_id                 Counter for matching step ID with cell ID in description table
  * @param propagate               Boolean. If false: allows to collect artifacts after job is finished, even with FAILURE status
  *                                If true: immediatelly fails the pipeline. DO NOT USE 'true' with runScenario().
  */
-def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
+def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean propagate = false) {
+    // Show expected jobs list in description
+    updateDescription(jobs_data)
+
     for (step in steps) {
         stage("Running job ${step['job']}") {
-
+            def engine = new groovy.text.GStringTemplateEngine()
+            def desc = step['description'] ?: ''
             def job_name = step['job']
             def job_parameters = [:]
             def step_parameters = step['parameters'] ?: [:]
@@ -183,11 +254,15 @@ def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
             def build_description = job_info.getDescription()
             def build_id = job_info.getId()
 
-            currentBuild.description += "<a href=${build_url}>${job_name}</a>: ${job_result}<br>"
-            // Import the remote build description into the current build
-            if (build_description) { // TODO -  add also the job status
-                currentBuild.description += build_description
+            // Update jobs_data for updating description
+            jobs_data[step_id]['build_url'] = build_url
+            jobs_data[step_id]['status'] = job_result
+            jobs_data[step_id]['desc'] = engine.createTemplate(desc).make(global_variables)
+            if (build_description) {
+                jobs_data[step_id]['child_desc'] = build_description
             }
+
+            updateDescription(jobs_data)
 
             // Store links to the resulting artifacts into 'global_variables'
             storeArtifacts(build_url, step['artifacts'], global_variables, job_name, build_id)
@@ -214,6 +289,8 @@ def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
             } // if (job_result != 'SUCCESS')
             println "Job ${build_url} finished with result: ${job_result}"
         } // stage ("Running job ${step['job']}")
+    // Jump to next ID for updating next job data in description table
+    step_id++
     } // for (step in scenario['workflow'])
 }
 
@@ -232,6 +309,7 @@ def runSteps(steps, global_variables, failed_jobs, Boolean propagate = false) {
  *     workflow:
  *     - job: deploy-kaas
  *       ignore_failed: false
+ *       description: "Management cluster ${KAAS_VERSION}"
  *       parameters:
  *         KAAS_VERSION:
  *           type: StringParameterValue
@@ -295,10 +373,36 @@ def runScenario(scenario, slackReportChannel = '') {
     global_variables = [:]
     // List of failed jobs to show at the end
     failed_jobs = [:]
+    // Jobs data to use for wf job build description
+    def jobs_data = []
+    // Counter for matching step ID with cell ID in description table
+    step_id = 0
+
+    // Generate expected list jobs for description
+    list_id = 0
+    for (step in scenario['workflow']) {
+        if(step['description'] != null && step['description'].toString() != "") {
+            display_name = step['description']
+        } else {
+            display_name = step['job']
+        }
+        jobs_data.add([list_id: "$list_id", type: "workflow", name: "$display_name", build_url: "0", status: "-", desc: "", child_desc: ""])
+        list_id += 1
+    }
+    finally_step_id = list_id
+    for (step in scenario['finally']) {
+        if(step['description'] != null && step['description'].toString() != "") {
+            display_name = step['description']
+        } else {
+            display_name = step['job']
+        }
+        jobs_data.add([list_id: "$list_id", type: "finally", name: "$display_name", build_url: "0", status: "-", desc: "", child_desc: ""])
+        list_id += 1
+    }
 
     try {
         // Run the 'workflow' jobs
-        runSteps(scenario['workflow'], global_variables, failed_jobs)
+        runSteps(scenario['workflow'], global_variables, failed_jobs, jobs_data, step_id)
 
     } catch (InterruptedException x) {
         error "The job was aborted"
@@ -307,8 +411,10 @@ def runScenario(scenario, slackReportChannel = '') {
         error("Build failed: " + e.toString())
 
     } finally {
+        // Switching to 'finally' step index
+        step_id = finally_step_id
         // Run the 'finally' jobs
-        runSteps(scenario['finally'], global_variables, failed_jobs)
+        runSteps(scenario['finally'], global_variables, failed_jobs, jobs_data, step_id)
 
         if (failed_jobs) {
             statuses = []
