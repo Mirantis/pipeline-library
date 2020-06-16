@@ -173,21 +173,22 @@ def gerritPatchsetCheckout(gerritUrl, gerritRef, gerritBranch, credentialsId, pa
  * Return gerrit change object from gerrit API
  * @param gerritName gerrit user name (usually GERRIT_NAME property)
  * @param gerritHost gerrit host (usually GERRIT_HOST property)
+ * @param gerritPort gerrit port (usually GERRIT_PORT property, default 29418)
  * @param gerritChangeNumber gerrit change number (usually GERRIT_CHANGE_NUMBER property)
  * @param credentialsId jenkins credentials id for gerrit
  * @param includeCurrentPatchset do you want to include current (last) patchset
  * @return gerrit change object
  */
-def getGerritChange(gerritName, gerritHost, gerritChangeNumber, credentialsId, includeCurrentPatchset = false){
+def getGerritChange(gerritName, gerritHost, gerritChangeNumber, credentialsId, includeCurrentPatchset = false, gerritPort = '29418'){
     def common = new com.mirantis.mk.Common()
     def ssh = new com.mirantis.mk.Ssh()
     ssh.prepareSshAgentKey(credentialsId)
-    ssh.ensureKnownHosts(gerritHost)
+    ssh.ensureKnownHosts("${gerritHost}:${gerritPort}")
     def curPatchset = "";
     if(includeCurrentPatchset){
         curPatchset = "--current-patch-set"
     }
-    return common.parseJSON(ssh.agentSh(String.format("ssh -p 29418 %s@%s gerrit query ${curPatchset} --format=JSON change:%s", gerritName, gerritHost, gerritChangeNumber)))
+    return common.parseJSON(ssh.agentSh(String.format("ssh -p %s %s@%s gerrit query ${curPatchset} --format=JSON change:%s", gerritPort, gerritName, gerritHost, gerritChangeNumber)))
 }
 
 /**
