@@ -129,6 +129,12 @@ def commitGitChanges(path, message, gitEmail='jenkins@localhost', gitName='jenki
     } else {
         gitOpts = ''
     }
+    def gitEnv = [
+        "GIT_AUTHOR_NAME=${gitName}",
+        "GIT_AUTHOR_EMAIL=${gitEmail}",
+        "GIT_COMMITTER_NAME=${gitName}",
+        "GIT_COMMITTER_EMAIL=${gitEmail}",
+    ]
     dir(path) {
         sh "git config ${global_arg} user.email '${gitEmail}'"
         sh "git config ${global_arg} user.name '${gitName}'"
@@ -137,10 +143,12 @@ def commitGitChanges(path, message, gitEmail='jenkins@localhost', gitName='jenki
             script: 'git add -A',
             returnStdout: true
         ).trim()
-        git_cmd = sh(
-            script: "git commit ${gitOpts} -m '${message}'",
-            returnStdout: true
-        ).trim()
+        withEnv(gitEnv) {
+            git_cmd = sh(
+                script: "git commit ${gitOpts} -m '${message}'",
+                returnStdout: true
+            ).trim()
+        }
     }
     return git_cmd
 }
