@@ -221,13 +221,13 @@ def triggerPatchedComponentDemo(component, patchSpec) {
     jobs["kaas-core-openstack-patched-${component}"] = {
         try {
             common.infoMsg('Deploy: patched KaaS demo with Openstack provider')
-            job_info = build job: "kaas-testing-core-openstack-workflow-${component}", parameters: parameters, wait: true
-            def build_description = job_info.getDescription()
+            os_job_info = build job: "kaas-testing-core-openstack-workflow-${component}", parameters: parameters, wait: true
+            def build_description = os_job_info.getDescription()
             if (build_description) {
                 currentBuild.description += build_description
             }
         } finally {
-            def build_result = job_info.getResult()
+            def build_result = os_job_info.getResult()
             common.infoMsg("Patched KaaS demo with Openstack provider finished with status: ${build_result}")
             jobResults.add(build_result)
         }
@@ -236,13 +236,13 @@ def triggerPatchedComponentDemo(component, patchSpec) {
         jobs["kaas-core-aws-patched-${component}"] = {
             try {
                 common.infoMsg('Deploy: patched KaaS demo with AWS provider')
-                job_info = build job: "kaas-testing-core-aws-workflow-${component}", parameters: parameters, wait: true
-                def build_description = job_info.getDescription()
+                aws_job_info = build job: "kaas-testing-core-aws-workflow-${component}", parameters: parameters, wait: true
+                def build_description = aws_job_info.getDescription()
                 if (build_description) {
                     currentBuild.description += build_description
                 }
             } finally {
-                def build_result = job_info.getResult()
+                def build_result = aws_job_info.getResult()
                 common.infoMsg("Patched KaaS demo with AWS provider finished with status: ${build_result}")
                 jobResults.add(build_result)
             }
