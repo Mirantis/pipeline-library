@@ -128,7 +128,7 @@ def checkCustomSIRefspec() {
             "kaas-si-test-${siTestsRefspec.split('/')[-2]}:${siTestsRefspec.split('/')[-1]}"
     }
     if (siFeatureFlagsMatches.size() > 0) {
-        siTestsFeatureFlags = siFeatureFlagsMatches.size[0][0].split('si-feature-flags')[1].replaceAll('[\\[\\]]', '').trim()
+        siTestsFeatureFlags = siFeatureFlagsMatches[0][0].split('si-feature-flags')[1].replaceAll('[\\[\\]]', '').trim()
     }
     if (siPipelinesMatches.size() > 0) {
         siPipelinesRefspec = siPipelinesMatches[0][0].split('si-pipelines-ref')[1].replaceAll('[\\[\\]]', '').trim()
