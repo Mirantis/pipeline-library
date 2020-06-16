@@ -221,7 +221,7 @@ def triggerPatchedComponentDemo(component, patchSpec) {
     jobs["kaas-core-openstack-patched-${component}"] = {
         try {
             common.infoMsg('Deploy: patched KaaS demo with Openstack provider')
-            def job_info = build job: "kaas-testing-core-openstack-workflow-${component}", parameters: parameters, wait: true
+            job_info = build job: "kaas-testing-core-openstack-workflow-${component}", parameters: parameters, wait: true
             def build_description = job_info.getDescription()
             if (build_description) {
                 currentBuild.description += build_description
@@ -236,7 +236,7 @@ def triggerPatchedComponentDemo(component, patchSpec) {
         jobs["kaas-core-aws-patched-${component}"] = {
             try {
                 common.infoMsg('Deploy: patched KaaS demo with AWS provider')
-                def job_info = build job: "kaas-testing-core-aws-workflow-${component}", parameters: parameters, wait: true
+                job_info = build job: "kaas-testing-core-aws-workflow-${component}", parameters: parameters, wait: true
                 def build_description = job_info.getDescription()
                 if (build_description) {
                     currentBuild.description += build_description
