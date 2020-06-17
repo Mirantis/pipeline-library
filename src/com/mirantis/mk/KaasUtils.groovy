@@ -230,7 +230,7 @@ def triggerPatchedComponentDemo(component, patchSpec) {
                 currentBuild.description += build_description
             }
         } finally {
-            common.infoMsg("Patched KaaS demo with Openstack provider finished with status: ${build_result}")
+            common.infoMsg('Patched KaaS demo with Openstack provider finished')
         }
     }
     if (triggers.awsOnDemandDemoEnabled) {
@@ -246,7 +246,7 @@ def triggerPatchedComponentDemo(component, patchSpec) {
                     currentBuild.description += build_description
                 }
             } finally {
-                common.infoMsg("Patched KaaS demo with AWS provider finished with status: ${build_result}")
+                common.infoMsg('Patched KaaS demo with AWS provider finished')
             }
         }
     }
