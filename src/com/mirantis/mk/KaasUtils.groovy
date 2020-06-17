@@ -223,13 +223,14 @@ def triggerPatchedComponentDemo(component, patchSpec) {
             common.infoMsg('Deploy: patched KaaS demo with Openstack provider')
             os_job_info = build job: "kaas-testing-core-openstack-workflow-${component}", parameters: parameters, wait: true
             def build_description = os_job_info.getDescription()
+            def build_result = os_job_info.getResult()
+            jobResults.add(build_result)
+
             if (build_description) {
                 currentBuild.description += build_description
             }
         } finally {
-            def build_result = os_job_info.getResult()
             common.infoMsg("Patched KaaS demo with Openstack provider finished with status: ${build_result}")
-            jobResults.add(build_result)
         }
     }
     if (triggers.awsOnDemandDemoEnabled) {
@@ -238,13 +239,14 @@ def triggerPatchedComponentDemo(component, patchSpec) {
                 common.infoMsg('Deploy: patched KaaS demo with AWS provider')
                 aws_job_info = build job: "kaas-testing-core-aws-workflow-${component}", parameters: parameters, wait: true
                 def build_description = aws_job_info.getDescription()
+                def build_result = aws_job_info.getResult()
+                jobResults.add(build_result)
+
                 if (build_description) {
                     currentBuild.description += build_description
                 }
             } finally {
-                def build_result = aws_job_info.getResult()
                 common.infoMsg("Patched KaaS demo with AWS provider finished with status: ${build_result}")
-                jobResults.add(build_result)
             }
         }
     }
