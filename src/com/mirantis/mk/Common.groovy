@@ -1121,3 +1121,24 @@ def isSemVer(version){
     String semVerRegex = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
     return version ==~ semVerRegex
 }
+
+def readYaml2(LinkedHashMap kwargs) {
+    /**
+     *  readYaml wrapper to workaround case when initial file contains
+     *  yaml data in text field so we need parse it twice.
+     *  * @param file String of filename to read
+     *  * @param text String to be read as Yaml
+     *   Parameters are mutually exclusive
+     */
+    if ((kwargs.get('file') && kwargs.get('text'))) {
+        error('readYaml2 function not able to cover both ["file","text"] opts in same time ')
+    }
+    if (kwargs.get('file')) {
+        data = readYaml(file: kwargs['file'])
+        if (data instanceof String) {
+            return readYaml(text: data)
+        }
+    } else if (kwargs.get('text')) {
+        return readYaml(text: kwargs['text'])
+    }
+}
