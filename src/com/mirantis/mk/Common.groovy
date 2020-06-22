@@ -1138,6 +1138,7 @@ def readYaml2(LinkedHashMap kwargs) {
         if (data instanceof String) {
             return readYaml(text: data)
         }
+        return data
     } else if (kwargs.get('text')) {
         return readYaml(text: kwargs['text'])
     }
