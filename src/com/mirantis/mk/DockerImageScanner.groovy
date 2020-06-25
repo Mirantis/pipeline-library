@@ -185,9 +185,6 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
     imageDict.each{
         image ->
             def image_key = image.key.replaceAll(/(^[a-z0-9-.]+.mirantis.(net|com)\/|:.*$)/, '')
-            // Temporary exclude kibana images, due to false positive in PRODX-5468
-            // Remove once RE-193 ticket is resolved
-            if (image_key.startsWith('stacklight/kibana')) { return }
             jira_summary = "[${image_key}] Found CVEs in Docker image"
             jira_description = "{noformat}${image.key}\\n"
             image.value.each{
