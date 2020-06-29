@@ -174,7 +174,7 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                                 if (!imageDict[image.key].containsKey(pkg.key)) {
                                     imageDict[image.key].put(pkg.key, [])
                                 }
-                                imageDict[image.key][pkg.key].add("${cve[0]} (${cve[2]})")
+                                imageDict[image.key][pkg.key].add("[${cve[0]}|${cve[4]}] (${cve[2]}) (${cve[3]})")
                             }
                     }
             }
@@ -186,16 +186,15 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
         image ->
             def image_key = image.key.replaceAll(/(^[a-z0-9-.]+.mirantis.(net|com)\/|:.*$)/, '')
             jira_summary = "[${image_key}] Found CVEs in Docker image"
-            jira_description = "{noformat}${image.key}\\n"
+            jira_description = "${image.key}\\n"
             image.value.each{
                 pkg ->
-                    jira_description += "  * ${pkg.key}\\n"
+                    jira_description += "__* ${pkg.key}\\n"
                     pkg.value.each{
                         cve ->
-                            jira_description += "      - ${cve}\\n"
+                            jira_description += "________${cve}\\n"
                     }
             }
-            jira_description += "{noformat}"
 
             def team_assignee = getTeam(image_key)
 
