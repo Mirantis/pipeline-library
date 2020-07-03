@@ -50,7 +50,7 @@ def getReleaseMetadataValue(String key, Map params = [:]) {
 
     String result
     // Get params
-    String toxDockerImage   = params.get('toxDockerImage', 'docker-prod-virtual.docker.mirantis.net/mirantis/external/tox')
+    String toxDockerImage   = params.get('toxDockerImage', 'alexz0kh/toxhotfix:2')
     String outputFormat     = params.get('outputFormat', 'json')
     String repoDir          = common.getAbsolutePath(params.get('repoDir', 'artifact-metadata'))
 
@@ -99,7 +99,7 @@ def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth
     String gitCredentialsId     = params.get('metadataCredentialsId', 'mcp-ci-gerrit')
     String metadataRepoUrl      = params.get('metadataGitRepoUrl', "ssh://${gitCredentialsId}@gerrit.mcp.mirantis.net:29418/mcp/artifact-metadata")
     String metadataGerritBranch = params.get('metadataGitRepoBranch', 'master')
-    String toxDockerImage       = params.get('toxDockerImage', 'docker-prod-virtual.docker.mirantis.net/mirantis/external/tox')
+    String toxDockerImage       = params.get('toxDockerImage', 'alexz0kh/toxhotfix:2')
     String repoDir              = common.getAbsolutePath(params.get('repoDir', 'artifact-metadata'))
     String comment              = params.get('comment', '')
     String crTopic              = params.get('crTopic', '')
