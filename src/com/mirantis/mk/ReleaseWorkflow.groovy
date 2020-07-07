@@ -40,7 +40,7 @@ def checkoutReleaseMetadataRepo(Map params = [:]) {
  *
  * @param key metadata key
  * @param params map with expected parameters:
- *    - toxDockerImage
+ *    - appDockerImage
  *    - outputFormat
  *    - repoDir
  */
@@ -50,9 +50,9 @@ def getReleaseMetadataValue(String key, Map params = [:]) {
 
     String result
     // Get params
-    String toxDockerImage   = params.get('toxDockerImage', 'alexz0kh/toxhotfix:2')
-    String outputFormat     = params.get('outputFormat', 'json')
-    String repoDir          = common.getAbsolutePath(params.get('repoDir', 'artifact-metadata'))
+    String appDockerImage = params.get('appDockerImage', 'docker-dev-kaas-local.docker.mirantis.net/mirantis/cicd/artifact-metadata-app:latest')
+    String outputFormat   = params.get('outputFormat', 'json')
+    String repoDir        = common.getAbsolutePath(params.get('repoDir', 'artifact-metadata'))
 
     String opts = ''
     if (outputFormat && !outputFormat.isEmpty()) {
@@ -61,8 +61,8 @@ def getReleaseMetadataValue(String key, Map params = [:]) {
 
     checkoutReleaseMetadataRepo(params)
 
-    docker.image(toxDockerImage).inside("--volume ${repoDir}:/workspace") {
-        result = sh(script: "cd /workspace && tox -qq -e metadata -- ${opts} get --key ${key}", returnStdout: true).trim()
+    docker.image(appDockerImage).inside("--volume ${repoDir}:/workspace") {
+        result = sh(script: "metadata-app --path /workspace/metadata ${opts} get --key ${key}", returnStdout: true).trim()
     }
     common.infoMsg("""
     Release metadata key ${key} has value:
@@ -99,7 +99,7 @@ def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth
     String gitCredentialsId     = params.get('metadataCredentialsId', 'mcp-ci-gerrit')
     String metadataRepoUrl      = params.get('metadataGitRepoUrl', "ssh://${gitCredentialsId}@gerrit.mcp.mirantis.net:29418/mcp/artifact-metadata")
     String metadataGerritBranch = params.get('metadataGitRepoBranch', 'master')
-    String toxDockerImage       = params.get('toxDockerImage', 'alexz0kh/toxhotfix:2')
+    String appDockerImage       = params.get('appDockerImage', 'docker-dev-kaas-local.docker.mirantis.net/mirantis/cicd/artifact-metadata-app:latest')
     String repoDir              = common.getAbsolutePath(params.get('repoDir', 'artifact-metadata'))
     String comment              = params.get('comment', '')
     String crTopic              = params.get('crTopic', '')
@@ -114,7 +114,6 @@ def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth
     String gerritPort = metadataRepoUrl.tokenize(':')[-1].tokenize('/')[0]
     String workspace = common.getWorkspace()
     String venvDir = "${workspace}/gitreview-venv"
-    String metadataDir = "${repoDir}/metadata"
     String ChangeId
     String commitMessage
     String gitRemote
@@ -148,7 +147,7 @@ def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth
         def keyArr = key.split(';')
         def valueArr = value.split(';')
         if (keyArr.size() == valueArr.size()) {
-            docker.image(toxDockerImage).inside("--volume ${repoDir}:/workspace") {
+            docker.image(appDockerImage).inside("--volume ${repoDir}:/workspace") {
                 for (i in 0..keyArr.size()-1) {
                     def valueExpression = "--value '${valueArr[i]}'"
                     def tmpFile
@@ -161,7 +160,7 @@ def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth
                         valueExpression = "--file ${tmpFile}"
                     }
                     try {
-                        sh "cd /workspace && tox -qq -e metadata -- update --create --key '${keyArr[i]}' ${valueExpression}"
+                        sh "metadata-app --path /workspace/metadata update --create --key '${keyArr[i]}' ${valueExpression}"
                     } finally {
                         if (valuesFromFile){
                             sh "rm ${tmpFile}"
