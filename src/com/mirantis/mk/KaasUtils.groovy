@@ -145,6 +145,36 @@ def checkCustomSIRefspec() {
 
 /**
  * Determine if custom kaas core/pipelines refspec forwarded from gerrit change request
+ * @param configurationFile    (str) path to configuration file in yaml format
+ *
+ * @return                     (map)[     siTestsFeatureFlags (string) dedicated feature flags that will be used in SI tests,
+ *                                  ]
+ */
+def parseKaaSComponentCIParameters(configurationFile){
+   def common = new com.mirantis.mk.Common()
+   def ciConfig = readYaml file: configurationFile
+   def ciSpec = [
+   siTestsFeatureFlags: env.SI_TESTS_FEATURE_FLAGS ?: '',
+   ]
+
+   if (ciConfig.containsKey('si-tests-feature-flags')) {
+       common.infoMsg("""SI tests feature flags customization detected,
+           results will be merged with existing flags: [${ciSpec['siTestsFeatureFlags']}] identification...""")
+
+       def ffMeta = ciSpec['siTestsFeatureFlags'].tokenize(',').collect { it.trim() }
+       ffMeta.addAll(ciConfig['si-tests-feature-flags'])
+       ciSpec['siTestsFeatureFlags'] = ffMeta.join(',')
+
+       common.infoMsg("SI tests custom feature flags: ${ciSpec['siTestsFeatureFlags']}")
+   }
+
+   common.infoMsg("""Additional ci configuration parsed successfully:
+       siTestsFeatureFlags: ${ciSpec['siTestsFeatureFlags']}""")
+   return ciSpec
+}
+
+/**
+ * Determine if custom kaas core/pipelines refspec forwarded from gerrit change request
 
  * Keyword list: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/.git-message-template#59
  * Used for components team to test component changes w/ custom Core refspecs using kaas/core deployment jobs
@@ -260,3 +290,5 @@ def triggerPatchedComponentDemo(component, patchSpec) {
         currentBuild.result = 'FAILURE'
     }
 }
+
+
