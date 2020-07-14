@@ -157,8 +157,8 @@ def parseKaaSComponentCIParameters(configurationFile){
 
        def ffMeta = ciSpec['siTestsFeatureFlags'].tokenize(',').collect { it.trim() }
        ffMeta.addAll(ciConfig['si-tests-feature-flags'])
-       ciSpec['siTestsFeatureFlags'] = ffMeta.join(',')
 
+       ciSpec['siTestsFeatureFlags'] = ffMeta.unique().join(',')
        common.infoMsg("SI tests custom feature flags: ${ciSpec['siTestsFeatureFlags']}")
    }
 
