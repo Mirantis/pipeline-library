@@ -224,7 +224,8 @@ def checkCustomSIRefspec() {
     // Available triggers and its sane defaults
     def siTestsRefspec = env.SI_TESTS_REFSPEC ?: 'master'
     def siPipelinesRefspec = env.SI_PIPELINES_REFSPEC ?: 'master'
-    def siTestsDockerImage = env.SI_TESTS_DOCKER_IMAGE ?: 'docker-dev-kaas-local.docker.mirantis.net/mirantis/kaas/si-test:master'
+    def siTestsDockerImage = env.SI_TESTS_DOCKER_IMAGE ?: 'docker-dev-kaas-local.docker.mirantis.net/mirantis/kaas/si-test'
+    def siTestsDockerImageTag = env.SI_TESTS_DOCKER_IMAGE_TAG ?: 'master'
     def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
 
     def siTestMatches = (commitMsg =~ /(\[si-tests-ref\s*refs\/changes\/.*?\])/)
@@ -232,8 +233,8 @@ def checkCustomSIRefspec() {
 
     if (siTestMatches.size() > 0) {
         siTestsRefspec = siTestMatches[0][0].split('si-tests-ref')[1].replaceAll('[\\[\\]]', '').trim()
-        siTestsDockerImage = "docker-dev-local.docker.mirantis.net/review/" +
-            "kaas-si-test-${siTestsRefspec.split('/')[-2]}:${siTestsRefspec.split('/')[-1]}"
+        siTestsDockerImage = "docker-dev-local.docker.mirantis.net/review/kaas-si-test-${siTestsRefspec.split('/')[-2]}"
+        siTestsDockerImageTag = siTestsRefspec.split('/')[-1]
     }
     if (siPipelinesMatches.size() > 0) {
         siPipelinesRefspec = siPipelinesMatches[0][0].split('si-pipelines-ref')[1].replaceAll('[\\[\\]]', '').trim()
@@ -242,9 +243,9 @@ def checkCustomSIRefspec() {
     common.infoMsg("""
         kaas/si-pipelines will be fetched from: ${siPipelinesRefspec}
         kaas/si-tests will be fetched from: ${siTestsRefspec}
-        kaas/si-tests as dockerImage will be fetched from: ${siTestsDockerImage}
+        kaas/si-tests as dockerImage will be fetched from: ${siTestsDockerImage}:${siTestsDockerImageTag}
         Keywords: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/""")
-    return [siTests: siTestsRefspec, siPipelines: siPipelinesRefspec, siTestsDockerImage: siTestsDockerImage]
+    return [siTests: siTestsRefspec, siPipelines: siPipelinesRefspec, siTestsDockerImage: siTestsDockerImage, siTestsDockerImageTag: siTestsDockerImageTag]
 }
 
 /**
@@ -356,6 +357,8 @@ def triggerPatchedComponentDemo(component, patchSpec, configurationFile = '.ci-p
         string(name: 'KAAS_PIPELINE_REFSPEC', value: coreRefspec.corePipelines),
         string(name: 'SI_TESTS_REFSPEC', value: siRefspec.siTests),
         string(name: 'SI_TESTS_FEATURE_FLAGS', value: componentFeatureFlags),
+        string(name: 'SI_TESTS_DOCKER_IMAGE', value: siRefspec.siTestsDockerImage),
+        string(name: 'SI_TESTS_DOCKER_IMAGE_TAG', value: siRefspec.siTestsDockerImageTag),
         string(name: 'SI_PIPELINES_REFSPEC', value: siRefspec.siPipelines),
         string(name: 'CUSTOM_RELEASE_PATCH_SPEC', value: patchSpec),
         booleanParam(name: 'UPGRADE_MGMT_CLUSTER', value: triggers.upgradeMgmtEnabled),
