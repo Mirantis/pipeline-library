@@ -55,7 +55,6 @@ def runContainer(Map params){
     default_mounts = ["/etc/ssl/certs/": "/etc/ssl/certs/",
                       "/srv/salt/pki/${cluster_name}/": "/etc/certs",
                       "/root/test/": "/root/tempest/",
-                      "/tmp/": "/tmp/",
                       "/etc/hosts": "/etc/hosts"]
     params.mounts = default_mounts + params.mounts
     if ( salt.cmdRun(params.master, params.target, "docker ps -f name=^${params.name}\$ -q", false, null, false)['return'][0].values()[0] ) {

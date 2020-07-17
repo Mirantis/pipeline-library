@@ -294,8 +294,20 @@ def osUpgradeNode(env, target, mode, postponeReboot=false, timeout=30, attempts=
         common.retry(3, 5) {
             salt.cmdRun(env, target, 'salt-call pkg.refresh_db failhard=true', true, batch)
         }
+
+        /* first try to upgrade salt components since they demand asynchronous upgrade */
+        upgradeSaltPackages(env, target)
         def cmd = "export DEBIAN_FRONTEND=noninteractive; apt-get -y -q --allow-downgrades -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" ${mode}"
-        salt.cmdRun(env, target, cmd, true, batch)
+
+        /*
+         * This is a long running batch operation that may return empty response
+         * which is a pretty typical salt behavior. This does not represent an error
+         * but might hide the error if it's ignored. If there is no persistent error
+         * with the procedure itself, the consequent run will succeed.
+         */
+        common.retry(2, 120) {
+            salt.cmdRun(env, target, cmd, true, batch)
+        }
 
         rebootRequired = salt.runSaltProcessStep(env, target, 'file.file_exists', ['/var/run/reboot-required'], batch, true, 5)['return'][0].values()[0].toBoolean()
         if (rebootRequired) {
@@ -308,5 +320,38 @@ def osUpgradeNode(env, target, mode, postponeReboot=false, timeout=30, attempts=
         }
     } else {
         common.errorMsg("Invalid upgrade mode specified: ${mode}. Has to be 'upgrade' or 'dist-upgrade'")
+    }
+}
+
+/**
+* Upgrade salt packages on target asynchronously, wait minions' availability.
+*
+* @param env             Salt Connection object or env  Salt command map
+* @param target          Salt target to upgrade packages on.
+* @param timeout         Sleep timeout when doing retries.
+* @param attempts        Number of attemps to wait for.
+*/
+def upgradeSaltPackages(env, target, timeout=60, attempts=20) {
+    def common = new com.mirantis.mk.Common()
+    def salt = new com.mirantis.mk.Salt()
+    def saltUpgradeCmd =
+        'export DEBIAN_FRONTEND=noninteractive; apt-get -y -q ' +
+        '-o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" ' +
+        'install --only-upgrade salt-master salt-common salt-api salt-minion'
+
+    common.infoMsg("Upgrading SaltStack on ${target}")
+    salt.cmdRun(env, target, saltUpgradeCmd, false, null, true, [], [], true)
+    /* wait for 2 mins before checking the availability of minions to give
+    apt some time to finish updating so the dpkg releases its locks */
+    sleep(120)
+    /* taken from upgrade-mcp-release */
+    common.retry(attempts, timeout) {
+        salt.minionsReachable(env, 'I@salt:master', target)
+        def running = salt.runSaltProcessStep(env, target, 'saltutil.running', [], null, true, 5)
+        for (value in running.get("return")[0].values()) {
+            if (value != []) {
+                throw new Exception("Not all salt-minions are ready for execution")
+            }
+        }
     }
 }

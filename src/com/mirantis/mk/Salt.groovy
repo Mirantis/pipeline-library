@@ -332,9 +332,10 @@ def enforceState(saltId, target, state, output = true, failOnError = true, batch
  * @param output do you want to print output
  * @param saltArgs additional salt args eq. ["runas=aptly"]
  * @param replacing list with maps for deletion in info message (passwords, logins, etc)
+ * @param async run commands with async client (default false)
  * @return output of salt command
  */
-def cmdRun(saltId, target, cmd, checkResponse = true, batch=null, output = true, saltArgs = [], replacing = []) {
+def cmdRun(saltId, target, cmd, checkResponse = true, batch=null, output = true, saltArgs = [], replacing = [], async = false) {
     def common = new com.mirantis.mk.Common()
     def originalCmd = cmd
     common.infoSensitivityMsg("Running command ${cmd} on ${target}", true, replacing)
@@ -345,7 +346,8 @@ def cmdRun(saltId, target, cmd, checkResponse = true, batch=null, output = true,
     // add cmd name to salt args list
     saltArgs << cmd
 
-    def out = runSaltCommand(saltId, 'local', ['expression': target, 'type': 'compound'], 'cmd.run', batch, saltArgs.reverse())
+    def client = async ? 'local_async' : 'local'
+    def out = runSaltCommand(saltId, client, ['expression': target, 'type': 'compound'], 'cmd.run', batch, saltArgs.reverse())
     if (checkResponse) {
         // iterate over all affected nodes and check success return code
         if (out["return"]){
@@ -355,14 +357,14 @@ def cmdRun(saltId, target, cmd, checkResponse = true, batch=null, output = true,
                     def nodeKey = node.keySet()[j]
                     if (node[nodeKey] instanceof String) {
                         if (!node[nodeKey].contains("Salt command execution success")) {
-                            throw new Exception("Execution of cmd ${originalCmd} failed. Server returns: ${node[nodeKey]}")
+                            throw new Exception("Execution of cmd ${originalCmd} failed. ${nodeKey} returns: ${node[nodeKey]}")
                         }
                     } else if (node[nodeKey] instanceof Boolean) {
                         if (!node[nodeKey]) {
-                            throw new Exception("Execution of cmd ${originalCmd} failed. Server returns: ${node[nodeKey]}")
+                            throw new Exception("Execution of cmd ${originalCmd} failed. ${nodeKey} returns: ${node[nodeKey]}")
                         }
                     } else {
-                        throw new Exception("Execution of cmd ${originalCmd} failed. Server returns unexpected data type: ${node[nodeKey]}")
+                        throw new Exception("Execution of cmd ${originalCmd} failed. ${nodeKey} returns unexpected data type: ${node[nodeKey]}")
                     }
                 }
             }
