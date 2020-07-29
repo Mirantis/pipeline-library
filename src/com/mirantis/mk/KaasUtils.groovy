@@ -9,7 +9,7 @@ package com.mirantis.mk
 
 /**
  * Determine scope of test suite against per-commit KaaS deployment based on keywords
- * Keyword list: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/.git-message-template#50
+ * Keyword list: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/
  *
  * Used for components team to combine test-suites and forward desired parameters to kaas/core deployment jobs
  * Example scheme:
@@ -83,7 +83,7 @@ def checkDeploymentTestSuite() {
         Mgmt UI e2e testing scheduled: ${runUie2e}
         AWS provider additional deployment scheduled: ${awsOnDemandDemo}
         Service binaries fetching scheduled: ${fetchServiceBinaries}
-        Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/.git-message-template#50""")
+        Triggers: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/""")
     return [
         deployChildEnabled         : deployChild,
         upgradeChildEnabled        : upgradeChild,
@@ -98,7 +98,7 @@ def checkDeploymentTestSuite() {
 /**
  * Determine if custom si tests/pipelines refspec forwarded from gerrit change request
 
- * Keyword list: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/.git-message-template#59
+ * Keyword list: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/
  * Used for components team to test component changes w/ custom SI refspecs using kaas/core deployment jobs
  * Example scheme:
  * New CR pushed in kubernetes/lcm-ansible -> parsing it's commit body and get custom test refspecs -> trigger deployment jobs from kaas/core
@@ -133,7 +133,7 @@ def checkCustomSIRefspec() {
         kaas/si-pipelines will be fetched from: ${siPipelinesRefspec}
         kaas/si-tests will be fetched from: ${siTestsRefspec}
         kaas/si-tests as dockerImage will be fetched from: ${siTestsDockerImage}
-        Keywords: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/.git-message-template#59""")
+        Keywords: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/""")
     return [siTests: siTestsRefspec, siPipelines: siPipelinesRefspec, siTestsDockerImage: siTestsDockerImage]
 }
 
@@ -170,7 +170,7 @@ def parseKaaSComponentCIParameters(configurationFile){
 /**
  * Determine if custom kaas core/pipelines refspec forwarded from gerrit change request
 
- * Keyword list: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/.git-message-template#59
+ * Keyword list: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/
  * Used for components team to test component changes w/ custom Core refspecs using kaas/core deployment jobs
  * Example scheme:
  * New CR pushed in kubernetes/lcm-ansible -> parsing it's commit body and get custom test refspecs -> trigger deployment jobs from kaas/core
@@ -202,14 +202,14 @@ def checkCustomCoreRefspec() {
     common.infoMsg("""
         kaas/core will be fetched from: ${coreRefspec}
         kaas/core pipelines will be fetched from: ${corePipelinesRefspec}
-        Keywords: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/.git-message-template#59""")
+        Keywords: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/""")
     return [core: coreRefspec, corePipelines: corePipelinesRefspec]
 }
 
 
 /**
  * Trigger KaaS demo jobs based on AWS/OS providers with customized test suite, parsed from external sources (gerrit commit/jj vars)
- * Keyword list: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/.git-message-template
+ * Keyword list: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/
  * Used for components team to test component changes w/ customized SI tests/refspecs using kaas/core deployment jobs
  *
  * @param:        component (string) component name [iam, lcm, stacklight]
