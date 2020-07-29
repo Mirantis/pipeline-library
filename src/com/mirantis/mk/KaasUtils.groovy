@@ -234,7 +234,9 @@ def triggerPatchedComponentDemo(component, patchSpec, configurationFile = '.ci-p
         componentFeatureFlags = ciSpec['siTestsFeatureFlags']
     } else {
         common.warningMsg('''Component CI configuration file is not exists,
-            several code-management features may be unavailable, follow *link* to create configuration file''')
+            several code-management features may be unavailable,
+            follow https://mirantis.jira.com/wiki/spaces/QA/pages/2310832276/SI-tests+feature+flags#%5BUpdated%5D-Component-CI
+            to create configuration file''')
     }
 
 
