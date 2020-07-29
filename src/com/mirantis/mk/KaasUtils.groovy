@@ -272,6 +272,16 @@ def triggerPatchedComponentDemo(component, patchSpec, configurationFile = '.ci-p
         }
     }
     if (triggers.awsOnDemandDemoEnabled) {
+        common.infoMsg('AWS demo triggered, need to sync artifacts in the public-ci cdn..')
+        switch (component) {
+            case 'iam':
+                build job: 'cdn-binary-dev-replication-iam', propagate: true, wait: true
+                break
+            case 'lcm':
+                build job: 'cdn-binary-dev-replication-lcm', propagate: true, wait: true
+                break
+        }
+
         jobs["kaas-core-aws-patched-${component}"] = {
             try {
                 common.infoMsg('Deploy: patched KaaS demo with AWS provider')
