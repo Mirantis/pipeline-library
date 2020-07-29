@@ -246,12 +246,12 @@ def triggerPatchedComponentDemo(component, patchSpec, configurationFile = '.ci-p
         string(name: 'SI_TESTS_FEATURE_FLAGS', value: componentFeatureFlags),
         string(name: 'SI_PIPELINES_REFSPEC', value: siRefspec.siPipelines),
         string(name: 'CUSTOM_RELEASE_PATCH_SPEC', value: patchSpec),
-        booleanParam(name: 'UPGRADE_MGMT', value: triggers.upgradeMgmtEnabled),
+        booleanParam(name: 'UPGRADE_MGMT_CLUSTER', value: triggers.upgradeMgmtEnabled),
         booleanParam(name: 'RUN_UI_E2E', value: triggers.runUie2eEnabled),
-        booleanParam(name: 'RUN_MGMT_CONFORMANCE', value: triggers.runMgmtConformanceEnabled),
-        booleanParam(name: 'DEPLOY_CHILD', value: triggers.deployChildEnabled),
-        booleanParam(name: 'UPGRADE_CHILD', value: triggers.upgradeChildEnabled),
-        booleanParam(name: 'RUN_CHILD_CONFORMANCE', value: triggers.runChildConformanceEnabled),
+        booleanParam(name: 'RUN_MGMT_CFM', value: triggers.runMgmtConformanceEnabled),
+        booleanParam(name: 'DEPLOY_CHILD_CLUSTER', value: triggers.deployChildEnabled),
+        booleanParam(name: 'UPGRADE_CHILD_CLUSTER', value: triggers.upgradeChildEnabled),
+        booleanParam(name: 'RUN_CHILD_CFM', value: triggers.runChildConformanceEnabled),
         booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled),
     ]
 
