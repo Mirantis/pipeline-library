@@ -3,6 +3,7 @@
 package com.mirantis.mk
 
 import groovy.json.JsonSlurper
+import groovy.json.JsonOutput
 
 def callREST (String uri, String auth,
               String method = 'GET', String message = null) {
@@ -125,7 +126,7 @@ def cacheLookUp(Map dict, String image_short_name, String image_full_name = '', 
     return found_key
 }
 
-def reportJiraTickets(String reportFileContents, String jiraCredentialsID, String jiraUserID) {
+def reportJiraTickets(String reportFileContents, String jiraCredentialsID, String jiraUserID, String jiraNamespace = 'PRODX') {
 
     def dict = [:]
 
@@ -138,7 +139,7 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
 
     def search_json = """
 {
-    "jql": "reporter = ${jiraUserID} and (labels = cve and labels = security) and (status = 'To Do' or status = 'For Triage' or status = Open or status = 'In Progress')"
+    "jql": "reporter = ${jiraUserID} and (labels = cve and labels = security) and (status = 'To Do' or status = 'For Triage' or status = Open or status = 'In Progress' or status = New)"
 }
 """
 
@@ -185,6 +186,8 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
     imageDict.each{
         image ->
             def image_key = image.key.replaceAll(/(^[a-z0-9-.]+.mirantis.(net|com)\/|:.*$)/, '')
+            // Below change was produced due to other workflow for UCP Docker images (RE-274)
+            if (image_key.startsWith('lcm/docker/ucp-')) { jiraNamespace = 'ENGORC' }
             jira_summary = "[${image_key}] Found CVEs in Docker image"
             jira_description = "${image.key}\\n"
             image.value.each{
@@ -198,32 +201,25 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
 
             def team_assignee = getTeam(image_key)
 
-            def post_issue_json = """
-{
-    "fields": {
-        "project": {
-            "key": "PRODX"
-        },
-        "summary": "${jira_summary}",
-        "description": "${jira_description}",
-        "issuetype": {
-            "name": "Bug"
-        },
-        "labels": [
-            "security",
-            "cve"
-        ],
-        "customfield_19000": {
-            "value": "${team_assignee}"
-        },
-        "versions": [
-            {
-                "name": "Backlog"
+            def issueJSON = new JsonSlurper().parseText('{"fields": {}}')
+
+            issueJSON['fields'] = [
+                key:"${jiraNamespace}",
+                summary:"${jira_summary}",
+                description:"${jira_description}",
+                issuetype:[
+                    name:'BUG'
+                ],
+                labels:[
+                    'security',
+                    'cve'
+                ]
+            ]
+            if (jiraNamespace == 'PRODX') {
+                issueJSON['fields']['customfield_19000'] = [value:"${team_assignee}"]
+                issueJSON['fields']['versions'] = [["name": "Backlog"]]
             }
-        ]
-    }
-}
-"""
+            def post_issue_json = JsonOutput.toJson(issueJSON)
             def post_comment_json = """
 {
     "body": "${jira_description}"
