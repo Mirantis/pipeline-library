@@ -201,9 +201,9 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
 
             def team_assignee = getTeam(image_key)
 
-            def issueJSON = new JsonSlurper().parseText('{"fields": {}}')
+            def basicIssueJSON = new JsonSlurper().parseText('{"fields": {}}')
 
-            issueJSON['fields'] = [
+            basicIssueJSON['fields'] = [
                 key:"${jiraNamespace}",
                 summary:"${jira_summary}",
                 description:"${jira_description}",
@@ -216,10 +216,10 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                 ]
             ]
             if (jiraNamespace == 'PRODX') {
-                issueJSON['fields']['customfield_19000'] = [value:"${team_assignee}"]
-                issueJSON['fields']['versions'] = [["name": "Backlog"]]
+                basicIssueJSON['fields']['customfield_19000'] = [value:"${team_assignee}"]
+                basicIssueJSON['fields']['versions'] = [["name": "Backlog"]]
             }
-            def post_issue_json = JsonOutput.toJson(issueJSON)
+            def post_issue_json = JsonOutput.toJson(basicIssueJSON)
             def post_comment_json = """
 {
     "body": "${jira_description}"
