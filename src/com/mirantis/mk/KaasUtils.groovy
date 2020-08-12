@@ -6,6 +6,29 @@ package com.mirantis.mk
  *
  */
 
+/**
+ * Check KaaS Core CICD feature flags
+ * such triggers can be used in case of switching between pipelines,
+ * conditions inside pipelines to reduce dependency on jenkins job builder and jenkins job templates itself
+ *
+ * @return      (map)[
+ *                    ffNameEnabled: (bool) True/False
+ *                   ]
+ */
+def checkCoreCIFeatureFlags() {
+    def common = new com.mirantis.mk.Common()
+    def ff = [
+        build_artifacts_upgrade: false,
+    ]
+
+    def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
+    if (commitMsg ==~ /(?s).*\[ci-build-artifacts-upgrade\].*/) {
+        ff['build_artifacts_upgrade'] = true
+    }
+
+    common.infoMsg("Core ci feature flags status: ${ff}")
+    return ff
+}
 
 /**
  * Determine scope of test suite against per-commit KaaS deployment based on keywords
@@ -13,7 +36,7 @@ package com.mirantis.mk
  *
  * Used for components team to combine test-suites and forward desired parameters to kaas/core deployment jobs
  * Example scheme:
- * New CR pushed in kubernetes/lcm-ansible -> parsing it's commit body and combine test-suite -> trigger deployment jobs from kaas/core
+ * New CR pushed in kubernetes/lcm-ansible -> parsing it'cs commit body and combine test-suite -> trigger deployment jobs from kaas/core
  * manage test-suite through Jenkins Job Parameters
  *
  * @return      (map)[
