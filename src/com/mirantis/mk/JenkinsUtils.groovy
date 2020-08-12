@@ -235,27 +235,33 @@ def waitForOtherBuilds(LinkedHashMap config){
 /**
  * Check dependency jobs passed successfully
 
- * @param block   (bool) Block child jobs in case of parent dependencies failed
- * @return        (map)[
- *                    status: (bool) True if there are no failed dependencies
- *                    log: (string) Verbose description
- *                   ]
+ * @param block           (bool) Block child jobs in case of parent dependencies failed
+ * @param allowNotBuilt   (bool) Approve not_built status of the dependency job
+ * @return                (map)[
+ *                            status: (bool) True if there are no failed dependencies
+ *                            log: (string) Verbose description
+ *                           ]
  */
-def checkDependencyJobs(block = true) {
+def checkDependencyJobs(block = true, allowNotBuilt = false) {
     def common = new com.mirantis.mk.Common()
+    def acceptedStatuses = ['SUCCESS']
+    if (allowNotBuilt) {
+        acceptedStatuses.add('NOT_BUILT')
+    }
+
     depList = []
     if (env.TRIGGER_DEPENDENCY_KEYS){
         common.infoMsg('Job may depends on parent jobs, check if dependency jobs exist...')
         depKeys = env.TRIGGER_DEPENDENCY_KEYS.toString()
         depList = depKeys.split()
         if (depList){
-            common.infoMsg('Here is dependency jobs-list: ' + depList)
+            common.infoMsg("Here is dependency jobs-list: ${depList} , accepted job statuses are: ${acceptedStatuses}")
             for (String item : depList) {
                 prjName = item.replaceAll('[^a-zA-Z0-9]+', '_')
                 triggerResult = 'TRIGGER_' + prjName.toUpperCase() + '_BUILD_RESULT'
                 triggerJobName = 'TRIGGER_' + prjName.toUpperCase() + '_BUILD_NAME'
                 triggerJobBuild = 'TRIGGER_' + prjName.toUpperCase() + '_BUILD_NUMBER'
-                if (env.getProperty(triggerResult) != 'SUCCESS'){
+                if (!acceptedStatuses.contains(env.getProperty(triggerResult))) {
                     msg = "Dependency job ${env.getProperty(triggerJobName)} #${env.getProperty(triggerJobBuild)} is ${env.getProperty(triggerResult)}"
                     common.warningMsg(msg)
                     if (block){
