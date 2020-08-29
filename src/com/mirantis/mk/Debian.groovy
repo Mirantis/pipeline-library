@@ -268,7 +268,7 @@ def osReboot(env, target, timeout=30, attempts=10) {
     salt.runSaltProcessStep(env, target, 'system.reboot', [], null, true, 5)
 
     common.retry(timeout, attempts) {
-        if (salt.runSaltProcessStep(env, target, 'file.file_exists', ['/tmp/rebooting'], null, true, 5)['return'][0].values()[0].toBoolean()) {
+        if (salt.runSaltProcessStep(env, target, 'cmd.run', ['test -e /tmp/rebooting || echo NOFILE'], null, true, 5)['return'][0].values()[0] != "NOFILE") {
             error("The system is still rebooting...")
         }
     }
