@@ -55,7 +55,10 @@ def checkDeploymentTestSuite() {
     def runMgmtConformance = env.RUN_MGMT_CFM ? env.RUN_MGMT_CFM.toBoolean() : false
     def runChildConformance = env.RUN_CHILD_CFM ? env.RUN_CHILD_CFM.toBoolean() : false
     def fetchServiceBinaries = env.FETCH_BINARIES_FROM_UPSTREAM ? env.FETCH_BINARIES_FROM_UPSTREAM.toBoolean() : false
+
+    // optional demo deployment customization
     def awsOnDemandDemo = env.ALLOW_AWS_ON_DEMAND ? env.ALLOW_AWS_ON_DEMAND.toBoolean() : false
+    def enableOSDemo = true
 
     def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
     if (commitMsg ==~ /(?s).*\[child-deploy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-deploy.*/ || upgradeChild || runChildConformance) {
@@ -83,7 +86,11 @@ def checkDeploymentTestSuite() {
     }
     if (commitMsg ==~ /(?s).*\[aws-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*aws-demo.*/) {
         awsOnDemandDemo = true
-        common.warningMsg('Forced running additional kaas deployment with AWS provider, triggered on patchset using custom keyword: \'aws-demo\' ')
+        common.warningMsg('Forced running additional kaas deployment with AWS provider, triggered on patchset using custom keyword: \'[aws-demo]\' ')
+    }
+    if (commitMsg ==~ /(?s).*\[disable-os-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-os-demo\.*/) {
+        enableOSDemo = false
+        common.errorMsg('Openstack demo deployment will be aborted, VF -1 will be set')
     }
 
     // TODO (vnaumov) remove below condition after moving all releases to UCP
@@ -104,7 +111,8 @@ def checkDeploymentTestSuite() {
         Mgmt cluster release upgrade scheduled: ${upgradeMgmt}
         Mgmt conformance testing scheduled: ${runMgmtConformance}
         Mgmt UI e2e testing scheduled: ${runUie2e}
-        AWS provider additional deployment scheduled: ${awsOnDemandDemo}
+        AWS provider deployment scheduled: ${awsOnDemandDemo}
+        OS provider deployment scheduled: ${enableOSDemo}
         Service binaries fetching scheduled: ${fetchServiceBinaries}
         Triggers: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/""")
     return [
@@ -115,7 +123,8 @@ def checkDeploymentTestSuite() {
         runUie2eEnabled            : runUie2e,
         runMgmtConformanceEnabled  : runMgmtConformance,
         fetchServiceBinariesEnabled: fetchServiceBinaries,
-        awsOnDemandDemoEnabled     : awsOnDemandDemo]
+        awsOnDemandDemoEnabled     : awsOnDemandDemo,
+        osDemoEnabled              : enableOSDemo]
 }
 
 /**
