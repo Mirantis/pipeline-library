@@ -59,6 +59,7 @@ def checkDeploymentTestSuite() {
     // optional demo deployment customization
     def awsOnDemandDemo = env.ALLOW_AWS_ON_DEMAND ? env.ALLOW_AWS_ON_DEMAND.toBoolean() : false
     def enableOSDemo = true
+    def enableBMDemo = true
 
     def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
     if (commitMsg ==~ /(?s).*\[child-deploy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-deploy.*/ || upgradeChild || runChildConformance) {
@@ -93,6 +94,11 @@ def checkDeploymentTestSuite() {
         common.errorMsg('Openstack demo deployment will be aborted, VF -1 will be set')
     }
 
+    if (commitMsg ==~ /(?s).*\[disable-bm-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-bm-demo\.*/) {
+        enableBMDemo = false
+        common.errorMsg('BM demo deployment will be aborted, VF -1 will be set')
+    }
+
     // TODO (vnaumov) remove below condition after moving all releases to UCP
     def ucpChildMatches = (commitMsg =~ /(\[child-ucp\s*ucp-.*?\])/)
     if (ucpChildMatches.size() > 0) {
@@ -113,6 +119,7 @@ def checkDeploymentTestSuite() {
         Mgmt UI e2e testing scheduled: ${runUie2e}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         OS provider deployment scheduled: ${enableOSDemo}
+        BM provider deployment scheduled: ${enableBMDemo}
         Service binaries fetching scheduled: ${fetchServiceBinaries}
         Triggers: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/""")
     return [
@@ -124,6 +131,7 @@ def checkDeploymentTestSuite() {
         runMgmtConformanceEnabled  : runMgmtConformance,
         fetchServiceBinariesEnabled: fetchServiceBinaries,
         awsOnDemandDemoEnabled     : awsOnDemandDemo,
+        bmDemoEnabled              : enableBMDemo,
         osDemoEnabled              : enableOSDemo]
 }
 
