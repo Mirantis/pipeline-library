@@ -55,6 +55,12 @@ def checkDeploymentTestSuite() {
     def runMgmtConformance = env.RUN_MGMT_CFM ? env.RUN_MGMT_CFM.toBoolean() : false
     def runChildConformance = env.RUN_CHILD_CFM ? env.RUN_CHILD_CFM.toBoolean() : false
     def fetchServiceBinaries = env.FETCH_BINARIES_FROM_UPSTREAM ? env.FETCH_BINARIES_FROM_UPSTREAM.toBoolean() : false
+    // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
+    def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
+        enabled: false,
+        managementLocation: '',
+        regionLocation: '',
+    ]
 
     // optional demo deployment customization
     def awsOnDemandDemo = env.ALLOW_AWS_ON_DEMAND ? env.ALLOW_AWS_ON_DEMAND.toBoolean() : false
@@ -110,6 +116,21 @@ def checkDeploymentTestSuite() {
         upgradeChild = false
     }
 
+    // multiregional tests
+    def multiRegionalMatches = (commitMsg =~ /(\[multiregion\s*.*?\])/)
+    if (multiRegionalMatches.size() > 0) {
+        multiregionalMappings = multiregionWorkflowParser(multiRegionalMatches)
+    }
+    switch (multiregionalMappings['managementLocation']) {
+        case 'aws':
+            awsOnDemandDemo = true
+            common.warningMsg('Forced running additional kaas deployment with AWS provider according multiregional demo request')
+        case 'os':
+            if (enableOSDemo == false) {
+                error('incompatible triggers: [disable-os-demo] and multiregional deployment based on OSt management region cannot be applied simultaneously')
+            }
+    }
+
     common.infoMsg("""
         Child cluster deployment scheduled: ${deployChild}
         Child cluster release upgrade scheduled: ${upgradeChild}
@@ -120,6 +141,7 @@ def checkDeploymentTestSuite() {
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         OS provider deployment scheduled: ${enableOSDemo}
         BM provider deployment scheduled: ${enableBMDemo}
+        Multiregional configuration: ${multiregionalMappings}
         Service binaries fetching scheduled: ${fetchServiceBinaries}
         Triggers: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/""")
     return [
@@ -132,7 +154,52 @@ def checkDeploymentTestSuite() {
         fetchServiceBinariesEnabled: fetchServiceBinaries,
         awsOnDemandDemoEnabled     : awsOnDemandDemo,
         bmDemoEnabled              : enableBMDemo,
-        osDemoEnabled              : enableOSDemo]
+        osDemoEnabled              : enableOSDemo,
+        multiregionalConfiguration : multiregionalMappings]
+}
+
+/**
+ * Determine management and regional setup for demo workflow scenario
+ *
+ *
+ * @param:        keyword (string) string , represents keyworkd trigger, specified in gerrit commit body, like `[multiregion aws,os]`
+                                   or Jenkins environment string variable in form like 'aws,os'
+ * @return        (map)[
+                          enabled: (bool),
+ *                        managementLocation: (string), //aws,os
+ *                        regionLocation: (string), //aws,os
+ *                     ]
+ */
+def multiregionWorkflowParser(keyword) {
+    def supportedManagementProviders = ['os', 'aws']
+    def supportedRegionalProviders = ['os']
+
+    def clusterTypes = ''
+    if (keyword.contains('multiregion')) {
+        common.infoMsg('Multiregion definition configured via gerrit keyword trigger')
+        clusterTypes = keyword[0][0].split('multiregion')[1].replaceAll('[\\[\\]]', '').trim().split(',')
+    } else {
+        common.infoMsg('Multiregion definition configured via environment variable')
+        clusterTypes = keyword.trim().split(',')
+    }
+
+    if (clusterTypes.size() != 2) {
+        error('Incorrect regions definiton, valid scheme: [miltiregion ${management}, ${region}]')
+    }
+
+    def desiredManagementProvider = clusterTypes[0]
+    def desiredRegionalProvider = clusterTypes[1]
+    if (! supportedManagementProviders.contains(desiredManagementProvider) || ! supportedRegionalProviders.contains(desiredRegionalProvider)) {
+        error("""unsupported management <-> regional bundle, available options:
+              management providers - ${supportedManagementProviders}
+              regional providers - ${supportedRegionalProviders}""")
+    }
+
+    return [
+        enabled: true,
+        managementLocation: desiredManagementProvider,
+        regionLocation: desiredRegionalProvider,
+    ]
 }
 
 /**
@@ -296,6 +363,12 @@ def triggerPatchedComponentDemo(component, patchSpec, configurationFile = '.ci-p
         booleanParam(name: 'RUN_CHILD_CFM', value: triggers.runChildConformanceEnabled),
         booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled),
     ]
+    // customize multiregional demo
+    if (triggers.multiregionalConfiguration.enabled) {
+        parameters.add(string(name: 'MULTIREGION_SETUP',
+                              value: "${triggers.multiregionalConfiguration.managementLocation},${triggers.multiregionalConfiguration.regionLocation}"
+                              ))
+    }
 
     def jobResults = []
     jobs["kaas-core-openstack-patched-${component}"] = {
