@@ -64,7 +64,8 @@ def setupOpenstackVirtualenv(path, version = 'latest', python="python2") {
         'openstacksdk<0.44.0',
         'python-octaviaclient==1.11.0',
         'python-heatclient==1.18.0',
-        'docutils==0.16'
+        'docutils==0.16',
+        'pyrsistent<0.17.1',
     ]
 
     if (version == 'kilo') {
