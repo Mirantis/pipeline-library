@@ -56,13 +56,11 @@ def checkDeploymentTestSuite() {
     def runChildConformance = env.RUN_CHILD_CFM ? env.RUN_CHILD_CFM.toBoolean() : false
     def fetchServiceBinaries = env.FETCH_BINARIES_FROM_UPSTREAM ? env.FETCH_BINARIES_FROM_UPSTREAM.toBoolean() : false
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
-    /*
     def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
         enabled: false,
         managementLocation: '',
         regionLocation: '',
     ]
-    */
 
     // optional demo deployment customization
     def awsOnDemandDemo = env.ALLOW_AWS_ON_DEMAND ? env.ALLOW_AWS_ON_DEMAND.toBoolean() : false
@@ -119,7 +117,6 @@ def checkDeploymentTestSuite() {
     }
 
     // multiregional tests
-    /*
     def multiRegionalMatches = (commitMsg =~ /(\[multiregion\s*.*?\])/)
     if (multiRegionalMatches.size() > 0) {
         multiregionalMappings = multiregionWorkflowParser(multiRegionalMatches)
@@ -133,7 +130,6 @@ def checkDeploymentTestSuite() {
                 error('incompatible triggers: [disable-os-demo] and multiregional deployment based on OSt management region cannot be applied simultaneously')
             }
     }
-    */
 
     common.infoMsg("""
         Child cluster deployment scheduled: ${deployChild}
@@ -145,6 +141,7 @@ def checkDeploymentTestSuite() {
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         OS provider deployment scheduled: ${enableOSDemo}
         BM provider deployment scheduled: ${enableBMDemo}
+        Multiregional configuration: ${multiregionalMappings}
         Service binaries fetching scheduled: ${fetchServiceBinaries}
         Triggers: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/""")
     return [
@@ -157,7 +154,8 @@ def checkDeploymentTestSuite() {
         fetchServiceBinariesEnabled: fetchServiceBinaries,
         awsOnDemandDemoEnabled     : awsOnDemandDemo,
         bmDemoEnabled              : enableBMDemo,
-        osDemoEnabled              : enableOSDemo]
+        osDemoEnabled              : enableOSDemo,
+        multiregionalConfiguration : multiregionalMappings]
 }
 
 /**
@@ -190,12 +188,12 @@ def multiregionWorkflowParser(keyword) {
         error('Incorrect regions definiton, valid scheme: [miltiregion ${management}, ${region}]')
     }
 
-    def desiredManagementProvider = clusterTypes[0]
-    def desiredRegionalProvider = clusterTypes[1]
+    def desiredManagementProvider = clusterTypes[0].trim()
+    def desiredRegionalProvider = clusterTypes[1].trim()
     if (! supportedManagementProviders.contains(desiredManagementProvider) || ! supportedRegionalProviders.contains(desiredRegionalProvider)) {
         error("""unsupported management <-> regional bundle, available options:
-              management providers - ${supportedManagementProviders}
-              regional providers - ${supportedRegionalProviders}""")
+              management providers list - ${supportedManagementProviders}
+              regional providers list - ${supportedRegionalProviders}""")
     }
 
     return [
