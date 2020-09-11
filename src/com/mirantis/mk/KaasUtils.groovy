@@ -175,7 +175,7 @@ def multiregionWorkflowParser(keyword) {
     def supportedRegionalProviders = ['os']
 
     def clusterTypes = ''
-    if (keyword.contains('multiregion')) {
+    if (keyword.toString().contains('multiregion')) {
         common.infoMsg('Multiregion definition configured via gerrit keyword trigger')
         clusterTypes = keyword[0][0].split('multiregion')[1].replaceAll('[\\[\\]]', '').trim().split(',')
     } else {
