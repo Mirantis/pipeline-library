@@ -171,6 +171,7 @@ def checkDeploymentTestSuite() {
  *                     ]
  */
 def multiregionWorkflowParser(keyword) {
+    def common = new com.mirantis.mk.Common()
     def supportedManagementProviders = ['os', 'aws']
     def supportedRegionalProviders = ['os']
 
