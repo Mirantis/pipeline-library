@@ -125,10 +125,12 @@ def checkDeploymentTestSuite() {
         case 'aws':
             awsOnDemandDemo = true
             common.warningMsg('Forced running additional kaas deployment with AWS provider according multiregional demo request')
+            break
         case 'os':
             if (enableOSDemo == false) {
                 error('incompatible triggers: [disable-os-demo] and multiregional deployment based on OSt management region cannot be applied simultaneously')
             }
+            break
     }
 
     common.infoMsg("""
