@@ -529,7 +529,7 @@ def updateChangeRequest(Map params) {
 
     def changeParams = ['owner': auth['USER'], 'status': status, 'project': project, 'branch': branch, 'topic': topic]
     def gerritChange = gerrit.findGerritChange(creds, auth, changeParams)
-    def changeId
+    def changeId = params.get('changeId', '')
     def commit
     if (gerritChange) {
         def jsonChange = readJSON text: gerritChange
