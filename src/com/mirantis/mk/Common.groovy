@@ -1143,3 +1143,25 @@ def readYaml2(LinkedHashMap kwargs) {
         return readYaml(text: kwargs['text'])
     }
 }
+
+/**
+ * withTempDir runs a block of code inside a new temporary directory.
+ * This temp dir will be removed when finished.
+ * @param: closure Closure - code block to be executed in a tmp directory
+ *
+ * Example:
+ *
+ *     withTempDir {
+ *         sh "pwd"
+ *     }
+ *
+ **/
+void withTempDir(Closure closure) {
+    dir(pwd(tmp: true)) {
+        try {
+            closure()
+        } finally {
+            deleteDir()
+        }
+    }
+}
