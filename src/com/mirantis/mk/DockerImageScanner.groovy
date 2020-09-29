@@ -187,7 +187,11 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
         image ->
             def image_key = image.key.replaceAll(/(^[a-z0-9-.]+.mirantis.(net|com)\/|:.*$)/, '')
             // Below change was produced due to other workflow for UCP Docker images (RE-274)
-            if (image_key.startsWith('lcm/docker/ucp-')) { jiraNamespace = 'ENGORC' }
+            if (image_key.startsWith('lcm/docker/ucp-')) {
+                jiraNamespace = 'ENGORC'
+            } else {
+                jiraNamespace = 'PRODX'
+            }
             jira_summary = "[${image_key}] Found CVEs in Docker image"
             jira_description = "${image.key}\\n"
             image.value.each{
@@ -204,11 +208,13 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
             def basicIssueJSON = new JsonSlurper().parseText('{"fields": {}}')
 
             basicIssueJSON['fields'] = [
-                key:"${jiraNamespace}",
+                project:[
+                    key:"${jiraNamespace}"
+                ],
                 summary:"${jira_summary}",
                 description:"${jira_description}",
                 issuetype:[
-                    name:'BUG'
+                    name:'Bug'
                 ],
                 labels:[
                     'security',
