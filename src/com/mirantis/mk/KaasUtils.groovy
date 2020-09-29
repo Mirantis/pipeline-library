@@ -319,6 +319,27 @@ def checkCustomCoreRefspec() {
 
 
 /**
+ * generate Jenkins Parameter objects from from text parameter with additonal kaas core context
+ * needed to forward inside kaas core set of jobs
+ *
+ * @param           context (string) Representation of the string enviroment variables needed for kaas core jobs in yaml format
+ * @return          (list)[    string(name: '', value: ''),
+ *                       ]
+ */
+def generateKaaSVarsFromContext(context) {
+    def common = new com.mirantis.mk.Common()
+    def parameters = []
+    def config = readYaml text: context
+
+    config.each { k,v ->
+        common.infoMsg("Custom KaaS Core context parameter: ${k}=${v}")
+        parameters.add(string(name: k, value: v))
+    }
+
+    return parameters
+}
+
+/**
  * Trigger KaaS demo jobs based on AWS/OS providers with customized test suite, parsed from external sources (gerrit commit/jj vars)
  * Keyword list: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/
  * Used for components team to test component changes w/ customized SI tests/refspecs using kaas/core deployment jobs
@@ -327,7 +348,7 @@ def checkCustomCoreRefspec() {
  * @param:        patchSpec (string) Patch for kaas/cluster releases in json format
  * @param:        configurationFile (string) Additional file for component repo CI config in yaml format
  */
-def triggerPatchedComponentDemo(component, patchSpec, configurationFile = '.ci-parameters.yaml') {
+def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '.ci-parameters.yaml', coreContext = '') {
     def common = new com.mirantis.mk.Common()
     // Determine if custom trigger keywords forwarded from gerrit
     def triggers = checkDeploymentTestSuite()
@@ -346,11 +367,9 @@ def triggerPatchedComponentDemo(component, patchSpec, configurationFile = '.ci-p
     } else {
         common.warningMsg('''Component CI configuration file is not exists,
             several code-management features may be unavailable,
-            follow https://mirantis.jira.com/wiki/spaces/QA/pages/2310832276/SI-tests+feature+flags#%5BUpdated%5D-Component-CI
-            to create configuration file''')
+            follow https://mirantis.jira.com/wiki/spaces/QA/pages/2310832276/SI-tests+feature+flags#%5BUpdated%5D-Using-a-feature-flag
+            to create the configuration file''')
     }
-
-
     def jobs = [:]
     def parameters = [
         string(name: 'GERRIT_REFSPEC', value: coreRefspec.core),
@@ -369,11 +388,19 @@ def triggerPatchedComponentDemo(component, patchSpec, configurationFile = '.ci-p
         booleanParam(name: 'RUN_CHILD_CFM', value: triggers.runChildConformanceEnabled),
         booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled),
     ]
+
     // customize multiregional demo
     if (triggers.multiregionalConfiguration.enabled) {
         parameters.add(string(name: 'MULTIREGION_SETUP',
                               value: "${triggers.multiregionalConfiguration.managementLocation},${triggers.multiregionalConfiguration.regionLocation}"
                               ))
+    }
+
+    // Determine component team custom context
+    if (coreContext != '') {
+        common.infoMsg('Additional KaaS Core context detected, will be forwarded into kaas core cicd...')
+        def additionalParameters = generateKaaSVarsFromContext(coreContext)
+        parameters.AddAll(additionalParameters)
     }
 
     def jobResults = []
