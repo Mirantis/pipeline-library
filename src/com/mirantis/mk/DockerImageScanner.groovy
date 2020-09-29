@@ -193,13 +193,13 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                 jiraNamespace = 'PRODX'
             }
             jira_summary = "[${image_key}] Found CVEs in Docker image"
-            jira_description = "${image.key}\\n"
+            jira_description = "${image.key}\n"
             image.value.each{
                 pkg ->
-                    jira_description += "__* ${pkg.key}\\n"
+                    jira_description += "__* ${pkg.key}\n"
                     pkg.value.each{
                         cve ->
-                            jira_description += "________${cve}\\n"
+                            jira_description += "________${cve}\n"
                     }
             }
 
