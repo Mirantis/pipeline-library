@@ -400,7 +400,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
     if (coreContext != '') {
         common.infoMsg('Additional KaaS Core context detected, will be forwarded into kaas core cicd...')
         def additionalParameters = generateKaaSVarsFromContext(coreContext)
-        parameters.AddAll(additionalParameters)
+        parameters.addAll(additionalParameters)
     }
 
     def jobResults = []
