@@ -187,7 +187,9 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
         image ->
             def image_key = image.key.replaceAll(/(^[a-z0-9-.]+.mirantis.(net|com)\/|:.*$)/, '')
             // Below change was produced due to other workflow for UCP Docker images (RE-274)
-            if (image_key.startsWith('lcm/docker/ucp-')) {
+            if (image_key.startsWith('lcm/docker/ucp')) {
+                return
+            } else if (image_key.startsWith('mirantis/ucp')) {
                 jiraNamespace = 'ENGORC'
             } else {
                 jiraNamespace = 'PRODX'
