@@ -64,6 +64,7 @@ def checkDeploymentTestSuite() {
 
     // optional demo deployment customization
     def awsOnDemandDemo = env.ALLOW_AWS_ON_DEMAND ? env.ALLOW_AWS_ON_DEMAND.toBoolean() : false
+    def awsOnRhelDemo = false
     def enableOSDemo = true
     def enableBMDemo = true
 
@@ -95,6 +96,12 @@ def checkDeploymentTestSuite() {
         awsOnDemandDemo = true
         common.warningMsg('Forced running additional kaas deployment with AWS provider, triggered on patchset using custom keyword: \'[aws-demo]\' ')
     }
+    if (commitMsg ==~ /(?s).*\[aws-rhel-demo\].*/) {
+        awsOnDemandDemo = false
+        awsOnRhelDemo = true
+        common.warningMsg('Forced running additional kaas deployment with AWS provider on RHEL, triggered on patchset using custom keyword: \'[aws-rhel-demo]\'.' +
+                'Upgrade scenario for Mgmt or Child cluster is not supported currently in such deployment')
+    }
     if (commitMsg ==~ /(?s).*\[disable-os-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-os-demo\.*/) {
         enableOSDemo = false
         common.errorMsg('Openstack demo deployment will be aborted, VF -1 will be set')
@@ -124,6 +131,10 @@ def checkDeploymentTestSuite() {
     switch (multiregionalMappings['managementLocation']) {
         case 'aws':
             awsOnDemandDemo = true
+            if (awsOnRhelDemo) {
+                // Run only one variant: standard AWS deployment (on Ubuntu) or on RHEL
+                awsOnDemandDemo = false
+            }
             common.warningMsg('Forced running additional kaas deployment with AWS provider according multiregional demo request')
             break
         case 'os':
@@ -141,6 +152,7 @@ def checkDeploymentTestSuite() {
         Mgmt conformance testing scheduled: ${runMgmtConformance}
         Mgmt UI e2e testing scheduled: ${runUie2e}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
+        AWS provider on RHEL deployment scheduled: ${awsOnRhelDemo}
         OS provider deployment scheduled: ${enableOSDemo}
         BM provider deployment scheduled: ${enableBMDemo}
         Multiregional configuration: ${multiregionalMappings}
@@ -155,6 +167,7 @@ def checkDeploymentTestSuite() {
         runMgmtConformanceEnabled  : runMgmtConformance,
         fetchServiceBinariesEnabled: fetchServiceBinaries,
         awsOnDemandDemoEnabled     : awsOnDemandDemo,
+        awsOnDemandRhelDemoEnabled : awsOnRhelDemo,
         bmDemoEnabled              : enableBMDemo,
         osDemoEnabled              : enableOSDemo,
         multiregionalConfiguration : multiregionalMappings]
@@ -386,7 +399,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'DEPLOY_CHILD_CLUSTER', value: triggers.deployChildEnabled),
         booleanParam(name: 'UPGRADE_CHILD_CLUSTER', value: triggers.upgradeChildEnabled),
         booleanParam(name: 'RUN_CHILD_CFM', value: triggers.runChildConformanceEnabled),
-        booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled),
+        booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled || triggers.awsOnDemandRhelDemoEnabled),
     ]
 
     // customize multiregional demo
