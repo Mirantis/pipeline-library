@@ -79,6 +79,9 @@ def gitCheckout(LinkedHashMap config) {
   def credentialsId = config.get('credentialsId', '')
   def protocol = config.get('protocol', 'ssh')
   def refspec = config.get('refspec', null)
+  String branch = config.get('branch', 'FETCH_HEAD')
+  Integer depth = config.get('depth', 0)
+  Integer timeout = config.get('timeout', 0)
 
   // default parameters
   def scmExtensions = [
@@ -88,7 +91,7 @@ def gitCheckout(LinkedHashMap config) {
 
   // https://issues.jenkins-ci.org/browse/JENKINS-6856
   if (merge) {
-    scmExtensions.add([$class: 'LocalBranch', localBranch: "${config.branch}"])
+    scmExtensions.add([$class: 'LocalBranch', localBranch: "${branch}"])
   }
 
   // we need wipe workspace before checkout
@@ -96,10 +99,20 @@ def gitCheckout(LinkedHashMap config) {
     scmExtensions.add([$class: 'WipeWorkspace'])
   }
 
+  // optionally limit depth of checkout
+  if (depth) {
+    scmExtensions.add([$class: 'CloneOption', depth: "${depth}", shallow: 'true'])
+  }
+
+  // optionally set timeout
+  if (timeout) {
+    scmExtensions.add([$class: 'CloneOption', timeout: "${timeout}"])
+  }
+
   checkout(
     scm: [
       $class: 'GitSCM',
-      branches: [[name: "${config.branch}"]],
+      branches: [[name: "${branch}"]],
       extensions: scmExtensions,
       userRemoteConfigs: [[
         credentialsId: credentialsId,
