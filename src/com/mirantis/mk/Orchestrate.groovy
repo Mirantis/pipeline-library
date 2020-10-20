@@ -83,6 +83,8 @@ def installFoundationInfraOnTarget(master, target, staticMgmtNet=false, extra_tg
     salt.enforceState([saltId: master, target: "I@salt:master ${extra_tgt}", state: ['reclass'], failOnError: false, read_timeout: 120, retries: 2])
     salt.fullRefresh(master, target)
     salt.enforceState([saltId: master, target: target, state: ['linux.network.proxy'], failOnError: false, read_timeout: 60, retries: 2])
+    // Make sure all repositories are in place before proceeding with package installation from other states
+    salt.enforceState([saltId: master, target: target, state: ['linux.system.repo'], batch: batch, failOnError: false, read_timeout: 180, retries: 2])
     try {
         salt.enforceState([saltId: master, target: target, state: ['salt.minion.base'], failOnError: false, read_timeout: 60, retries: 2])
         sleep(5)
