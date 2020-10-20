@@ -111,6 +111,10 @@ class Lock {
                 throw new TimeoutException("Execution of waitLock timed out after ${this.timeout} seconds")
             }
             common.infoMsg("'${this.name}' is locked. Retry in ${this.retryInterval} seconds")
+            // Reset the cache so it will re-retrieve the file and its content
+            // otherwise it cannot determine that file has been removed on artifactory
+            // in the middle of waiting
+            this.lockFileContentCache = null
             sleep(this.retryInterval*1000)
         }
     }
