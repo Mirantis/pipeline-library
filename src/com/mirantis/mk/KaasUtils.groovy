@@ -65,6 +65,7 @@ def checkDeploymentTestSuite() {
     // optional demo deployment customization
     def awsOnDemandDemo = env.ALLOW_AWS_ON_DEMAND ? env.ALLOW_AWS_ON_DEMAND.toBoolean() : false
     def awsOnRhelDemo = false
+    def vsphereOnDemandDemo = false
     def enableOSDemo = true
     def enableBMDemo = true
 
@@ -101,6 +102,10 @@ def checkDeploymentTestSuite() {
         awsOnRhelDemo = true
         common.warningMsg('Forced running additional kaas deployment with AWS provider on RHEL, triggered on patchset using custom keyword: \'[aws-rhel-demo]\'.' +
                 'Upgrade scenario for Mgmt or Child cluster is not supported currently in such deployment')
+    }
+    if (commitMsg ==~ /(?s).*\[vsphere-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*vsphere-demo.*/) {
+        vsphereOnDemandDemo = true
+        common.warningMsg('Forced running additional kaas deployment with VSPHERE provider, triggered on patchset using custom keyword: \'[vsphere-demo]\' ')
     }
     if (commitMsg ==~ /(?s).*\[disable-os-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-os-demo\.*/) {
         enableOSDemo = false
@@ -153,6 +158,7 @@ def checkDeploymentTestSuite() {
         Mgmt UI e2e testing scheduled: ${runUie2e}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         AWS provider on RHEL deployment scheduled: ${awsOnRhelDemo}
+        VSPHERE provider deployment scheduled: ${vsphereOnDemandDemo}
         OS provider deployment scheduled: ${enableOSDemo}
         BM provider deployment scheduled: ${enableBMDemo}
         Multiregional configuration: ${multiregionalMappings}
@@ -168,6 +174,7 @@ def checkDeploymentTestSuite() {
         fetchServiceBinariesEnabled: fetchServiceBinaries,
         awsOnDemandDemoEnabled     : awsOnDemandDemo,
         awsOnDemandRhelDemoEnabled : awsOnRhelDemo,
+        vsphereOnDemandDemoEnabled : vsphereOnDemandDemo,
         bmDemoEnabled              : enableBMDemo,
         osDemoEnabled              : enableOSDemo,
         multiregionalConfiguration : multiregionalMappings]
@@ -400,6 +407,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'UPGRADE_CHILD_CLUSTER', value: triggers.upgradeChildEnabled),
         booleanParam(name: 'RUN_CHILD_CFM', value: triggers.runChildConformanceEnabled),
         booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled || triggers.awsOnDemandRhelDemoEnabled),
+        booleanParam(name: 'ALLOW_VSPHERE_ON_DEMAND', value: triggers.vsphereOnDemandDemoEnabled),
     ]
 
     // customize multiregional demo
@@ -456,6 +464,23 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
                 }
             } finally {
                 common.infoMsg('Patched KaaS demo with AWS provider finished')
+            }
+        }
+    }
+    if (triggers.vsphereOnDemandDemoEnabled) {
+        jobs["kaas-core-vsphere-patched-${component}"] = {
+            try {
+                common.infoMsg('Deploy: patched KaaS demo with VSPHERE provider')
+                vsphere_job_info = build job: "kaas-testing-core-vsphere-workflow-${component}", parameters: parameters, wait: true
+                def build_description = vsphere_job_info.getDescription()
+                def build_result = vsphere_job_info.getResult()
+                jobResults.add(build_result)
+
+                if (build_description) {
+                    currentBuild.description += build_description
+                }
+            } finally {
+                common.infoMsg('Patched KaaS demo with VSPHERE provider finished')
             }
         }
     }
