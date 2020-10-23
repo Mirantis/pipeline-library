@@ -76,7 +76,7 @@ def installFoundationInfra(master, staticMgmtNet=false, extra_tgt = '', batch=20
     salt.enforceStateWithTest([saltId: master, target: "I@openscap:service ${extra_tgt}", state: 'openscap', batch: batch])
 }
 
-def installFoundationInfraOnTarget(master, target, staticMgmtNet=false, extra_tgt = '') {
+def installFoundationInfraOnTarget(master, target, staticMgmtNet=false, extra_tgt = '', batch=20) {
     def salt = new com.mirantis.mk.Salt()
     def common = new com.mirantis.mk.Common()
 
