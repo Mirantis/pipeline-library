@@ -189,7 +189,7 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
             // Below change was produced due to other workflow for UCP Docker images (RE-274)
             if (image_key.startsWith('lcm/docker/ucp')) {
                 return
-            } else if (image_key.startsWith('mirantis/ucp')) {
+            } else if (image_key.startsWith('mirantis/ucp') || image_key.startsWith('mirantiseng/ucp')) {
                 jiraNamespace = 'ENGORC'
             } else {
                 jiraNamespace = 'PRODX'
