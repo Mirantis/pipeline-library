@@ -10,6 +10,7 @@ class Lock {
 
     private String lockFileContent
     private String lockFileContentCache
+    private Boolean fileNotFound
 
     final private String fileUri
 
@@ -53,8 +54,14 @@ class Lock {
         if (this.lockFileContentCache == null) {
             try {
                 this.lockFileContentCache = artifactoryTools.restCall(this.artObj, this.fileUri, 'GET', null, [:], '')
-            } catch (Exception e) {
+                this.fileNotFound = false // file found
+            } catch (java.io.FileNotFoundException e) {
                 this.lockFileContentCache = ''
+                this.fileNotFound = true // file not found
+            } catch (Exception e) {
+                common.errorMsg(e.message)
+                this.lockFileContentCache = ''
+                this.fileNotFound = null // we don't know about file existence
             }
         }
         return this.lockFileContentCache
@@ -131,7 +138,9 @@ class Lock {
     }
 
     private Boolean isLockFileExist() {
-        return !this.lockFileContent.isEmpty()
+        // If there is something in file's content that it definitly exists
+        // If we don't know about file existence (fileNotFound == null) we assume it exists
+        return !this.lockFileContent.isEmpty() || !this.fileNotFound
     }
 
     private Boolean isLockExpired() {
