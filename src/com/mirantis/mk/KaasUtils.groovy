@@ -207,7 +207,7 @@ def multiregionWorkflowParser(keyword) {
     }
 
     if (clusterTypes.size() != 2) {
-        error('Incorrect regions definiton, valid scheme: [miltiregion ${management}, ${region}]')
+        error("Incorrect regions definiton, valid scheme: [multiregion ${management}, ${region}], got: ${clusterTypes}")
     }
 
     def desiredManagementProvider = clusterTypes[0].trim()
