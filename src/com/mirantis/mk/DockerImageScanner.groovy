@@ -195,13 +195,13 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                 jiraNamespace = 'PRODX'
             }
             jira_summary = "[${image_key}] Found CVEs in Docker image"
-            jira_description = "${image.key}\\n"
+            jira_description = "${image.key}\n"
             image.value.each{
                 pkg ->
-                    jira_description += "__* ${pkg.key}\\n"
+                    jira_description += "__* ${pkg.key}\n"
                     pkg.value.each{
                         cve ->
-                            jira_description += "________${cve}\\n"
+                            jira_description += "________${cve}\n"
                     }
             }
 
@@ -228,9 +228,10 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                 basicIssueJSON['fields']['versions'] = [["name": "Backlog"]]
             }
             def post_issue_json = JsonOutput.toJson(basicIssueJSON)
+            def jira_comment = jira_description.replaceAll(/\n/, '\\\\n')
             def post_comment_json = """
 {
-    "body": "${jira_description}"
+    "body": "${jira_comment}"
 }
 """
             def jira_key = cacheLookUp(dict, image_key, image.key)
