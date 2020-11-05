@@ -65,7 +65,7 @@ def checkDeploymentTestSuite() {
     // optional demo deployment customization
     def awsOnDemandDemo = env.ALLOW_AWS_ON_DEMAND ? env.ALLOW_AWS_ON_DEMAND.toBoolean() : false
     def awsOnRhelDemo = false
-    def vsphereOnDemandDemo = false
+    def vsphereOnDemandDemo = env.ALLOW_VSPHERE_ON_DEMAND ? env.ALLOW_VSPHERE_ON_DEMAND.toBoolean() : false
     def enableOSDemo = true
     def enableBMDemo = true
 
