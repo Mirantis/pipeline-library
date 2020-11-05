@@ -181,8 +181,7 @@ def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth
         commitMessage =
                 """${comment}
 
-               |${ChangeId}
-            """.stripMargin()
+               |${ChangeId}\n""".stripMargin()
 
         // Add some useful info (if it present) to commit message
         if (env.BUILD_URL) {
