@@ -51,6 +51,7 @@ def checkDeploymentTestSuite() {
     def deployChild = env.DEPLOY_CHILD_CLUSTER ? env.DEPLOY_CHILD_CLUSTER.toBoolean() : false
     def upgradeChild = env.UPGRADE_CHILD_CLUSTER ? env.UPGRADE_CHILD_CLUSTER.toBoolean() : false
     def attachBYO = env.ATTACH_BYO ? env.ATTACH_BYO.toBoolean() : false
+    def upgradeBYO = env.UPGRADE_BYO ? env.UPGRADE_BYO.toBoolean() : false
     def upgradeMgmt = env.UPGRADE_MGMT_CLUSTER ? env.UPGRADE_MGMT_CLUSTER.toBoolean() : false
     def runUie2e = env.RUN_UI_E2E ? env.RUN_UI_E2E.toBoolean() : false
     def runMgmtConformance = env.RUN_MGMT_CFM ? env.RUN_MGMT_CFM.toBoolean() : false
@@ -81,8 +82,16 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[byo-attach\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*byo-attach.*/) {
         attachBYO = true
     }
-    if (commitMsg ==~ /(?s).*\[mgmt-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-upgrade.*/) {
+    if (commitMsg ==~ /(?s).*\[byo-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*byo-upgrade.*/) {
+        attachBYO = true
+        upgradeBYO = true
+    }
+    if (commitMsg ==~ /(?s).*\[mgmt-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-upgrade.*/ || upgradeBYO) {
         upgradeMgmt = true
+        if (upgradeBYO) {
+            // TODO (vnaumov) remove such dependency right after we can verify byo upgrade w/o mgmt upgrade
+            common.warningMsg('Forced running kaas mgmt upgrade scenario, due byo demo scenario trigger: \'[byo-upgrade]\' ')
+        }
     }
     if (commitMsg ==~ /(?s).*\[ui-e2e\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-e2e.*/) {
         runUie2e = true
@@ -97,10 +106,10 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[fetch.*binaries\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*fetch.*binaries.*/) {
         fetchServiceBinaries = true
     }
-    if (commitMsg ==~ /(?s).*\[aws-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*aws-demo.*/ || attachBYO) {
+    if (commitMsg ==~ /(?s).*\[aws-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*aws-demo.*/ || attachBYO || upgradeBYO) {
         awsOnDemandDemo = true
-        if (attachBYO) {
-            common.warningMsg('Forced running additional kaas deployment with AWS provider, due byo demo scenario trigger: \'[byo-attach]\' ')
+        if (attachBYO || upgradeBYO) {
+            common.warningMsg('Forced running additional kaas deployment with AWS provider, due byo demo scenario trigger(s): \'[byo-attach] [byo-upgrade]\' ')
         } else {
             common.warningMsg('Forced running additional kaas deployment with AWS provider, triggered on patchset using custom keyword: \'[aws-demo]\' ')
         }
@@ -162,6 +171,7 @@ def checkDeploymentTestSuite() {
         Child cluster release upgrade scheduled: ${upgradeChild}
         Child conformance testing scheduled: ${runChildConformance}
         BYO cluster attachment scheduled: ${attachBYO}
+        Attached BYO cluster upgrade test scheduled: ${upgradeBYO}
         Mgmt cluster release upgrade scheduled: ${upgradeMgmt}
         Mgmt conformance testing scheduled: ${runMgmtConformance}
         Mgmt UI e2e testing scheduled: ${runUie2e}
@@ -178,6 +188,7 @@ def checkDeploymentTestSuite() {
         upgradeChildEnabled        : upgradeChild,
         runChildConformanceEnabled : runChildConformance,
         attachBYOEnabled           : attachBYO,
+        upgradeBYOEnabled          : upgradeBYO,
         upgradeMgmtEnabled         : upgradeMgmt,
         runUie2eEnabled            : runUie2e,
         runMgmtConformanceEnabled  : runMgmtConformance,
@@ -416,6 +427,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'DEPLOY_CHILD_CLUSTER', value: triggers.deployChildEnabled),
         booleanParam(name: 'UPGRADE_CHILD_CLUSTER', value: triggers.upgradeChildEnabled),
         booleanParam(name: 'ATTACH_BYO', value: triggers.attachBYOEnabled),
+        booleanParam(name: 'UPGRADE_BYO', value: triggers.upgradeBYOEnabled),
         booleanParam(name: 'RUN_CHILD_CFM', value: triggers.runChildConformanceEnabled),
         booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled || triggers.awsOnDemandRhelDemoEnabled),
         booleanParam(name: 'ALLOW_VSPHERE_ON_DEMAND', value: triggers.vsphereOnDemandDemoEnabled),
