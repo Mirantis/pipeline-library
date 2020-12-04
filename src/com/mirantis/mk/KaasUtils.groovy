@@ -48,6 +48,7 @@ def checkDeploymentTestSuite() {
     def common = new com.mirantis.mk.Common()
 
     // Available triggers and its sane defaults
+    def seedMacOs = env.SEED_MACOS ? env.SEED_MACOS.toBoolean() : false
     def deployChild = env.DEPLOY_CHILD_CLUSTER ? env.DEPLOY_CHILD_CLUSTER.toBoolean() : false
     def upgradeChild = env.UPGRADE_CHILD_CLUSTER ? env.UPGRADE_CHILD_CLUSTER.toBoolean() : false
     def attachBYO = env.ATTACH_BYO ? env.ATTACH_BYO.toBoolean() : false
@@ -72,6 +73,9 @@ def checkDeploymentTestSuite() {
     def enableBMDemo = true
 
     def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
+    if (commitMsg ==~ /(?s).*\[seed-macos\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*seed-macos.*/) {
+        seedMacOs = true
+    }
     if (commitMsg ==~ /(?s).*\[child-deploy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-deploy.*/ || upgradeChild || runChildConformance) {
         deployChild = true
     }
@@ -106,12 +110,10 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[fetch.*binaries\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*fetch.*binaries.*/) {
         fetchServiceBinaries = true
     }
-    if (commitMsg ==~ /(?s).*\[aws-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*aws-demo.*/ || attachBYO || upgradeBYO) {
+    if (commitMsg ==~ /(?s).*\[aws-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*aws-demo.*/ || attachBYO || upgradeBYO || seedMacOs) {
         awsOnDemandDemo = true
-        if (attachBYO || upgradeBYO) {
-            common.warningMsg('Forced running additional kaas deployment with AWS provider, due byo demo scenario trigger(s): \'[byo-attach] [byo-upgrade]\' ')
-        } else {
-            common.warningMsg('Forced running additional kaas deployment with AWS provider, triggered on patchset using custom keyword: \'[aws-demo]\' ')
+        if (attachBYO || upgradeBYO || seedMacOs) {
+            common.warningMsg('Forced running additional kaas deployment with AWS provider, due applied trigger cross dependencies, follow docs to clarify info')
         }
     }
     if (commitMsg ==~ /(?s).*\[aws-rhel-demo\].*/) {
@@ -167,6 +169,7 @@ def checkDeploymentTestSuite() {
     }
 
     common.infoMsg("""
+        Use MacOS node as seed: ${seedMacOs}
         Child cluster deployment scheduled: ${deployChild}
         Child cluster release upgrade scheduled: ${upgradeChild}
         Child conformance testing scheduled: ${runChildConformance}
@@ -184,6 +187,7 @@ def checkDeploymentTestSuite() {
         Service binaries fetching scheduled: ${fetchServiceBinaries}
         Triggers: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/""")
     return [
+        useMacOsSeedNode           : seedMacOs,
         deployChildEnabled         : deployChild,
         upgradeChildEnabled        : upgradeChild,
         runChildConformanceEnabled : runChildConformance,
@@ -421,6 +425,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         string(name: 'SI_TESTS_DOCKER_IMAGE_TAG', value: siRefspec.siTestsDockerImageTag),
         string(name: 'SI_PIPELINES_REFSPEC', value: siRefspec.siPipelines),
         string(name: 'CUSTOM_RELEASE_PATCH_SPEC', value: patchSpec),
+        booleanParam(name: 'SEED_MACOS', value: triggers.useMacOsSeedNode),
         booleanParam(name: 'UPGRADE_MGMT_CLUSTER', value: triggers.upgradeMgmtEnabled),
         booleanParam(name: 'RUN_UI_E2E', value: triggers.runUie2eEnabled),
         booleanParam(name: 'RUN_MGMT_CFM', value: triggers.runMgmtConformanceEnabled),
