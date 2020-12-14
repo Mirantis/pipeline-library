@@ -31,7 +31,7 @@ def getTeam (String image = '') {
         case ~/^(tungsten|tungsten-operator)\/.*$/:
             team_assignee = 'OpenContrail'
             break
-        case ~/^bm\/.*$/:
+        case ~/^(bm|general)\/.*$/:
             team_assignee = 'BM/OS (KaaS BM)'
             break
         case ~/^openstack\/.*$/:
