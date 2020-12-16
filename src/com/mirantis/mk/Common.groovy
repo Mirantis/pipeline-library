@@ -3,6 +3,8 @@ package com.mirantis.mk
 import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
 
+import groovy.time.TimeCategory
+
 import com.cloudbees.groovy.cps.NonCPS
 import groovy.json.JsonSlurperClassic
 
@@ -22,6 +24,31 @@ import org.jenkinsci.plugins.workflow.cps.EnvActionImpl
 def getDatetime(format = "yyyyMMddHHmmss") {
     def now = new Date();
     return now.format(format, TimeZone.getTimeZone('UTC'));
+}
+
+/**
+ * Return Duration for given datetime period with suffix
+ *
+ * @param input String in format '\d+[smhd]', to convert given number into seconds, minutes, hours
+ *              and days duration respectively. For example: '7d' is for 7 days, '10m' - 10 minutes
+ *              and so on. Return null if input in incorrect format
+ */
+def getDuration(String input) {
+    // Verify input format
+    if (!input.matches('[0-9]+[smhd]')) {
+        errorMsg("Incorrect input data for getDuration(): ${input}")
+        return
+    }
+    switch (input[-1]) {
+        case 's':
+            return TimeCategory.getSeconds(input[0..-2].toInteger())
+        case 'm':
+            return TimeCategory.getMinutes(input[0..-2].toInteger())
+        case 'h':
+            return TimeCategory.getHours(input[0..-2].toInteger())
+        case 'd':
+            return TimeCategory.getDays(input[0..-2].toInteger())
+    }
 }
 
 /**
