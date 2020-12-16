@@ -320,11 +320,13 @@ LinkedHashMap getDependentPatches(LinkedHashMap changeInfo) {
  *                          HOST, PORT and USER
  * @param changeParams      Parameters to identify Geriit change e.g.: owner, topic,
  *                          status, branch, project
+ * @param extraFlags        Additional flags for gerrit querry for example
+ *                          '--current-patch-set' or '--comments' as a simple string
  */
-def findGerritChange(credentialsId, LinkedHashMap gerritAuth, LinkedHashMap changeParams) {
+def findGerritChange(credentialsId, LinkedHashMap gerritAuth, LinkedHashMap changeParams, String extraFlags = '') {
     scriptText = """
                  ssh -p ${gerritAuth['PORT']} ${gerritAuth['USER']}@${gerritAuth['HOST']} \
-                 gerrit query \
+                 gerrit query ${extraFlags} \
                  --format JSON \
                  """
     changeParams.each {
