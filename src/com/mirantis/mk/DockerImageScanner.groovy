@@ -92,7 +92,7 @@ def cacheLookUp(Map dict, String image_short_name, String image_full_name = '', 
     if (!found_key[0] && dict && image_short_name) {
         dict.each { issue_key_name ->
             if (!found_key[0]) {
-                def s = dict[issue_key_name.key]['summary'] =~ /\b${image_short_name}\b/
+                def s = dict[issue_key_name.key]['summary'] =~ /(?<=[\/\[])${image_short_name}(?=\])/
                 if (s) {
                     if (image_full_name) {
                         def d = dict[issue_key_name.key]['description'] =~ /(?m)\b${image_full_name}\b/
