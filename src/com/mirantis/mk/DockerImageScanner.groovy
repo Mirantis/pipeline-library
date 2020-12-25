@@ -157,7 +157,7 @@ def getLatestAffectedVersion(cred, productName, defaultJiraAffectedVersion = 'Ba
     return defaultJiraAffectedVersion
 }
 
-def reportJiraTickets(String reportFileContents, String jiraCredentialsID, String jiraUserID, String jiraNamespace = 'PRODX', String productName = '') {
+def reportJiraTickets(String reportFileContents, String jiraCredentialsID, String jiraUserID, String productName = '', String jiraNamespace = 'PRODX') {
 
     def dict = [:]
 
