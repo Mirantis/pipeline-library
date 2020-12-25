@@ -126,7 +126,38 @@ def cacheLookUp(Map dict, String image_short_name, String image_full_name = '', 
     return found_key
 }
 
-def reportJiraTickets(String reportFileContents, String jiraCredentialsID, String jiraUserID, String jiraNamespace = 'PRODX') {
+def getLatestAffectedVersion(cred, productName, defaultJiraAffectedVersion = 'Backlog') {
+    def filterName = ''
+    if (productName == 'mosk') {
+        filterName = 'MOSK'
+    } else if (productName == 'kaas') {
+        filterName = 'KaaS'
+    } else {
+        return defaultJiraAffectedVersion
+    }
+
+    def search_api_url = "${cred.description}/rest/api/2/issue/createmeta?projectKeys=PRODX&issuetypeNames=Bug&expand=projects.issuetypes.fields"
+    def response = callREST("${search_api_url}", "${cred.username}:${cred.password}", 'GET')
+    def InputJSON = new JsonSlurper().parseText(response["responseText"])
+    def AffectedVersions = InputJSON['projects'][0]['issuetypes'][0]['fields']['versions']['allowedValues']
+
+    def versions = []
+    AffectedVersions.each{
+        if (it.containsKey('released') && it['released']) {
+            if (it.containsKey('name') && it['name'].startsWith(filterName)) {
+                if (it.containsKey('releaseDate') && it['releaseDate']) {
+                    versions.add("${it['releaseDate']}`${it['name']}")
+                }
+            }
+        }
+    }
+    if (versions) {
+        return versions.sort()[-1].split('`')[-1]
+    }
+    return defaultJiraAffectedVersion
+}
+
+def reportJiraTickets(String reportFileContents, String jiraCredentialsID, String jiraUserID, String jiraNamespace = 'PRODX', String productName = '') {
 
     def dict = [:]
 
@@ -223,9 +254,11 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                     'cve'
                 ]
             ]
+            def affectedVersion = ''
             if (jiraNamespace == 'PRODX') {
+                affectedVersion = getLatestAffectedVersion(cred, productName)
                 basicIssueJSON['fields']['customfield_19000'] = [value:"${team_assignee}"]
-                basicIssueJSON['fields']['versions'] = [["name": "Backlog"]]
+                basicIssueJSON['fields']['versions'] = [["name": affectedVersion]]
             }
             def post_issue_json = JsonOutput.toJson(basicIssueJSON)
             def jira_comment = jira_description.replaceAll(/\n/, '\\\\n')
@@ -239,7 +272,7 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                 def post_comment_response = callREST("${uri}/${jira_key[0]}/comment", auth, 'POST', post_comment_json)
                 if ( post_comment_response['responseCode'] == 201 ) {
                     def issueCommentJSON = new JsonSlurper().parseText(post_comment_response["responseText"])
-                    print "\n\nComment was posted to ${jira_key[0]} for ${image_key} and ${image.key}"
+                    print "\n\nComment was posted to ${jira_key[0]} ${affectedVersion} for ${image_key} and ${image.key}"
                 } else {
                     print "\nComment to ${jira_key[0]} Jira issue was not posted"
                 }
@@ -248,7 +281,7 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                 if (post_issue_response['responseCode'] == 201) {
                     def issueJSON = new JsonSlurper().parseText(post_issue_response["responseText"])
                     dict = updateDictionary(issueJSON['key'], dict, uri, auth, jiraUserID)
-                    print "\n\nJira issue was created ${issueJSON['key']} for ${image_key} and ${image.key}"
+                    print "\n\nJira issue was created ${issueJSON['key']} ${affectedVersion} for ${image_key} and ${image.key}"
                 } else {
                     print "\n${image.key} CVE issues were not published\n"
                 }
