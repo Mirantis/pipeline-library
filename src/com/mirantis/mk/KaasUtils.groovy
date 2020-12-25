@@ -69,6 +69,7 @@ def checkDeploymentTestSuite() {
     def awsOnDemandDemo = env.ALLOW_AWS_ON_DEMAND ? env.ALLOW_AWS_ON_DEMAND.toBoolean() : false
     def awsOnRhelDemo = false
     def vsphereOnDemandDemo = env.ALLOW_VSPHERE_ON_DEMAND ? env.ALLOW_VSPHERE_ON_DEMAND.toBoolean() : false
+    def equinixOnAwsDemo = false
     def enableOSDemo = true
     def enableBMDemo = true
 
@@ -110,9 +111,13 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[fetch.*binaries\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*fetch.*binaries.*/) {
         fetchServiceBinaries = true
     }
-    if (commitMsg ==~ /(?s).*\[aws-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*aws-demo.*/ || attachBYO || upgradeBYO || seedMacOs) {
+    if (commitMsg ==~ /(?s).*\[equinix-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*equinix-demo.*/) {
+        equinixOnAwsDemo = true
+        common.warningMsg('Forced running child cluster deployment on EQUINIX METAL provider based on AWS management cluster, triggered on patchset using custom keyword: \'[equinix-demo]\' ')
+    }
+    if (commitMsg ==~ /(?s).*\[aws-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*aws-demo.*/ || attachBYO || upgradeBYO || seedMacOs || equinixOnAwsDemo) {
         awsOnDemandDemo = true
-        if (attachBYO || upgradeBYO || seedMacOs) {
+        if (attachBYO || upgradeBYO || seedMacOs || equinixOnAwsDemo) {
             common.warningMsg('Forced running additional kaas deployment with AWS provider, due applied trigger cross dependencies, follow docs to clarify info')
         }
     }
@@ -181,6 +186,7 @@ def checkDeploymentTestSuite() {
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         AWS provider on RHEL deployment scheduled: ${awsOnRhelDemo}
         VSPHERE provider deployment scheduled: ${vsphereOnDemandDemo}
+        EQUINIX child cluster deployment scheduled: ${equinixOnAwsDemo}
         OS provider deployment scheduled: ${enableOSDemo}
         BM provider deployment scheduled: ${enableBMDemo}
         Multiregional configuration: ${multiregionalMappings}
@@ -200,6 +206,7 @@ def checkDeploymentTestSuite() {
         awsOnDemandDemoEnabled     : awsOnDemandDemo,
         awsOnDemandRhelDemoEnabled : awsOnRhelDemo,
         vsphereOnDemandDemoEnabled : vsphereOnDemandDemo,
+        equinixOnAwsDemoEnabled    : equinixOnAwsDemo,
         bmDemoEnabled              : enableBMDemo,
         osDemoEnabled              : enableOSDemo,
         multiregionalConfiguration : multiregionalMappings]
