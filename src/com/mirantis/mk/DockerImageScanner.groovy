@@ -212,6 +212,11 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
             }
     }
 
+    def affectedVersion = ''
+    if (jiraNamespace == 'PRODX') {
+        affectedVersion = getLatestAffectedVersion(cred, productName)
+    }
+
     def jira_summary = ''
     def jira_description = ''
     imageDict.each{
@@ -254,9 +259,7 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                     'cve'
                 ]
             ]
-            def affectedVersion = ''
             if (jiraNamespace == 'PRODX') {
-                affectedVersion = getLatestAffectedVersion(cred, productName)
                 basicIssueJSON['fields']['customfield_19000'] = [value:"${team_assignee}"]
                 basicIssueJSON['fields']['versions'] = [["name": affectedVersion]]
             }
