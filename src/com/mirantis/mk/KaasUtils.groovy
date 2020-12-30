@@ -173,6 +173,9 @@ def checkDeploymentTestSuite() {
             break
     }
 
+    // calculate weight of current demo run to manage lockable resources
+    def demoWeight = (deployChild) ? 2 : 1 // management = 1, child = 1
+
     common.infoMsg("""
         Use MacOS node as seed: ${seedMacOs}
         Child cluster deployment scheduled: ${deployChild}
@@ -191,6 +194,7 @@ def checkDeploymentTestSuite() {
         BM provider deployment scheduled: ${enableBMDemo}
         Multiregional configuration: ${multiregionalMappings}
         Service binaries fetching scheduled: ${fetchServiceBinaries}
+        Current weight of the demo run: ${demoWeight} (Used to manage lockable resources)
         Triggers: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/""")
     return [
         useMacOsSeedNode           : seedMacOs,
@@ -209,7 +213,8 @@ def checkDeploymentTestSuite() {
         equinixOnAwsDemoEnabled    : equinixOnAwsDemo,
         bmDemoEnabled              : enableBMDemo,
         osDemoEnabled              : enableOSDemo,
-        multiregionalConfiguration : multiregionalMappings]
+        multiregionalConfiguration : multiregionalMappings,
+        demoWeight                 : demoWeight]
 }
 
 /**
