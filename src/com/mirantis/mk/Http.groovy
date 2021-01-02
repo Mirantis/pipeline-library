@@ -55,7 +55,10 @@ def sendHttpRequest(url, method = 'GET', data = null, headers = [:], read_timeou
         response = connection.inputStream.text
         try {
             response_content = new groovy.json.JsonSlurperClassic().parseText(response)
-        } catch (groovy.json.JsonException e) {
+        } catch (groovy.json.JsonException|java.lang.NullPointerException e) {
+            if(env.getEnvironment().containsKey('DEBUG') && env['DEBUG'] == "true"){
+                println("[HTTP] Cought exception while trying parsing response as JSON: ${e}")
+            }
             response_content = response
         }
         if(env.getEnvironment().containsKey('DEBUG') && env['DEBUG'] == "true"){
