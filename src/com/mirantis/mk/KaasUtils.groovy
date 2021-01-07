@@ -159,12 +159,16 @@ def checkDeploymentTestSuite() {
     }
     switch (multiregionalMappings['managementLocation']) {
         case 'aws':
+            common.warningMsg('Forced running additional kaas deployment with AWS provider according multiregional demo request')
             awsOnDemandDemo = true
             if (awsOnRhelDemo) {
                 // Run only one variant: standard AWS deployment (on Ubuntu) or on RHEL
                 awsOnDemandDemo = false
             }
-            common.warningMsg('Forced running additional kaas deployment with AWS provider according multiregional demo request')
+
+            if (multiregionalMappings['regionLocation'] != 'aws' && seedMacOs) { // macstadium seed node has access only to *public* providers
+                error('incompatible triggers: [seed-macos] and multiregional deployment based on *private* regional provider cannot be applied simultaneously')
+            }
             break
         case 'os':
             if (enableOSDemo == false) {
