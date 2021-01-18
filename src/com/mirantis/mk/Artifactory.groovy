@@ -346,7 +346,7 @@ def uploadDebian(art, file, properties, distribution, component, timestamp) {
       "files": [
         {
           "pattern": "${file}",
-          "target": "${art.outRepo}",
+          "target": "artifactory/${art.outRepo}",
           "props": "${props}"
         }
       ]
@@ -477,7 +477,7 @@ def publishArtifactoryHelmChart(art, repoName, chartPattern){
                 "files": [
                    {
                        "pattern": "${chartPattern}",
-                       "target": "${repoName}/"
+                       "target": "artifactory/${repoName}/"
                     }
                 ]
             }"""
