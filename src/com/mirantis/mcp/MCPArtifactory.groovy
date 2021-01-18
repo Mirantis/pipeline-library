@@ -139,14 +139,8 @@ def createDir (String artifactoryURL, String path, String dir) {
  */
 def moveItem (String artifactoryURL, String sourcePath, String dstPath, boolean copy = false, boolean dryRun = false) {
     def url = "${artifactoryURL}/api/${copy ? 'copy' : 'move'}/${sourcePath}?to=/${dstPath}&dry=${dryRun ? '1' : '0'}"
-    withCredentials([
-            [$class          : 'UsernamePasswordMultiBinding',
-             credentialsId   : 'artifactory',
-             passwordVariable: 'ARTIFACTORY_PASSWORD',
-             usernameVariable: 'ARTIFACTORY_LOGIN']
-    ]) {
-        sh "bash -c \"curl -X POST -u ${ARTIFACTORY_LOGIN}:${ARTIFACTORY_PASSWORD} \'${url}\'\""
-    }
+    def http = new com.mirantis.mk.Http()
+    return http.doPost(url, 'artifactory')
 }
 
 /**
