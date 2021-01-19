@@ -516,7 +516,7 @@ def uploadArtifactsToArtifactory(LinkedHashMap config) {
             }"""
 
         artifactoryServer.upload(uploadSpec, newBuildInfo())
-        def linkUrl = "${artifactoryServer.getUrl()}/artifactory/${config.get('artifactoryRepo')}"
+        def linkUrl = "${artifactoryServer.getUrl()}/${config.get('artifactoryRepo')}"
         artifactsDescription = "Job artifacts uploaded to Artifactory: <a href=\"${linkUrl}\">${linkUrl}</a>"
     } catch (Exception e) {
         if (e =~ /no artifacts/) {
