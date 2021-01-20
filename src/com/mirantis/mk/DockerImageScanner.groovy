@@ -136,7 +136,7 @@ def getLatestAffectedVersion(cred, productName, defaultJiraAffectedVersion = 'Ba
         return defaultJiraAffectedVersion
     }
 
-    def search_api_url = "${cred.description}/rest/api/2/issue/createmeta?projectKeys=PRODX&issuetypeNames=Bug&expand=projects.issuetypes.fields"
+    def search_api_url = "${cred.description}/rest/api/2/issue/createmeta?projectKey=PRODX&issuetypeNames=Bug&expand=projects.issuetypes.fields"
     def response = callREST("${search_api_url}", "${cred.username}:${cred.password}", 'GET')
     def InputJSON = new JsonSlurper().parseText(response["responseText"])
     def AffectedVersions = InputJSON['projects'][0]['issuetypes'][0]['fields']['versions']['allowedValues']
