@@ -1187,7 +1187,6 @@ def installCephOsd(master, target="I@ceph:osd", setup=true, extra_tgt = '') {
 def installCephClient(master, extra_tgt = '') {
     def ceph = new com.mirantis.mk.Ceph()
     ceph.installClient(master, extra_tgt)
-    ceph.connectOS(master, extra_tgt)
 }
 
 def connectCeph(master, extra_tgt = '') {
