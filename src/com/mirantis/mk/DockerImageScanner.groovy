@@ -43,7 +43,7 @@ def getTeam (String image = '') {
         case ~/^ceph\/.*$/:
             team_assignee = 'Storage'
             break
-        case ~/^iam\/.*$/:
+        case ~/^(core|iam)\/.*$/:
             team_assignee = 'KaaS'
             break
         case ~/^lcm\/.*$/:
