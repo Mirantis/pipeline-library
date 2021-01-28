@@ -151,14 +151,8 @@ def moveItem (String artifactoryURL, String sourcePath, String dstPath, boolean 
  */
 def deleteItem (String artifactoryURL, String itemPath) {
     def url = "${artifactoryURL}/${itemPath}"
-    withCredentials([
-            [$class          : 'UsernamePasswordMultiBinding',
-             credentialsId   : 'artifactory',
-             passwordVariable: 'ARTIFACTORY_PASSWORD',
-             usernameVariable: 'ARTIFACTORY_LOGIN']
-    ]) {
-        sh "bash -c \"curl -X DELETE -u ${ARTIFACTORY_LOGIN}:${ARTIFACTORY_PASSWORD} \'${url}\'\""
-    }
+    def http = new com.mirantis.mk.Http()
+    return http.doDelete(url, 'artifactory')
 }
 
 /**
