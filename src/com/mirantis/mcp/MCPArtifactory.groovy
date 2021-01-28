@@ -289,6 +289,31 @@ def dockerImageToArtifactoryPath(String image) {
 }
 
 /**
+ * Copy docker image from one url to another
+ *
+ * @param srcImage String, Mirantis URL/path for docker image to copy from
+ * @param dstImage String, Mirantis URL/path for docker image to copy to
+ */
+def copyDockerImage(String srcImage, String dstImage) {
+    def artifactoryServer = Artifactory.server(env.ARTIFACTORY_SERVER ?: 'mcp-ci')
+    String srcPath = dockerImageToArtifactoryPath(srcImage)
+    String dstPath = dockerImageToArtifactoryPath(dstImage)
+
+    return moveItem(artifactoryServer.getUrl(), srcPath, dstPath, true)
+}
+
+/**
+ * Delete docker image on Mirantis's artifactory
+ *
+ * @param image String, Mirantis URL/path for docker image to delete
+ */
+def deleteDockerImage(String image) {
+    def artifactoryServer = Artifactory.server(env.ARTIFACTORY_SERVER ?: 'mcp-ci')
+
+    return deleteItem(artifactoryServer.getUrl() + '/artifactory', dockerImageToArtifactoryPath(image))
+}
+
+/**
  * Upload docker image to Artifactory
  *
  * @param server ArtifactoryServer, the instance of Artifactory server
