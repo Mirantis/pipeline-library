@@ -272,6 +272,23 @@ def getImagesByTag(String artifactoryURL, String repo, String tag) {
 }
 
 /**
+ * Convert Mirantis docker image url/path to Mirantis artifactory path ready for use in API calls
+ *
+ * For example:
+ * 'docker-dev-kaas-local.docker.mirantis.net/mirantis/kaas/si-test:master' -> 'docker-dev-kaas-local/mirantis/kaas/si-test/master'
+ *
+ */
+def dockerImageToArtifactoryPath(String image) {
+    List imageParts = image.tokenize('/')
+    String repoName = imageParts[0].tokenize('.')[0]
+    String namespace = imageParts[1..-2].join('/')
+    String imageName = imageParts[-1].tokenize(':')[0]
+    String imageTag = imageParts[-1].tokenize(':')[1]
+
+    return [repoName, namespace, imageName, imageTag].join('/')
+}
+
+/**
  * Upload docker image to Artifactory
  *
  * @param server ArtifactoryServer, the instance of Artifactory server
