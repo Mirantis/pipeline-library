@@ -277,3 +277,30 @@ def checkDependencyJobs(block = true, allowNotBuilt = false) {
     }
     return [status: true, log: '', jobs: depList]
 }
+
+/**
+ *  Return jenkins infra metadata according to specified jenkins intstance
+
+ * @param jenkinsServerURL  (string) URL to jenkins server in form: env.JENKINS_URL
+ * @return                  (map)[
+ *                              jenkins_service_user: (string) name of jenkins user needed for gerrit ops
+ *                             ]
+ */
+def getJenkinsInfraMetadata(jenkinsServerURL) {
+    def meta = [
+        jenkins_service_user: '',
+    ]
+
+    switch (jenkinsServerURL) {
+        case 'https://ci.mcp.mirantis.net/':
+            meta['jenkins_service_user'] = 'mcp-jenkins'
+            break
+        case 'https://mcc-ci.infra.mirantis.net/':
+            meta['jenkins_service_user'] = 'mcc-ci-jenkins'
+            break
+        default:
+            error("Failed to detect jenkins service user, supported jenkins platforms: 'https://ci.mcp.mirantis.net/' 'https://mcc-ci.infra.mirantis.net/'")
+    }
+
+    return meta
+}
