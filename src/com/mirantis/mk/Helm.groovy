@@ -18,17 +18,22 @@ def helmRepoIndex(extra_params='', charts_dir='.'){
 
 /**
  * Rebuild index file for helm chart repo
- * @param helmRepoUrl  repository with helm charts
- * @param md5Remote    md5 sum of index.yaml for check
+ * @param absHelmRepoUrl if set to true, URLs to charts will be absolute
+ * @param helmRepoUrl    repository with helm charts
+ * @param md5Remote      md5 sum of index.yaml for check
  */
 
-def helmMergeRepoIndex(helmRepoUrl, md5Remote='') {
+def helmMergeRepoIndex(helmRepoUrl, md5Remote='', absHelmRepoUrl=true) {
     def common      = new com.mirantis.mk.Common()
 
     def helmRepoDir    = '.'
-    def helmExtraParams = "--url ${helmRepoUrl}"
+    def helmExtraParams = ''
+    if (absHelmRepoUrl) {
+        helmExtraParams = "--url ${helmRepoUrl}"
+    }
 
     def indexRes = common.shCmdStatus("wget -O index-upstream.yaml ${helmRepoUrl}/index.yaml")
+
     if (indexRes['status']){
         if (indexRes['status'] == 8 && indexRes['stderr'].contains('ERROR 404') && !md5Remote) {
             common.warningMsg("Index.yaml not found in ${helmRepoUrl} and will be fully regenerated")
