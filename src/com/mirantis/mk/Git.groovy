@@ -542,3 +542,35 @@ def updateChangeRequest(Map params) {
     }
     pushForReview(repo, creds, commit, branch, topic)
 }
+
+
+/**
+ * findChangedPathsInCommit searches for paths in the given Git repository (repoPath)
+ * that matches any of pattern provided.
+ * Returns list of matched paths.
+ */
+def findChangedPathsInCommit(String repoPath, List<String> patterns = []) {
+    List<String> fileNames
+
+    if (fileExists("${repoPath}/.git")) {
+        dir(repoPath) {
+            fileNames = (sh(
+                script: "git show --pretty=oneline --name-only | tail -n +2",
+                returnStdout: true
+            )).readLines()
+        }
+    }
+
+    if (patterns) {
+        List<Pattern> compiledPatterns = patterns.collect {
+            Pattern.compile(it.trim())
+        }
+        return fileNames.findAll { fileName ->
+            compiledPatterns.find { pattern ->
+                fileName =~ pattern
+            }
+        }
+    } else {
+        return fileNames
+    }
+}
