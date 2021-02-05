@@ -291,8 +291,8 @@ def removeSalt(master, target) {
 
 def deleteKeyrings(master, target, extra_tgt='') {
     def host = getGrain(master, target, 'host')
-    def keys = cmdRun(master, "ceph auth list | grep $host", false).tokenize('\n')
-    if(keys.empty()) {
+    def keys = cmdRun(master, "ceph auth list 2>/dev/null | grep $host", false).tokenize('\n')
+    if(keys.isEmpty()) {
         new Common().warningMsg("Nothing to do. There is no keyring for $host")
     }
     for(key in keys) {
