@@ -65,6 +65,11 @@ def checkDeploymentTestSuite() {
         regionLocation: '',
     ]
 
+    // proxy customization
+    def proxyConfig = [
+        mgmtOffline: env.OFFLINE_MGMT_CLUSTER ? env.OFFLINE_MGMT_CLUSTER.toBoolean() : false, // TODO(vnaumov) add additonal vars for regional/child cluster ops
+    ]
+
     // optional demo deployment customization
     def awsOnDemandDemo = env.ALLOW_AWS_ON_DEMAND ? env.ALLOW_AWS_ON_DEMAND.toBoolean() : false
     def awsOnRhelDemo = false
@@ -74,6 +79,10 @@ def checkDeploymentTestSuite() {
     def enableBMDemo = true
 
     def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
+    if (commitMsg ==~ /(?s).*\[mgmt-proxy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-proxy.*/) {
+        proxyConfig['mgmtOffline'] = true
+        common.warningMsg('Forced running offline mgmt deployment, all provider CDN regions for mgmt deployment will be set to *public-ci* to verify proxy configuration')
+    }
     if (commitMsg ==~ /(?s).*\[seed-macos\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*seed-macos.*/) {
         seedMacOs = true
     }
@@ -177,10 +186,21 @@ def checkDeploymentTestSuite() {
             break
     }
 
+    // CDN configuration
+    def cdnConfig = [
+        mgmt: [
+            openstack:  (proxyConfig['mgmtOffline'] == true) ? 'public-ci' : 'internal-ci',
+            vsphere:  (proxyConfig['mgmtOffline'] == true) ? 'public-ci' : 'internal-ci',
+            aws: 'public-ci',
+        ], // TODO(vnaumov) add additonal vars for regional cluster cdn ops
+    ]
+
     // calculate weight of current demo run to manage lockable resources
     def demoWeight = (deployChild) ? 2 : 1 // management = 1, child = 1
 
     common.infoMsg("""
+        CDN deployment configuration: ${cdnConfig}
+        MCC offline deployment configuration: ${proxyConfig}
         Use MacOS node as seed: ${seedMacOs}
         Child cluster deployment scheduled: ${deployChild}
         Child cluster release upgrade scheduled: ${upgradeChild}
@@ -201,6 +221,8 @@ def checkDeploymentTestSuite() {
         Current weight of the demo run: ${demoWeight} (Used to manage lockable resources)
         Triggers: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/""")
     return [
+        cdnConfig                  : cdnConfig,
+        proxyConfig                : proxyConfig,
         useMacOsSeedNode           : seedMacOs,
         deployChildEnabled         : deployChild,
         upgradeChildEnabled        : upgradeChild,
@@ -441,6 +463,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         string(name: 'SI_TESTS_DOCKER_IMAGE_TAG', value: siRefspec.siTestsDockerImageTag),
         string(name: 'SI_PIPELINES_REFSPEC', value: siRefspec.siPipelines),
         string(name: 'CUSTOM_RELEASE_PATCH_SPEC', value: patchSpec),
+        booleanParam(name: 'OFFLINE_MGMT_CLUSTER', value: triggers.proxyConfig['mgmtOffline']),
         booleanParam(name: 'SEED_MACOS', value: triggers.useMacOsSeedNode),
         booleanParam(name: 'UPGRADE_MGMT_CLUSTER', value: triggers.upgradeMgmtEnabled),
         booleanParam(name: 'RUN_UI_E2E', value: triggers.runUie2eEnabled),
