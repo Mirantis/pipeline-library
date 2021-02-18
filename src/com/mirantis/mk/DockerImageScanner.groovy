@@ -227,6 +227,8 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                 return
             } else if (image_key.startsWith('mirantis/ucp') || image_key.startsWith('mirantiseng/ucp')) {
                 jiraNamespace = 'ENGORC'
+            } else if (image_key.startsWith('mirantis/dtr') || image_key.startsWith('mirantiseng/dtr')) {
+                jiraNamespace = 'ENGDTR'
             } else {
                 jiraNamespace = 'PRODX'
             }
