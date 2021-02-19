@@ -1,9 +1,10 @@
 import org.jfrog.hudson.pipeline.common.types.ArtifactoryServer
 import java.util.concurrent.TimeoutException
+import groovy.time.TimeCategory
 
 class Lock {
     String  name, id, path
-    Integer retryInterval, timeout, expiration
+    String retryInterval, timeout, expiration
     Boolean force
     Map lockExtraMetadata
     ArtifactoryServer artifactoryServer
@@ -24,13 +25,13 @@ class Lock {
         this.artifactoryServer = args.artifactoryServer
 
         // Defaults
-        this.id = args.get('id', '')
-        this.path = args.get('path', 'binary-dev-local/locks')
-        this.retryInterval = args.get('retryInterval', 5*60)
-        this.timeout = args.get('timeout', 3*60*60)
-        this.expiration = args.get('expiration', 24*60*60)
-        this.force = args.get('force', false)
-        this.lockExtraMetadata = args.get('lockExtraMetadata', [:])
+        this.id = args.getOrDefault('id', '')
+        this.path = args.getOrDefault('path', 'binary-dev-local/locks')
+        this.retryInterval = args.getOrDefault('retryInterval', '5m')
+        this.timeout = args.getOrDefault('timeout', '3h')
+        this.expiration = args.getOrDefault('expiration', '24h')
+        this.force = args.getOrDefault('force', false)
+        this.lockExtraMetadata = args.getOrDefault('lockExtraMetadata', [:])
 
         // Internal
         this.fileUri = "/${path}/${name}.yaml".toLowerCase()
@@ -84,7 +85,7 @@ class Lock {
         }
 
         Map lockMeta = common.readYaml2(text: this.lockFileContent ?: '{}')
-        if (this.force || (this.id && this.id == lockMeta.get('lockID', ''))) {
+        if (this.force || (this.id && this.id == lockMeta.getOrDefault('lockID', ''))) {
             artifactoryTools.restCall(this.artObj, this.fileUri, 'DELETE', null, [:], '')
             common.infoMsg("Lock file '${this.artObj['url']}${this.fileUri}' has been removed")
         } else {
@@ -95,14 +96,12 @@ class Lock {
     private void createLockFile() {
         this.id = UUID.randomUUID().toString()
 
-        Calendar now = Calendar.getInstance()
-        Calendar expiredAt = now.clone()
-        expiredAt.add(Calendar.SECOND, this.expiration)
-
+        Date now = new Date()
+        Date expiredAt = TimeCategory.plus(now, common.getDuration(this.expiration))
         Map lockMeta = [
             'lockID': this.id,
-            'createdAt': now.getTime().toString(),
-            'expiredAt': expiredAt.getTime().toString(),
+            'createdAt': now.toString(),
+            'expiredAt': expiredAt.toString(),
         ]
         lockMeta.putAll(this.lockExtraMetadata)
 
@@ -113,16 +112,18 @@ class Lock {
 
     private void waitLockReleased() {
         Long startTime = System.currentTimeMillis()
+        Long timeoutMillis = common.getDuration(this.timeout).toMilliseconds()
+        Long retryIntervalMillis = common.getDuration(this.retryInterval).toMilliseconds()
         while (isLocked()) {
-            if (System.currentTimeMillis() - startTime >= timeout*1000 ) {
-                throw new TimeoutException("Execution of waitLock timed out after ${this.timeout} seconds")
+            if (System.currentTimeMillis() - startTime >= timeoutMillis) {
+                throw new TimeoutException("Execution of waitLock timed out after ${this.timeout}")
             }
-            common.infoMsg("'${this.name}' is locked. Retry in ${this.retryInterval} seconds")
+            common.infoMsg("'${this.name}' is locked. Retry in ${this.retryInterval}")
             // Reset the cache so it will re-retrieve the file and its content
             // otherwise it cannot determine that file has been removed on artifactory
             // in the middle of waiting
             this.lockFileContentCache = null
-            sleep(this.retryInterval*1000)
+            sleep(retryIntervalMillis)
         }
     }
 
@@ -148,7 +149,7 @@ class Lock {
             return true
         }
         Map lockMeta = common.readYaml2(text: this.lockFileContent ?: '{}')
-        Date expirationTime = new Date(lockMeta.get('expiredAt', '01/01/1970'))
+        Date expirationTime = new Date(lockMeta.getOrDefault('expiredAt', '01/01/1970'))
         Date currentTime = new Date()
         return currentTime.after(expirationTime)
     }
