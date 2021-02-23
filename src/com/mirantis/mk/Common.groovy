@@ -1192,3 +1192,22 @@ void withTempDir(Closure closure) {
         }
     }
 }
+
+/**
+ * Save metadata about results in yaml formatted file
+ * @param success (boolean) answer the question "was it success or not?"
+ * @param code (string) some generalized code to determine error
+ * @param msg (string) user-friendly message about what's happend (error?)
+ * @param extraMeta (map) additional data can be added to resulted yaml file trhoug this map
+ * @param dstFile (string) name of yaml file to store the data
+*/
+def saveMetaResult(Boolean success, String code, String msg, Map extraMeta = [:], String dstFile = 'result.yaml') {
+    Map result = extraMeta.clone()
+    result.putAll([
+        'success': success,
+        'code': code,
+        'message': msg,
+    ])
+    writeYaml file: dstFile, data: result, overwrite: true
+    archiveArtifacts artifacts: dstFile
+}
