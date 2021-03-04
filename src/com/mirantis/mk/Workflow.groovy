@@ -269,7 +269,8 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
 
             // Check job result, in case of SUCCESS, move to next step.
             // In case job has status NOT_BUILT, fail the build or keep going depending on 'ignore_not_built' flag
-            // In other cases check flag ignore_failed, if true ignore any statuses and keep going.
+            // In other cases check flag ignore_failed, if true ignore any statuses and keep going additionally
+            // if skip_results is not set or set to false fail entrie workflow, otherwise succed.
             if (job_result != 'SUCCESS'){
                 def ignoreStepResult = false
                 switch(job_result) {
@@ -280,7 +281,9 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
                         break;
                     default:
                         ignoreStepResult = step['ignore_failed'] ?: false
-                        failed_jobs[build_url] = job_result
+                        if (ignoreStepResult && !step['skip_results'] ?: false) {
+                            failed_jobs[build_url] = job_result
+                        }
                 }
                 if (!ignoreStepResult) {
                     currentBuild.result = job_result
@@ -360,6 +363,7 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
  *
  *   job: string. Jenkins job name
  *   ignore_failed: bool. if true, keep running the workflow jobs if the job is failed, but fail the workflow at finish
+ *   skip_results: bool. if true, keep running the workflow jobs if the job is failed, but do not fail the workflow at finish. Makes sense only when ignore_failed is set.
  *   ignore_not_built: bool. if true, keep running the workflow jobs if the job set own status to NOT_BUILT, do not fail the workflow at finish for such jobs
  *   inherit_parent_params: bool. if true, provide all parameters from the parent job to the child job as defaults
  *   parameters: dict. parameters name and type to inherit from parent to child job, or from artifact to child job
