@@ -100,12 +100,8 @@ def checkDeploymentTestSuite() {
         attachBYO = true
         upgradeBYO = true
     }
-    if (commitMsg ==~ /(?s).*\[mgmt-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-upgrade.*/ || upgradeBYO) {
+    if (commitMsg ==~ /(?s).*\[mgmt-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-upgrade.*/) {
         upgradeMgmt = true
-        if (upgradeBYO) {
-            // TODO (vnaumov) remove such dependency right after we can verify byo upgrade w/o mgmt upgrade
-            common.warningMsg('Forced running kaas mgmt upgrade scenario, due byo demo scenario trigger: \'[byo-upgrade]\' ')
-        }
     }
     if (commitMsg ==~ /(?s).*\[ui-e2e\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-e2e.*/) {
         runUie2e = true
