@@ -32,7 +32,7 @@ def checkCoreCIFeatureFlags() {
 
 /**
  * Determine scope of test suite against per-commit KaaS deployment based on keywords
- * Keyword list: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/
+ * Keyword list: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md
  *
  * Used for components team to combine test-suites and forward desired parameters to kaas/core deployment jobs
  * Example scheme:
@@ -215,7 +215,7 @@ def checkDeploymentTestSuite() {
         Multiregional configuration: ${multiregionalMappings}
         Service binaries fetching scheduled: ${fetchServiceBinaries}
         Current weight of the demo run: ${demoWeight} (Used to manage lockable resources)
-        Triggers: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/""")
+        Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [
         cdnConfig                  : cdnConfig,
         proxyConfig                : proxyConfig,
@@ -287,7 +287,7 @@ def multiregionWorkflowParser(keyword) {
 /**
  * Determine if custom si tests/pipelines refspec forwarded from gerrit change request
 
- * Keyword list: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/
+ * Keyword list: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md
  * Used for components team to test component changes w/ custom SI refspecs using kaas/core deployment jobs
  * Example scheme:
  * New CR pushed in kubernetes/lcm-ansible -> parsing it's commit body and get custom test refspecs -> trigger deployment jobs from kaas/core
@@ -323,7 +323,7 @@ def checkCustomSIRefspec() {
         kaas/si-pipelines will be fetched from: ${siPipelinesRefspec}
         kaas/si-tests will be fetched from: ${siTestsRefspec}
         kaas/si-tests as dockerImage will be fetched from: ${siTestsDockerImage}:${siTestsDockerImageTag}
-        Keywords: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/""")
+        Keywords: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [siTests: siTestsRefspec, siPipelines: siPipelinesRefspec, siTestsDockerImage: siTestsDockerImage, siTestsDockerImageTag: siTestsDockerImageTag]
 }
 
@@ -360,7 +360,7 @@ def parseKaaSComponentCIParameters(configurationFile){
 /**
  * Determine if custom kaas core/pipelines refspec forwarded from gerrit change request
 
- * Keyword list: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/
+ * Keyword list: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md
  * Used for components team to test component changes w/ custom Core refspecs using kaas/core deployment jobs
  * Example scheme:
  * New CR pushed in kubernetes/lcm-ansible -> parsing it's commit body and get custom test refspecs -> trigger deployment jobs from kaas/core
@@ -392,7 +392,7 @@ def checkCustomCoreRefspec() {
     common.infoMsg("""
         kaas/core will be fetched from: ${coreRefspec}
         kaas/core pipelines will be fetched from: ${corePipelinesRefspec}
-        Keywords: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/""")
+        Keywords: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [core: coreRefspec, corePipelines: corePipelinesRefspec]
 }
 
@@ -420,7 +420,7 @@ def generateKaaSVarsFromContext(context) {
 
 /**
  * Trigger KaaS demo jobs based on AWS/OS providers with customized test suite, parsed from external sources (gerrit commit/jj vars)
- * Keyword list: https://docs.google.com/document/d/1SSPD8ZdljbqmNl_FEAvTHUTow9Ki8NIMu82IcAVhzXw/
+ * Keyword list: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md
  * Used for components team to test component changes w/ customized SI tests/refspecs using kaas/core deployment jobs
  *
  * @param:        component (string) component name [iam, lcm, stacklight]
