@@ -487,7 +487,6 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         parameters.addAll(additionalParameters)
     }
 
-    def jobs = [:]
     def jobResults = []
     if (triggers.osDemoEnabled) {
         jobs["kaas-core-openstack-patched-${component}"] = {
