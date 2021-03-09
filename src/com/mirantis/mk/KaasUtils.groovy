@@ -487,20 +487,23 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         parameters.addAll(additionalParameters)
     }
 
+    def jobs = [:]
     def jobResults = []
-    jobs["kaas-core-openstack-patched-${component}"] = {
-        try {
-            common.infoMsg('Deploy: patched KaaS demo with Openstack provider')
-            os_job_info = build job: "kaas-testing-core-openstack-workflow-${component}", parameters: parameters, wait: true
-            def build_description = os_job_info.getDescription()
-            def build_result = os_job_info.getResult()
-            jobResults.add(build_result)
+    if (triggers.osDemoEnabled) {
+        jobs["kaas-core-openstack-patched-${component}"] = {
+            try {
+                common.infoMsg('Deploy: patched KaaS demo with Openstack provider')
+                os_job_info = build job: "kaas-testing-core-openstack-workflow-${component}", parameters: parameters, wait: true
+                def build_description = os_job_info.getDescription()
+                def build_result = os_job_info.getResult()
+                jobResults.add(build_result)
 
-            if (build_description) {
-                currentBuild.description += build_description
+                if (build_description) {
+                    currentBuild.description += build_description
+                }
+            } finally {
+                common.infoMsg('Patched KaaS demo with Openstack provider finished')
             }
-        } finally {
-            common.infoMsg('Patched KaaS demo with Openstack provider finished')
         }
     }
     if (triggers.awsOnDemandDemoEnabled) {
@@ -549,6 +552,9 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
     }
 
     common.infoMsg('Trigger KaaS demo deployments according to defined provider set')
+    if (jobs.size() == 0) {
+        error('No demo jobs matched with keywords, execution will be aborted, at least 1 provider should be enabled')
+    }
     // Limit build concurency workaround examples: https://issues.jenkins-ci.org/browse/JENKINS-44085
     parallel jobs
 
