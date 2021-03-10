@@ -267,7 +267,7 @@ def removeVm(master, target) {
         cmdRunOnTarget(master, hypervisor, "virsh undefine $fqdn")
     }
     else {
-        common.ErrorMsg("There is no provider in pillar for $hostname")
+        common.errorMsg("There is no provider in pillar for $hostname")
     }
 }
 
