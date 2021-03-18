@@ -72,8 +72,8 @@ def checkDeploymentTestSuite() {
 
     // optional demo deployment customization
     def awsOnDemandDemo = env.ALLOW_AWS_ON_DEMAND ? env.ALLOW_AWS_ON_DEMAND.toBoolean() : false
-    def vsphereOnDemandDemo = env.ALLOW_VSPHERE_ON_DEMAND ? env.ALLOW_VSPHERE_ON_DEMAND.toBoolean() : false
     def equinixOnAwsDemo = env.EQUNIX_ON_AWS_DEMO ? env.EQUNIX_ON_AWS_DEMO.toBoolean() : false
+    def enableVsphereDemo = true
     def enableOSDemo = true
     def enableBMDemo = true
 
@@ -125,10 +125,6 @@ def checkDeploymentTestSuite() {
             common.warningMsg('Forced running additional kaas deployment with AWS provider, due applied trigger cross dependencies, follow docs to clarify info')
         }
     }
-    if (commitMsg ==~ /(?s).*\[vsphere-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*vsphere-demo.*/) {
-        vsphereOnDemandDemo = true
-        common.warningMsg('Forced running additional kaas deployment with VSPHERE provider, triggered on patchset using custom keyword: \'[vsphere-demo]\' ')
-    }
     if (commitMsg ==~ /(?s).*\[disable-os-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-os-demo\.*/) {
         enableOSDemo = false
         common.errorMsg('Openstack demo deployment will be aborted, VF -1 will be set')
@@ -137,6 +133,11 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[disable-bm-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-bm-demo\.*/) {
         enableBMDemo = false
         common.errorMsg('BM demo deployment will be aborted, VF -1 will be set')
+    }
+
+    if (commitMsg ==~ /(?s).*\[disable-vsphere-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-vsphere-demo\.*/) {
+        enableVsphereDemo = false
+        common.errorMsg('vSphere demo deployment will be aborted, VF -1 will be set')
     }
 
     // TODO (vnaumov) remove below condition after moving all releases to UCP
@@ -196,7 +197,7 @@ def checkDeploymentTestSuite() {
         Mgmt conformance testing scheduled: ${runMgmtConformance}
         Mgmt UI e2e testing scheduled: ${runUie2e}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
-        VSPHERE provider deployment scheduled: ${vsphereOnDemandDemo}
+        VSPHERE provider deployment scheduled: ${enableVsphereDemo}
         EQUINIX child cluster deployment scheduled: ${equinixOnAwsDemo}
         OS provider deployment scheduled: ${enableOSDemo}
         BM provider deployment scheduled: ${enableBMDemo}
@@ -218,7 +219,8 @@ def checkDeploymentTestSuite() {
         runMgmtConformanceEnabled  : runMgmtConformance,
         fetchServiceBinariesEnabled: fetchServiceBinaries,
         awsOnDemandDemoEnabled     : awsOnDemandDemo,
-        vsphereOnDemandDemoEnabled : vsphereOnDemandDemo,
+        vsphereDemoEnabled         : enableVsphereDemo,
+        vsphereOnDemandDemoEnabled : enableVsphereDemo, // TODO: remove after MCC 2.7 is out
         equinixOnAwsDemoEnabled    : equinixOnAwsDemo,
         bmDemoEnabled              : enableBMDemo,
         osDemoEnabled              : enableOSDemo,
@@ -457,7 +459,6 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'UPGRADE_BYO', value: triggers.upgradeBYOEnabled),
         booleanParam(name: 'RUN_CHILD_CFM', value: triggers.runChildConformanceEnabled),
         booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled),
-        booleanParam(name: 'ALLOW_VSPHERE_ON_DEMAND', value: triggers.vsphereOnDemandDemoEnabled),
         booleanParam(name: 'EQUINIX_ON_AWS_DEMO', value: triggers.equinixOnAwsDemoEnabled),
     ]
 
@@ -520,7 +521,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
             }
         }
     }
-    if (triggers.vsphereOnDemandDemoEnabled) {
+    if (triggers.vsphereDemoEnabled) {
         jobs["kaas-core-vsphere-patched-${component}"] = {
             try {
                 common.infoMsg('Deploy: patched KaaS demo with VSPHERE provider')
