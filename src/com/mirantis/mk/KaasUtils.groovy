@@ -72,7 +72,6 @@ def checkDeploymentTestSuite() {
 
     // optional demo deployment customization
     def awsOnDemandDemo = env.ALLOW_AWS_ON_DEMAND ? env.ALLOW_AWS_ON_DEMAND.toBoolean() : false
-    def awsOnRhelDemo = false
     def vsphereOnDemandDemo = env.ALLOW_VSPHERE_ON_DEMAND ? env.ALLOW_VSPHERE_ON_DEMAND.toBoolean() : false
     def equinixOnAwsDemo = false
     def enableOSDemo = true
@@ -126,12 +125,6 @@ def checkDeploymentTestSuite() {
             common.warningMsg('Forced running additional kaas deployment with AWS provider, due applied trigger cross dependencies, follow docs to clarify info')
         }
     }
-    if (commitMsg ==~ /(?s).*\[aws-rhel-demo\].*/) {
-        awsOnDemandDemo = false
-        awsOnRhelDemo = true
-        common.warningMsg('Forced running additional kaas deployment with AWS provider on RHEL, triggered on patchset using custom keyword: \'[aws-rhel-demo]\'.' +
-                'Upgrade scenario for Mgmt or Child cluster is not supported currently in such deployment')
-    }
     if (commitMsg ==~ /(?s).*\[vsphere-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*vsphere-demo.*/) {
         vsphereOnDemandDemo = true
         common.warningMsg('Forced running additional kaas deployment with VSPHERE provider, triggered on patchset using custom keyword: \'[vsphere-demo]\' ')
@@ -166,10 +159,6 @@ def checkDeploymentTestSuite() {
         case 'aws':
             common.warningMsg('Forced running additional kaas deployment with AWS provider according multiregional demo request')
             awsOnDemandDemo = true
-            if (awsOnRhelDemo) {
-                // Run only one variant: standard AWS deployment (on Ubuntu) or on RHEL
-                awsOnDemandDemo = false
-            }
 
             if (multiregionalMappings['regionLocation'] != 'aws' && seedMacOs) { // macstadium seed node has access only to *public* providers
                 error('incompatible triggers: [seed-macos] and multiregional deployment based on *private* regional provider cannot be applied simultaneously')
@@ -207,7 +196,6 @@ def checkDeploymentTestSuite() {
         Mgmt conformance testing scheduled: ${runMgmtConformance}
         Mgmt UI e2e testing scheduled: ${runUie2e}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
-        AWS provider on RHEL deployment scheduled: ${awsOnRhelDemo}
         VSPHERE provider deployment scheduled: ${vsphereOnDemandDemo}
         EQUINIX child cluster deployment scheduled: ${equinixOnAwsDemo}
         OS provider deployment scheduled: ${enableOSDemo}
@@ -230,7 +218,6 @@ def checkDeploymentTestSuite() {
         runMgmtConformanceEnabled  : runMgmtConformance,
         fetchServiceBinariesEnabled: fetchServiceBinaries,
         awsOnDemandDemoEnabled     : awsOnDemandDemo,
-        awsOnDemandRhelDemoEnabled : awsOnRhelDemo,
         vsphereOnDemandDemoEnabled : vsphereOnDemandDemo,
         equinixOnAwsDemoEnabled    : equinixOnAwsDemo,
         bmDemoEnabled              : enableBMDemo,
@@ -469,7 +456,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'ATTACH_BYO', value: triggers.attachBYOEnabled),
         booleanParam(name: 'UPGRADE_BYO', value: triggers.upgradeBYOEnabled),
         booleanParam(name: 'RUN_CHILD_CFM', value: triggers.runChildConformanceEnabled),
-        booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled || triggers.awsOnDemandRhelDemoEnabled),
+        booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled),
         booleanParam(name: 'ALLOW_VSPHERE_ON_DEMAND', value: triggers.vsphereOnDemandDemoEnabled),
     ]
 
