@@ -312,7 +312,7 @@ def checkCustomSIRefspec() {
 
     if (siTestMatches.size() > 0) {
         siTestsRefspec = siTestMatches[0][0].split('si-tests-ref')[1].replaceAll('[\\[\\]]', '').trim()
-        siTestsDockerImage = "docker-dev-local.docker.mirantis.net/review/kaas-si-test-${siTestsRefspec.split('/')[-2]}"
+        siTestsDockerImage = "docker-review-local.docker.mirantis.net/review/kaas-si-test-${siTestsRefspec.split('/')[-2]}"
         siTestsDockerImageTag = siTestsRefspec.split('/')[-1]
     }
     if (siPipelinesMatches.size() > 0) {
