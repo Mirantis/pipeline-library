@@ -253,8 +253,8 @@ def checkDeploymentTestSuite() {
  */
 def multiregionWorkflowParser(keyword) {
     def common = new com.mirantis.mk.Common()
-    def supportedManagementProviders = ['os', 'aws']
-    def supportedRegionalProviders = ['os']
+    def supportedManagementProviders = ['os', 'aws', 'vsphere']
+    def supportedRegionalProviders = ['os', 'vsphere']
 
     def clusterTypes = ''
     if (keyword.toString().contains('multiregion')) {
