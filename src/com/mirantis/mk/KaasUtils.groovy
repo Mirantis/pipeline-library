@@ -73,7 +73,7 @@ def checkDeploymentTestSuite() {
     // optional demo deployment customization
     def awsOnDemandDemo = env.ALLOW_AWS_ON_DEMAND ? env.ALLOW_AWS_ON_DEMAND.toBoolean() : false
     def vsphereOnDemandDemo = env.ALLOW_VSPHERE_ON_DEMAND ? env.ALLOW_VSPHERE_ON_DEMAND.toBoolean() : false
-    def equinixOnAwsDemo = false
+    def equinixOnAwsDemo = env.EQUNIX_ON_AWS_DEMO ? env.EQUNIX_ON_AWS_DEMO.toBoolean() : false
     def enableOSDemo = true
     def enableBMDemo = true
 
@@ -458,6 +458,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'RUN_CHILD_CFM', value: triggers.runChildConformanceEnabled),
         booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled),
         booleanParam(name: 'ALLOW_VSPHERE_ON_DEMAND', value: triggers.vsphereOnDemandDemoEnabled),
+        booleanParam(name: 'EQUINIX_ON_AWS_DEMO', value: triggers.equinixOnAwsDemoEnabled),
     ]
 
     // customize multiregional demo
