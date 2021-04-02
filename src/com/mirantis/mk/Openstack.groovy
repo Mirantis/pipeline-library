@@ -66,6 +66,7 @@ def setupOpenstackVirtualenv(path, version = 'latest', python="python2") {
         'python-heatclient==1.18.0',
         'docutils==0.16',
         'pyrsistent<0.17.1',
+        'decorator<5.0.0',
     ]
 
     if (version == 'kilo') {
