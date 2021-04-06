@@ -477,23 +477,37 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
     }
 
     def jobResults = []
-    if (triggers.osDemoEnabled) {
-        jobs["kaas-core-openstack-patched-${component}"] = {
-            try {
-                common.infoMsg('Deploy: patched KaaS demo with Openstack provider')
-                os_job_info = build job: "kaas-testing-core-openstack-workflow-${component}", parameters: parameters, wait: true
-                def build_description = os_job_info.getDescription()
-                def build_result = os_job_info.getResult()
-                jobResults.add(build_result)
+    jobs["kaas-core-openstack-patched-${component}"] = {
+        try {
+            common.infoMsg('Deploy: patched KaaS demo with Openstack provider')
+            os_job_info = build job: "kaas-testing-core-openstack-workflow-${component}", parameters: parameters, wait: true
+            def build_description = os_job_info.getDescription()
+            def build_result = os_job_info.getResult()
+            jobResults.add(build_result)
 
-                if (build_description) {
-                    currentBuild.description += build_description
-                }
-            } finally {
-                common.infoMsg('Patched KaaS demo with Openstack provider finished')
+            if (build_description) {
+                currentBuild.description += build_description
             }
+        } finally {
+            common.infoMsg('Patched KaaS demo with Openstack provider finished')
         }
     }
+    jobs["kaas-core-vsphere-patched-${component}"] = {
+        try {
+            common.infoMsg('Deploy: patched KaaS demo with VSPHERE provider')
+            vsphere_job_info = build job: "kaas-testing-core-vsphere-workflow-${component}", parameters: parameters, wait: true
+            def build_description = vsphere_job_info.getDescription()
+            def build_result = vsphere_job_info.getResult()
+            jobResults.add(build_result)
+
+            if (build_description) {
+                currentBuild.description += build_description
+            }
+        } finally {
+            common.infoMsg('Patched KaaS demo with VSPHERE provider finished')
+        }
+    }
+
     if (triggers.awsOnDemandDemoEnabled) {
         common.infoMsg('AWS demo triggered, need to sync artifacts in the public-ci cdn..')
         switch (component) {
@@ -518,23 +532,6 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
                 }
             } finally {
                 common.infoMsg('Patched KaaS demo with AWS provider finished')
-            }
-        }
-    }
-    if (triggers.vsphereDemoEnabled) {
-        jobs["kaas-core-vsphere-patched-${component}"] = {
-            try {
-                common.infoMsg('Deploy: patched KaaS demo with VSPHERE provider')
-                vsphere_job_info = build job: "kaas-testing-core-vsphere-workflow-${component}", parameters: parameters, wait: true
-                def build_description = vsphere_job_info.getDescription()
-                def build_result = vsphere_job_info.getResult()
-                jobResults.add(build_result)
-
-                if (build_description) {
-                    currentBuild.description += build_description
-                }
-            } finally {
-                common.infoMsg('Patched KaaS demo with VSPHERE provider finished')
             }
         }
     }
