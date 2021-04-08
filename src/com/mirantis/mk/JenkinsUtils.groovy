@@ -304,3 +304,28 @@ def getJenkinsInfraMetadata(jenkinsServerURL) {
 
     return meta
 }
+
+/**
+ * Get list of all jenkins workers matched desired label
+ *
+ * @param labelString     (string) desired worker label
+ * @return                (list) all workers, currently matched label
+ */
+@NonCPS
+def getWorkers(String labelString = null) {
+    def workerLabel = hudson.model.labels.LabelAtom.get(labelString)
+    def workers = []
+    hudson.model.Hudson.instance.slaves.each {
+        if (it.getComputer().isOnline()) {
+            if (workerLabel) {
+                if (workerLabel in it.getAssignedLabels()) {
+                    workers << it.name
+                }
+            } else {
+                // if labelString is null, getting all workers
+                workers << it.name
+            }
+        }
+    }
+    return workers
+}
