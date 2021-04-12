@@ -31,8 +31,8 @@ def getJobDefaultParameters(jobName) {
     def item = jenkinsUtils.getJobByName(env.JOB_NAME)
     def parameters = [:]
     def prop = item.getProperty(ParametersDefinitionProperty.class)
-    if(prop != null) {
-        for(param in prop.getParameterDefinitions()) {
+    if (prop != null) {
+        for (param in prop.getParameterDefinitions()) {
             def defaultParam = param.getDefaultParameterValue()
             def cls = defaultParam.getClass().getName()
             def value = defaultParam.getValue()
@@ -172,21 +172,21 @@ def updateDescription(jobs_data) {
         }
 
         // 'description' instead of job name if it exists
-        if(jobdata['desc'].toString() != "") {
+        if (jobdata['desc'].toString() != "") {
             display_name = jobdata['desc']
         } else {
             display_name = jobdata['name']
         }
 
         // Attach url for already builded jobs
-        if(jobdata['build_url'] != "0") {
+        if (jobdata['build_url'] != "0") {
             build_url = "<a href=${jobdata['build_url']}>$display_name</a>"
         } else {
             build_url = display_name
         }
 
         // Styling the status of job result
-        switch(jobdata['status'].toString()) {
+        switch (jobdata['status'].toString()) {
             case "SUCCESS":
                 status_style = "<td style='color: green;'><img src='/images/16x16/blue.png' alt='SUCCESS'>"
                 break
@@ -271,11 +271,11 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
             // In case job has status NOT_BUILT, fail the build or keep going depending on 'ignore_not_built' flag
             // In other cases check flag ignore_failed, if true ignore any statuses and keep going additionally
             // if skip_results is not set or set to false fail entrie workflow, otherwise succed.
-            if (job_result != 'SUCCESS'){
+            if (job_result != 'SUCCESS') {
                 def ignoreStepResult = false
-                switch(job_result) {
-                    // In cases when job was waiting too long in queue or internal job logic allows to skip building,
-                    // job may have NOT_BUILT status. In that case ignore_not_built flag can be used not to fail scenario.
+                switch (job_result) {
+                // In cases when job was waiting too long in queue or internal job logic allows to skip building,
+                // job may have NOT_BUILT status. In that case ignore_not_built flag can be used not to fail scenario.
                     case "NOT_BUILT":
                         ignoreStepResult = step['ignore_not_built'] ?: false
                         break;
@@ -292,8 +292,8 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
             } // if (job_result != 'SUCCESS')
             println "Job ${build_url} finished with result: ${job_result}"
         } // stage ("Running job ${step['job']}")
-    // Jump to next ID for updating next job data in description table
-    step_id++
+        // Jump to next ID for updating next job data in description table
+        step_id++
     } // for (step in scenario['workflow'])
 }
 
@@ -385,7 +385,7 @@ def runScenario(scenario, slackReportChannel = '') {
     // Generate expected list jobs for description
     list_id = 0
     for (step in scenario['workflow']) {
-        if(step['description'] != null && step['description'].toString() != "") {
+        if (step['description'] != null && step['description'].toString() != "") {
             display_name = step['description']
         } else {
             display_name = step['job']
@@ -395,7 +395,7 @@ def runScenario(scenario, slackReportChannel = '') {
     }
     finally_step_id = list_id
     for (step in scenario['finally']) {
-        if(step['description'] != null && step['description'].toString() != "") {
+        if (step['description'] != null && step['description'].toString() != "") {
             display_name = step['description']
         } else {
             display_name = step['job']
@@ -424,14 +424,12 @@ def runScenario(scenario, slackReportChannel = '') {
             statuses = []
             failed_jobs.each {
                 statuses += it.value
-                }
+            }
             if (statuses.contains('FAILURE')) {
                 currentBuild.result = 'FAILURE'
-            }
-            else if (statuses.contains('UNSTABLE')) {
+            } else if (statuses.contains('UNSTABLE')) {
                 currentBuild.result = 'UNSTABLE'
-            }
-            else {
+            } else {
                 currentBuild.result = 'FAILURE'
             }
             println "Failed jobs: ${failed_jobs}"
