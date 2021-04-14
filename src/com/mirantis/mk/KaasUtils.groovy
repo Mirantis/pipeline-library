@@ -69,6 +69,7 @@ def checkDeploymentTestSuite() {
     def proxyConfig = [
         mgmtOffline: env.OFFLINE_MGMT_CLUSTER ? env.OFFLINE_MGMT_CLUSTER.toBoolean() : false,
         childOffline: env.OFFLINE_CHILD_CLUSTER ? env.OFFLINE_CHILD_CLUSTER.toBoolean() : false,
+        childProxy: env.PROXY_CHILD_CLUSTER ? env.PROXY_CHILD_CLUSTER.toBoolean() : false,
     ]
 
     // optional demo deployment customization
@@ -115,6 +116,11 @@ def checkDeploymentTestSuite() {
     }
     if (commitMsg ==~ /(?s).*\[child-offline\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-offline.*/) {
         proxyConfig['childOffline'] = true
+        deployChild = true
+    }
+    if (commitMsg ==~ /(?s).*\[child-proxy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-proxy.*/) {
+        proxyConfig['childOffline'] = true
+        proxyConfig['childProxy'] = true
         deployChild = true
     }
     if (commitMsg ==~ /(?s).*\[fetch.*binaries\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*fetch.*binaries.*/) {
@@ -455,6 +461,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         string(name: 'CUSTOM_RELEASE_PATCH_SPEC', value: patchSpec),
         booleanParam(name: 'OFFLINE_MGMT_CLUSTER', value: triggers.proxyConfig['mgmtOffline']),
         booleanParam(name: 'OFFLINE_CHILD_CLUSTER', value: triggers.proxyConfig['childOffline']),
+        booleanParam(name: 'PROXY_CHILD_CLUSTER', value: triggers.proxyConfig['childProxy']),
         booleanParam(name: 'SEED_MACOS', value: triggers.useMacOsSeedNode),
         booleanParam(name: 'UPGRADE_MGMT_CLUSTER', value: triggers.upgradeMgmtEnabled),
         booleanParam(name: 'RUN_UI_E2E', value: triggers.runUie2eEnabled),
