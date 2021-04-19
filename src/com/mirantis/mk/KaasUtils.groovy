@@ -82,7 +82,7 @@ def checkDeploymentTestSuite() {
     def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
     if (commitMsg ==~ /(?s).*\[mgmt-proxy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-proxy.*/) {
         proxyConfig['mgmtOffline'] = true
-        common.warningMsg('Forced running offline mgmt deployment, all provider CDN regions for mgmt deployment will be set to *public-ci* to verify proxy configuration')
+        common.warningMsg('Forced running offline mgmt deployment, some provider CDN regions for mgmt deployment may be set to *public-ci* to verify proxy configuration')
     }
     if (commitMsg ==~ /(?s).*\[seed-macos\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*seed-macos.*/) {
         seedMacOs = true
@@ -187,7 +187,7 @@ def checkDeploymentTestSuite() {
     def cdnConfig = [
         mgmt: [
             openstack:  (proxyConfig['mgmtOffline'] == true) ? 'public-ci' : 'internal-ci',
-            vsphere:  (proxyConfig['mgmtOffline'] == true) ? 'public-ci' : 'internal-ci',
+            vsphere:  'internal-ci',
             aws: 'public-ci',
         ],
     ]
