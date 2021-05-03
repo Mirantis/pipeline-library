@@ -74,7 +74,7 @@ def checkDeploymentTestSuite() {
 
     // optional demo deployment customization
     def awsOnDemandDemo = env.ALLOW_AWS_ON_DEMAND ? env.ALLOW_AWS_ON_DEMAND.toBoolean() : false
-    def equinixOnAwsDemo = env.EQUNIX_ON_AWS_DEMO ? env.EQUNIX_ON_AWS_DEMO.toBoolean() : false
+    def equinixOnAwsDemo = env.EQUINIX_ON_AWS_DEMO ? env.EQUINIX_ON_AWS_DEMO.toBoolean() : false
     def enableVsphereDemo = true
     def enableOSDemo = true
     def enableBMDemo = true
