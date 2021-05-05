@@ -16,7 +16,6 @@ package com.mirantis.mk
  *
  */
 
-
 /**
  * Get Jenkins parameter names, values and types from jobName
  * @param jobName job name
@@ -99,6 +98,32 @@ def runJob(job_name, job_parameters, global_variables, Boolean propagate = false
     return job_info
 }
 
+def runOrGetJob(job_name, job_parameters, global_variables, propagate, String fullTaskName = '') {
+    /**
+     *  Run job directly or try to find already executed build
+     *  Flow, in case CI_JOBS_OVERRIDES passed:
+     *
+     *
+     *  CI_JOBS_OVERRIDES = text in yaml|json format
+     *  CI_JOBS_OVERRIDES = 'kaas-testing-core-release-artifact'                : 3505
+     *                     'reindex-testing-core-release-index-with-rc'        : 2822
+     *                     'si-test-release-sanity-check-prepare-configuration': 1877
+     */
+    common = new com.mirantis.mk.Common()
+    def jobsOverrides = readYaml(text: env.CI_JOBS_OVERRIDES ?: '---') ?: [:]
+    // get id of overriding job
+    def jobOverrideID = jobsOverrides.getOrDefault(fullTaskName, '')
+
+    if (fullTaskName in jobsOverrides.keySet()) {
+        common.warningMsg("Overriding: ${fullTaskName}/${job_name} <<< ${jobOverrideID}")
+        common.infoMsg("For debug pin use:\n'${fullTaskName}' : ${jobOverrideID}")
+        return Jenkins.instance.getItemByFullName(job_name,
+            hudson.model.Job.class).getBuildByNumber(jobOverrideID.toInteger())
+    } else {
+        return runJob(job_name, job_parameters, global_variables, propagate)
+    }
+}
+
 /**
  * Store URLs of the specified artifacts to the global_variables
  *
@@ -173,9 +198,9 @@ def updateDescription(jobs_data) {
 
         // 'description' instead of job name if it exists
         if (jobdata['desc'].toString() != "") {
-            display_name = jobdata['desc']
+            display_name = "'${jobdata['desc']}': ${jobdata['build_id']}"
         } else {
-            display_name = jobdata['name']
+            display_name = "'${jobdata['name']}': ${jobdata['build_id']}"
         }
 
         // Attach url for already builded jobs
@@ -236,7 +261,7 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
     for (step in steps) {
         stage("Running job ${step['job']}") {
             def engine = new groovy.text.GStringTemplateEngine()
-            def desc = step['description'] ?: ''
+            String desc = step['description'] ?: ''
             def job_name = step['job']
             def job_parameters = [:]
             def step_parameters = step['parameters'] ?: [:]
@@ -248,14 +273,16 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
             job_parameters << step_parameters
 
             // Collect job parameters and run the job
-            def job_info = runJob(job_name, job_parameters, global_variables, propagate)
-            def job_result = job_info.getResult()
-            def build_url = job_info.getAbsoluteUrl()
-            def build_description = job_info.getDescription()
-            def build_id = job_info.getId()
+            // WARN(alexz): desc must not contain invalid chars for yaml
+            def job_info = runOrGetJob(job_name, job_parameters, global_variables, propagate, desc)
+            def job_result = job_info.getResult().toString()
+            def build_url = job_info.getAbsoluteUrl().toString()
+            def build_description = job_info.getDescription().toString()
+            def build_id = job_info.getId().toString()
 
             // Update jobs_data for updating description
             jobs_data[step_id]['build_url'] = build_url
+            jobs_data[step_id]['build_id'] = build_id
             jobs_data[step_id]['status'] = job_result
             jobs_data[step_id]['desc'] = engine.createTemplate(desc).make(global_variables)
             if (build_description) {
@@ -390,7 +417,14 @@ def runScenario(scenario, slackReportChannel = '') {
         } else {
             display_name = step['job']
         }
-        jobs_data.add([list_id: "$list_id", type: "workflow", name: "$display_name", build_url: "0", status: "-", desc: "", child_desc: ""])
+        jobs_data.add([list_id   : "$list_id",
+                       type      : "workflow",
+                       name      : "$display_name",
+                       build_url : "0",
+                       build_id  : "-",
+                       status    : "-",
+                       desc      : "",
+                       child_desc: ""])
         list_id += 1
     }
     finally_step_id = list_id
@@ -400,20 +434,24 @@ def runScenario(scenario, slackReportChannel = '') {
         } else {
             display_name = step['job']
         }
-        jobs_data.add([list_id: "$list_id", type: "finally", name: "$display_name", build_url: "0", status: "-", desc: "", child_desc: ""])
+        jobs_data.add([list_id   : "$list_id",
+                       type      : "finally",
+                       name      : "$display_name",
+                       build_url : "0",
+                       build_id  : "-",
+                       status    : "-",
+                       desc      : "",
+                       child_desc: ""])
         list_id += 1
     }
 
     try {
         // Run the 'workflow' jobs
         runSteps(scenario['workflow'], global_variables, failed_jobs, jobs_data, step_id)
-
     } catch (InterruptedException x) {
         error "The job was aborted"
-
     } catch (e) {
         error("Build failed: " + e.toString())
-
     } finally {
         // Switching to 'finally' step index
         step_id = finally_step_id
