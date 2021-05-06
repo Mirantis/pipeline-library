@@ -74,6 +74,7 @@ def checkDeploymentTestSuite() {
 
     // optional demo deployment customization
     def awsOnDemandDemo = env.ALLOW_AWS_ON_DEMAND ? env.ALLOW_AWS_ON_DEMAND.toBoolean() : false
+    def equinixOnDemandDemo = env.ALLOW_EQUINIX_ON_DEMAND ? env.ALLOW_EQUINIX_ON_DEMAND.toBoolean() : false
     def equinixOnAwsDemo = env.EQUINIX_ON_AWS_DEMO ? env.EQUINIX_ON_AWS_DEMO.toBoolean() : false
     def enableVsphereDemo = true
     def enableOSDemo = true
@@ -136,6 +137,9 @@ def checkDeploymentTestSuite() {
             common.warningMsg('Forced running additional kaas deployment with AWS provider, due applied trigger cross dependencies, follow docs to clarify info')
         }
     }
+    if (commitMsg ==~ /(?s).*\[equinix-mgmt\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*equinix-mgmt\.*/) {
+        equinixOnDemandDemo = true
+    }
     if (commitMsg ==~ /(?s).*\[disable-os-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-os-demo\.*/) {
         enableOSDemo = false
         common.errorMsg('Openstack demo deployment will be aborted, VF -1 will be set')
@@ -189,6 +193,7 @@ def checkDeploymentTestSuite() {
             openstack:  (proxyConfig['mgmtOffline'] == true) ? 'public-ci' : 'internal-ci',
             vsphere:  'internal-ci',
             aws: 'public-ci',
+            equinix: 'public-ci',
         ],
     ]
 
@@ -208,6 +213,7 @@ def checkDeploymentTestSuite() {
         Mgmt conformance testing scheduled: ${runMgmtConformance}
         Mgmt UI e2e testing scheduled: ${runUie2e}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
+        Equinix provider deployment scheduled: ${equinixOnDemandDemo}
         VSPHERE provider deployment scheduled: ${enableVsphereDemo}
         EQUINIX child cluster deployment scheduled: ${equinixOnAwsDemo}
         OS provider deployment scheduled: ${enableOSDemo}
@@ -230,6 +236,7 @@ def checkDeploymentTestSuite() {
         runMgmtConformanceEnabled  : runMgmtConformance,
         fetchServiceBinariesEnabled: fetchServiceBinaries,
         awsOnDemandDemoEnabled     : awsOnDemandDemo,
+        equinixOnDemandDemoEnabled : equinixOnDemandDemo,
         vsphereDemoEnabled         : enableVsphereDemo,
         vsphereOnDemandDemoEnabled : enableVsphereDemo, // TODO: remove after MCC 2.7 is out
         equinixOnAwsDemoEnabled    : equinixOnAwsDemo,
@@ -472,6 +479,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'UPGRADE_BYO', value: triggers.upgradeBYOEnabled),
         booleanParam(name: 'RUN_CHILD_CFM', value: triggers.runChildConformanceEnabled),
         booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled),
+        booleanParam(name: 'ALLOW_EQUINIX_ON_DEMAND', value: triggers.equinixOnDemandDemoEnabled),
         booleanParam(name: 'EQUINIX_ON_AWS_DEMO', value: triggers.equinixOnAwsDemoEnabled),
     ]
 
@@ -487,6 +495,18 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         common.infoMsg('Additional KaaS Core context detected, will be forwarded into kaas core cicd...')
         def additionalParameters = generateKaaSVarsFromContext(coreContext)
         parameters.addAll(additionalParameters)
+    }
+
+    if (triggers.awsOnDemandDemoEnabled || triggers.equinixOnDemandDemoEnabled) {
+        common.infoMsg('Public provider demo triggered, need to sync artifacts in the public-ci cdn..')
+        switch (component) {
+            case 'iam':
+                build job: 'cdn-binary-dev-replication-iam', propagate: true, wait: true
+                break
+            case 'lcm':
+                build job: 'cdn-binary-dev-replication-lcm', propagate: true, wait: true
+                break
+        }
     }
 
     def jobResults = []
@@ -508,16 +528,6 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         }
     }
     if (triggers.awsOnDemandDemoEnabled) {
-        common.infoMsg('AWS demo triggered, need to sync artifacts in the public-ci cdn..')
-        switch (component) {
-            case 'iam':
-                build job: 'cdn-binary-dev-replication-iam', propagate: true, wait: true
-                break
-            case 'lcm':
-                build job: 'cdn-binary-dev-replication-lcm', propagate: true, wait: true
-                break
-        }
-
         jobs["kaas-core-aws-patched-${component}"] = {
             try {
                 common.infoMsg('Deploy: patched KaaS demo with AWS provider')
@@ -531,6 +541,23 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
                 }
             } finally {
                 common.infoMsg('Patched KaaS demo with AWS provider finished')
+            }
+        }
+    }
+    if (triggers.equinixOnDemandDemoEnabled) {
+        jobs["kaas-core-equinix-patched-${component}"] = {
+            try {
+                common.infoMsg('Deploy: patched KaaS demo with Equinix provider')
+                equinix_job_info = build job: "kaas-testing-core-equinix-workflow-${component}", parameters: parameters, wait: true
+                def build_description = equinix_job_info.getDescription()
+                def build_result = equinix_job_info.getResult()
+                jobResults.add(build_result)
+
+                if (build_description) {
+                    currentBuild.description += build_description
+                }
+            } finally {
+                common.infoMsg('Patched KaaS demo with Equinix provider finished')
             }
         }
     }
