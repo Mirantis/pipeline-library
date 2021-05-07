@@ -157,7 +157,7 @@ def getLatestAffectedVersion(cred, productName, defaultJiraAffectedVersion = 'Ba
     return defaultJiraAffectedVersion
 }
 
-def reportJiraTickets(String reportFileContents, String jiraCredentialsID, String jiraUserID, String productName = '', String jiraNamespace = 'PRODX') {
+def reportJiraTickets(String reportFileContents, String jiraCredentialsID, String jiraUserID, String productName = '', String ignoreImageListFileContents = '[]', String jiraNamespace = 'PRODX') {
 
     def dict = [:]
 
@@ -217,11 +217,20 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
         affectedVersion = getLatestAffectedVersion(cred, productName)
     }
 
+    def ignoreImageList = new JsonSlurper().parseText(ignoreImageListFileContents)
+
     def jira_summary = ''
     def jira_description = ''
     imageDict.each{
         image ->
             def image_key = image.key.replaceAll(/(^[a-z0-9-.]+.mirantis.(net|com)\/|:.*$)/, '')
+
+            // Ignore images listed
+            if ((image.key in ignoreImageList) || (image.key.replaceAll(/:.*$/, '') in ignoreImageList)) {
+                print "\n\nIgnoring ${image.key} as it has been found in Docker image ignore list\n"
+                return
+            }
+
             // Below change was produced due to other workflow for UCP Docker images (RE-274)
             if (image_key.startsWith('lcm/docker/ucp')) {
                 return
