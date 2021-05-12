@@ -138,16 +138,15 @@ def runOrGetJob(job_name, job_parameters, global_variables, propagate, String fu
  *                          will be empty.
  *
  */
-def storeArtifacts(build_url, step_artifacts, global_variables, job_name, build_num, artifactory_url = '') {
+def storeArtifacts(build_url, step_artifacts, global_variables, job_name, build_num) {
     def common = new com.mirantis.mk.Common()
     def http = new com.mirantis.mk.Http()
-    if (!artifactory_url) {
-        artifactory_url = 'https://artifactory.mcp.mirantis.net/api/storage/si-local/jenkins-job-artifacts'
-    }
     def baseJenkins = [:]
     def baseArtifactory = [:]
     build_url = build_url.replaceAll(~/\/+$/, "")
+    artifactory_url = "https://artifactory.mcp.mirantis.net/api/storage/si-local/jenkins-job-artifacts"
     baseArtifactory["url"] = artifactory_url + "/${job_name}/${build_num}"
+
     baseJenkins["url"] = build_url
     def job_config = http.restGet(baseJenkins, "/api/json/")
     def job_artifacts = job_config['artifacts']
@@ -255,7 +254,7 @@ def updateDescription(jobs_data) {
  * @param propagate               Boolean. If false: allows to collect artifacts after job is finished, even with FAILURE status
  *                                If true: immediatelly fails the pipeline. DO NOT USE 'true' with runScenario().
  */
-def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean propagate = false, artifactoryBaseUrl = '') {
+def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean propagate = false) {
     // Show expected jobs list in description
     updateDescription(jobs_data)
 
@@ -293,7 +292,7 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
             updateDescription(jobs_data)
 
             // Store links to the resulting artifacts into 'global_variables'
-            storeArtifacts(build_url, step['artifacts'], global_variables, job_name, build_id, artifactoryBaseUrl)
+            storeArtifacts(build_url, step['artifacts'], global_variables, job_name, build_id)
 
             // Check job result, in case of SUCCESS, move to next step.
             // In case job has status NOT_BUILT, fail the build or keep going depending on 'ignore_not_built' flag
@@ -397,7 +396,8 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
  *   parameters: dict. parameters name and type to inherit from parent to child job, or from artifact to child job
  */
 
-def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '') {
+def runScenario(scenario, slackReportChannel = '') {
+
     // Clear description before adding new messages
     currentBuild.description = ''
     // Collect the parameters for the jobs here
@@ -447,7 +447,7 @@ def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '') {
 
     try {
         // Run the 'workflow' jobs
-        runSteps(scenario['workflow'], global_variables, failed_jobs, jobs_data, step_id, artifactoryBaseUrl)
+        runSteps(scenario['workflow'], global_variables, failed_jobs, jobs_data, step_id)
     } catch (InterruptedException x) {
         error "The job was aborted"
     } catch (e) {
@@ -456,7 +456,7 @@ def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '') {
         // Switching to 'finally' step index
         step_id = finally_step_id
         // Run the 'finally' jobs
-        runSteps(scenario['finally'], global_variables, failed_jobs, jobs_data, step_id, artifactoryBaseUrl)
+        runSteps(scenario['finally'], global_variables, failed_jobs, jobs_data, step_id)
 
         if (failed_jobs) {
             statuses = []
