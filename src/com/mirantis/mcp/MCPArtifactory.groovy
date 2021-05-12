@@ -314,6 +314,82 @@ def deleteDockerImage(String image) {
 }
 
 /**
+ * Upload list of docker images to Artifactory
+ *
+ * @param server ArtifactoryServer, the instance of Artifactory server
+ * @param registry String, the name of Docker registry
+ * @param images List[Map], list of maps where each map consist of following fields:
+ *   {
+ *       'repository': String '...',         // (mandatory) The name of Artifactory Docker repository
+ *       'name':       String '...',         // (mandatory) docker image name
+ *       'tag':        String '...',         // (mandatory) docker image tag/version
+ *       'buildInfo':  BuildInfo '...',      // (optional) the instance of a build-info object which
+ *                                              can be published, if it's not null (default),
+ *                                              then we publish BuildInfo,
+ *       'properties': LinkedHashMap '...',  // (optional) Map of artifactory properties to set for image,
+ *                                              if not provided, then some common properties will be set
+ *   }
+ *
+ */
+def uploadImagesToArtifactory(ArtifactoryServer server, String registry, List images) {
+    // Check that every provided image's specs contain mandatory fields (name, tag, repository)
+    images.each {
+        if (!(it.name && it.tag && it.repository)) {
+            error("Incorrect image upload spec: ${it}")
+        }
+    }
+
+    // TODO Switch to Artifactoy image' pushing mechanism once we will
+    // prepare automatical way for enabling artifactory build-proxy
+    //def artDocker
+    withCredentials([[
+        $class: 'UsernamePasswordMultiBinding',
+        credentialsId: env.ARTIFACTORY_CREDENTIALS_ID ?: 'artifactory',
+        passwordVariable: 'ARTIFACTORY_PASSWORD',
+        usernameVariable: 'ARTIFACTORY_LOGIN',
+    ]]) {
+        sh ("docker login -u ${ARTIFACTORY_LOGIN} -p ${ARTIFACTORY_PASSWORD} ${registry}")
+        //artDocker = Artifactory.docker("${env.ARTIFACTORY_LOGIN}", "${env.ARTIFACTORY_PASSWORD}")
+    }
+
+    images.each {
+        String image = it.name // mandatory
+        String version = it.tag // mandatory
+        String repository = it.repository // mandatory
+
+        sh ("docker push ${registry}/${image}:${version}")
+        //artDocker.push("${registry}/${image}:${version}", repository)
+        def image_url = server.getUrl() + "/api/storage/${repository}/${image}/${version}"
+
+        LinkedHashMap properties = it.get('properties')
+        if ( ! properties ) {
+            properties = [
+                'com.mirantis.buildName':"${env.JOB_NAME}",
+                'com.mirantis.buildNumber': "${env.BUILD_NUMBER}",
+                'com.mirantis.gerritProject': "${env.GERRIT_PROJECT}",
+                'com.mirantis.gerritChangeNumber': "${env.GERRIT_CHANGE_NUMBER}",
+                'com.mirantis.gerritPatchsetNumber': "${env.GERRIT_PATCHSET_NUMBER}",
+                'com.mirantis.gerritChangeId': "${env.GERRIT_CHANGE_ID}",
+                'com.mirantis.gerritPatchsetRevision': "${env.GERRIT_PATCHSET_REVISION}",
+                'com.mirantis.targetImg': "${image}",
+                'com.mirantis.targetTag': "${version}"
+            ]
+        }
+
+        setProperties(image_url, properties)
+
+        BuildInfo buildInfo = it.get('buildInfo')
+        if ( buildInfo != null ) {
+            buildInfo.env.capture = true
+            buildInfo.env.filter.addInclude("*")
+            buildInfo.env.filter.addExclude("*PASSWORD*")
+            buildInfo.env.filter.addExclude("*password*")
+            buildInfo.env.collect()
+            server.publishBuildInfo(buildInfo)
+        }
+    }
+}
+/**
  * Upload docker image to Artifactory
  *
  * @param server ArtifactoryServer, the instance of Artifactory server
@@ -328,46 +404,14 @@ def uploadImageToArtifactory (ArtifactoryServer server, String registry, String 
                               String version, String repository,
                               BuildInfo buildInfo = null,
                               LinkedHashMap properties = null) {
-    // TODO Switch to Artifactoy image' pushing mechanism once we will
-    // prepare automatical way for enabling artifactory build-proxy
-    //def artDocker
-    withCredentials([
-            [$class: 'UsernamePasswordMultiBinding',
-             credentialsId: 'artifactory',
-             passwordVariable: 'ARTIFACTORY_PASSWORD',
-             usernameVariable: 'ARTIFACTORY_LOGIN']
-    ]) {
-        sh ("docker login -u ${ARTIFACTORY_LOGIN} -p ${ARTIFACTORY_PASSWORD} ${registry}")
-        //artDocker = Artifactory.docker("${env.ARTIFACTORY_LOGIN}", "${env.ARTIFACTORY_PASSWORD}")
-    }
-
-    sh ("docker push ${registry}/${image}:${version}")
-    //artDocker.push("${registry}/${image}:${version}", "${repository}")
-    def image_url = server.getUrl() + "/api/storage/${repository}/${image}/${version}"
-    if ( ! properties ) {
-        properties = [
-            'com.mirantis.buildName':"${env.JOB_NAME}",
-            'com.mirantis.buildNumber': "${env.BUILD_NUMBER}",
-            'com.mirantis.gerritProject': "${env.GERRIT_PROJECT}",
-            'com.mirantis.gerritChangeNumber': "${env.GERRIT_CHANGE_NUMBER}",
-            'com.mirantis.gerritPatchsetNumber': "${env.GERRIT_PATCHSET_NUMBER}",
-            'com.mirantis.gerritChangeId': "${env.GERRIT_CHANGE_ID}",
-            'com.mirantis.gerritPatchsetRevision': "${env.GERRIT_PATCHSET_REVISION}",
-            'com.mirantis.targetImg': "${image}",
-            'com.mirantis.targetTag': "${version}"
-        ]
-    }
-
-    setProperties(image_url, properties)
-
-    if ( buildInfo != null ) {
-        buildInfo.env.capture = true
-        buildInfo.env.filter.addInclude("*")
-        buildInfo.env.filter.addExclude("*PASSWORD*")
-        buildInfo.env.filter.addExclude("*password*")
-        buildInfo.env.collect()
-        server.publishBuildInfo(buildInfo)
-    }
+    Map images = [
+        'repository': repository,
+        'name': image,
+        'tag': version,
+        'buildInfo': buildInfo,
+        'properties': properties,
+    ]
+    uploadImagesToArtifactory(server, registry, [images])
 }
 
 /**
