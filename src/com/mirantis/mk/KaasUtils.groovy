@@ -185,6 +185,11 @@ def checkDeploymentTestSuite() {
                 error('incompatible triggers: [disable-os-demo] and multiregional deployment based on OSt management region cannot be applied simultaneously')
             }
             break
+        case 'vsphere':
+            if (enableVsphereDemo == false) {
+                error('incompatible triggers: [disable-vsphere-demo] and multiregional deployment based on Vsphere management region cannot be applied simultaneously')
+            }
+            break
         case 'equinix':
             common.warningMsg('Forced running additional kaas deployment with Equinix provider according multiregional demo request')
             equinixOnDemandDemo = true
