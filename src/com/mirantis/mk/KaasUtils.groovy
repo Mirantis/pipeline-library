@@ -127,9 +127,9 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[fetch.*binaries\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*fetch.*binaries.*/) {
         fetchServiceBinaries = true
     }
-    if (commitMsg ==~ /(?s).*\[equinix-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*equinix-demo.*/) {
+    if (commitMsg ==~ /(?s).*\[equinix-on-aws\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*equinix-on-aws.*/) {
         equinixOnAwsDemo = true
-        common.warningMsg('Forced running child cluster deployment on EQUINIX METAL provider based on AWS management cluster, triggered on patchset using custom keyword: \'[equinix-demo]\' ')
+        common.warningMsg('Forced running child cluster deployment on EQUINIX METAL provider based on AWS management cluster, triggered on patchset using custom keyword: \'[equinix-on-aws]\' ')
     }
     if (commitMsg ==~ /(?s).*\[aws-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*aws-demo.*/ || attachBYO || upgradeBYO || seedMacOs || equinixOnAwsDemo) {
         awsOnDemandDemo = true
@@ -137,7 +137,7 @@ def checkDeploymentTestSuite() {
             common.warningMsg('Forced running additional kaas deployment with AWS provider, due applied trigger cross dependencies, follow docs to clarify info')
         }
     }
-    if (commitMsg ==~ /(?s).*\[equinix-mgmt\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*equinix-mgmt\.*/) {
+    if (commitMsg ==~ /(?s).*\[equinix-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*equinix-demo\.*/) {
         equinixOnDemandDemo = true
     }
     if (commitMsg ==~ /(?s).*\[disable-os-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-os-demo\.*/) {
@@ -214,8 +214,8 @@ def checkDeploymentTestSuite() {
         Mgmt UI e2e testing scheduled: ${runUie2e}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         Equinix provider deployment scheduled: ${equinixOnDemandDemo}
+        Equinix@AWS child cluster deployment scheduled: ${equinixOnAwsDemo}
         VSPHERE provider deployment scheduled: ${enableVsphereDemo}
-        EQUINIX child cluster deployment scheduled: ${equinixOnAwsDemo}
         OS provider deployment scheduled: ${enableOSDemo}
         BM provider deployment scheduled: ${enableBMDemo}
         Multiregional configuration: ${multiregionalMappings}
@@ -237,9 +237,9 @@ def checkDeploymentTestSuite() {
         fetchServiceBinariesEnabled: fetchServiceBinaries,
         awsOnDemandDemoEnabled     : awsOnDemandDemo,
         equinixOnDemandDemoEnabled : equinixOnDemandDemo,
+        equinixOnAwsDemoEnabled    : equinixOnAwsDemo,
         vsphereDemoEnabled         : enableVsphereDemo,
         vsphereOnDemandDemoEnabled : enableVsphereDemo, // TODO: remove after MCC 2.7 is out
-        equinixOnAwsDemoEnabled    : equinixOnAwsDemo,
         bmDemoEnabled              : enableBMDemo,
         osDemoEnabled              : enableOSDemo,
         multiregionalConfiguration : multiregionalMappings,
