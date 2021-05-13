@@ -185,6 +185,10 @@ def checkDeploymentTestSuite() {
                 error('incompatible triggers: [disable-os-demo] and multiregional deployment based on OSt management region cannot be applied simultaneously')
             }
             break
+        case 'equinix':
+            common.warningMsg('Forced running additional kaas deployment with Equinix provider according multiregional demo request')
+            equinixOnDemandDemo = true
+            break
     }
 
     // CDN configuration
@@ -260,8 +264,8 @@ def checkDeploymentTestSuite() {
  */
 def multiregionWorkflowParser(keyword) {
     def common = new com.mirantis.mk.Common()
-    def supportedManagementProviders = ['os', 'aws', 'vsphere']
-    def supportedRegionalProviders = ['os', 'vsphere']
+    def supportedManagementProviders = ['os', 'aws', 'vsphere', 'equinix']
+    def supportedRegionalProviders = ['os', 'vsphere', 'equinix']
 
     def clusterTypes = ''
     if (keyword.toString().contains('multiregion')) {
