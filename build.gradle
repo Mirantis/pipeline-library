@@ -4,7 +4,7 @@ group = 'com.mirantis'
 apply plugin: 'groovy'
 apply plugin: 'codenarc'
 
-def jcenterRepo = System.getenv('ARTIFACTORY_URL') ?: 'https://artifactory.mcp.mirantis.net/jcenter'
+def jcenterRepo = System.getenv('ARTIFACTORY_URL') ?: 'https://artifactory.mcp.mirantis.net/artifactory/jcenter'
 
 sourceSets {
   main {
