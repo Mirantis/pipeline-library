@@ -480,6 +480,9 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         if (triggers.equinixOnDemandDemoEnabled) {
             platforms.add('equinix')
         }
+        if (triggers.vsphereDemoEnabled) {
+            platforms.add('vsphere')
+        }
     }
 
     def jobs = [:]
