@@ -465,6 +465,23 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
             follow https://mirantis.jira.com/wiki/spaces/QA/pages/2310832276/SI-tests+feature+flags#%5BUpdated%5D-Using-a-feature-flag
             to create the configuration file''')
     }
+
+    def platforms = []
+    if (component == 'ipam' && triggers.vsphereDemoEnabled) {
+        // Currently only vsphere demo is required for IPAM component
+        platforms.add('vsphere')
+    } else {
+        if (triggers.osDemoEnabled) {
+            platforms.add('openstack')
+        }
+        if (triggers.awsOnDemandDemoEnabled) {
+            platforms.add('aws')
+        }
+        if (triggers.equinixOnDemandDemoEnabled) {
+            platforms.add('equinix')
+        }
+    }
+
     def jobs = [:]
     def parameters = [
         string(name: 'GERRIT_REFSPEC', value: coreRefspec.core),
@@ -519,71 +536,21 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
     }
 
     def jobResults = []
-    if (triggers.osDemoEnabled) {
-        jobs["kaas-core-openstack-patched-${component}"] = {
+
+    platforms.each { platform ->
+        jobs["kaas-core-${platform}-patched-${component}"] = {
             try {
-                common.infoMsg('Deploy: patched KaaS demo with Openstack provider')
-                os_job_info = build job: "kaas-testing-core-openstack-workflow-${component}", parameters: parameters, wait: true
-                def build_description = os_job_info.getDescription()
-                def build_result = os_job_info.getResult()
+                common.infoMsg("Deploy: patched KaaS demo with ${platform} provider")
+                def job_info = build job: "kaas-testing-core-${platform}-workflow-${component}", parameters: parameters, wait: true
+                def build_description = job_info.getDescription()
+                def build_result = job_info.getResult()
                 jobResults.add(build_result)
 
                 if (build_description) {
                     currentBuild.description += build_description
                 }
             } finally {
-                common.infoMsg('Patched KaaS demo with Openstack provider finished')
-            }
-        }
-    }
-    if (triggers.awsOnDemandDemoEnabled) {
-        jobs["kaas-core-aws-patched-${component}"] = {
-            try {
-                common.infoMsg('Deploy: patched KaaS demo with AWS provider')
-                aws_job_info = build job: "kaas-testing-core-aws-workflow-${component}", parameters: parameters, wait: true
-                def build_description = aws_job_info.getDescription()
-                def build_result = aws_job_info.getResult()
-                jobResults.add(build_result)
-
-                if (build_description) {
-                    currentBuild.description += build_description
-                }
-            } finally {
-                common.infoMsg('Patched KaaS demo with AWS provider finished')
-            }
-        }
-    }
-    if (triggers.equinixOnDemandDemoEnabled) {
-        jobs["kaas-core-equinix-patched-${component}"] = {
-            try {
-                common.infoMsg('Deploy: patched KaaS demo with Equinix provider')
-                equinix_job_info = build job: "kaas-testing-core-equinix-workflow-${component}", parameters: parameters, wait: true
-                def build_description = equinix_job_info.getDescription()
-                def build_result = equinix_job_info.getResult()
-                jobResults.add(build_result)
-
-                if (build_description) {
-                    currentBuild.description += build_description
-                }
-            } finally {
-                common.infoMsg('Patched KaaS demo with Equinix provider finished')
-            }
-        }
-    }
-    if (triggers.vsphereDemoEnabled) {
-        jobs["kaas-core-vsphere-patched-${component}"] = {
-            try {
-                common.infoMsg('Deploy: patched KaaS demo with VSPHERE provider')
-                vsphere_job_info = build job: "kaas-testing-core-vsphere-workflow-${component}", parameters: parameters, wait: true
-                def build_description = vsphere_job_info.getDescription()
-                def build_result = vsphere_job_info.getResult()
-                jobResults.add(build_result)
-
-                if (build_description) {
-                    currentBuild.description += build_description
-                }
-            } finally {
-                common.infoMsg('Patched KaaS demo with VSPHERE provider finished')
+                common.infoMsg("Patched KaaS demo with ${platform} provider finished")
             }
         }
     }
