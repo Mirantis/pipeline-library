@@ -256,6 +256,7 @@ def updateDescription(jobs_data) {
  *                                If true: immediatelly fails the pipeline. DO NOT USE 'true' with runScenario().
  */
 def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean propagate = false, artifactoryBaseUrl = '') {
+    common = new com.mirantis.mk.Common()
     // Show expected jobs list in description
     updateDescription(jobs_data)
 
@@ -273,6 +274,7 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
             // add parameters from the workflow for the child job
             job_parameters << step_parameters
 
+            common.infoMsg("Attempt to run: ${job_name}/${desc}")
             // Collect job parameters and run the job
             // WARN(alexz): desc must not contain invalid chars for yaml
             def job_info = runOrGetJob(job_name, job_parameters, global_variables, propagate, desc)
