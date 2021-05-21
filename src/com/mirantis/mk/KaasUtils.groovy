@@ -51,6 +51,7 @@ def checkDeploymentTestSuite() {
     def seedMacOs = env.SEED_MACOS ? env.SEED_MACOS.toBoolean() : false
     def deployChild = env.DEPLOY_CHILD_CLUSTER ? env.DEPLOY_CHILD_CLUSTER.toBoolean() : false
     def upgradeChild = env.UPGRADE_CHILD_CLUSTER ? env.UPGRADE_CHILD_CLUSTER.toBoolean() : false
+    def customChildRelease = env.KAAS_CHILD_CLUSTER_RELEASE_NAME ? env.KAAS_CHILD_CLUSTER_RELEASE_NAME : ''
     def attachBYO = env.ATTACH_BYO ? env.ATTACH_BYO.toBoolean() : false
     def upgradeBYO = env.UPGRADE_BYO ? env.UPGRADE_BYO.toBoolean() : false
     def upgradeMgmt = env.UPGRADE_MGMT_CLUSTER ? env.UPGRADE_MGMT_CLUSTER.toBoolean() : false
@@ -94,6 +95,13 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[child-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-upgrade.*/) {
         deployChild = true
         upgradeChild = true
+    }
+    def deployMatches = (commitMsg =~ /(?s).*\[child-deploy (\w|\W)+\].*/)
+    if (deployMatches.size() > 0) {
+        // override child version when it set explicitly
+        deployChild = true
+        customChildRelease = matches[0][0].split('child-deploy')[1].replaceAll(']', '').trim()
+        common.warningMsg("Forced child deployment using custom release version ${customChildRelease}")
     }
     if (commitMsg ==~ /(?s).*\[byo-attach\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*byo-attach.*/) {
         attachBYO = true
@@ -214,6 +222,7 @@ def checkDeploymentTestSuite() {
         MCC offline deployment configuration: ${proxyConfig}
         Use MacOS node as seed: ${seedMacOs}
         Child cluster deployment scheduled: ${deployChild}
+        Custom child cluster release: ${customChildRelease}
         Child cluster release upgrade scheduled: ${upgradeChild}
         Child conformance testing scheduled: ${runChildConformance}
         BYO cluster attachment scheduled: ${attachBYO}
@@ -236,6 +245,7 @@ def checkDeploymentTestSuite() {
         proxyConfig                : proxyConfig,
         useMacOsSeedNode           : seedMacOs,
         deployChildEnabled         : deployChild,
+        childDeployCustomRelease   : customChildRelease,
         upgradeChildEnabled        : upgradeChild,
         runChildConformanceEnabled : runChildConformance,
         attachBYOEnabled           : attachBYO,
@@ -495,6 +505,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         string(name: 'SI_TESTS_DOCKER_IMAGE_TAG', value: siRefspec.siTestsDockerImageTag),
         string(name: 'SI_PIPELINES_REFSPEC', value: siRefspec.siPipelines),
         string(name: 'CUSTOM_RELEASE_PATCH_SPEC', value: patchSpec),
+        string(name: 'KAAS_CHILD_CLUSTER_RELEASE_NAME', value: triggers.childDeployCustomRelease),
         booleanParam(name: 'OFFLINE_MGMT_CLUSTER', value: triggers.proxyConfig['mgmtOffline']),
         booleanParam(name: 'OFFLINE_CHILD_CLUSTER', value: triggers.proxyConfig['childOffline']),
         booleanParam(name: 'PROXY_CHILD_CLUSTER', value: triggers.proxyConfig['childProxy']),
