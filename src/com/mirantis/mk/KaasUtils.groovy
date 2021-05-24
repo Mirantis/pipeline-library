@@ -100,7 +100,7 @@ def checkDeploymentTestSuite() {
     if (deployMatches.size() > 0) {
         // override child version when it set explicitly
         deployChild = true
-        customChildRelease = matches[0][0].split('child-deploy')[1].replaceAll(']', '').trim()
+        customChildRelease = deployMatches[0][0].split('child-deploy')[1].replaceAll(']', '').trim()
         common.warningMsg("Forced child deployment using custom release version ${customChildRelease}")
     }
     if (commitMsg ==~ /(?s).*\[byo-attach\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*byo-attach.*/) {
