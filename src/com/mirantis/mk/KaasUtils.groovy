@@ -96,11 +96,11 @@ def checkDeploymentTestSuite() {
         deployChild = true
         upgradeChild = true
     }
-    def deployMatches = (commitMsg =~ /(?s).*\[child-deploy (\w|\W)+\].*/)
+    def deployMatches = (commitMsg =~ /(\[child-deploy\s*(\w|\W)+?\])/)
     if (deployMatches.size() > 0) {
         // override child version when it set explicitly
         deployChild = true
-        customChildRelease = deployMatches[0][0].split('child-deploy')[1].replaceAll(']', '').trim()
+        customChildRelease = deployMatches[0][0].split('child-deploy')[1].replaceAll('[\\[\\]]', '').trim()
         common.warningMsg("Forced child deployment using custom release version ${customChildRelease}")
     }
     if (commitMsg ==~ /(?s).*\[byo-attach\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*byo-attach.*/) {
