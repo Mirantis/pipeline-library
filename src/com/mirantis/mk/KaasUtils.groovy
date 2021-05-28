@@ -583,3 +583,103 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
 }
 
 
+/**
+ * Function currently supported to be called from aws or vsphere demos. It gets particular demo context
+ * and generate proper lockResources data and netMap data for vsphere related clusters.
+ *
+ * @param:        callBackDemo (string) Demo which requested to generate lockResources [aws or vsphere]
+ * @param:        triggers (map) Custom trigger keywords forwarded from gerrit
+ * @param:        multiregionalConfiguration (map) Multiregional configuration
+ * @return        (map) Return aggregated map with lockResources and netMap
+ */
+
+
+def generateLockResources(callBackDemo, triggers) {
+    def common = new com.mirantis.mk.Common()
+    def netMap = [:]
+    // Define vsphere locklabels with initial quantity
+    def lockLabels = [
+        vsphere_networking_core_ci: 0,
+        vsphere_offline_networking_core_ci: 0,
+    ]
+    def deployChild = triggers.deployChildEnabled
+    def multiregionConfig = triggers.multiregionalConfiguration
+    def runMultiregion = multiregionConfig.enabled
+
+    // Generate vsphere netMap and lockLabels based on demo context
+    switch (callBackDemo) {
+        case 'aws':
+            // Add aws specific lock label with quantity calculated based on single mgmt deploy or mgmt + child
+            lockLabels['aws_core_ci_queue'] = triggers.demoWeight
+
+            // Define netMap for Vsphere region
+            if (runMultiregion && multiregionConfig.regionLocation == 'vsphere') {
+                if (deployChild) {
+                    addToVsphereNetMap(netMap, 'regional-child')
+                }
+                addToVsphereNetMap(netMap, 'region')
+            }
+            break
+        case 'vsphere':
+            addToVsphereNetMap(netMap, 'mgmt')
+            if (deployChild) {
+                addToVsphereNetMap(netMap, 'child')
+            }
+            if (runMultiregion && multiregionConfig.managementLocation == 'vsphere' &&
+                multiregionConfig.regionLocation == 'vsphere') {
+                if (deployChild) {
+                    addToVsphereNetMap(netMap, 'regional-child')
+                }
+                addToVsphereNetMap(netMap, 'region')
+            }
+            break
+        default:
+            error('Supposed to be called from aws or vsphere demos only')
+    }
+
+    // Checking gerrit triggers and manage lock label quantity and network types in case of Offline deployment
+    // Vsphere labels only
+    netMap.each { clusterType, netConfig ->
+        if (triggers.proxyConfig["${clusterType}Offline"] == true) {
+            netMap[clusterType]['netName'] = 'offline'
+            lockLabels['vsphere_offline_networking_core_ci']++
+        } else {
+            lockLabels['vsphere_networking_core_ci']++
+        }
+    }
+
+    // generate lock metadata
+    def lockResources = []
+    lockLabels.each { label, quantity ->
+        if (quantity > 0) {
+            def res = [
+                label: label,
+                quantity: quantity,
+            ]
+            lockResources.add(res)
+        }
+    }
+
+    common.infoMsg("""Generated vsphere netMap: ${netMap}
+                    Generated lockResources: ${lockResources}""")
+
+    return [
+        netMap: netMap,
+        lockResources: lockResources,
+    ]
+}
+
+/**
+ * Function gets vsphere netMap or empty map and adds new vsphere clusterType with default netName
+ * and empty rangeConfig to the this map.
+ *
+ * @param:        netMap (string) vsphere netMap or empty map
+ * @param:        clusterType (string) Vsphere cluster type
+ */
+
+def addToVsphereNetMap (netMap, clusterType) {
+    netMap[clusterType] = [
+        netName: 'default',
+        rangeConfig: '',
+      ]
+}
