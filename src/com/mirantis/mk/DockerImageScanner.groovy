@@ -143,16 +143,18 @@ def getLatestAffectedVersion(cred, productName, defaultJiraAffectedVersion = 'Ba
 
     def versions = []
     AffectedVersions.each{
-        if (it.containsKey('released') && it['released']) {
-            if (it.containsKey('name') && it['name'].startsWith(filterName)) {
-                if (it.containsKey('releaseDate') && it['releaseDate']) {
-                    versions.add("${it['releaseDate']}`${it['name']}")
-                }
-            }
+        // 'MOSK' doesn not contain 'released' field
+        if (productName != 'mosk' && it.containsKey('released') && it['released']) {
+            return
+        }
+        if (it.containsKey('name') && it['name'].startsWith(filterName)) {
+            def justVersion = it['name'].replaceAll(/.*_/, '')
+            justVersion = justVersion.replaceAll(/([0-9]+\.)([0-9])$/, '$10$2')
+            versions.add("${justVersion}`${it['name']}")
         }
     }
     if (versions) {
-        return versions.sort()[-1].split('`')[-1]
+        return versions.sort()[0].split('`')[-1]
     }
     return defaultJiraAffectedVersion
 }
