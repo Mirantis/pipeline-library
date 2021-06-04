@@ -96,7 +96,7 @@ def checkDeploymentTestSuite() {
         deployChild = true
         upgradeChild = true
     }
-    def deployMatches = (commitMsg =~ /(\[child-deploy\s*(\w|\W)+?\])/)
+    def deployMatches = (commitMsg =~ /(\[child-deploy\s*(\w|\-)+?\])/)
     if (deployMatches.size() > 0) {
         // override child version when it set explicitly
         deployChild = true
