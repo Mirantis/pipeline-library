@@ -77,6 +77,7 @@ def checkDeploymentTestSuite() {
     def awsOnDemandDemo = env.ALLOW_AWS_ON_DEMAND ? env.ALLOW_AWS_ON_DEMAND.toBoolean() : false
     def equinixOnDemandDemo = env.ALLOW_EQUINIX_ON_DEMAND ? env.ALLOW_EQUINIX_ON_DEMAND.toBoolean() : false
     def equinixOnAwsDemo = env.EQUINIX_ON_AWS_DEMO ? env.EQUINIX_ON_AWS_DEMO.toBoolean() : false
+    def azureOnAwsDemo = env.AZURE_ON_AWS_DEMO ? env.AZURE_ON_AWS_DEMO.toBoolean() : false
     def enableVsphereDemo = true
     def enableOSDemo = true
     def enableBMDemo = true
@@ -139,11 +140,20 @@ def checkDeploymentTestSuite() {
         equinixOnAwsDemo = true
         common.warningMsg('Forced running child cluster deployment on EQUINIX METAL provider based on AWS management cluster, triggered on patchset using custom keyword: \'[equinix-on-aws]\' ')
     }
-    if (commitMsg ==~ /(?s).*\[aws-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*aws-demo.*/ || attachBYO || upgradeBYO || seedMacOs || equinixOnAwsDemo) {
+    if (commitMsg ==~ /(?s).*\[azure-on-aws\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*azure-on-aws.*/) {
+        azureOnAwsDemo = true
+        common.warningMsg('Forced running child cluster deployment on Azure provider based on AWS management cluster, triggered on patchset using custom keyword: \'[azure-on-aws]\' ')
+    }
+    if (commitMsg ==~ /(?s).*\[aws-demo\].*/                 ||
+        env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*aws-demo.*/ ||
+        attachBYO                                            ||
+        upgradeBYO                                           ||
+        seedMacOs                                            ||
+        equinixOnAwsDemo                                     ||
+        azureOnAwsDemo) {
+
         awsOnDemandDemo = true
-        if (attachBYO || upgradeBYO || seedMacOs || equinixOnAwsDemo) {
-            common.warningMsg('Forced running additional kaas deployment with AWS provider, due applied trigger cross dependencies, follow docs to clarify info')
-        }
+        common.warningMsg('Running additional kaas deployment with AWS provider, may be forced due applied trigger cross dependencies, follow docs to clarify info')
     }
     if (commitMsg ==~ /(?s).*\[equinix-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*equinix-demo\.*/) {
         equinixOnDemandDemo = true
@@ -233,6 +243,7 @@ def checkDeploymentTestSuite() {
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         Equinix provider deployment scheduled: ${equinixOnDemandDemo}
         Equinix@AWS child cluster deployment scheduled: ${equinixOnAwsDemo}
+        Azure@AWS child cluster deployment scheduled: ${azureOnAwsDemo}
         VSPHERE provider deployment scheduled: ${enableVsphereDemo}
         OS provider deployment scheduled: ${enableOSDemo}
         BM provider deployment scheduled: ${enableBMDemo}
@@ -257,6 +268,7 @@ def checkDeploymentTestSuite() {
         awsOnDemandDemoEnabled     : awsOnDemandDemo,
         equinixOnDemandDemoEnabled : equinixOnDemandDemo,
         equinixOnAwsDemoEnabled    : equinixOnAwsDemo,
+        azureOnAwsDemoEnabled      : azureOnAwsDemo,
         vsphereDemoEnabled         : enableVsphereDemo,
         vsphereOnDemandDemoEnabled : enableVsphereDemo, // TODO: remove after MCC 2.7 is out
         bmDemoEnabled              : enableBMDemo,
@@ -521,6 +533,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled),
         booleanParam(name: 'ALLOW_EQUINIX_ON_DEMAND', value: triggers.equinixOnDemandDemoEnabled),
         booleanParam(name: 'EQUINIX_ON_AWS_DEMO', value: triggers.equinixOnAwsDemoEnabled),
+        booleanParam(name: 'AZURE_ON_AWS_DEMO', value: triggers.azureOnAwsDemoEnabled),
     ]
 
     // customize multiregional demo
