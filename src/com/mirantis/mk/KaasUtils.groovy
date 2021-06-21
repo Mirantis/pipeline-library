@@ -57,6 +57,7 @@ def checkDeploymentTestSuite() {
     def upgradeMgmt = env.UPGRADE_MGMT_CLUSTER ? env.UPGRADE_MGMT_CLUSTER.toBoolean() : false
     def runUie2e = env.RUN_UI_E2E ? env.RUN_UI_E2E.toBoolean() : false
     def runMgmtConformance = env.RUN_MGMT_CFM ? env.RUN_MGMT_CFM.toBoolean() : false
+    def runMgmtLMA = env.RUN_MGMT_LMA ? env.RUN_MGMT_LMA.toBoolean() : false
     def runChildConformance = env.RUN_CHILD_CFM ? env.RUN_CHILD_CFM.toBoolean() : false
     def fetchServiceBinaries = env.FETCH_BINARIES_FROM_UPSTREAM ? env.FETCH_BINARIES_FROM_UPSTREAM.toBoolean() : false
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
@@ -123,6 +124,9 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[child-cfm\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-cfm.*/) {
         runChildConformance = true
         deployChild = true
+    }
+    if (commitMsg ==~ /(?s).*\[mgmt-lma\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-lma.*/) {
+        runMgmtLMA = true
     }
     if (commitMsg ==~ /(?s).*\[child-offline\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-offline.*/) {
         proxyConfig['childOffline'] = true
@@ -239,6 +243,7 @@ def checkDeploymentTestSuite() {
         Attached BYO cluster upgrade test scheduled: ${upgradeBYO}
         Mgmt cluster release upgrade scheduled: ${upgradeMgmt}
         Mgmt conformance testing scheduled: ${runMgmtConformance}
+        Mgmt LMA deployment and testing scheduled: ${runMgmtLMA}
         Mgmt UI e2e testing scheduled: ${runUie2e}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         Equinix provider deployment scheduled: ${equinixOnDemandDemo}
@@ -264,6 +269,7 @@ def checkDeploymentTestSuite() {
         upgradeMgmtEnabled         : upgradeMgmt,
         runUie2eEnabled            : runUie2e,
         runMgmtConformanceEnabled  : runMgmtConformance,
+        runMgmtLmaEnabled          : runMgmtLMA,
         fetchServiceBinariesEnabled: fetchServiceBinaries,
         awsOnDemandDemoEnabled     : awsOnDemandDemo,
         equinixOnDemandDemoEnabled : equinixOnDemandDemo,
@@ -525,6 +531,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'UPGRADE_MGMT_CLUSTER', value: triggers.upgradeMgmtEnabled),
         booleanParam(name: 'RUN_UI_E2E', value: triggers.runUie2eEnabled),
         booleanParam(name: 'RUN_MGMT_CFM', value: triggers.runMgmtConformanceEnabled),
+        booleanParam(name: 'RUN_MGMT_LMA', value: triggers.runMgmtLmaEnabled),
         booleanParam(name: 'DEPLOY_CHILD_CLUSTER', value: triggers.deployChildEnabled),
         booleanParam(name: 'UPGRADE_CHILD_CLUSTER', value: triggers.upgradeChildEnabled),
         booleanParam(name: 'ATTACH_BYO', value: triggers.attachBYOEnabled),
