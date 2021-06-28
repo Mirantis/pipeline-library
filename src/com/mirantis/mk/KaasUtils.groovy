@@ -79,6 +79,7 @@ def checkDeploymentTestSuite() {
     def equinixOnDemandDemo = env.ALLOW_EQUINIX_ON_DEMAND ? env.ALLOW_EQUINIX_ON_DEMAND.toBoolean() : false
     def equinixOnAwsDemo = env.EQUINIX_ON_AWS_DEMO ? env.EQUINIX_ON_AWS_DEMO.toBoolean() : false
     def azureOnAwsDemo = env.AZURE_ON_AWS_DEMO ? env.AZURE_ON_AWS_DEMO.toBoolean() : false
+    def azureOnDemandDemo = env.ALLOW_AZURE_ON_DEMAND ? env.ALLOW_AZURE_ON_DEMAND.toBoolean() : false
     def enableVsphereDemo = true
     def enableOSDemo = true
     def enableBMDemo = true
@@ -162,6 +163,9 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[equinix-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*equinix-demo\.*/) {
         equinixOnDemandDemo = true
     }
+    if (commitMsg ==~ /(?s).*\[azure-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*azure-demo\.*/) {
+        azureOnDemandDemo = true
+    }
     if (commitMsg ==~ /(?s).*\[disable-os-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-os-demo\.*/) {
         enableOSDemo = false
         common.errorMsg('Openstack demo deployment will be aborted, VF -1 will be set')
@@ -225,6 +229,7 @@ def checkDeploymentTestSuite() {
             vsphere:  'internal-ci',
             aws: 'public-ci',
             equinix: 'public-ci',
+            azure: 'public-ci',
         ],
     ]
 
@@ -248,6 +253,7 @@ def checkDeploymentTestSuite() {
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         Equinix provider deployment scheduled: ${equinixOnDemandDemo}
         Equinix@AWS child cluster deployment scheduled: ${equinixOnAwsDemo}
+        Azure provider deployment scheduled: ${azureOnDemandDemo}
         Azure@AWS child cluster deployment scheduled: ${azureOnAwsDemo}
         VSPHERE provider deployment scheduled: ${enableVsphereDemo}
         OS provider deployment scheduled: ${enableOSDemo}
@@ -274,6 +280,7 @@ def checkDeploymentTestSuite() {
         awsOnDemandDemoEnabled     : awsOnDemandDemo,
         equinixOnDemandDemoEnabled : equinixOnDemandDemo,
         equinixOnAwsDemoEnabled    : equinixOnAwsDemo,
+        azureOnDemandDemoEnabled   : azureOnDemandDemo,
         azureOnAwsDemoEnabled      : azureOnAwsDemo,
         vsphereDemoEnabled         : enableVsphereDemo,
         vsphereOnDemandDemoEnabled : enableVsphereDemo, // TODO: remove after MCC 2.7 is out
@@ -508,6 +515,9 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         if (triggers.equinixOnDemandDemoEnabled) {
             platforms.add('equinix')
         }
+        if (triggers.azureOnDemandDemoEnabled) {
+            platforms.add('azure')
+        }
         if (triggers.vsphereDemoEnabled) {
             platforms.add('vsphere')
         }
@@ -540,6 +550,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled),
         booleanParam(name: 'ALLOW_EQUINIX_ON_DEMAND', value: triggers.equinixOnDemandDemoEnabled),
         booleanParam(name: 'EQUINIX_ON_AWS_DEMO', value: triggers.equinixOnAwsDemoEnabled),
+        booleanParam(name: 'ALLOW_AZURE_ON_DEMAND', value: triggers.azureOnDemandDemoEnabled),
         booleanParam(name: 'AZURE_ON_AWS_DEMO', value: triggers.azureOnAwsDemoEnabled),
     ]
 
@@ -557,7 +568,10 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         parameters.addAll(additionalParameters)
     }
 
-    if (triggers.awsOnDemandDemoEnabled || triggers.equinixOnDemandDemoEnabled) {
+    if (triggers.awsOnDemandDemoEnabled     ||
+        triggers.equinixOnDemandDemoEnabled ||
+        triggers.azureOnDemandDemoEnabled) {
+
         common.infoMsg('Public provider demo triggered, need to sync artifacts in the public-ci cdn..')
         switch (component) {
             case 'iam':
