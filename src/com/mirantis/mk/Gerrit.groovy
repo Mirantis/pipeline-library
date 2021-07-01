@@ -477,9 +477,11 @@ def prepareGerritAutoCommit(LinkedHashMap params) {
  * @param doGitClone      boolean whether to pre clone and do some checkout
  */
 def downloadChange(path, url, reference, credentialsId, type = 'cherry-pick', doGitClone = true, Map gitCheckoutParams = [:]){
+    def common = new com.mirantis.mk.Common()
     def git = new com.mirantis.mk.Git()
     def ssh = new com.mirantis.mk.Ssh()
     def cmd
+    def credentials = common.getCredentialsById(credentialsId)
     switch(type) {
         case 'cherry-pick':
             cmd = "git fetch ${url} ${reference} && git cherry-pick FETCH_HEAD"
@@ -500,9 +502,10 @@ def downloadChange(path, url, reference, credentialsId, type = 'cherry-pick', do
         def depth = gitCheckoutParams.get('depth', 0)
         git.checkoutGitRepository(path, url, branch, credentialsId, poll, timeout, depth, '')
     }
-    ssh.prepareSshAgentKey(credentialsId)
-    dir(path){
-         ssh.agentSh(cmd)
+    sshagent (credentials: [credentialsId]) {
+      dir(path){
+        sh(script: "GIT_SSH_COMMAND='ssh -l ${credentials.username}' ${cmd}", returnStdout:true)
+      }
     }
 }
 
