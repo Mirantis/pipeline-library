@@ -674,7 +674,7 @@ def generateLockResources(callBackDemo, triggers) {
     // Checking gerrit triggers and manage lock label quantity and network types in case of Offline deployment
     // Vsphere labels only
     netMap.each { clusterType, netConfig ->
-        if (triggers.proxyConfig["${clusterType}Offline"] == true) {
+        if (triggers.proxyConfig["${clusterType}Offline"] == true || (clusterType == 'regional-child' && triggers.proxyConfig['childOffline'] == true)) {
             netMap[clusterType]['netName'] = 'offline'
             lockLabels['vsphere_offline_networking_core_ci']++
         } else {
