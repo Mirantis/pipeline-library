@@ -465,6 +465,28 @@ def prepareGerritAutoCommit(LinkedHashMap params) {
 }
 
 /**
+ * Get email and username from credentials id
+ * @param credentialsId      Credentials ID to use for source Git
+ */
+def getGerritUserOptions(credentialsId) {
+    def changeAuthorName = "MCP-CI"
+    def changeAuthorEmail = "mcp-ci-jenkins@ci.mcp.mirantis.net"
+
+    switch (credentialsId) {
+        case 'mos-ci':
+            changeAuthorName = "MOS-CI"
+            changeAuthorEmail = "infra+mos-ci@mirantis.com"
+            break;
+        case 'mcp-ci-gerrit':
+            changeAuthorName = "MCP-CI"
+            changeAuthorEmail = "mcp-ci-jenkins@ci.mcp.mirantis.net"
+            break;
+    }
+    return ["changeAuthorName": changeAuthorName,
+            "changeAuthorEmail": changeAuthorEmail]
+}
+
+/**
  * Download change from gerrit, if needed repository maybe pre cloned
  *
  * @param path               Directory to checkout repository to
@@ -482,9 +504,11 @@ def downloadChange(path, url, reference, credentialsId, type = 'cherry-pick', do
     def ssh = new com.mirantis.mk.Ssh()
     def cmd
     def credentials = common.getCredentialsById(credentialsId)
+    Map gerritUserOptions = getGerritUserOptions(credentialsId)
+    String gitCommiterOpts = "GIT_COMMITER_EMAIL=\'${gerritUserOptions['changeAuthorEmail']}\' GIT_COMMITER_NAME=\'${gerritUserOptions['changeAuthorName']}\'"
     switch(type) {
         case 'cherry-pick':
-            cmd = "git fetch ${url} ${reference} && git cherry-pick FETCH_HEAD"
+            cmd = "git fetch ${url} ${reference} && ${gitCommiterOpts} git cherry-pick FETCH_HEAD"
             break;
         case 'format-patch':
             cmd = "git fetch ${url} ${reference} && git format-patch -1 --stdout FETCH_HEAD"
