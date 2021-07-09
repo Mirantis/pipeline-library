@@ -505,7 +505,7 @@ def downloadChange(path, url, reference, credentialsId, type = 'cherry-pick', do
     def cmd
     def credentials = common.getCredentialsById(credentialsId)
     Map gerritUserOptions = getGerritUserOptions(credentialsId)
-    String gitCommiterOpts = "GIT_COMMITER_EMAIL=\'${gerritUserOptions['changeAuthorEmail']}\' GIT_COMMITER_NAME=\'${gerritUserOptions['changeAuthorName']}\'"
+    String gitCommiterOpts = "GIT_COMMITTER_EMAIL=\'${gerritUserOptions['changeAuthorEmail']}\' GIT_COMMITTER_NAME=\'${gerritUserOptions['changeAuthorName']}\'"
     switch(type) {
         case 'cherry-pick':
             cmd = "git fetch ${url} ${reference} && ${gitCommiterOpts} git cherry-pick FETCH_HEAD"
