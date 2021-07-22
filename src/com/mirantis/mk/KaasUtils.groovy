@@ -59,6 +59,7 @@ def checkDeploymentTestSuite() {
     def runUie2e = env.RUN_UI_E2E ? env.RUN_UI_E2E.toBoolean() : false
     def runMgmtConformance = env.RUN_MGMT_CFM ? env.RUN_MGMT_CFM.toBoolean() : false
     def runLMATest = env.RUN_LMA_TEST ? env.RUN_LMA_TEST.toBoolean() : false
+    def runMgmtUserControllerTest = env.RUN_MGMT_USER_CONTROLLER_TEST ? env.RUN_MGMT_USER_CONTROLLER_TEST.toBoolean() : false
     def runChildConformance = env.RUN_CHILD_CFM ? env.RUN_CHILD_CFM.toBoolean() : false
     def fetchServiceBinaries = env.FETCH_BINARIES_FROM_UPSTREAM ? env.FETCH_BINARIES_FROM_UPSTREAM.toBoolean() : false
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
@@ -125,6 +126,9 @@ def checkDeploymentTestSuite() {
     }
     if (commitMsg ==~ /(?s).*\[mgmt-cfm\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-cfm.*/) {
         runMgmtConformance = true
+    }
+    if (commitMsg ==~ /(?s).*\[test-user-controller\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*test-user-controller.*/) {
+        runMgmtUserControllerTest = true
     }
     if (commitMsg ==~ /(?s).*\[child-cfm\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-cfm.*/) {
         runChildConformance = true
@@ -260,6 +264,7 @@ def checkDeploymentTestSuite() {
         Mgmt LMA logging enabled: ${enableLMALogging}
         Mgmt conformance testing scheduled: ${runMgmtConformance}
         LMA testing scheduled: ${runLMATest}
+        Mgmt user controller testing scheduled: ${runMgmtUserControllerTest}
         Mgmt UI e2e testing scheduled: ${runUie2e}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         Equinix provider deployment scheduled: ${equinixOnDemandDemo}
@@ -274,32 +279,33 @@ def checkDeploymentTestSuite() {
         Current weight of the demo run: ${demoWeight} (Used to manage lockable resources)
         Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [
-        cdnConfig                  : cdnConfig,
-        proxyConfig                : proxyConfig,
-        useMacOsSeedNode           : seedMacOs,
-        deployChildEnabled         : deployChild,
-        childDeployCustomRelease   : customChildRelease,
-        upgradeChildEnabled        : upgradeChild,
-        runChildConformanceEnabled : runChildConformance,
-        attachBYOEnabled           : attachBYO,
-        upgradeBYOEnabled          : upgradeBYO,
-        upgradeMgmtEnabled         : upgradeMgmt,
-        enableLMALoggingEnabled    : enableLMALogging,
-        runUie2eEnabled            : runUie2e,
-        runMgmtConformanceEnabled  : runMgmtConformance,
-        runLMATestEnabled          : runLMATest,
-        fetchServiceBinariesEnabled: fetchServiceBinaries,
-        awsOnDemandDemoEnabled     : awsOnDemandDemo,
-        equinixOnDemandDemoEnabled : equinixOnDemandDemo,
-        equinixOnAwsDemoEnabled    : equinixOnAwsDemo,
-        azureOnDemandDemoEnabled   : azureOnDemandDemo,
-        azureOnAwsDemoEnabled      : azureOnAwsDemo,
-        vsphereDemoEnabled         : enableVsphereDemo,
-        vsphereOnDemandDemoEnabled : enableVsphereDemo, // TODO: remove after MCC 2.7 is out
-        bmDemoEnabled              : enableBMDemo,
-        osDemoEnabled              : enableOSDemo,
-        multiregionalConfiguration : multiregionalMappings,
-        demoWeight                 : demoWeight]
+        cdnConfig                        : cdnConfig,
+        proxyConfig                      : proxyConfig,
+        useMacOsSeedNode                 : seedMacOs,
+        deployChildEnabled               : deployChild,
+        childDeployCustomRelease         : customChildRelease,
+        upgradeChildEnabled              : upgradeChild,
+        runChildConformanceEnabled       : runChildConformance,
+        attachBYOEnabled                 : attachBYO,
+        upgradeBYOEnabled                : upgradeBYO,
+        upgradeMgmtEnabled               : upgradeMgmt,
+        enableLMALoggingEnabled          : enableLMALogging,
+        runUie2eEnabled                  : runUie2e,
+        runMgmtConformanceEnabled        : runMgmtConformance,
+        runLMATestEnabled                : runLMATest,
+        runMgmtUserControllerTestEnabled : runMgmtUserControllerTest,
+        fetchServiceBinariesEnabled      : fetchServiceBinaries,
+        awsOnDemandDemoEnabled           : awsOnDemandDemo,
+        equinixOnDemandDemoEnabled       : equinixOnDemandDemo,
+        equinixOnAwsDemoEnabled          : equinixOnAwsDemo,
+        azureOnDemandDemoEnabled         : azureOnDemandDemo,
+        azureOnAwsDemoEnabled            : azureOnAwsDemo,
+        vsphereDemoEnabled               : enableVsphereDemo,
+        vsphereOnDemandDemoEnabled       : enableVsphereDemo, // TODO: remove after MCC 2.7 is out
+        bmDemoEnabled                    : enableBMDemo,
+        osDemoEnabled                    : enableOSDemo,
+        multiregionalConfiguration       : multiregionalMappings,
+        demoWeight                       : demoWeight]
 }
 
 /**
@@ -555,6 +561,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'RUN_UI_E2E', value: triggers.runUie2eEnabled),
         booleanParam(name: 'RUN_MGMT_CFM', value: triggers.runMgmtConformanceEnabled),
         booleanParam(name: 'RUN_LMA_TEST', value: triggers.runLMATestEnabled),
+        booleanParam(name: 'RUN_MGMT_USER_CONTROLLER_TEST', value: triggers.runMgmtUserControllerTestEnabled),
         booleanParam(name: 'DEPLOY_CHILD_CLUSTER', value: triggers.deployChildEnabled),
         booleanParam(name: 'UPGRADE_CHILD_CLUSTER', value: triggers.upgradeChildEnabled),
         booleanParam(name: 'ATTACH_BYO', value: triggers.attachBYOEnabled),
