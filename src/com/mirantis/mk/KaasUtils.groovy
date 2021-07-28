@@ -220,6 +220,10 @@ def checkDeploymentTestSuite() {
             common.warningMsg('Forced running additional kaas deployment with Equinix provider according multiregional demo request')
             equinixOnDemandDemo = true
             break
+        case 'azure':
+            common.warningMsg('Forced running additional kaas deployment with Azure provider according multiregional demo request')
+            azureOnDemandDemo = true
+            break
     }
 
     // CDN configuration
