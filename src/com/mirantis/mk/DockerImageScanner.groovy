@@ -43,11 +43,8 @@ def getTeam (String image = '') {
         case ~/^ceph\/.*$/:
             team_assignee = 'Storage'
             break
-        case ~/^(core|iam)\/.*$/:
+        case ~/^(core|iam|lcm)\/.*$/:
             team_assignee = 'KaaS'
-            break
-        case ~/^lcm\/.*$/:
-            team_assignee = 'Kubernetes'
             break
         default:
             team_assignee = 'Release Engineering'
