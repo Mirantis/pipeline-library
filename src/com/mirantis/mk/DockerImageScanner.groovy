@@ -205,7 +205,7 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                                 if (!imageDict[image.key].containsKey(pkg.key)) {
                                     imageDict[image.key].put(pkg.key, [])
                                 }
-                                imageDict[image.key][pkg.key].add("[${cve[0]}|${cve[4]}] (${cve[2]}) (${cve[3]})")
+                                imageDict[image.key][pkg.key].add("[${cve[0]}|${cve[4]}] (${cve[2]}) (${cve[3]}) | ${cve[5]}")
                             }
                     }
             }
