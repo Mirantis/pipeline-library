@@ -169,7 +169,7 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
 
     def search_json = """
 {
-        "jql": "reporter = ${jiraUserID} and (labels = cve and labels = security) and (status = 'To Do' or status = 'For Triage' or status = Open or status = 'In Progress' or status = New)", "maxResults":-1
+        "jql": "reporter = ${jiraUserID} and (labels = cve and labels = security) and (status = 'To Do' or status = 'For Triage' or status = Open or status = 'In Progress' or status = New or status = 'Input Required')", "maxResults":-1
 }
 """
 
