@@ -639,7 +639,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
 
 /**
  * Function currently supported to be called from aws or vsphere demos. It gets particular demo context
- * and generate proper lockResources data and netMap data for vsphere related clusters.
+ * and generate proper lockResources data and netMap data for vsphere,equinix related clusters.
  *
  * @param:        callBackDemo (string) Demo which requested to generate lockResources [aws or vsphere]
  * @param:        triggers (map) Custom trigger keywords forwarded from gerrit
@@ -650,7 +650,10 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
 
 def generateLockResources(callBackDemo, triggers) {
     def common = new com.mirantis.mk.Common()
-    def netMap = [:]
+    def netMap = [
+        vsphere: [:],
+        equinix: [:],
+    ]
     // Define vsphere locklabels with initial quantity
     def lockLabels = [
         vsphere_networking_core_ci: 0,
@@ -669,22 +672,22 @@ def generateLockResources(callBackDemo, triggers) {
             // Define netMap for Vsphere region
             if (runMultiregion && multiregionConfig.regionLocation == 'vsphere') {
                 if (deployChild) {
-                    addToVsphereNetMap(netMap, 'regional-child')
+                    addToProviderNetMap(netMap, 'vsphere', 'regional-child')
                 }
-                addToVsphereNetMap(netMap, 'region')
+                addToProviderNetMap(netMap, 'vsphere', 'region')
             }
             break
         case 'vsphere':
-            addToVsphereNetMap(netMap, 'mgmt')
+            addToProviderNetMap(netMap, 'vsphere', 'mgmt')
             if (deployChild) {
-                addToVsphereNetMap(netMap, 'child')
+                addToProviderNetMap(netMap, 'vsphere', 'child')
             }
             if (runMultiregion && multiregionConfig.managementLocation == 'vsphere' &&
                 multiregionConfig.regionLocation == 'vsphere') {
                 if (deployChild) {
-                    addToVsphereNetMap(netMap, 'regional-child')
+                    addToProviderNetMap(netMap, 'vsphere', 'regional-child')
                 }
-                addToVsphereNetMap(netMap, 'region')
+                addToProviderNetMap(netMap, 'vsphere', 'region')
             }
             break
         default:
@@ -693,9 +696,12 @@ def generateLockResources(callBackDemo, triggers) {
 
     // Checking gerrit triggers and manage lock label quantity and network types in case of Offline deployment
     // Vsphere labels only
-    netMap.each { clusterType, netConfig ->
-        if (triggers.proxyConfig["${clusterType}Offline"] == true || (clusterType == 'regional-child' && triggers.proxyConfig['childOffline'] == true) || (clusterType == 'region' && triggers.proxyConfig['mgmtOffline'])) {
-            netMap[clusterType]['netName'] = 'offline'
+    netMap['vsphere'].each { clusterType, netConfig ->
+        if (triggers.proxyConfig["${clusterType}Offline"] == true                             ||
+            (clusterType == 'regional-child' && triggers.proxyConfig['childOffline'] == true) ||
+            (clusterType == 'region' && triggers.proxyConfig['mgmtOffline'])) {
+
+            netMap['vsphere'][clusterType]['netName'] = 'offline'
             lockLabels['vsphere_offline_networking_core_ci']++
         } else {
             lockLabels['vsphere_networking_core_ci']++
@@ -727,13 +733,25 @@ def generateLockResources(callBackDemo, triggers) {
  * Function gets vsphere netMap or empty map and adds new vsphere clusterType with default netName
  * and empty rangeConfig to the this map.
  *
- * @param:        netMap (string) vsphere netMap or empty map
+ * @param:        netMap      (string) vsphere, equinix netMap or empty map
+ * @param:        provider    (string) provider type
  * @param:        clusterType (string) Vsphere cluster type
  */
 
-def addToVsphereNetMap (netMap, clusterType) {
-    netMap[clusterType] = [
-        netName: 'default',
-        rangeConfig: '',
-      ]
+def addToProviderNetMap (netMap, provider, clusterType) {
+    switch (provider) {
+        case 'equinix':
+            netMap[provider][clusterType] = [
+                vlanConfig: '',
+              ]
+            break
+        case 'vsphere':
+            netMap[provider][clusterType] = [
+                netName: 'default',
+                rangeConfig: '',
+              ]
+            break
+        default:
+            error('Net map locks supported for Equinix/Vsphere providers only')
+    }
 }
