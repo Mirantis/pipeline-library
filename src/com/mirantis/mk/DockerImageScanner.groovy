@@ -272,6 +272,9 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
             if (jiraNamespace == 'PRODX') {
                 basicIssueJSON['fields']['customfield_19000'] = [value:"${team_assignee}"]
                 basicIssueJSON['fields']['versions'] = [["name": affectedVersion]]
+                if (image_key.startsWith('lcm/')) {
+                    basicIssueJSON['fields']['components'] = [["name": 'KaaS: LCM']]
+                }
             }
             def post_issue_json = JsonOutput.toJson(basicIssueJSON)
             def jira_comment = jira_description.replaceAll(/\n/, '\\\\n')
