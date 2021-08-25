@@ -55,6 +55,7 @@ def checkDeploymentTestSuite() {
     def attachBYO = env.ATTACH_BYO ? env.ATTACH_BYO.toBoolean() : false
     def upgradeBYO = env.UPGRADE_BYO ? env.UPGRADE_BYO.toBoolean() : false
     def upgradeMgmt = env.UPGRADE_MGMT_CLUSTER ? env.UPGRADE_MGMT_CLUSTER.toBoolean() : false
+    def enableLMALogging = env.ENABLE_LMA_LOGGING ? env.ENABLE_LMA_LOGGING.toBoolean(): false
     def runUie2e = env.RUN_UI_E2E ? env.RUN_UI_E2E.toBoolean() : false
     def runMgmtConformance = env.RUN_MGMT_CFM ? env.RUN_MGMT_CFM.toBoolean() : false
     def runLMATest = env.RUN_LMA_TEST ? env.RUN_LMA_TEST.toBoolean() : false
@@ -116,6 +117,9 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[mgmt-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-upgrade.*/) {
         upgradeMgmt = true
     }
+    if (commitMsg ==~ /(?s).*\[lma-logging\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*lma-logging.*/) {
+        enableLMALogging = true
+    }
     if (commitMsg ==~ /(?s).*\[ui-e2e\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-e2e.*/) {
         runUie2e = true
     }
@@ -128,6 +132,8 @@ def checkDeploymentTestSuite() {
     }
     if (commitMsg ==~ /(?s).*\[lma-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*lma-test.*/) {
         runLMATest = true
+        enableLMALogging = true
+        common.infoMsg('LMA logging will be enabled since LMA test suite will be executed')
     }
     if (commitMsg ==~ /(?s).*\[child-offline\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-offline.*/) {
         proxyConfig['childOffline'] = true
@@ -251,6 +257,7 @@ def checkDeploymentTestSuite() {
         BYO cluster attachment scheduled: ${attachBYO}
         Attached BYO cluster upgrade test scheduled: ${upgradeBYO}
         Mgmt cluster release upgrade scheduled: ${upgradeMgmt}
+        Mgmt LMA logging enabled: ${enableLMALogging}
         Mgmt conformance testing scheduled: ${runMgmtConformance}
         LMA testing scheduled: ${runLMATest}
         Mgmt UI e2e testing scheduled: ${runUie2e}
@@ -277,6 +284,7 @@ def checkDeploymentTestSuite() {
         attachBYOEnabled           : attachBYO,
         upgradeBYOEnabled          : upgradeBYO,
         upgradeMgmtEnabled         : upgradeMgmt,
+        enableLMALoggingEnabled    : enableLMALogging,
         runUie2eEnabled            : runUie2e,
         runMgmtConformanceEnabled  : runMgmtConformance,
         runLMATestEnabled          : runLMATest,
@@ -543,6 +551,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'PROXY_CHILD_CLUSTER', value: triggers.proxyConfig['childProxy']),
         booleanParam(name: 'SEED_MACOS', value: triggers.useMacOsSeedNode),
         booleanParam(name: 'UPGRADE_MGMT_CLUSTER', value: triggers.upgradeMgmtEnabled),
+        booleanParam(name: 'ENABLE_LMA_LOGGING', value: triggers.enableLMALoggingEnabled),
         booleanParam(name: 'RUN_UI_E2E', value: triggers.runUie2eEnabled),
         booleanParam(name: 'RUN_MGMT_CFM', value: triggers.runMgmtConformanceEnabled),
         booleanParam(name: 'RUN_LMA_TEST', value: triggers.runLMATestEnabled),
