@@ -156,7 +156,8 @@ def getLatestAffectedVersion(cred, productName, defaultJiraAffectedVersion = 'Ba
     return defaultJiraAffectedVersion
 }
 
-def reportJiraTickets(String reportFileContents, String jiraCredentialsID, String jiraUserID, String productName = '', String ignoreImageListFileContents = '[]', String jiraNamespace = 'PRODX') {
+
+def reportJiraTickets(String reportFileContents, String jiraCredentialsID, String jiraUserID, String productName = '', String ignoreImageListFileContents = '[]', Integer retryTry = 0, String jiraNamespace = 'PRODX') {
 
     def dict = [:]
 
@@ -167,26 +168,60 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
 
     def search_api_url = "${cred.description}/rest/api/2/search"
 
-    def search_json = """
+
+    def jqlStartAt = 0
+    def jqlStep = 100
+    def jqlProcessedItems = 0
+    def jqlUnfinishedProcess = true
+    def jqlTotalItems = 0
+    while (jqlUnfinishedProcess) {
+        def search_json = """
 {
         "jql": "reporter = ${jiraUserID} and (labels = cve and labels = security) and (status = 'To Do' or status = 'For Triage' or status = Open or status = 'In Progress' or status = New or status = 'Input Required')", "maxResults":-1
 }
 """
 
-    def response = callREST("${search_api_url}", auth, 'POST', search_json)
+        def response = callREST("${search_api_url}", auth, 'POST', search_json)
+        def InputJSON = new JsonSlurper().parseText(response["responseText"])
+        if (InputJSON.containsKey('maxResults')){
+            if (jqlStep > InputJSON['maxResults']) {
+                jqlStep = InputJSON['maxResults']
+            }
+        }
 
-    def InputJSON = new JsonSlurper().parseText(response["responseText"])
+        jqlStartAt = jqlStartAt + jqlStep
 
-    InputJSON['issues'].each {
-        dict[it['key']] = [
-                summary : '',
-                description: '',
-                comments: []
-        ]
-    }
+        if (InputJSON.containsKey('total')){
+            jqlTotalItems = InputJSON['total']
+        }
 
-    InputJSON['issues'].each { jira_issue ->
-        dict = updateDictionary(jira_issue['key'], dict, uri, auth, jiraUserID)
+        if (InputJSON.containsKey('issues')){c
+            if (!InputJSON['issues'] && retryTry != 0) {
+                throw new Exception('"issues" list is empty')
+            }
+        } else {
+            throw new Exception('Returned JSON from jql does not contain "issues" section')
+        }
+        print 'Temporal debug information:'
+        InputJSON['issues'].each {
+            print it['key'] + ' -> ' + it['fields']['summary']
+        }
+
+        InputJSON['issues'].each {
+            dict[it['key']] = [
+                    summary : '',
+                    description: '',
+                    comments: []
+            ]
+        }
+
+        InputJSON['issues'].each { jira_issue ->
+            dict = updateDictionary(jira_issue['key'], dict, uri, auth, jiraUserID)
+            jqlProcessedItems = jqlProcessedItems + 1
+        }
+        if (jqlProcessedItems >= jqlTotalItems) {
+            jqlUnfinishedProcess = false
+        }
     }
 
     def reportJSON = new JsonSlurper().parseText(reportFileContents)
