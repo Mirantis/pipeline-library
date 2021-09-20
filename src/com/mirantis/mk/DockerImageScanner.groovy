@@ -195,7 +195,7 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
             jqlTotalItems = InputJSON['total']
         }
 
-        if (InputJSON.containsKey('issues')){c
+        if (InputJSON.containsKey('issues')){
             if (!InputJSON['issues'] && retryTry != 0) {
                 throw new Exception('"issues" list is empty')
             }
