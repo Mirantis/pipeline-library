@@ -156,8 +156,34 @@ def getLatestAffectedVersion(cred, productName, defaultJiraAffectedVersion = 'Ba
     return defaultJiraAffectedVersion
 }
 
+def getNvdInfo(nvdApiUri, cve) {
+    def cveArr = []
+    def response = callREST("${nvdApiUri}/${cve}", '')
+    if (response['responseCode'] == 200) {
+        def InputJSON = new JsonSlurper().parseText(response["responseText"])
+        if (InputJSON.containsKey('impact')) {
+            def cveImpact = InputJSON['impact']
+            ['V3','V2'].each {
+                if (cveImpact.containsKey('baseMetric' + it)) {
+                    if (cveImpact['baseMetric' + it].containsKey('cvss' + it)) {
+                        if (cveImpact['baseMetric' + it]['cvss' + it].containsKey('baseScore')) {
+                            def cveBaseSeverity = ''
+                            if (cveImpact['baseMetric' + it]['cvss' + it].containsKey('baseSeverity')) {
+                                cveBaseSeverity = cveImpact['baseMetric'+it]['cvss'+it]['baseSeverity']
+                            }
+                            cveArr.add([it, cveImpact['baseMetric'+it]['cvss'+it]['baseScore'],cveBaseSeverity])
+                        }
 
-def reportJiraTickets(String reportFileContents, String jiraCredentialsID, String jiraUserID, String productName = '', String ignoreImageListFileContents = '[]', Integer retryTry = 0, String jiraNamespace = 'PRODX') {
+                    }
+                }
+            }
+        }
+    }
+    return cveArr
+}
+
+
+def reportJiraTickets(String reportFileContents, String jiraCredentialsID, String jiraUserID, String productName = '', String ignoreImageListFileContents = '[]', Integer retryTry = 0, String nvdApiUri = '', jiraNamespace = 'PRODX') {
 
     def dict = [:]
 
@@ -255,6 +281,7 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
 
     def jira_summary = ''
     def jira_description = ''
+    def jira_description_nvd_scoring = []
     imageDict.each{
         image ->
             def image_key = image.key.replaceAll(/(^[a-z0-9-.]+.mirantis.(net|com)\/|:.*$)/, '')
@@ -269,7 +296,7 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
             if (image_key.startsWith('lcm/docker/ucp')) {
                 return
             } else if (image_key.startsWith('mirantis/ucp') || image_key.startsWith('mirantiseng/ucp')) {
-                jiraNamespace = 'ENGORC'
+                jiraNamespace = 'MKE'
             } else if (image_key.startsWith('mirantis/dtr') || image_key.startsWith('mirantiseng/dtr')) {
                 jiraNamespace = 'ENGDTR'
             } else {
@@ -277,13 +304,33 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
             }
             jira_summary = "[${image_key}] Found CVEs in Docker image"
             jira_description = "${image.key}\n"
+            def filter_mke_severity = false
             image.value.each{
                 pkg ->
                     jira_description += "__* ${pkg.key}\n"
                     pkg.value.each{
                         cve ->
                             jira_description += "________${cve}\n"
+                            if (nvdApiUri) {
+                                jira_description_nvd_scoring = getNvdInfo(nvdApiUri, cve)
+                                jira_description_nvd_scoring.each {
+                                    jira_description += 'CVSS ' + it.join(' ') + '\n'
+                                    // According to Vikram there will be no fixes for
+                                    // CVEs with CVSS base score below 7
+                                    if (jiraNamespace == 'MKE' && it[0] == 'V3' && it[1].toInteger() >= 7) {
+                                        filter_mke_severity = true
+                                    }
+                                }
+                            } else {
+                                print 'nvdApiUri var is not specified.'
+                            }
                     }
+            }
+
+            if (filter_mke_severity) {
+                print "\n\nIgnoring ${image.key} as it does not have CVEs with CVSS base score >7\n"
+                print jira_description
+                return
             }
 
             def team_assignee = getTeam(image_key)
@@ -311,6 +358,12 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                     basicIssueJSON['fields']['components'] = [["name": 'KaaS: LCM']]
                 }
             }
+
+            if (jiraNamespace == 'MKE') {
+                // Assign issues by default to Vikram bir Singh, as it was asked by him
+                basicIssueJSON['fields']['assignee'] = ['accountId': '5ddd4d67b95b180d17cecc67']
+            }
+
             def post_issue_json = JsonOutput.toJson(basicIssueJSON)
             def jira_comment = jira_description.replaceAll(/\n/, '\\\\n')
             def post_comment_json = """
