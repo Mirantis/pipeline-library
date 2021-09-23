@@ -89,7 +89,13 @@ def cacheLookUp(Map dict, String image_short_name, String image_full_name = '', 
     if (!found_key[0] && dict && image_short_name) {
         dict.each { issue_key_name ->
             if (!found_key[0]) {
-                def s = dict[issue_key_name.key]['summary'] =~ /(?<=[\/\[])${image_short_name}(?=\])/
+                def s
+                if (image_short_name =~ /^mirantis(eng)?\//) {
+                    def tmp_image_short_name = image_short_name.replaceAll(/^mirantis(eng)?\//, '')
+                    s = dict[issue_key_name.key]['summary'] =~ /^\[mirantis(eng)?\/${tmp_image_short_name}(?=\])/
+                } else {
+                    s = dict[issue_key_name.key]['summary'] =~ /(?<=[\/\[])${image_short_name}(?=\])/
+                }
                 if (s) {
                     if (image_full_name) {
                         def d = dict[issue_key_name.key]['description'] =~ /(?m)\b${image_full_name}\b/
@@ -156,9 +162,18 @@ def getLatestAffectedVersion(cred, productName, defaultJiraAffectedVersion = 'Ba
     return defaultJiraAffectedVersion
 }
 
-def getNvdInfo(nvdApiUri, cve) {
+def getNvdInfo(nvdApiUrl, cve, requestDelay = 1, requestRetryNum = 5, sleepTimeOnBan = 60) {
     def cveArr = []
-    def response = callREST("${nvdApiUri}/${cve}", '')
+    sleep requestDelay
+    def response = callREST("${nvdApiUrl}/${cve}", '')
+    for (i = 0; i < requestRetryNum; i++) {
+        if (response['responseCode'] == 429) {
+            sleep sleepTimeOnBan
+            response = callREST("${nvdApiUrl}/${cve}", '')
+        } else {
+            return
+        }
+    }
     if (response['responseCode'] == 200) {
         def InputJSON = new JsonSlurper().parseText(response["responseText"])
         if (InputJSON.containsKey('impact')) {
@@ -183,7 +198,7 @@ def getNvdInfo(nvdApiUri, cve) {
 }
 
 
-def reportJiraTickets(String reportFileContents, String jiraCredentialsID, String jiraUserID, String productName = '', String ignoreImageListFileContents = '[]', Integer retryTry = 0, String nvdApiUri = '', jiraNamespace = 'PRODX') {
+def reportJiraTickets(String reportFileContents, String jiraCredentialsID, String jiraUserID, String productName = '', String ignoreImageListFileContents = '[]', Integer retryTry = 0, String nvdApiUrl = '', jiraNamespace = 'PRODX') {
 
     def dict = [:]
 
@@ -203,7 +218,7 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
     while (jqlUnfinishedProcess) {
         def search_json = """
 {
-        "jql": "reporter = ${jiraUserID} and (labels = cve and labels = security) and (status = 'To Do' or status = 'For Triage' or status = Open or status = 'In Progress' or status = New or status = 'Input Required')", "maxResults":-1
+        "jql": "reporter = ${jiraUserID} and (labels = cve and labels = security) and (status = 'To Do' or status = 'For Triage' or status = Open or status = 'In Progress' or status = New or status = 'Input Required')", "maxResults":-1, "startAt": ${jqlStartAt}
 }
 """
 
@@ -311,18 +326,21 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                     pkg.value.each{
                         cve ->
                             jira_description += "________${cve}\n"
-                            if (nvdApiUri) {
-                                jira_description_nvd_scoring = getNvdInfo(nvdApiUri, cve)
-                                jira_description_nvd_scoring.each {
-                                    jira_description += 'CVSS ' + it.join(' ') + '\n'
-                                    // According to Vikram there will be no fixes for
-                                    // CVEs with CVSS base score below 7
-                                    if (jiraNamespace == 'MKE' && it[0] == 'V3' && it[1].toInteger() >= 7) {
-                                        filter_mke_severity = true
+                            if (nvdApiUrl) {
+                                def cveId = cve.replaceAll(/(^\[|\|.*$)/, '')
+                                if (cveId.startsWith('CVE-')) {
+                                    jira_description_nvd_scoring = getNvdInfo(nvdApiUrl, cveId)
+                                    jira_description_nvd_scoring.each {
+                                        jira_description += 'CVSS ' + it.join(' ') + '\n'
+                                        // According to Vikram there will be no fixes for
+                                        // CVEs with CVSS base score below 7
+                                        if (jiraNamespace == 'MKE' && it[0] == 'V3' && it[1].toInteger() >= 7) {
+                                            filter_mke_severity = true
+                                        }
                                     }
                                 }
                             } else {
-                                print 'nvdApiUri var is not specified.'
+                                print 'nvdApiUrl var is not specified.'
                             }
                     }
             }
