@@ -198,7 +198,7 @@ def getNvdInfo(nvdApiUrl, cve, requestDelay = 1, requestRetryNum = 5, sleepTimeO
 }
 
 
-def reportJiraTickets(String reportFileContents, String jiraCredentialsID, String jiraUserID, String productName = '', String ignoreImageListFileContents = '[]', Integer retryTry = 0, String nvdApiUrl = '', jiraNamespace = 'PRODX') {
+def reportJiraTickets(String reportFileContents, String jiraCredentialsID, String jiraUserID, String productName = '', String ignoreImageListFileContents = '[]', Integer retryTry = 0, String nvdApiUrl = '', jiraNamespace = 'PRODX', nvdNistGovCveUrl = 'https://nvd.nist.gov/vuln/detail/') {
 
     def dict = [:]
 
@@ -337,6 +337,9 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                                         if (jiraNamespace == 'MKE' && it[0] == 'V3' && it[1].toInteger() >= 7) {
                                             filter_mke_severity = true
                                         }
+                                    }
+                                    if (filter_mke_severity) {
+                                        jira_description += nvdNistGovCveUrl + cveId + '\n'
                                     }
                                 }
                             } else {
