@@ -171,7 +171,7 @@ def getNvdInfo(nvdApiUrl, cve, requestDelay = 1, requestRetryNum = 5, sleepTimeO
             sleep sleepTimeOnBan
             response = callREST("${nvdApiUrl}/${cve}", '')
         } else {
-            return
+            break
         }
     }
     if (response['responseCode'] == 200) {
@@ -341,6 +341,8 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                                     if (filter_mke_severity) {
                                         jira_description += nvdNistGovCveUrl + cveId + '\n'
                                     }
+                                } else {
+                                    print "No info about ${cveId} item from NVD API server"
                                 }
                             } else {
                                 print 'nvdApiUrl var is not specified.'
