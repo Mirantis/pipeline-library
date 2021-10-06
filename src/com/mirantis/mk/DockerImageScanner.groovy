@@ -176,7 +176,7 @@ def getNvdInfo(nvdApiUrl, cve, requestDelay = 1, requestRetryNum = 5, sleepTimeO
     }
     if (response['responseCode'] == 200) {
         def InputJSON = new JsonSlurper().parseText(response["responseText"])
-        if (InputJSON.containsKey('impact')) {
+        if (InputJSON && InputJSON.containsKey('impact')) {
             def cveImpact = InputJSON['impact']
             ['V3','V2'].each {
                 if (cveImpact.containsKey('baseMetric' + it)) {
