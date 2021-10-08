@@ -414,22 +414,43 @@ def waitForHealthy(master, flags, attempts=300) {
     def common = new Common()
 
     def count = 0
-    def isHealthy = false
     def health = ''
 
+    // warning that can appeared during operation while are unrelated to data safety
+    def acceptableWarnings = [
+        'AUTH_INSECURE_GLOBAL_ID_RECLAIM',
+        'AUTH_INSECURE_GLOBAL_ID_RECLAIM_ALLOWED',
+        'MON_MSGR2_NOT_ENABLED'
+    ]
     // wait for current ops will be reflected in status
     sleep(5)
 
     while(count++ < attempts) {
-        health = cmdRun(master, 'ceph health', false)
-        if(health == 'HEALTH_OK') { return }
-        else {
-            // HEALTH_WARN noout,norebalance flag(s) set
-            def unexpectedFlags = health.tokenize(' ').getAt(1)?.tokenize(',')
+        health = cmdRun(master, 'ceph health -f json', false)
+        health = common.parseJSON(health)
+
+        if(health['status'] == 'HEALTH_OK') { return }
+        if(health['checks'].containsKey('OSDMAP_FLAGS')) {
+            def unexpectedFlags = health['checks']['OSDMAP_FLAGS']['summary']['message'].tokenize(' ').getAt(0)?.tokenize(',')
             unexpectedFlags.removeAll(flags)
-            if(health.contains('HEALTH_WARN') && unexpectedFlags.isEmpty()) { return }
+            if(unexpectedFlags.isEmpty()) {
+                health['checks'].remove('OSDMAP_FLAGS')
+            }
         }
-        common.warningMsg("Ceph cluster is still unhealthy: $health")
+
+        // ignore acceptable warnings
+        for(w in acceptableWarnings) {
+            if(health['checks'].containsKey(w)) {
+                health['checks'].remove(w)
+            }
+        }
+
+        if(health['checks'].isEmpty()) { return }
+
+        common.warningMsg("Ceph cluster is still unhealthy: " + health['status'])
+        for(check in health['checks']) {
+            common.warningMsg(check.value['summary']['message'])
+        }
         sleep(10)
     }
     // TODO: MissingMethodException
