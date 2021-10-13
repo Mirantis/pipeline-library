@@ -28,6 +28,9 @@ def callREST (String uri, String auth,
 def getTeam (String image = '') {
     def team_assignee = ''
     switch(image) {
+        case ~/^openstack\/extra\/xrally-openstack\/.*$/:
+            team_assignee = 'Scale'
+            break
         case ~/^(tungsten|tungsten-operator)\/.*$/:
             team_assignee = 'OpenContrail'
             break
