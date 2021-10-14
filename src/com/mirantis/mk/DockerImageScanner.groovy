@@ -5,7 +5,7 @@ package com.mirantis.mk
 import groovy.json.JsonSlurper
 import groovy.json.JsonOutput
 
-def callREST (String uri, String auth,
+def callREST(String uri, String auth,
               String method = 'GET', String message = null) {
     String authEnc = auth.bytes.encodeBase64()
     def req = new URL(uri).openConnection()
@@ -25,7 +25,7 @@ def callREST (String uri, String auth,
     return [ 'responseCode': responseCode, 'responseText': responseText ]
 }
 
-def getTeam (String image = '') {
+def getTeam(String image = '') {
     def team_assignee = ''
     switch(image) {
         case ~/^openstack\/extra\/xrally-openstack\/.*$/:
@@ -57,7 +57,7 @@ def getTeam (String image = '') {
     return team_assignee
 }
 
-def updateDictionary (String jira_issue_key, Map dict, String uri, String auth, String jira_user_id) {
+def updateDictionary(String jira_issue_key, Map dict, String uri, String auth, String jira_user_id) {
     def response = callREST("${uri}/${jira_issue_key}", auth)
     if ( response['responseCode'] == 200 ) {
         def issueJSON = new JsonSlurper().parseText(response["responseText"])
@@ -200,10 +200,25 @@ def getNvdInfo(nvdApiUrl, cve, requestDelay = 1, requestRetryNum = 5, sleepTimeO
     return cveArr
 }
 
+def nvdCacheLookUp(Map dict, String cveId) {
+    if (dict.containsKey(cveId)) {
+        return dict[cveId]
+    }
+    return false
+}
+
+def nvdUpdateDictionary(Map dict, String cveId, List cveArr) {
+    if (!dict.containsKey(cveId)) {
+        dict[cveId] = cveArr
+    }
+    return dict
+}
+
 
 def reportJiraTickets(String reportFileContents, String jiraCredentialsID, String jiraUserID, String productName = '', String ignoreImageListFileContents = '[]', Integer retryTry = 0, String nvdApiUrl = '', jiraNamespace = 'PRODX', nvdNistGovCveUrl = 'https://nvd.nist.gov/vuln/detail/') {
 
     def dict = [:]
+    def nvdDict = [:]
 
     def common = new com.mirantis.mk.Common()
     def cred = common.getCredentialsById(jiraCredentialsID)
@@ -332,7 +347,13 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                             if (nvdApiUrl) {
                                 def cveId = cve.replaceAll(/(^\[|\|.*$)/, '')
                                 if (cveId.startsWith('CVE-')) {
-                                    jira_description_nvd_scoring = getNvdInfo(nvdApiUrl, cveId)
+                                    jira_description_nvd_scoring = nvdCacheLookUp(nvdDict, cveId)
+                                    if (!jira_description_nvd_scoring) {
+                                        jira_description_nvd_scoring = getNvdInfo(nvdApiUrl, cveId)
+                                        if (jira_description_nvd_scoring) {
+                                            nvdDict = nvdUpdateDictionary(nvdDict, cveId, jira_description_nvd_scoring)
+                                        }
+                                    }
                                     jira_description_nvd_scoring.each {
                                         jira_description += 'CVSS ' + it.join(' ') + '\n'
                                         // According to Vikram there will be no fixes for
