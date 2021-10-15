@@ -689,7 +689,8 @@ def generateLockResources(callBackDemo, triggers) {
             lockLabels['aws_core_ci_queue'] = triggers.demoWeight
 
             // Define netMap for Vsphere region
-            if (runMultiregion && multiregionConfig.regionLocation == 'vsphere') {
+            if (runMultiregion && multiregionConfig.managementLocation == 'aws' &&
+                multiregionConfig.regionLocation == 'vsphere') {
                 if (deployChild) {
                     addToProviderNetMap(netMap, 'vsphere', 'regional-child')
                 }
