@@ -288,6 +288,7 @@ def checkDeploymentTestSuite() {
         Azure provider deployment scheduled: ${azureOnDemandDemo}
         Azure@AWS child cluster deployment scheduled: ${azureOnAwsDemo}
         VSPHERE provider deployment scheduled: ${enableVsphereDemo}
+        OsUi provider deployment scheduled: ${osUiOnDemandDemo}
         OS provider deployment scheduled: ${enableOSDemo}
         BM provider deployment scheduled: ${enableBMDemo}
         Multiregional configuration: ${multiregionalMappings}
