@@ -214,8 +214,16 @@ def nvdUpdateDictionary(Map dict, String cveId, List cveArr) {
     return dict
 }
 
+def logInfo(String infoText, String infoLogFile) {
+    if (infoLogFile) {
+        sh """#!/bin/bash -e
+            mkdir -p `dirname $infoLogFile`
+            echo "[`date +'%Y-%m-%d %H:%M:%S'`] ${errorText}" >> $infoLogFile
+        """
+    }
+}
 
-def reportJiraTickets(String reportFileContents, String jiraCredentialsID, String jiraUserID, String productName = '', String ignoreImageListFileContents = '[]', Integer retryTry = 0, String nvdApiUrl = '', jiraNamespace = 'PRODX', nvdNistGovCveUrl = 'https://nvd.nist.gov/vuln/detail/') {
+def reportJiraTickets(String reportFileContents, String jiraCredentialsID, String jiraUserID, String productName = '', String ignoreImageListFileContents = '[]', Integer retryTry = 0, String nvdApiUrl = '', String reportsDirLoc = '', jiraNamespace = 'PRODX', nvdNistGovCveUrl = 'https://nvd.nist.gov/vuln/detail/') {
 
     def dict = [:]
     def nvdDict = [:]
@@ -227,6 +235,10 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
 
     def search_api_url = "${cred.description}/rest/api/2/search"
 
+    def jiraLog = ''
+    if (reportsDirLoc) {
+        jiraLog = "${reportsDirLoc}/jira.log"
+    }
 
     def jqlStartAt = 0
     def jqlStep = 100
@@ -261,10 +273,10 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
         } else {
             throw new Exception('Returned JSON from jql does not contain "issues" section')
         }
-        print 'Temporal debug information:'
-        InputJSON['issues'].each {
-            print it['key'] + ' -> ' + it['fields']['summary']
-        }
+//        print 'Temporal debug information:'
+//        InputJSON['issues'].each {
+//            print it['key'] + ' -> ' + it['fields']['summary']
+//        }
 
         InputJSON['issues'].each {
             dict[it['key']] = [
@@ -322,6 +334,7 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
             // Ignore images listed
             if ((image.key in ignoreImageList) || (image.key.replaceAll(/:.*$/, '') in ignoreImageList)) {
                 print "\n\nIgnoring ${image.key} as it has been found in Docker image ignore list\n"
+                logInfo("Ignoring ${image.key} as it has been found in Docker image ignore list", jiraLog)
                 return
             }
 
@@ -376,7 +389,7 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
 
             if (filter_mke_severity) {
                 print "\n\nIgnoring ${image.key} as it does not have CVEs with CVSS base score >7\n"
-                print jira_description
+                logInfo("Ignoring ${image.key} as it does not have CVEs with CVSS base score >7", jiraLog)
                 return
             }
 
@@ -424,8 +437,10 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                 if ( post_comment_response['responseCode'] == 201 ) {
                     def issueCommentJSON = new JsonSlurper().parseText(post_comment_response["responseText"])
                     print "\n\nComment was posted to ${jira_key[0]} ${affectedVersion} for ${image_key} and ${image.key}"
+                    logInfo("Comment was posted to ${jira_key[0]} ${affectedVersion} for ${image_key} and ${image.key}", jiraLog)
                 } else {
                     print "\nComment to ${jira_key[0]} Jira issue was not posted"
+                    logInfo("Comment to ${jira_key[0]} Jira issue was not posted", jiraLog)
                 }
             } else if (!jira_key[0]) {
                 def post_issue_response = callREST("${uri}/", auth, 'POST', post_issue_json)
@@ -433,11 +448,14 @@ def reportJiraTickets(String reportFileContents, String jiraCredentialsID, Strin
                     def issueJSON = new JsonSlurper().parseText(post_issue_response["responseText"])
                     dict = updateDictionary(issueJSON['key'], dict, uri, auth, jiraUserID)
                     print "\n\nJira issue was created ${issueJSON['key']} ${affectedVersion} for ${image_key} and ${image.key}"
+                    logInfo("Ignoring ${image.key} as it has been found in Docker image ignore list", jiraLog)
                 } else {
                     print "\n${image.key} CVE issues were not published\n"
+                    logInfo("Ignoring ${image.key} as it has been found in Docker image ignore list", jiraLog)
                 }
             } else {
                 print "\n\nNothing to process for ${image_key} and ${image.key}"
+                logInfo("Nothing to process for ${image_key} and ${image.key}", jiraLog)
             }
     }
 }
