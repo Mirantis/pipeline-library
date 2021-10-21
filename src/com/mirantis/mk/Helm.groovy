@@ -151,10 +151,27 @@ def setChartDependenciesVersion(chartPath, List dependencies){
             }
         }
     }
+    else {
+        common.warningMsg("requirements.yaml doesn't exist at path ${reqsFilePath} or chart doesn't contain ${dependencies}, nothing to set")
+    }
     if (reqsUpdateNeeded){
         sh "rm ${reqsFilePath}"
         writeYaml file: reqsFilePath, data: reqsMap
-    } else {
-        common.warningMsg("requirements.yaml doesn't exist at path ${reqsFilePath} or chart doesn't contain ${dependencies}, nothing to set")
     }
+}
+
+/**
+ * Takes a list of dependencies and a version, and sets a version for each dependency in requirements.yaml. If dependency isn't
+ * found in requirements.yaml or requirements.yaml does not exist - does nothing.
+ *
+ * @param chartPath      string, path to a directory with helm chart
+ * @param version        string, new version chart that needed to set
+ */
+
+def setChartVersion(chartPath, version){
+    def chartFile = "${chartPath}/Chart.yaml"
+    def chartYaml = readYaml file: chartFile
+    chartYaml['version'] = version
+    sh "rm ${chartFile}"
+    writeYaml file: chartFile, data: chartYaml
 }
