@@ -84,7 +84,6 @@ def checkDeploymentTestSuite() {
     def equinixOnAwsDemo = env.EQUINIX_ON_AWS_DEMO ? env.EQUINIX_ON_AWS_DEMO.toBoolean() : false
     def azureOnAwsDemo = env.AZURE_ON_AWS_DEMO ? env.AZURE_ON_AWS_DEMO.toBoolean() : false
     def azureOnDemandDemo = env.ALLOW_AZURE_ON_DEMAND ? env.ALLOW_AZURE_ON_DEMAND.toBoolean() : false
-    def osUiOnDemandDemo = env.ALLOW_OS_UI_ON_DEMAND ? env.ALLOW_OS_UI_ON_DEMAND.toBoolean() : false
     def enableVsphereDemo = true
     def enableOSDemo = true
     def enableBMDemo = true
@@ -186,9 +185,6 @@ def checkDeploymentTestSuite() {
     }
     if (commitMsg ==~ /(?s).*\[azure-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*azure-demo\.*/) {
         azureOnDemandDemo = true
-    }
-    if (commitMsg ==~ /(?s).*\[os-ui-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*os-ui-demo\.*/) {
-        osUiOnDemandDemo = true
     }
     if (commitMsg ==~ /(?s).*\[disable-os-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-os-demo\.*/) {
         enableOSDemo = false
@@ -320,7 +316,6 @@ def checkDeploymentTestSuite() {
         azureOnAwsDemoEnabled            : azureOnAwsDemo,
         vsphereDemoEnabled               : enableVsphereDemo,
         vsphereOnDemandDemoEnabled       : enableVsphereDemo, // TODO: remove after MCC 2.7 is out
-        osUiOnDemandDemoEnabled          : osUiOnDemandDemo,
         bmDemoEnabled                    : enableBMDemo,
         osDemoEnabled                    : enableOSDemo,
         multiregionalConfiguration       : multiregionalMappings,
@@ -555,9 +550,6 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         if (triggers.equinixMetalV2OnDemandDemoEnabled) {
             platforms.add('equinixmetalv2')
         }
-        if (triggers.osUiOnDemandDemoEnabled){
-            platforms.add('openstack-ui')
-        }
         if (triggers.azureOnDemandDemoEnabled) {
             platforms.add('azure')
         }
@@ -599,7 +591,6 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'EQUINIX_ON_AWS_DEMO', value: triggers.equinixOnAwsDemoEnabled),
         booleanParam(name: 'ALLOW_AZURE_ON_DEMAND', value: triggers.azureOnDemandDemoEnabled),
         booleanParam(name: 'AZURE_ON_AWS_DEMO', value: triggers.azureOnAwsDemoEnabled),
-        booleanParam(name: 'ALLOW_OS_UI_ON_DEMAND', value: triggers.osUiOnDemandDemoEnabled)
     ]
 
     // customize multiregional demo
