@@ -218,7 +218,7 @@ def logInfo(String infoText, String infoLogFile) {
     if (infoLogFile) {
         sh """#!/bin/bash -e
             mkdir -p `dirname $infoLogFile`
-            echo "[`date +'%Y-%m-%d %H:%M:%S'`] ${errorText}" >> $infoLogFile
+            echo "[`date +'%Y-%m-%d %H:%M:%S'`] ${infoText}" >> $infoLogFile
         """
     }
 }
