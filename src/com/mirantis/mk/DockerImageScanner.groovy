@@ -34,7 +34,10 @@ def getTeam(String image = '') {
         case ~/^(tungsten|tungsten-operator)\/.*$/:
             team_assignee = 'OpenContrail'
             break
-        case ~/^(openstack|general\/mariadb|general\/general\/rabbitmq|general\/general\/rabbitmq-management)\/.*$/:
+        case ~/^(general\/mariadb|general\/dnsmasq|general\/ubuntu\/bionic|general\/ubuntu\/focal)\/.*$/:
+            team_assignee = 'BM/OS (KaaS BM)'
+            break
+        case ~/^(openstack|general\/rabbitmq|general\/rabbitmq-management)\/.*$/:
             team_assignee = 'OpenStack hardening'
             break
         case ~/^stacklight\/.*$/:
@@ -45,9 +48,6 @@ def getTeam(String image = '') {
             break
         case ~/^(core|iam|lcm|general\/external\/docker.io\/library\/nginx)\/.*$/:
             team_assignee = 'KaaS'
-            break
-        case ~/^(bm|general)\/.*$/:
-            team_assignee = 'BM/OS (KaaS BM)'
             break
         default:
             team_assignee = 'Release Engineering'
