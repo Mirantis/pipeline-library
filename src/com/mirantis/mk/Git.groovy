@@ -510,9 +510,11 @@ def genCommitMessage(repo, message, changeId = '', changeIdSeed = ''){
  *   - status             Change request's status to search for
  *   - changeAuthorEmail  Author's email of the change
  *   - changeAuthorName   Author's name of the change
- */
+ *   - forceUpdate        Whether to update change if no diff between local state and remote
+ */  
 def updateChangeRequest(Map params) {
     def gerrit = new com.mirantis.mk.Gerrit()
+    def common = new com.mirantis.mk.Common()
 
     def commitMessage
     def auth = params['gerritAuth']
@@ -526,14 +528,28 @@ def updateChangeRequest(Map params) {
     def status = params.get('status', 'open')
     def changeAuthorEmail = params['changeAuthorEmail']
     def changeAuthorName = params['changeAuthorName']
+    def forceUpdate = params.get('forceUpdate', true)
 
     def changeParams = ['owner': auth['USER'], 'status': status, 'project': project, 'branch': branch, 'topic': topic]
-    def gerritChange = gerrit.findGerritChange(creds, auth, changeParams)
+    def gerritChange = gerrit.findGerritChange(creds, auth, changeParams, '--current-patch-set')
     def changeId = params.get('changeId', '')
     def commit
     if (gerritChange) {
         def jsonChange = readJSON text: gerritChange
         changeId = jsonChange['id']
+        if(!forceUpdate){
+            def ref = jsonChange['currentPatchSet']['ref']
+            def res
+            dir(repo){
+                sshagent (credentials: [creds]){
+                    res = common.shCmdStatus("git fetch origin ${ref} && git diff --quiet --exit-code FETCH_HEAD")["status"]
+                }
+            }
+            if (res == 0){
+                common.infoMsg("Current patch set ${ref} is up to date, no need to update")
+                return
+            }
+        }
     }
     commitMessage = genCommitMessage(repo, comment, changeId, change_id_seed)
     commitGitChanges(repo, commitMessage, changeAuthorEmail, changeAuthorName, false, false)
