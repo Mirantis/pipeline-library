@@ -52,6 +52,9 @@ def getJobDefaultParameters(jobName) {
  *                          {'PARAM_NAME': {'type': <job parameter $class name>, 'get_variable_from_url': <a key from global_variables which contains URL with required content>}, ...}
  *                          or
  *                          {'PARAM_NAME': {'type': <job parameter $class name>, 'use_template': <a GString multiline template with variables from global_variables>}, ...}
+ *                          or
+ *                          {'PARAM_NAME': {'type': <job parameter $class name>, 'get_variable_from_yaml': {'yaml_url': <URL with YAML content>,
+ *                                                                                                          'yaml_key': <a groovy-interpolating path to the key in the YAML, starting from dot '.'> } }, ...}
  * @param global_variables  Map that keeps the artifact URLs and used 'env' objects:
  *                          {'PARAM1_NAME': <param1 value>, 'PARAM2_NAME': 'http://.../artifacts/param2_value', ...}
  * @param propagate         Boolean. If false: allows to collect artifacts after job is finished, even with FAILURE status
@@ -63,6 +66,7 @@ def runJob(job_name, job_parameters, global_variables, Boolean propagate = false
     def http = new com.mirantis.mk.Http()
     def engine = new groovy.text.GStringTemplateEngine()
     def template
+    def yamls_from_urls = [:]
     def base = [:]
     base["url"] = ''
     def variable_content
@@ -85,6 +89,36 @@ def runJob(job_name, job_parameters, global_variables, Boolean propagate = false
                 println "${param.key}: <${param.value.type}> ${variable_content}"
             } else {
                 println "${param.key} is empty, skipping get_variable_from_url"
+            }
+        } else if (param.value.containsKey('get_variable_from_yaml')) {
+            if (param.value.get_variable_from_yaml.containsKey('yaml_url') && param.value.get_variable_from_yaml.containsKey('yaml_key')) {
+                // YAML url is stored in an environment or a global variable (like 'SI_CONFIG_ARTIFACT')
+                yaml_url_var = param.value.get_variable_from_yaml.yaml_url
+                if (!global_variables[yaml_url_var]) {
+                    global_variables[yaml_url_var] = env[yaml_url_var] ?: ''
+                }
+                yaml_url = global_variables[yaml_url_var]  // Real YAML URL
+                yaml_key = param.value.get_variable_from_yaml.yaml_key   // Key to get the data from YAML, to interpolate in the groovy, for example:
+                                                                         //  <yaml_map_variable>.key.to.the[0].required.data , where yaml_key = '.key.to.the[0].required.data'
+                if (yaml_url) {
+                    if (!yamls_from_urls[yaml_url]) {
+                        println "Reading YAML from ${yaml_url} for ${param.key}"
+                        yaml_content = http.restGet(base, yaml_url)
+                        yamls_from_urls[yaml_url] = readYaml text: yaml_content
+                    }
+                    println "Getting key ${yaml_key} from YAML ${yaml_url} for ${param.key}"
+                    template_variables = [
+                        'yaml_data': yamls_from_urls[yaml_url]
+                    ]
+                    request = "\${yaml_data${yaml_key}}"
+                    template = engine.createTemplate(request).make(template_variables)
+                    parameters.add([$class: "${param.value.type}", name: "${param.key}", value: template.toString()])
+                    println "${param.key}: <${param.value.type}>\n${template.toString()}"
+                } else {
+                    println "'yaml_url' in ${param.key} is empty, skipping get_variable_from_yaml"
+                }
+            } else {
+                println "${param.key} missing 'yaml_url'/'yaml_key' parameters, skipping get_variable_from_yaml"
             }
         } else if (param.value.containsKey('use_template')) {
             template = engine.createTemplate(param.value.use_template).make(global_variables)
@@ -361,6 +395,11 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
  *         KAAS_VERSION:
  *           type: StringParameterValue
  *           get_variable_from_url: DEPLOYED_KAAS_VERSION
+ *         RELEASE_NAME:
+ *           type: StringParameterValue
+ *           get_variable_from_yaml:
+ *               yaml_url: SI_CONFIG_ARTIFACT
+ *               yaml_key: .clusters[0].release_name
  *
  *     - job: test-kaas-ui
  *       ignore_not_built: false
