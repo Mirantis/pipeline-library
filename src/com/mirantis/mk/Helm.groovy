@@ -56,17 +56,19 @@ def helmMergeRepoIndex(helmRepoUrl, md5Remote='', absHelmRepoUrl=true) {
  * Generates version for helm chart based on information from git repository. Tries to search
  * first parent git tag using pattern '[0-9]*-{tagSuffix}', if found that tag will be used
  * in final version, if not found - version will be formed as '{defaultVersion}-{tagSuffix}'. Number
- * of commits since last tag or sha of current commit can be added to version.
+ * of commits since last tag or/and sha of current commit can be added to version.
  *
- * @param repoDir        string, path to a directory with git repository of helm charts
- * @param devVersion     Boolean, if set to true development version will be calculated e.g 0.1.0-mcp-{sha of current commit}
- * @param increment      Boolean, if set to true patch version will be incremented (e.g 0.1.0 -> 0.1.1)
- * @param defaultVersion string, value of version which will be used in case no tags found. should be semver2 compatible
- * @param tagSuffix      string, suffix which will be used for finding tags in git repository, also if tag not found, it
- *                               it will be added to {defaultVersion} e.g {defaultVersion}-{tagSuffix}
+ * @param repoDir         string, path to a directory with git repository of helm charts
+ * @param devVersion      Boolean, if set to true development version will be calculated e.g 0.1.0-mcp-{sha of current commit}
+ * @param increment       Boolean, if set to true patch version will be incremented (e.g 0.1.0 -> 0.1.1)
+ * @param defaultVersion  string, value of version which will be used in case no tags found. should be semver2 compatible
+ * @param tagSuffix       string, suffix which will be used for finding tags in git repository, also if tag not found, it
+ *                                will be added to {defaultVersion} e.g {defaultVersion}-{tagSuffix}
+ * @param extendedVersion Boolean, if set to true non development version (devVersion = false) will be suffixed by {sha of current commit} e.g.
+ *                                 0.1.0-mcp-{number of commits since last tag}-{sha of current commit}; doesn't affect development version (devVersion = true)
  */
 
-def generateChartVersionFromGit(repoDir, devVersion = true, increment = false, defaultVersion = '0.1.0', tagSuffix = 'mcp') {
+def generateChartVersionFromGit(repoDir, devVersion = true, increment = false, defaultVersion = '0.1.0', tagSuffix = 'mcp', extendedVersion = false) {
     def common = new com.mirantis.mk.Common()
     def git = new com.mirantis.mk.Git()
     String initialVersion = "${defaultVersion}"
@@ -112,6 +114,9 @@ def generateChartVersionFromGit(repoDir, devVersion = true, increment = false, d
             versionParts.add(commitSha)
         } else {
             versionParts.add(commitsSinceTag)
+            if (extendedVersion){
+                versionParts.add(commitSha)
+            }
         }
         // Patch version will be incremented e.g. 0.1.0 -> 0.1.1
         if (increment) {
