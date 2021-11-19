@@ -578,3 +578,103 @@ def restoreGaleraDb(env) {
     common.warningMsg("restoreGaleraDb method was moved to Galera class. Please change your calls accordingly.")
     return galera.restoreGaleraDb(env)
 }
+
+/**
+ * create connection to OpenStack API endpoint via Docker
+ *
+ * @param authUrl         OpenStack API endpoint address
+ * @param credentialsId   Credentials to the OpenStack API
+ * @param project         OpenStack project to connect to
+ */
+def createOpenstackEnvInDocker(authUrl, credentialsId, project, project_domain="default", project_id="", user_domain="default", cacert="/etc/ssl/certs/ca-certificates.crt") {
+    def common = new com.mirantis.mk.Common()
+    creds = common.getPasswordCredentials(credentialsId)
+    def env = " -e OS_USERNAME=${creds.username} -e OS_PASSWORD=${creds.password.toString()} -e OS_TENANT_NAME=${project} -e OS_AUTH_URL=${authUrl} -e OS_AUTH_STRATEGY=keystone -e OS_PROJECT_NAME=${project} -e OS_PROJECT_ID=${project_id} -e OS_PROJECT_DOMAIN_ID=${project_domain} -e OS_USER_DOMAIN_NAME=${user_domain} -e OS_CACERT=${cacert} "
+    return env
+}
+
+/**
+ * prepare Docker docker image for OpenstackEnv
+ *
+ * @param credentials     Credentials for access to artifact-metadata repo
+ * @param release         Optional openstack release for image
+ * @param img             Optional URL for Docker image 
+ */
+def prepareOpenstackDockerImage(credentialsId, release=null, img=null) {
+    def common = new com.mirantis.mk.Common()
+    Map getMetadataParams = ['metadataCredentialsId': credentialsId]
+    if (!img) {
+        if (!release) {
+            release = 'ussuri'
+        }
+        def releaseWorkflow = new com.mirantis.mk.ReleaseWorkflow()
+        img = releaseWorkflow.getReleaseMetadataValue("images:openstack:${release}:heat:url", getMetadataParams).replace('"', '')
+    }
+    common.infoMsg("Use image ${img}")
+    return img
+}
+
+
+/**
+ * create connection to OpenStack API endpoint in the Docker container
+ *
+ * @param cmd    Command to be executed
+ * @param env    Environmental parameters with endpoint credentials (from createOpenstackEnvInDocker)
+ * @param img    Docker image for container (from prepareOpenstackDockerImage)
+ */
+def runOpenstackCommandInDocker(cmd, env, img) {
+    def dockerImg = docker.image(img)
+    def result
+    dockerImg.inside("${env}") {
+        result = sh(script: "${cmd}", returnStdout: true).trim()
+    }
+    return result
+}
+
+/**
+ * Delete nova key pair
+ *
+ * @param env          Connection parameters for OpenStack API endpoint
+ * @param name         Name of the key pair to delete
+ */
+def deleteKeyPairInDocker(env, name, img) {
+    def common = new com.mirantis.mk.Common()
+    common.infoMsg("Removing key pair ${name}")
+    def cmd = "openstack keypair delete ${name}"
+    runOpenstackCommandInDocker(cmd, env, img)
+}
+
+/**
+ * Check if Nova keypair exists and delete it.
+ *
+ * @param env          Connection parameters for OpenStack API endpoint
+ * @param name         Name of the key pair to delete
+**/
+def ensureKeyPairRemovedInDocker(String name, env, img) {
+    def common = new com.mirantis.mk.Common()
+    def keypairs = runOpenstackCommandInDocker("openstack keypair list -f value -c Name", env, img).tokenize('\n')
+    if (name in keypairs) {
+        deleteKeyPairInDocker(env, name, img)
+        common.infoMsg("Keypair ${name} has been deleted")
+    } else {
+        common.warningMsg("Keypair ${name} not found")
+    }
+}
+
+/**
+ * Get nova key pair
+ *
+ * @param env          Connection parameters for OpenStack API endpoint
+ * @param name         Name of the key pair to show
+ */
+def getKeyPairInDocker(env, name, img) {
+    def common = new com.mirantis.mk.Common()
+    def cmd = "openstack keypair show ${name}"
+    def outputTable
+    try {
+        outputTable = runOpenstackCommandInDocker(cmd, env, img)
+    } catch (Exception e) {
+        common.infoMsg("Key pair ${name} not found")
+    }
+    return outputTable
+}
