@@ -80,7 +80,6 @@ def checkDeploymentTestSuite() {
     def awsOnDemandDemo = env.ALLOW_AWS_ON_DEMAND ? env.ALLOW_AWS_ON_DEMAND.toBoolean() : false
     def equinixOnDemandDemo = env.ALLOW_EQUINIX_ON_DEMAND ? env.ALLOW_EQUINIX_ON_DEMAND.toBoolean() : false
     def equinixMetalV2OnDemandDemo = env.ALLOW_EQUINIXMETALV2_ON_DEMAND ? env.ALLOW_EQUINIXMETALV2_ON_DEMAND.toBoolean() : false
-    def equinixPrivateDemo = env.EQUINIX_PRIVATE_DEMO ? env.EQUINIX_PRIVATE_DEMO.toBoolean() : false
     def equinixOnAwsDemo = env.EQUINIX_ON_AWS_DEMO ? env.EQUINIX_ON_AWS_DEMO.toBoolean() : false
     def azureOnAwsDemo = env.AZURE_ON_AWS_DEMO ? env.AZURE_ON_AWS_DEMO.toBoolean() : false
     def azureOnDemandDemo = env.ALLOW_AZURE_ON_DEMAND ? env.ALLOW_AZURE_ON_DEMAND.toBoolean() : false
@@ -178,11 +177,6 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[equinixmetalv2-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*equinixmetalv2-demo\.*/) {
         equinixMetalV2OnDemandDemo = true
     }
-    // below will be deprecated after v2
-    if (commitMsg ==~ /(?s).*\[equinix-private-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*equinix-private-demo\.*/) {
-        equinixOnDemandDemo = true
-        equinixPrivateDemo = true
-    }
     if (commitMsg ==~ /(?s).*\[azure-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*azure-demo\.*/) {
         azureOnDemandDemo = true
     }
@@ -279,7 +273,6 @@ def checkDeploymentTestSuite() {
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         Equinix provider deployment scheduled: ${equinixOnDemandDemo}
         EquinixmetalV2 provider deployment scheduled: ${equinixMetalV2OnDemandDemo}
-        Equinix provider private MCC deployment: ${equinixPrivateDemo}
         Equinix@AWS child cluster deployment scheduled: ${equinixOnAwsDemo}
         Azure provider deployment scheduled: ${azureOnDemandDemo}
         Azure@AWS child cluster deployment scheduled: ${azureOnAwsDemo}
@@ -310,7 +303,6 @@ def checkDeploymentTestSuite() {
         awsOnDemandDemoEnabled           : awsOnDemandDemo,
         equinixOnDemandDemoEnabled       : equinixOnDemandDemo,
         equinixMetalV2OnDemandDemoEnabled: equinixMetalV2OnDemandDemo,
-        equinixPrivateDemoEnabled        : equinixPrivateDemo,
         equinixOnAwsDemoEnabled          : equinixOnAwsDemo,
         azureOnDemandDemoEnabled         : azureOnDemandDemo,
         azureOnAwsDemoEnabled            : azureOnAwsDemo,
@@ -587,7 +579,6 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled),
         booleanParam(name: 'ALLOW_EQUINIX_ON_DEMAND', value: triggers.equinixOnDemandDemoEnabled),
         booleanParam(name: 'ALLOW_EQUINIXMETALV2_ON_DEMAND', value: triggers.equinixMetalV2OnDemandDemoEnabled),
-        booleanParam(name: 'EQUINIX_PRIVATE_DEMO', value: triggers.equinixPrivateDemoEnabled),
         booleanParam(name: 'EQUINIX_ON_AWS_DEMO', value: triggers.equinixOnAwsDemoEnabled),
         booleanParam(name: 'ALLOW_AZURE_ON_DEMAND', value: triggers.azureOnDemandDemoEnabled),
         booleanParam(name: 'AZURE_ON_AWS_DEMO', value: triggers.azureOnAwsDemoEnabled),
