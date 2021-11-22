@@ -62,6 +62,7 @@ def checkDeploymentTestSuite() {
     def runMgmtUserControllerTest = env.RUN_MGMT_USER_CONTROLLER_TEST ? env.RUN_MGMT_USER_CONTROLLER_TEST.toBoolean() : false
     def runChildConformance = env.RUN_CHILD_CFM ? env.RUN_CHILD_CFM.toBoolean() : false
     def fetchServiceBinaries = env.FETCH_BINARIES_FROM_UPSTREAM ? env.FETCH_BINARIES_FROM_UPSTREAM.toBoolean() : false
+    def equinixMetalV2ChildDiffMetro = env.EQUINIXMETALV2_CHILD_DIFF_METRO ? env.EQUINIXMETALV2_CHILD_DIFF_METRO.toBoolean() : false
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
     def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
         enabled: false,
@@ -177,6 +178,10 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[equinixmetalv2-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*equinixmetalv2-demo\.*/) {
         equinixMetalV2OnDemandDemo = true
     }
+    if (commitMsg ==~ /(?s).*\[equinixmetalv2-child-diff-metro\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*equinixmetalv2-child-diff-metro\.*/) {
+        equinixMetalV2OnDemandDemo = true
+        equinixMetalV2ChildDiffMetro = true
+    }
     if (commitMsg ==~ /(?s).*\[azure-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*azure-demo\.*/) {
         azureOnDemandDemo = true
     }
@@ -273,6 +278,7 @@ def checkDeploymentTestSuite() {
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         Equinix provider deployment scheduled: ${equinixOnDemandDemo}
         EquinixmetalV2 provider deployment scheduled: ${equinixMetalV2OnDemandDemo}
+        EquinixmetalV2 child deploy in a separate metro scheduled: ${equinixMetalV2ChildDiffMetro}
         Equinix@AWS child cluster deployment scheduled: ${equinixOnAwsDemo}
         Azure provider deployment scheduled: ${azureOnDemandDemo}
         Azure@AWS child cluster deployment scheduled: ${azureOnAwsDemo}
@@ -284,34 +290,35 @@ def checkDeploymentTestSuite() {
         Current weight of the demo run: ${demoWeight} (Used to manage lockable resources)
         Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [
-        cdnConfig                        : cdnConfig,
-        proxyConfig                      : proxyConfig,
-        useMacOsSeedNode                 : seedMacOs,
-        deployChildEnabled               : deployChild,
-        childDeployCustomRelease         : customChildRelease,
-        upgradeChildEnabled              : upgradeChild,
-        runChildConformanceEnabled       : runChildConformance,
-        attachBYOEnabled                 : attachBYO,
-        upgradeBYOEnabled                : upgradeBYO,
-        upgradeMgmtEnabled               : upgradeMgmt,
-        enableLMALoggingEnabled          : enableLMALogging,
-        runUie2eEnabled                  : runUie2e,
-        runMgmtConformanceEnabled        : runMgmtConformance,
-        runLMATestEnabled                : runLMATest,
-        runMgmtUserControllerTestEnabled : runMgmtUserControllerTest,
-        fetchServiceBinariesEnabled      : fetchServiceBinaries,
-        awsOnDemandDemoEnabled           : awsOnDemandDemo,
-        equinixOnDemandDemoEnabled       : equinixOnDemandDemo,
-        equinixMetalV2OnDemandDemoEnabled: equinixMetalV2OnDemandDemo,
-        equinixOnAwsDemoEnabled          : equinixOnAwsDemo,
-        azureOnDemandDemoEnabled         : azureOnDemandDemo,
-        azureOnAwsDemoEnabled            : azureOnAwsDemo,
-        vsphereDemoEnabled               : enableVsphereDemo,
-        vsphereOnDemandDemoEnabled       : enableVsphereDemo, // TODO: remove after MCC 2.7 is out
-        bmDemoEnabled                    : enableBMDemo,
-        osDemoEnabled                    : enableOSDemo,
-        multiregionalConfiguration       : multiregionalMappings,
-        demoWeight                       : demoWeight]
+        cdnConfig                            : cdnConfig,
+        proxyConfig                          : proxyConfig,
+        useMacOsSeedNode                     : seedMacOs,
+        deployChildEnabled                   : deployChild,
+        childDeployCustomRelease             : customChildRelease,
+        upgradeChildEnabled                  : upgradeChild,
+        runChildConformanceEnabled           : runChildConformance,
+        attachBYOEnabled                     : attachBYO,
+        upgradeBYOEnabled                    : upgradeBYO,
+        upgradeMgmtEnabled                   : upgradeMgmt,
+        enableLMALoggingEnabled              : enableLMALogging,
+        runUie2eEnabled                      : runUie2e,
+        runMgmtConformanceEnabled            : runMgmtConformance,
+        runLMATestEnabled                    : runLMATest,
+        runMgmtUserControllerTestEnabled     : runMgmtUserControllerTest,
+        fetchServiceBinariesEnabled          : fetchServiceBinaries,
+        awsOnDemandDemoEnabled               : awsOnDemandDemo,
+        equinixOnDemandDemoEnabled           : equinixOnDemandDemo,
+        equinixMetalV2OnDemandDemoEnabled    : equinixMetalV2OnDemandDemo,
+        equinixMetalV2ChildDiffMetroEnabled  : equinixMetalV2ChildDiffMetro,
+        equinixOnAwsDemoEnabled              : equinixOnAwsDemo,
+        azureOnDemandDemoEnabled             : azureOnDemandDemo,
+        azureOnAwsDemoEnabled                : azureOnAwsDemo,
+        vsphereDemoEnabled                   : enableVsphereDemo,
+        vsphereOnDemandDemoEnabled           : enableVsphereDemo, // TODO: remove after MCC 2.7 is out
+        bmDemoEnabled                        : enableBMDemo,
+        osDemoEnabled                        : enableOSDemo,
+        multiregionalConfiguration           : multiregionalMappings,
+        demoWeight                           : demoWeight]
 }
 
 /**
@@ -579,6 +586,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled),
         booleanParam(name: 'ALLOW_EQUINIX_ON_DEMAND', value: triggers.equinixOnDemandDemoEnabled),
         booleanParam(name: 'ALLOW_EQUINIXMETALV2_ON_DEMAND', value: triggers.equinixMetalV2OnDemandDemoEnabled),
+        booleanParam(name: 'EQUINIXMETALV2_CHILD_DIFF_METRO', value: triggers.equinixMetalV2ChildDiffMetroEnabled),
         booleanParam(name: 'EQUINIX_ON_AWS_DEMO', value: triggers.equinixOnAwsDemoEnabled),
         booleanParam(name: 'ALLOW_AZURE_ON_DEMAND', value: triggers.azureOnDemandDemoEnabled),
         booleanParam(name: 'AZURE_ON_AWS_DEMO', value: triggers.azureOnAwsDemoEnabled),
