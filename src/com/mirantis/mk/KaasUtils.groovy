@@ -54,6 +54,7 @@ def checkDeploymentTestSuite() {
     def customChildRelease = env.KAAS_CHILD_CLUSTER_RELEASE_NAME ? env.KAAS_CHILD_CLUSTER_RELEASE_NAME : ''
     def attachBYO = env.ATTACH_BYO ? env.ATTACH_BYO.toBoolean() : false
     def upgradeBYO = env.UPGRADE_BYO ? env.UPGRADE_BYO.toBoolean() : false
+    def runBYOMatrix = env.RUN_BYO_MATRIX ? env.RUN_BYO_MATRIX.toBoolean() : false
     def upgradeMgmt = env.UPGRADE_MGMT_CLUSTER ? env.UPGRADE_MGMT_CLUSTER.toBoolean() : false
     def enableLMALogging = env.ENABLE_LMA_LOGGING ? env.ENABLE_LMA_LOGGING.toBoolean(): false
     def runUie2e = env.RUN_UI_E2E ? env.RUN_UI_E2E.toBoolean() : false
@@ -117,6 +118,13 @@ def checkDeploymentTestSuite() {
         attachBYO = true
         upgradeBYO = true
     }
+    if (commitMsg ==~ /(?s).*\[run-byo-matrix\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*run-byo-matrix\.*/) {
+        runBYOMatrix = true
+
+        common.warningMsg('Forced byo matrix test via run-byo-matrix, all other byo triggers will be skipped')
+        attachBYO = false
+        upgradeBYO = false
+    }
     if (commitMsg ==~ /(?s).*\[mgmt-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-upgrade.*/) {
         upgradeMgmt = true
     }
@@ -165,6 +173,7 @@ def checkDeploymentTestSuite() {
         env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*aws-demo.*/ ||
         attachBYO                                            ||
         upgradeBYO                                           ||
+        runBYOMatrix                                         ||
         seedMacOs                                            ||
         equinixOnAwsDemo                                     ||
         azureOnAwsDemo) {
@@ -267,8 +276,9 @@ def checkDeploymentTestSuite() {
         Custom child cluster release: ${customChildRelease}
         Child cluster release upgrade scheduled: ${upgradeChild}
         Child conformance testing scheduled: ${runChildConformance}
-        BYO cluster attachment scheduled: ${attachBYO}
-        Attached BYO cluster upgrade test scheduled: ${upgradeBYO}
+        Single BYO cluster attachment scheduled: ${attachBYO}
+        Single Attached BYO cluster upgrade test scheduled: ${upgradeBYO}
+        BYO test matrix whole suite scheduled: ${runBYOMatrix}
         Mgmt cluster release upgrade scheduled: ${upgradeMgmt}
         Mgmt LMA logging enabled: ${enableLMALogging}
         Mgmt conformance testing scheduled: ${runMgmtConformance}
@@ -299,6 +309,7 @@ def checkDeploymentTestSuite() {
         runChildConformanceEnabled           : runChildConformance,
         attachBYOEnabled                     : attachBYO,
         upgradeBYOEnabled                    : upgradeBYO,
+        runBYOMatrixEnabled                  : runBYOMatrix,
         upgradeMgmtEnabled                   : upgradeMgmt,
         enableLMALoggingEnabled              : enableLMALogging,
         runUie2eEnabled                      : runUie2e,
@@ -582,6 +593,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'UPGRADE_CHILD_CLUSTER', value: triggers.upgradeChildEnabled),
         booleanParam(name: 'ATTACH_BYO', value: triggers.attachBYOEnabled),
         booleanParam(name: 'UPGRADE_BYO', value: triggers.upgradeBYOEnabled),
+        booleanParam(name: 'RUN_BYO_MATRIX', value: triggers.runBYOMatrixEnabled),
         booleanParam(name: 'RUN_CHILD_CFM', value: triggers.runChildConformanceEnabled),
         booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled),
         booleanParam(name: 'ALLOW_EQUINIX_ON_DEMAND', value: triggers.equinixOnDemandDemoEnabled),
