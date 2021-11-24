@@ -88,6 +88,7 @@ def checkDeploymentTestSuite() {
     def enableVsphereDemo = true
     def enableOSDemo = true
     def enableBMDemo = true
+    def openstackIMC = env.OPENSTACK_CLOUD_LOCATION ? env.OPENSTACK_CLOUD_LOCATION : 'us'
 
     def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
     if (commitMsg ==~ /(?s).*\[mgmt-proxy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-proxy.*/) {
@@ -265,10 +266,19 @@ def checkDeploymentTestSuite() {
         ],
     ]
 
+    if (commitMsg ==~ /(?s).*\[eu-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*eu-demo.*/) {
+        openstackIMC = 'eu'
+        // use internal-eu because on internal-ci with eu cloud image pull takes much time
+        def cdnRegion = (proxyConfig['mgmtOffline'] == true) ? 'public-ci' : 'internal-eu'
+        common.infoMsg("eu-demo was triggered, force switching CDN region to ${cdnRegion}")
+        cdnConfig['mgmt']['openstack'] = cdnRegion
+    }
+
     // calculate weight of current demo run to manage lockable resources
     def demoWeight = (deployChild) ? 2 : 1 // management = 1, child = 1
 
     common.infoMsg("""
+        OpenStack Cloud location: ${openstackIMC}
         CDN deployment configuration: ${cdnConfig}
         MCC offline deployment configuration: ${proxyConfig}
         Use MacOS node as seed: ${seedMacOs}
@@ -300,6 +310,7 @@ def checkDeploymentTestSuite() {
         Current weight of the demo run: ${demoWeight} (Used to manage lockable resources)
         Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [
+        osCloudLocation                      : openstackIMC,
         cdnConfig                            : cdnConfig,
         proxyConfig                          : proxyConfig,
         useMacOsSeedNode                     : seedMacOs,
@@ -579,6 +590,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         string(name: 'SI_PIPELINES_REFSPEC', value: siRefspec.siPipelines),
         string(name: 'CUSTOM_RELEASE_PATCH_SPEC', value: patchSpec),
         string(name: 'KAAS_CHILD_CLUSTER_RELEASE_NAME', value: triggers.childDeployCustomRelease),
+        string(name: 'OPENSTACK_CLOUD_LOCATION', value: triggers.osCloudLocation),
         booleanParam(name: 'OFFLINE_MGMT_CLUSTER', value: triggers.proxyConfig['mgmtOffline']),
         booleanParam(name: 'OFFLINE_CHILD_CLUSTER', value: triggers.proxyConfig['childOffline']),
         booleanParam(name: 'PROXY_CHILD_CLUSTER', value: triggers.proxyConfig['childProxy']),
