@@ -618,21 +618,6 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         parameters.addAll(additionalParameters)
     }
 
-    if (triggers.awsOnDemandDemoEnabled     ||
-        triggers.equinixOnDemandDemoEnabled ||
-        triggers.azureOnDemandDemoEnabled) {
-
-        common.infoMsg('Public provider demo triggered, need to sync artifacts in the public-ci cdn..')
-        switch (component) {
-            case 'iam':
-                build job: 'cdn-binary-dev-replication-iam', propagate: true, wait: true
-                break
-            case 'lcm':
-                build job: 'cdn-binary-dev-replication-lcm', propagate: true, wait: true
-                break
-        }
-    }
-
     def jobResults = []
 
     platforms.each { platform ->
