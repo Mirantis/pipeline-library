@@ -139,8 +139,9 @@ For additional information please see https://docs.mirantis.com/mcp/q4-18/mcp-re
 
 def check_36461_2 (salt, venvPepper, String cluster_name, Boolean raise_exc) {
     def cephMonPillar = salt.getPillar(venvPepper, 'I@ceph:mon', 'ceph:common:config:mon:auth_allow_insecure_global_id_reclaim').get("return")[0].values()[0]
+    def cephVersion = salt.getPillar(venvPepper, 'I@ceph:mon', 'ceph:common:version').get("return")[0].values()[0]
     def waStatus = [prodId: "PROD-36461_2", isFixed: "", waInfo: ""]
-    if (cephMonPillar.toString().toLowerCase() != 'false') {
+    if (cephMonPillar.toString().toLowerCase() != 'false' && cephVersion.toString().toLowerCase() == 'nautilus') {
         waStatus.isFixed = "Work-around should be applied manually"
         waStatus.waInfo = "See https://docs.mirantis.com/mcp/q4-18/mcp-release-notes/single/index.html#i-cve-2021-20288 for more info"
         if (raise_exc) {
