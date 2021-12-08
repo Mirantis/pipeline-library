@@ -484,13 +484,13 @@ def jinjaBuildTemplate(template, context, path = none) {
  * @param url SALT_MASTER_URL
  * @param credentialsId Credentials to salt api
  */
-def setupPepperVirtualenv(path, url, credentialsId, python_version = 'python2') {
+def setupPepperVirtualenv(path, url, credentialsId, python_version = 'python2', useSystemPackages = true) {
     def common = new com.mirantis.mk.Common()
 
     // virtualenv setup
     // pin pepper till https://mirantis.jira.com/browse/PROD-18188 is fixed
     requirements = ['salt-pepper>=0.5.2,<0.5.4']
-    setupVirtualenv(path, python_version, requirements, null, true, true)
+    setupVirtualenv(path, python_version, requirements, null, true, useSystemPackages)
 
     // pepperrc creation
     rcFile = "${path}/pepperrc"
