@@ -589,7 +589,7 @@ def restoreGaleraDb(env) {
 def createOpenstackEnvInDocker(authUrl, credentialsId, project, project_domain="default", project_id="", user_domain="default", cacert="/etc/ssl/certs/ca-certificates.crt") {
     def common = new com.mirantis.mk.Common()
     creds = common.getPasswordCredentials(credentialsId)
-    def env = " -e OS_USERNAME=${creds.username} -e OS_PASSWORD=${creds.password.toString()} -e OS_TENANT_NAME=${project} -e OS_AUTH_URL=${authUrl} -e OS_AUTH_STRATEGY=keystone -e OS_PROJECT_NAME=${project} -e OS_PROJECT_ID=${project_id} -e OS_PROJECT_DOMAIN_ID=${project_domain} -e OS_USER_DOMAIN_NAME=${user_domain} -e OS_CACERT=${cacert} "
+    def env = ["OS_USERNAME=${creds.username}", "OS_PASSWORD=${creds.password.toString()}", "OS_TENANT_NAME=${project}", "OS_AUTH_URL=${authUrl}", "OS_AUTH_STRATEGY=keystone -e OS_PROJECT_NAME=${project}", "OS_PROJECT_ID=${project_id}", "OS_PROJECT_DOMAIN_ID=${project_domain}", "OS_USER_DOMAIN_NAME=${user_domain}", "OS_CACERT=${cacert}"]
     return env
 }
 
@@ -614,7 +614,6 @@ def prepareOpenstackDockerImage(credentialsId, release=null, img=null) {
     return img
 }
 
-
 /**
  * create connection to OpenStack API endpoint in the Docker container
  *
@@ -625,8 +624,10 @@ def prepareOpenstackDockerImage(credentialsId, release=null, img=null) {
 def runOpenstackCommandInDocker(cmd, env, img) {
     def dockerImg = docker.image(img)
     def result
-    dockerImg.inside("${env}") {
-        result = sh(script: "${cmd}", returnStdout: true).trim()
+    dockerImg.inside() {
+        withEnv(env) {
+            result = sh(script: "${cmd}", returnStdout: true).trim()
+        }
     }
     return result
 }
