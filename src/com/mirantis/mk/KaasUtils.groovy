@@ -248,7 +248,9 @@ def checkDeploymentTestSuite() {
         case 'equinix':
             common.warningMsg('Forced running additional kaas deployment with Equinix provider according multiregional demo request')
             equinixOnDemandDemo = true
-            break
+        case 'equinixmetalv2':
+            common.warningMsg('Forced running additional kaas deployment with Equinix Metal V2 provider according multiregional demo request')
+            equinixMetalV2OnDemandDemo = true
         case 'azure':
             common.warningMsg('Forced running additional kaas deployment with Azure provider according multiregional demo request')
             azureOnDemandDemo = true
@@ -357,8 +359,8 @@ def checkDeploymentTestSuite() {
  */
 def multiregionWorkflowParser(keyword) {
     def common = new com.mirantis.mk.Common()
-    def supportedManagementProviders = ['os', 'aws', 'vsphere', 'equinix', 'azure']
-    def supportedRegionalProviders = ['os', 'vsphere', 'equinix', 'bm', 'azure', 'aws']
+    def supportedManagementProviders = ['os', 'aws', 'vsphere', 'equinix', 'equinixmetalv2', 'azure']
+    def supportedRegionalProviders = ['os', 'vsphere', 'equinix', 'equinixmetalv2', 'bm', 'azure', 'aws']
 
     def clusterTypes = ''
     if (keyword.toString().contains('multiregion')) {
