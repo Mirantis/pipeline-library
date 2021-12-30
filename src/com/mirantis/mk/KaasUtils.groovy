@@ -55,6 +55,7 @@ def checkDeploymentTestSuite() {
     def attachBYO = env.ATTACH_BYO ? env.ATTACH_BYO.toBoolean() : false
     def upgradeBYO = env.UPGRADE_BYO ? env.UPGRADE_BYO.toBoolean() : false
     def runBYOMatrix = env.RUN_BYO_MATRIX ? env.RUN_BYO_MATRIX.toBoolean() : false
+    def defaultBYOOs = env.DEFAULT_BYO_OS ? env.DEFAULT_BYO_OS.toString() : 'ubuntu'
     def upgradeMgmt = env.UPGRADE_MGMT_CLUSTER ? env.UPGRADE_MGMT_CLUSTER.toBoolean() : false
     def enableLMALogging = env.ENABLE_LMA_LOGGING ? env.ENABLE_LMA_LOGGING.toBoolean(): false
     def runUie2e = env.RUN_UI_E2E ? env.RUN_UI_E2E.toBoolean() : false
@@ -105,11 +106,11 @@ def checkDeploymentTestSuite() {
         deployChild = true
         upgradeChild = true
     }
-    def deployMatches = (commitMsg =~ /(\[child-deploy\s*(\w|\-)+?\])/)
-    if (deployMatches.size() > 0) {
+    def childDeployMatches = (commitMsg =~ /(\[child-deploy\s*(\w|\-)+?\])/)
+    if (childDeployMatches.size() > 0) {
         // override child version when it set explicitly
         deployChild = true
-        customChildRelease = deployMatches[0][0].split('child-deploy')[1].replaceAll('[\\[\\]]', '').trim()
+        customChildRelease = childDeployMatches[0][0].split('child-deploy')[1].replaceAll('[\\[\\]]', '').trim()
         common.warningMsg("Forced child deployment using custom release version ${customChildRelease}")
     }
     if (commitMsg ==~ /(?s).*\[byo-attach\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*byo-attach.*/) {
@@ -119,8 +120,15 @@ def checkDeploymentTestSuite() {
         attachBYO = true
         upgradeBYO = true
     }
-    if (commitMsg ==~ /(?s).*\[run-byo-matrix\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*run-byo-matrix\.*/) {
+
+    def byoDeployMatches = (commitMsg =~ /(\[run-byo-matrix\s*(ubuntu|centos)\])/)
+    if (commitMsg ==~ /(?s).*\[run-byo-matrix\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*run-byo-matrix\.*/ || byoDeployMatches.size() > 0) {
         runBYOMatrix = true
+
+        if (byoDeployMatches.size() > 0) {
+            defaultBYOOs = byoDeployMatches[0][2]
+            common.warningMsg("Custom BYO OS detected, using ${defaultBYOOs}")
+        }
 
         common.warningMsg('Forced byo matrix test via run-byo-matrix, all other byo triggers will be skipped')
         attachBYO = false
@@ -293,6 +301,7 @@ def checkDeploymentTestSuite() {
         Single BYO cluster attachment scheduled: ${attachBYO}
         Single Attached BYO cluster upgrade test scheduled: ${upgradeBYO}
         BYO test matrix whole suite scheduled: ${runBYOMatrix}
+        Default BYO OS: ${defaultBYOOs}
         Mgmt cluster release upgrade scheduled: ${upgradeMgmt}
         Mgmt LMA logging enabled: ${enableLMALogging}
         Mgmt conformance testing scheduled: ${runMgmtConformance}
@@ -325,6 +334,7 @@ def checkDeploymentTestSuite() {
         attachBYOEnabled                     : attachBYO,
         upgradeBYOEnabled                    : upgradeBYO,
         runBYOMatrixEnabled                  : runBYOMatrix,
+        defaultBYOOs                         : defaultBYOOs,
         upgradeMgmtEnabled                   : upgradeMgmt,
         enableLMALoggingEnabled              : enableLMALogging,
         runUie2eEnabled                      : runUie2e,
