@@ -79,7 +79,7 @@ def gitCheckout(LinkedHashMap config) {
   def credentialsId = config.get('credentialsId', '')
   def protocol = config.get('protocol', 'ssh')
   def refspec = config.get('refspec', null)
-  String branch = config.get('branch', 'FETCH_HEAD')
+  String branch = refspec ? 'FETCH_HEAD' : "*/${config.get('branch')}"
   Integer depth = config.get('depth', 0)
   Integer timeout = config.get('timeout', 0)
 
