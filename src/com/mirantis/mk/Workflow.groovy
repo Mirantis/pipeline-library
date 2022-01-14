@@ -475,6 +475,9 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
  *   ignore_not_built: bool. if true, keep running the workflow jobs if the job set own status to NOT_BUILT, do not fail the workflow at finish for such jobs
  *   inherit_parent_params: bool. if true, provide all parameters from the parent job to the child job as defaults
  *   parameters: dict. parameters name and type to inherit from parent to child job, or from artifact to child job
+ *   wfPauseStepBeforeRun: bool. Interactive pause exact step before run.
+ *   wfPauseStepSlackReportChannel: If step paused, send message about it in slack.
+ *   wfPauseStepTimeout: timeout to wait for manual unpause.
  */
 
 def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '') {
