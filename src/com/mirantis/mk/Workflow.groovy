@@ -63,6 +63,7 @@ def getJobDefaultParameters(jobName) {
  */
 def runJob(job_name, job_parameters, global_variables, Boolean propagate = false) {
     def parameters = []
+    common = new com.mirantis.mk.Common()
     def http = new com.mirantis.mk.Http()
     def engine = new groovy.text.GStringTemplateEngine()
     def template
@@ -78,7 +79,7 @@ def runJob(job_name, job_parameters, global_variables, Boolean propagate = false
                 global_variables[param.value.use_variable] = env[param.value.use_variable] ?: ''
             }
             parameters.add([$class: "${param.value.type}", name: "${param.key}", value: global_variables[param.value.use_variable]])
-            println "${param.key}: <${param.value.type}> ${global_variables[param.value.use_variable]}"
+            common.infoMsg("${param.key}: <${param.value.type}> ${global_variables[param.value.use_variable]}")
         } else if (param.value.containsKey('get_variable_from_url')) {
             if (!global_variables[param.value.get_variable_from_url]) {
                 global_variables[param.value.get_variable_from_url] = env[param.value.get_variable_from_url] ?: ''
@@ -86,9 +87,9 @@ def runJob(job_name, job_parameters, global_variables, Boolean propagate = false
             if (global_variables[param.value.get_variable_from_url]) {
                 variable_content = http.restGet(base, global_variables[param.value.get_variable_from_url]).trim()
                 parameters.add([$class: "${param.value.type}", name: "${param.key}", value: variable_content])
-                println "${param.key}: <${param.value.type}> ${variable_content}"
+                common.infoMsg("${param.key}: <${param.value.type}> ${variable_content}")
             } else {
-                println "${param.key} is empty, skipping get_variable_from_url"
+                common.warningMsg("${param.key} is empty, skipping get_variable_from_url")
             }
         } else if (param.value.containsKey('get_variable_from_yaml')) {
             if (param.value.get_variable_from_yaml.containsKey('yaml_url') && param.value.get_variable_from_yaml.containsKey('yaml_key')) {
@@ -98,17 +99,18 @@ def runJob(job_name, job_parameters, global_variables, Boolean propagate = false
                     global_variables[yaml_url_var] = env[yaml_url_var] ?: ''
                 }
                 yaml_url = global_variables[yaml_url_var]  // Real YAML URL
-                yaml_key = param.value.get_variable_from_yaml.yaml_key   // Key to get the data from YAML, to interpolate in the groovy, for example:
-                                                                         //  <yaml_map_variable>.key.to.the[0].required.data , where yaml_key = '.key.to.the[0].required.data'
+                yaml_key = param.value.get_variable_from_yaml.yaml_key
+                // Key to get the data from YAML, to interpolate in the groovy, for example:
+                //  <yaml_map_variable>.key.to.the[0].required.data , where yaml_key = '.key.to.the[0].required.data'
                 if (yaml_url) {
                     if (!yamls_from_urls[yaml_url]) {
-                        println "Reading YAML from ${yaml_url} for ${param.key}"
+                        common.infoMsg("Reading YAML from ${yaml_url} for ${param.key}")
                         yaml_content = http.restGet(base, yaml_url)
                         yamls_from_urls[yaml_url] = readYaml text: yaml_content
                     }
-                    println "Getting key ${yaml_key} from YAML ${yaml_url} for ${param.key}"
+                    common.infoMsg("Getting key ${yaml_key} from YAML ${yaml_url} for ${param.key}")
                     template_variables = [
-                        'yaml_data': yamls_from_urls[yaml_url]
+                      'yaml_data': yamls_from_urls[yaml_url]
                     ]
                     request = "\${yaml_data${yaml_key}}"
 
@@ -127,17 +129,17 @@ def runJob(job_name, job_parameters, global_variables, Boolean propagate = false
                     }
 
                     parameters.add([$class: "${param.value.type}", name: "${param.key}", value: result])
-                    println "${param.key}: <${param.value.type}>\n${result}"
+                    common.infoMsg("${param.key}: <${param.value.type}>\n${result}")
                 } else {
-                    println "'yaml_url' in ${param.key} is empty, skipping get_variable_from_yaml"
+                    common.warningMsg("'yaml_url' in ${param.key} is empty, skipping get_variable_from_yaml")
                 }
             } else {
-                println "${param.key} missing 'yaml_url'/'yaml_key' parameters, skipping get_variable_from_yaml"
+                common.warningMsg("${param.key} missing 'yaml_url'/'yaml_key' parameters, skipping get_variable_from_yaml")
             }
         } else if (param.value.containsKey('use_template')) {
             template = engine.createTemplate(param.value.use_template).make(global_variables)
             parameters.add([$class: "${param.value.type}", name: "${param.key}", value: template.toString()])
-            println "${param.key}: <${param.value.type}>\n${template.toString()}"
+            common.infoMsg("${param.key}: <${param.value.type}>\n${template.toString()}")
         }
     }
 
@@ -161,12 +163,11 @@ def runOrGetJob(job_name, job_parameters, global_variables, propagate, String fu
     def jobsOverrides = readYaml(text: env.CI_JOBS_OVERRIDES ?: '---') ?: [:]
     // get id of overriding job
     def jobOverrideID = jobsOverrides.getOrDefault(fullTaskName, '')
-
     if (fullTaskName in jobsOverrides.keySet()) {
         common.warningMsg("Overriding: ${fullTaskName}/${job_name} <<< ${jobOverrideID}")
         common.infoMsg("For debug pin use:\n'${fullTaskName}' : ${jobOverrideID}")
         return Jenkins.instance.getItemByFullName(job_name,
-            hudson.model.Job.class).getBuildByNumber(jobOverrideID.toInteger())
+          hudson.model.Job.class).getBuildByNumber(jobOverrideID.toInteger())
     } else {
         return runJob(job_name, job_parameters, global_variables, propagate)
     }
@@ -321,7 +322,31 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
             }
             // add parameters from the workflow for the child job
             job_parameters << step_parameters
+            def wfPauseStepBeforeRun = (step['wf_pause_step_before_run'] ?: false).toBoolean()
+            def wfPauseStepTimeout = (step['wf_pause_step_timeout'] ?: 10).toInteger()
+            def wfPauseStepSlackReportChannel = step['wf_pause_step_slack_report_channel'] ?: ''
 
+            if (wfPauseStepBeforeRun) {
+                // Try-catch construction will allow to continue Steps, if timeout reached
+                try {
+                    if (wfPauseStepSlackReportChannel) {
+                        def slack = new com.mirantis.mcp.SlackNotification()
+                        slack.jobResultNotification('wf_pause_step_before_run', wfPauseStepSlackReportChannel, env.JOB_NAME, null, env.BUILD_URL, 'slack_webhook_url')
+                    }
+                    timeout(time: wfPauseStepTimeout, unit: 'MINUTES') {
+                        input("Workflow pause requested before run: ${job_name}/${desc}\n" +
+                          "Timeout set to ${wfPauseStepTimeout}.\n" +
+                          "Do you want to proceed workflow?")
+                    }
+                } catch (err) { // timeout reached or input false
+                    def user = err.getCauses()[0].getUser()
+                    if (user.toString() != 'SYSTEM') { // SYSTEM means timeout.
+                        error("Aborted after workFlow pause by: [${user}]")
+                    } else {
+                        common.infoMsg("Timeout finished, continue..")
+                    }
+                }
+            }
             common.infoMsg("Attempt to run: ${job_name}/${desc}")
             // Collect job parameters and run the job
             // WARN(alexz): desc must not contain invalid chars for yaml
@@ -368,7 +393,7 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
                     error "Job ${build_url} finished with result: ${job_result}"
                 } // if (!ignoreStepResult)
             } // if (job_result != 'SUCCESS')
-            println "Job ${build_url} finished with result: ${job_result}"
+            common.infoMsg("Job ${build_url} finished with result: ${job_result}")
         } // stage ("Running job ${step['job']}")
         // Jump to next ID for updating next job data in description table
         step_id++
