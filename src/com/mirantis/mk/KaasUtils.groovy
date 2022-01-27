@@ -51,6 +51,8 @@ def checkDeploymentTestSuite() {
     def seedMacOs = env.SEED_MACOS ? env.SEED_MACOS.toBoolean() : false
     def deployChild = env.DEPLOY_CHILD_CLUSTER ? env.DEPLOY_CHILD_CLUSTER.toBoolean() : false
     def upgradeChild = env.UPGRADE_CHILD_CLUSTER ? env.UPGRADE_CHILD_CLUSTER.toBoolean() : false
+    def mosDeployChild = env.DEPLOY_MOS_CHILD_CLUSTER ? env.DEPLOY_MOS_CHILD_CLUSTER.toBoolean() : false
+    def mosUpgradeChild = env.UPGRADE_MOS_CHILD_CLUSTER ? env.UPGRADE_MOS_CHILD_CLUSTER.toBoolean() : false
     def customChildRelease = env.KAAS_CHILD_CLUSTER_RELEASE_NAME ? env.KAAS_CHILD_CLUSTER_RELEASE_NAME : ''
     def attachBYO = env.ATTACH_BYO ? env.ATTACH_BYO.toBoolean() : false
     def upgradeBYO = env.UPGRADE_BYO ? env.UPGRADE_BYO.toBoolean() : false
@@ -112,6 +114,13 @@ def checkDeploymentTestSuite() {
         deployChild = true
         customChildRelease = childDeployMatches[0][0].split('child-deploy')[1].replaceAll('[\\[\\]]', '').trim()
         common.warningMsg("Forced child deployment using custom release version ${customChildRelease}")
+    }
+    if (commitMsg ==~ /(?s).*\[mos-child-deploy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mos-child-deploy.*/) {
+        mosDeployChild = true
+    }
+    if (commitMsg ==~ /(?s).*\[mos-child-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mos-child-upgrade.*/) {
+        mosDeployChild = true
+        mosUpgradeChild = true
     }
     if (commitMsg ==~ /(?s).*\[byo-attach\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*byo-attach.*/) {
         attachBYO = true
@@ -297,6 +306,8 @@ def checkDeploymentTestSuite() {
         Child cluster deployment scheduled: ${deployChild}
         Custom child cluster release: ${customChildRelease}
         Child cluster release upgrade scheduled: ${upgradeChild}
+        MOS child deploy scheduled: ${mosDeployChild}
+        MOS child upgrade scheduled: ${mosUpgradeChild}
         Child conformance testing scheduled: ${runChildConformance}
         Single BYO cluster attachment scheduled: ${attachBYO}
         Single Attached BYO cluster upgrade test scheduled: ${upgradeBYO}
@@ -330,6 +341,8 @@ def checkDeploymentTestSuite() {
         deployChildEnabled                   : deployChild,
         childDeployCustomRelease             : customChildRelease,
         upgradeChildEnabled                  : upgradeChild,
+        mosDeployChildEnabled                : mosDeployChild,
+        mosUpgradeChildEnabled               : mosUpgradeChild,
         runChildConformanceEnabled           : runChildConformance,
         attachBYOEnabled                     : attachBYO,
         upgradeBYOEnabled                    : upgradeBYO,
