@@ -235,7 +235,7 @@ def storeArtifacts(build_url, step_artifacts, global_variables, job_name, build_
 def updateDescription(jobs_data) {
     table = ''
     child_jobs_description = '<strong>Descriptions from jobs:</strong><br>'
-    table_template_start = "<div><table style='border: solid 1px;'><tr><th>Job:</th><th>Status:</th></tr>"
+    table_template_start = "<div><table style='border: solid 1px;'><tr><th>Job:</th><th>Duration:</th><th>Status:</th></tr>"
     table_template_end = "</table></div>"
 
     for (jobdata in jobs_data) {
@@ -253,7 +253,7 @@ def updateDescription(jobs_data) {
             display_name = "'${jobdata['name']}': ${jobdata['build_id']}"
         }
 
-        // Attach url for already builded jobs
+        // Attach url for already built jobs
         if (jobdata['build_url'] != "0") {
             build_url = "<a href=${jobdata['build_url']}>$display_name</a>"
         } else {
@@ -282,7 +282,7 @@ def updateDescription(jobs_data) {
         }
 
         // Collect table
-        table += "$trstyle<td>$build_url</td>$status_style</td></tr>"
+        table += "$trstyle<td>$build_url</td><td>${jobdata['duration']}</td>$status_style</td></tr>"
 
         // Collecting descriptions of builded child jobs
         if (jobdata['child_desc'] != "") {
@@ -355,11 +355,16 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
             def build_url = job_info.getAbsoluteUrl().toString()
             def build_description = job_info.getDescription().toString()
             def build_id = job_info.getId().toString()
+            def buildDuration = job_info.durationString ?: '-'
+            if (buildDuration.toString() == null){
+                buildDuration = '-'
+            }
 
             // Update jobs_data for updating description
             jobs_data[step_id]['build_url'] = build_url
             jobs_data[step_id]['build_id'] = build_id
             jobs_data[step_id]['status'] = job_result
+            jobs_data[step_id]['duration'] = buildDuration
             jobs_data[step_id]['desc'] = engine.createTemplate(desc).make(global_variables)
             if (build_description) {
                 jobs_data[step_id]['child_desc'] = build_description
@@ -507,7 +512,8 @@ def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '') {
                        build_id  : "-",
                        status    : "-",
                        desc      : "",
-                       child_desc: ""])
+                       child_desc: "",
+                       duration  : '-'])
         list_id += 1
     }
     finally_step_id = list_id
@@ -524,7 +530,8 @@ def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '') {
                        build_id  : "-",
                        status    : "-",
                        desc      : "",
-                       child_desc: ""])
+                       child_desc: "",
+                       duration  : '-'])
         list_id += 1
     }
 
