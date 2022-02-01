@@ -8,8 +8,9 @@ package com.mirantis.mk
  * Ensures Ruby environment with given version (install it if necessary)
  * @param rubyVersion target ruby version (optional, default 2.6.6)
  */
-def ensureRubyEnv(rubyVersion="2.6.6"){
-    lock('install_ruby_system') {
+def ensureRubyEnv(rubyVersion="2.6.6", host_to_lock=""){
+    def lock_name = "install_ruby_system_${host_to_lock}"
+    lock(lock_name) {
         if (!fileExists("/var/lib/jenkins/.rbenv/versions/${rubyVersion}/bin/ruby")){
             //XXX: patch ruby-build because debian package is quite old
             sh "rm -rf ~/.rbenv/plugins/ruby-build"
