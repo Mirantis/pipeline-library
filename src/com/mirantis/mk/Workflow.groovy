@@ -63,7 +63,7 @@ def getJobDefaultParameters(jobName) {
  */
 def runJob(job_name, job_parameters, global_variables, Boolean propagate = false) {
     def parameters = []
-    common = new com.mirantis.mk.Common()
+    def common = new com.mirantis.mk.Common()
     def http = new com.mirantis.mk.Http()
     def engine = new groovy.text.GStringTemplateEngine()
     def template
@@ -94,7 +94,7 @@ def runJob(job_name, job_parameters, global_variables, Boolean propagate = false
         } else if (param.value.containsKey('get_variable_from_yaml')) {
             if (param.value.get_variable_from_yaml.containsKey('yaml_url') && param.value.get_variable_from_yaml.containsKey('yaml_key')) {
                 // YAML url is stored in an environment or a global variable (like 'SI_CONFIG_ARTIFACT')
-                yaml_url_var = param.value.get_variable_from_yaml.yaml_url
+                def yaml_url_var = param.value.get_variable_from_yaml.yaml_url
                 if (!global_variables[yaml_url_var]) {
                     global_variables[yaml_url_var] = env[yaml_url_var] ?: ''
                 }
@@ -120,7 +120,7 @@ def runJob(job_name, job_parameters, global_variables, Boolean propagate = false
                     // so we should catch the string 'null' instead of object <null>.
                     try {
                         template = engine.createTemplate(request).make(template_variables)
-                        result = template.toString()
+                        def result = template.toString()
                         if (result == 'null') {
                             error "No such key or index, got 'null'"
                         }
@@ -200,28 +200,30 @@ def storeArtifacts(build_url, step_artifacts, global_variables, job_name, build_
     baseJenkins["url"] = build_url
     def job_config = http.restGet(baseJenkins, "/api/json/")
     def job_artifacts = job_config['artifacts']
+    common.infoMsg("Attempt to storeArtifacts for: ${job_name}/${build_num}")
     for (artifact in step_artifacts) {
         try {
-            artifactoryResp = http.restGet(baseArtifactory, "/${artifact.value}")
+            def artifactoryResp = http.restGet(baseArtifactory, "/${artifact.value}")
             global_variables[artifact.key] = artifactoryResp.downloadUri
-            println "Artifact URL ${artifactoryResp.downloadUri} stored to ${artifact.key}"
+            common.infoMsg("Artifact URL ${artifactoryResp.downloadUri} stored to ${artifact.key}")
             continue
         } catch (Exception e) {
-            common.warningMsg("Can't find an artifact in ${artifactory_url}/${job_name}/${build_num}/${artifact.value} error code ${e.message}")
+            common.warningMsg("Can't find an artifact in ${artifactory_url}/${job_name}/${build_num}/${artifact.value} to store in ${artifact.key}\n" +
+              "error code ${e.message}")
         }
 
-        job_artifact = job_artifacts.findAll { item -> artifact.value == item['fileName'] || artifact.value == item['relativePath'] }
+        def job_artifact = job_artifacts.findAll { item -> artifact.value == item['fileName'] || artifact.value == item['relativePath'] }
         if (job_artifact.size() == 1) {
             // Store artifact URL
             def artifact_url = "${build_url}/artifact/${job_artifact[0]['relativePath']}"
             global_variables[artifact.key] = artifact_url
-            println "Artifact URL ${artifact_url} stored to ${artifact.key}"
+            common.infoMsg("Artifact URL ${artifact_url} stored to ${artifact.key}")
         } else if (job_artifact.size() > 1) {
             // Error: too many artifacts with the same name, fail the job
             error "Multiple artifacts ${artifact.value} for ${artifact.key} found in the build results ${build_url}, expected one:\n${job_artifact}"
         } else {
             // Warning: no artifact with expected name
-            println "Artifact ${artifact.value} for ${artifact.key} not found in the build results ${build_url} and in the artifactory ${artifactory_url}/${job_name}/${build_num}/, found the following artifacts in Jenkins:\n${job_artifacts}"
+            common.warningMsg("Artifact ${artifact.value} for ${artifact.key} not found in the build results ${build_url} and in the artifactory ${artifactory_url}/${job_name}/${build_num}/, found the following artifacts in Jenkins:\n${job_artifacts}")
             global_variables[artifact.key] = ''
         }
     }
@@ -233,31 +235,28 @@ def storeArtifacts(build_url, step_artifacts, global_variables, job_name, build_
  * @param jobs_data               Map with all job names and result statuses, to showing it in description
  */
 def updateDescription(jobs_data) {
-    table = ''
-    child_jobs_description = '<strong>Descriptions from jobs:</strong><br>'
-    table_template_start = "<div><table style='border: solid 1px;'><tr><th>Job:</th><th>Duration:</th><th>Status:</th></tr>"
-    table_template_end = "</table></div>"
+    def common = new com.mirantis.mk.Common()
+    def table = ''
+    def child_jobs_description = '<strong>Descriptions from jobs:</strong><br>'
+    def table_template_start = "<div><table style='border: solid 1px;'><tr><th>Job:</th><th>Duration:</th><th>Status:</th></tr>"
+    def table_template_end = "</table></div>"
 
     for (jobdata in jobs_data) {
+        def trstyle = "<tr>"
         // Grey background for 'finally' jobs in list
         if (jobdata['type'] == 'finally') {
             trstyle = "<tr style='background: #DDDDDD;'>"
-        } else {
-            trstyle = "<tr>"
         }
-
         // 'description' instead of job name if it exists
+        def display_name = "'${jobdata['name']}': ${jobdata['build_id']}"
         if (jobdata['desc'].toString() != "") {
             display_name = "'${jobdata['desc']}': ${jobdata['build_id']}"
-        } else {
-            display_name = "'${jobdata['name']}': ${jobdata['build_id']}"
         }
 
         // Attach url for already built jobs
+        def build_url = display_name
         if (jobdata['build_url'] != "0") {
             build_url = "<a href=${jobdata['build_url']}>$display_name</a>"
-        } else {
-            build_url = display_name
         }
 
         // Styling the status of job result
@@ -287,12 +286,84 @@ def updateDescription(jobs_data) {
         // Collecting descriptions of builded child jobs
         if (jobdata['child_desc'] != "") {
             child_jobs_description += "<b><small><a href=${jobdata['build_url']}>- ${jobdata['name']} (${jobdata['status']}):</a></small></b><br>"
-            child_jobs_description += "<small>${jobdata['child_desc']}</small><br>"
+            // remove "null" message-result from description, but leave XXX:JOBRESULT in description
+            if (jobdata['child_desc'] != "null") {
+                child_jobs_description += "<small>${jobdata['child_desc']}</small><br>"
+            }
         }
     }
     currentBuild.description = table_template_start + table + table_template_end + child_jobs_description
 }
 
+def runStep(global_variables, step, Boolean propagate = false, artifactoryBaseUrl = '') {
+    return {
+        def common = new com.mirantis.mk.Common()
+        def engine = new groovy.text.GStringTemplateEngine()
+
+        String jobDescription = step['description'] ?: ''
+        def jobName = step['job']
+        def jobParameters = [:]
+        def stepParameters = step['parameters'] ?: [:]
+        if (step['inherit_parent_params'] ?: false) {
+            // add parameters from the current job for the child job
+            jobParameters << getJobDefaultParameters(env.JOB_NAME)
+        }
+        // add parameters from the workflow for the child job
+        jobParameters << stepParameters
+        def wfPauseStepBeforeRun = (step['wf_pause_step_before_run'] ?: false).toBoolean()
+        def wfPauseStepTimeout = (step['wf_pause_step_timeout'] ?: 10).toInteger()
+        def wfPauseStepSlackReportChannel = step['wf_pause_step_slack_report_channel'] ?: ''
+
+        if (wfPauseStepBeforeRun) {
+            // Try-catch construction will allow to continue Steps, if timeout reached
+            try {
+                if (wfPauseStepSlackReportChannel) {
+                    def slack = new com.mirantis.mcp.SlackNotification()
+                    slack.jobResultNotification('wf_pause_step_before_run',
+                      wfPauseStepSlackReportChannel,
+                      env.JOB_NAME, null,
+                      env.BUILD_URL, 'slack_webhook_url')
+                }
+                timeout(time: wfPauseStepTimeout, unit: 'MINUTES') {
+                    input("Workflow pause requested before run: ${jobName}/${jobDescription}\n" +
+                      "Timeout set to ${wfPauseStepTimeout}.\n" +
+                      "Do you want to proceed workflow?")
+                }
+            } catch (err) { // timeout reached or input false
+                def user = err.getCauses()[0].getUser()
+                if (user.toString() != 'SYSTEM') { // SYSTEM means timeout.
+                    error("Aborted after workFlow pause by: [${user}]")
+                } else {
+                    common.infoMsg("Timeout finished, continue..")
+                }
+            }
+        }
+        common.infoMsg("Attempt to run: ${jobName}/${jobDescription}")
+        // Collect job parameters and run the job
+        // WARN(alexz): desc must not contain invalid chars for yaml
+        def jobResult = runOrGetJob(jobName, jobParameters,
+                                   global_variables, propagate, jobDescription)
+        def buildDuration = jobResult.durationString ?: '-'
+        if (buildDuration.toString() == null) {
+            buildDuration = '-'
+        }
+        def jobSummary = [
+          job_result       : jobResult.getResult().toString(),
+          build_url        : jobResult.getAbsoluteUrl().toString(),
+          build_id         : jobResult.getId().toString(),
+          buildDuration    : buildDuration,
+          desc             : engine.createTemplate(jobDescription).make(global_variables),
+        ]
+        def _buildDescription = jobResult.getDescription().toString()
+        if(_buildDescription){
+            jobSummary['build_description'] = _buildDescription
+        }
+        // Store links to the resulting artifacts into 'global_variables'
+        storeArtifacts(jobSummary['build_url'], step['artifacts'],
+          global_variables, jobName, jobSummary['build_id'], artifactoryBaseUrl)
+        return jobSummary
+    }
+}
 /**
  * Run the workflow or final steps one by one
  *
@@ -310,70 +381,21 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
     updateDescription(jobs_data)
 
     for (step in steps) {
-        stage("Running job ${step['job']}") {
-            def engine = new groovy.text.GStringTemplateEngine()
-            String desc = step['description'] ?: ''
-            def job_name = step['job']
-            def job_parameters = [:]
-            def step_parameters = step['parameters'] ?: [:]
-            if (step['inherit_parent_params'] ?: false) {
-                // add parameters from the current job for the child job
-                job_parameters << getJobDefaultParameters(env.JOB_NAME)
-            }
-            // add parameters from the workflow for the child job
-            job_parameters << step_parameters
-            def wfPauseStepBeforeRun = (step['wf_pause_step_before_run'] ?: false).toBoolean()
-            def wfPauseStepTimeout = (step['wf_pause_step_timeout'] ?: 10).toInteger()
-            def wfPauseStepSlackReportChannel = step['wf_pause_step_slack_report_channel'] ?: ''
-
-            if (wfPauseStepBeforeRun) {
-                // Try-catch construction will allow to continue Steps, if timeout reached
-                try {
-                    if (wfPauseStepSlackReportChannel) {
-                        def slack = new com.mirantis.mcp.SlackNotification()
-                        slack.jobResultNotification('wf_pause_step_before_run', wfPauseStepSlackReportChannel, env.JOB_NAME, null, env.BUILD_URL, 'slack_webhook_url')
-                    }
-                    timeout(time: wfPauseStepTimeout, unit: 'MINUTES') {
-                        input("Workflow pause requested before run: ${job_name}/${desc}\n" +
-                          "Timeout set to ${wfPauseStepTimeout}.\n" +
-                          "Do you want to proceed workflow?")
-                    }
-                } catch (err) { // timeout reached or input false
-                    def user = err.getCauses()[0].getUser()
-                    if (user.toString() != 'SYSTEM') { // SYSTEM means timeout.
-                        error("Aborted after workFlow pause by: [${user}]")
-                    } else {
-                        common.infoMsg("Timeout finished, continue..")
-                    }
-                }
-            }
-            common.infoMsg("Attempt to run: ${job_name}/${desc}")
-            // Collect job parameters and run the job
-            // WARN(alexz): desc must not contain invalid chars for yaml
-            def job_info = runOrGetJob(job_name, job_parameters, global_variables, propagate, desc)
-            def job_result = job_info.getResult().toString()
-            def build_url = job_info.getAbsoluteUrl().toString()
-            def build_description = job_info.getDescription().toString()
-            def build_id = job_info.getId().toString()
-            def buildDuration = job_info.durationString ?: '-'
-            if (buildDuration.toString() == null){
-                buildDuration = '-'
-            }
+        stage("Preparing for run job ${step['job']}") {
+            def job_summary = runStep(global_variables, step, propagate, artifactoryBaseUrl).call()
 
             // Update jobs_data for updating description
-            jobs_data[step_id]['build_url'] = build_url
-            jobs_data[step_id]['build_id'] = build_id
-            jobs_data[step_id]['status'] = job_result
-            jobs_data[step_id]['duration'] = buildDuration
-            jobs_data[step_id]['desc'] = engine.createTemplate(desc).make(global_variables)
-            if (build_description) {
-                jobs_data[step_id]['child_desc'] = build_description
+            jobs_data[step_id]['build_url'] = job_summary['build_url']
+            jobs_data[step_id]['build_id'] = job_summary['build_id']
+            jobs_data[step_id]['status'] = job_summary['job_result']
+            jobs_data[step_id]['duration'] = job_summary['buildDuration']
+            jobs_data[step_id]['desc'] = job_summary['desc']
+            if (job_summary['build_description']) {
+                jobs_data[step_id]['child_desc'] = job_summary['build_description']
             }
-
             updateDescription(jobs_data)
-
-            // Store links to the resulting artifacts into 'global_variables'
-            storeArtifacts(build_url, step['artifacts'], global_variables, job_name, build_id, artifactoryBaseUrl)
+            def job_result = job_summary['job_result']
+            def build_url = job_summary['build_url']
 
             // Check job result, in case of SUCCESS, move to next step.
             // In case job has status NOT_BUILT, fail the build or keep going depending on 'ignore_not_built' flag
@@ -396,13 +418,13 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
                 if (!ignoreStepResult) {
                     currentBuild.result = job_result
                     error "Job ${build_url} finished with result: ${job_result}"
-                } // if (!ignoreStepResult)
-            } // if (job_result != 'SUCCESS')
+                }
+            }
             common.infoMsg("Job ${build_url} finished with result: ${job_result}")
-        } // stage ("Running job ${step['job']}")
+        }
         // Jump to next ID for updating next job data in description table
         step_id++
-    } // for (step in scenario['workflow'])
+    }
 }
 
 /**
@@ -456,7 +478,6 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
  *           get_variable_from_url: DEPLOYED_KAAS_VERSION
  *       artifacts:
  *         REPORT_SI_KAAS_UI: artifacts/test_kaas_ui_result.xml
- *
  *     finally:
  *     - job: testrail-report
  *       ignore_failed: true
@@ -489,21 +510,20 @@ def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '') {
     // Clear description before adding new messages
     currentBuild.description = ''
     // Collect the parameters for the jobs here
-    global_variables = [:]
+    def global_variables = [:]
     // List of failed jobs to show at the end
-    failed_jobs = [:]
+    def failed_jobs = [:]
     // Jobs data to use for wf job build description
     def jobs_data = []
     // Counter for matching step ID with cell ID in description table
-    step_id = 0
+    def step_id = 0
 
     // Generate expected list jobs for description
-    list_id = 0
+    def list_id = 0
     for (step in scenario['workflow']) {
+        def display_name = step['job']
         if (step['description'] != null && step['description'].toString() != "") {
             display_name = step['description']
-        } else {
-            display_name = step['job']
         }
         jobs_data.add([list_id   : "$list_id",
                        type      : "workflow",
@@ -516,12 +536,12 @@ def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '') {
                        duration  : '-'])
         list_id += 1
     }
-    finally_step_id = list_id
+
+    def finally_step_id = list_id
     for (step in scenario['finally']) {
+        def display_name = step['job']
         if (step['description'] != null && step['description'].toString() != "") {
             display_name = step['description']
-        } else {
-            display_name = step['job']
         }
         jobs_data.add([list_id   : "$list_id",
                        type      : "finally",
@@ -549,7 +569,7 @@ def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '') {
         runSteps(scenario['finally'], global_variables, failed_jobs, jobs_data, step_id, false, artifactoryBaseUrl)
 
         if (failed_jobs) {
-            statuses = []
+            def statuses = []
             failed_jobs.each {
                 statuses += it.value
             }
