@@ -722,7 +722,6 @@ def generateLockResources(callBackDemo, triggers) {
         case 'aws':
             // Add aws specific lock label with quantity calculated based on single mgmt deploy or mgmt + child
             lockLabels['aws_core_ci_queue'] = triggers.demoWeight
-            if (runBYOMatrix) { lockLabels['aws_core_ci_queue'] += 8 }
 
             // Define netMap for Vsphere region
             if (runMultiregion && multiregionConfig.managementLocation == 'aws' &&
