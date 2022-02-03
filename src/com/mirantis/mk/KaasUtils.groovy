@@ -67,6 +67,7 @@ def checkDeploymentTestSuite() {
     def runChildConformance = env.RUN_CHILD_CFM ? env.RUN_CHILD_CFM.toBoolean() : false
     def fetchServiceBinaries = env.FETCH_BINARIES_FROM_UPSTREAM ? env.FETCH_BINARIES_FROM_UPSTREAM.toBoolean() : false
     def equinixMetalV2ChildDiffMetro = env.EQUINIXMETALV2_CHILD_DIFF_METRO ? env.EQUINIXMETALV2_CHILD_DIFF_METRO.toBoolean() : false
+    def runMaintenanceTest = env.RUN_MAINTENANCE_TEST ? env.RUN_MAINTENANCE_TEST.toBoolean() : false
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
     def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
         enabled: false,
@@ -166,6 +167,9 @@ def checkDeploymentTestSuite() {
         runLMATest = true
         enableLMALogging = true
         common.infoMsg('LMA logging will be enabled since LMA test suite will be executed')
+    }
+    if (commitMsg ==~ /(?s).*\[maintenance-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*maintenance-test.*/) {
+        runMaintenanceTest = true
     }
     if (commitMsg ==~ /(?s).*\[child-offline\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-offline.*/) {
         proxyConfig['childOffline'] = true
@@ -319,6 +323,7 @@ def checkDeploymentTestSuite() {
         LMA testing scheduled: ${runLMATest}
         Mgmt user controller testing scheduled: ${runMgmtUserControllerTest}
         Mgmt UI e2e testing scheduled: ${runUie2e}
+        Maintenance test: ${runMaintenanceTest}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         Equinix provider deployment scheduled: ${equinixOnDemandDemo}
         EquinixmetalV2 provider deployment scheduled: ${equinixMetalV2OnDemandDemo}
@@ -352,6 +357,7 @@ def checkDeploymentTestSuite() {
         enableLMALoggingEnabled              : enableLMALogging,
         runUie2eEnabled                      : runUie2e,
         runMgmtConformanceEnabled            : runMgmtConformance,
+        runMaintenanceTestEnable             : runMaintenanceTest,
         runLMATestEnabled                    : runLMATest,
         runMgmtUserControllerTestEnabled     : runMgmtUserControllerTest,
         fetchServiceBinariesEnabled          : fetchServiceBinaries,
@@ -626,6 +632,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'ENABLE_LMA_LOGGING', value: triggers.enableLMALoggingEnabled),
         booleanParam(name: 'RUN_UI_E2E', value: triggers.runUie2eEnabled),
         booleanParam(name: 'RUN_MGMT_CFM', value: triggers.runMgmtConformanceEnabled),
+        booleanParam(name: 'RUN_MAINTENANCE_TEST', value: triggers.runMaintenanceTestEnable),
         booleanParam(name: 'RUN_LMA_TEST', value: triggers.runLMATestEnabled),
         booleanParam(name: 'RUN_MGMT_USER_CONTROLLER_TEST', value: triggers.runMgmtUserControllerTestEnabled),
         booleanParam(name: 'DEPLOY_CHILD_CLUSTER', value: triggers.deployChildEnabled),
