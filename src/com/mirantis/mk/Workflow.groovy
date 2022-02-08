@@ -113,14 +113,14 @@ def runJob(job_name, job_parameters, global_variables, Boolean propagate = false
                       'yaml_data': yamls_from_urls[yaml_url]
                     ]
                     request = "\${yaml_data${yaml_key}}"
-
+                    def result
                     // Catch errors related to wrong key or index in the list or map objects
                     // For wrong key in map or wrong index in list, groovy returns <null> object,
                     // but it can be catched only after the string interpolation <template.toString()>,
                     // so we should catch the string 'null' instead of object <null>.
                     try {
                         template = engine.createTemplate(request).make(template_variables)
-                        def result = template.toString()
+                        result = template.toString()
                         if (result == 'null') {
                             error "No such key or index, got 'null'"
                         }
