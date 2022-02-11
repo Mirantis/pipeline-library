@@ -75,6 +75,9 @@ def checkDeploymentTestSuite() {
     def equinixMetalV2ChildDiffMetro = env.EQUINIXMETALV2_CHILD_DIFF_METRO ? env.EQUINIXMETALV2_CHILD_DIFF_METRO.toBoolean() : false
     def runMaintenanceTest = env.RUN_MAINTENANCE_TEST ? env.RUN_MAINTENANCE_TEST.toBoolean() : false
     def runContainerregistryTest = env.RUN_CONTAINER_REGISTRY_TEST ? env.RUN_CONTAINER_REGISTRY_TEST.toBoolean() : false
+    def runMgmtDeleteMasterTest = env.RUN_MGMT_DELETE_MASTER_TEST ? env.RUN_MGMT_DELETE_MASTER_TEST.toBoolean() : false
+    def runRgnlDeleteMasterTest = env.RUN_RGNL_DELETE_MASTER_TEST ? env.RUN_RGNL_DELETE_MASTER_TEST.toBoolean() : false
+    def runChildDeleteMasterTest = env.RUN_CHILD_DELETE_MASTER_TEST ? env.RUN_CHILD_DELETE_MASTER_TEST.toBoolean() : false
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
     def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
         enabled: false,
@@ -193,6 +196,15 @@ def checkDeploymentTestSuite() {
     }
     if (commitMsg ==~ /(?s).*\[container-registry-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*container-registry-test.*/) {
         runContainerregistryTest = true
+    }
+    if (commitMsg ==~ /(?s).*\[mgmt-delete-master-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-delete-master-test.*/) {
+        runMgmtDeleteMasterTest = true
+    }
+    if (commitMsg ==~ /(?s).*\[rgnl-delete-master-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*rgnl-delete-master-test.*/) {
+        runRgnlDeleteMasterTest = true
+    }
+    if (commitMsg ==~ /(?s).*\[child-delete-master-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-delete-master-test.*/) {
+        runChildDeleteMasterTest = true
     }
     if (commitMsg ==~ /(?s).*\[child-offline\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-offline.*/) {
         proxyConfig['childOffline'] = true
@@ -365,6 +377,9 @@ def checkDeploymentTestSuite() {
         Maintenance test: ${runMaintenanceTest}
         Container Registry test: ${runContainerregistryTest}
         Child proxy test: ${runProxyChildTest}
+        Delete mgmt master node test: ${runMgmtDeleteMasterTest}
+        Delete rgnl master node test: ${runRgnlDeleteMasterTest}
+        Delete child master node test: ${runChildDeleteMasterTest}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         Equinix provider deployment scheduled: ${equinixOnDemandDemo}
         EquinixmetalV2 provider deployment scheduled: ${equinixMetalV2OnDemandDemo}
@@ -403,7 +418,10 @@ def checkDeploymentTestSuite() {
         runUie2eNewEnabled                   : runUie2eNew,
         runMgmtConformanceEnabled            : runMgmtConformance,
         runMaintenanceTestEnabled            : runMaintenanceTest,
-        runContainerregistryTestEnabled      :runContainerregistryTest,
+        runContainerregistryTestEnabled      : runContainerregistryTest,
+        runMgmtDeleteMasterTestEnabled       : runMgmtDeleteMasterTest,
+        runRgnlDeleteMasterTestEnabled       : runRgnlDeleteMasterTest,
+        runChildDeleteMasterTestEnabled      : runChildDeleteMasterTest,
         runLMATestEnabled                    : runLMATest,
         runMgmtUserControllerTestEnabled     : runMgmtUserControllerTest,
         runProxyChildTestEnabled             : runProxyChildTest,
@@ -684,6 +702,9 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'RUN_MGMT_CFM', value: triggers.runMgmtConformanceEnabled),
         booleanParam(name: 'RUN_MAINTENANCE_TEST', value: triggers.runMaintenanceTestEnabled),
         booleanParam(name: 'RUN_CONTAINER_REGISTRY_TEST', value: triggers.runContainerregistryTestEnabled),
+        booleanParam(name: 'RUN_MGMT_DELETE_MASTER_TEST', value: triggers.runMgmtDeleteMasterTestEnabled),
+        booleanParam(name: 'RUN_RGNL_DELETE_MASTER_TEST', value: triggers.runRgnlDeleteMasterTestEnabled),
+        booleanParam(name: 'RUN_CHILD_DELETE_MASTER_TEST', value: triggers.runChildDeleteMasterTestEnabled),
         booleanParam(name: 'RUN_LMA_TEST', value: triggers.runLMATestEnabled),
         booleanParam(name: 'RUN_MGMT_USER_CONTROLLER_TEST', value: triggers.runMgmtUserControllerTestEnabled),
         booleanParam(name: 'DEPLOY_CHILD_CLUSTER', value: triggers.deployChildEnabled),
