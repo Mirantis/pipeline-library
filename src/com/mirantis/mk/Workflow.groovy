@@ -409,6 +409,9 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
                     case "NOT_BUILT":
                         ignoreStepResult = step['ignore_not_built'] ?: false
                         break;
+                    case "UNSTABLE":
+                        ignoreStepResult = step['ignore_unstable'] ?: false
+                        break;
                     default:
                         ignoreStepResult = step['ignore_failed'] ?: false
                         if (ignoreStepResult && !step['skip_results'] ?: false) {
