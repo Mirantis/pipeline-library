@@ -410,7 +410,7 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
                         ignoreStepResult = step['ignore_not_built'] ?: false
                         break;
                     case "UNSTABLE":
-                        ignoreStepResult = step['ignore_unstable'] ?: false
+                        ignoreStepResult = step['ignore_unstable'] ?: (step['ignore_failed'] ?: false)
                         break;
                     default:
                         ignoreStepResult = step['ignore_failed'] ?: false
