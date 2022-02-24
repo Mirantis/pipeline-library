@@ -53,7 +53,12 @@ def setupVirtualenv(path, python = 'python2', reqs=[], reqs_path=null, clean=fal
         writeFile file: "${path}/requirements.txt", text: args
         reqs_path = "${path}/requirements.txt"
     }
-    runVirtualenvCommand(path, "pip install -r ${reqs_path}", true)
+    
+    def install_cmd = 'pip install'
+    if (offlineDeployment) {
+        install_cmd += " --find-links=/opt/pip-mirror "
+    }
+    runVirtualenvCommand(path, "${install_cmd} -r ${reqs_path}", true)
 }
 
 /**
