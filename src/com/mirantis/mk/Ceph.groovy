@@ -306,10 +306,15 @@ def generateMapping(pgmap,map) {
     for(pg in pgmap) {
         pg_new = pg["up"].minus(pg["acting"])
         pg_old = pg["acting"].minus(pg["up"])
-        for(int i = 0; i < pg_new.size(); i++) {
-            // def string = "ceph osd pg-upmap-items " + pg["pgid"].toString() + " " + pg_new[i] + " " + pg_old[i] + ";"
-            def string = "ceph osd pg-upmap-items ${pg["pgid"]} ${pg_new[i]} ${pg_old[i]}"
-            map.add(string)
+        if(pg_old.isEmpty()) {
+            // use standard rebalancing to just fill gaps with new osds
+            unsetFlags('norebalance')
+        }
+        else {
+            for(int i = 0; i < pg_new.size(); i++) {
+                def string = "ceph osd pg-upmap-items ${pg["pgid"]} ${pg_new[i]} ${pg_old[i]}"
+                map.add(string)
+            }
         }
     }
 }
