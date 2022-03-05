@@ -818,3 +818,95 @@ def addToProviderNetMap (netMap, provider, clusterType) {
             error('Net map locks supported for Equinix/Vsphere providers only')
     }
 }
+
+/**
+* getCIKeywordsFromCommitMsg parses commit message and returns all gerrit keywords with their values as a list of maps.
+* Each element (map) contains keys 'key' for keyword name and 'value' for its value.
+* If keyword contains only 'key' part then 'value' is boolean True.
+* This function does not perform keywords validation.
+* First line of a commit message is ignored.
+* To use '[' or ']' characters inside keyword prepend it with backslash '\'.
+* TODO: Remove backslash chars from values if they prepend '[' or ']'.
+**/
+
+List getCIKeywordsFromCommitMsg() {
+    String commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
+    List commitMsgLines = commitMsg.split('\n')
+    List keywords = []
+    if (commitMsgLines.size() < 2) {
+        return keywords
+    }
+
+    String commitMsgBody = commitMsgLines[1..-1].join('\n')
+
+    // Split commit message body to chunks using '[' or ']' as delimiter,
+    // ignoring them if prepended by backslash (regex negative lookbehind).
+    // Resulting list will have chunks between '[' and ']' at odd indexes.
+    List parts = commitMsgBody.split(/(?<!\\)[\[\]]/)
+
+    // Iterate chunks by odd indexes only, trim values and split to
+    // <key> / <value> pair where <key> is the part of a sting before the first
+    // whitespace delimiter, and <value> is the rest (may include whitespaces).
+    // If there is no whitespace in the string then this is a 'switch'
+    // and <value> will be boolean True.
+    for (i = 1; i < parts.size(); i += 2) {
+        def (key, value) = (parts[i].trim().split(/\s+/, 2) + [true, ])[0..1]
+        keywords.add(['key': key, 'value': value])
+    }
+
+    return keywords
+}
+
+/**
+* getJobsParamsFromCommitMsg parses list of CI keywords and returns values of 'job-params' keyword
+* that were specified for given job name. `job-params` keyword has the following structure
+*
+*   [job-params <job name> <parameter name> <parameter value>]
+*
+* Return value is a Map that contains those parameters using the following structure:
+*
+*    <job name>:
+*       <parameter name>: <parameter value>
+*
+**/
+Map getJobsParamsFromCommitMsg() {
+    List keywords = getCIKeywordsFromCommitMsg()
+
+    List jobsParamsList = []
+    keywords.findAll{ it.key == 'job-params' }.collect(jobsParamsList) {
+        def (name, params) = (it['value'].split(/\s+/, 2) + [null, ])[0..1]
+        def (key, value) = params.split(/\s+/, 2)
+        ['name': name, 'key': key, 'value': value]
+    }
+
+    Map jobsParams = jobsParamsList.inject([:]) { result, it ->
+        if (!result.containsKey(it.name)) {
+            result[it.name] = [:]
+        }
+        result[it.name][it.key] = it.value
+        result
+    }
+
+    return jobsParams
+}
+
+
+/**
+* getJobParamsFromCommitMsg returns key:value Map of parameters set for a job in commit message.
+* It uses getJobsParamsFromCommitMsg to get all parameters from commit message and then
+* uses only those parametes that were set to all jobs (with <job name> == '*') or to
+* a particular job. Parameters set to a particular job have higher precedence.
+*
+* Return value is a Map that contains those parameters:
+*
+*    <parameter name>: <parameter value>
+*
+**/
+Map getJobParamsFromCommitMsg(String jobName) {
+    jobsParams = getJobsParamsFromCommitMsg()
+    jobParams = jobsParams.getOrDefault('*', [:])
+    if (jobName) {
+        jobParams.putAll(jobsParams.getOrDefault(jobName, [:]))
+    }
+    return jobParams
+}
