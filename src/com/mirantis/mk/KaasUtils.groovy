@@ -92,6 +92,7 @@ def checkDeploymentTestSuite() {
     def enableVsphereDemo = true
     def enableOSDemo = true
     def enableBMDemo = true
+    def enableArtifactsBuild = true
     def openstackIMC = env.OPENSTACK_CLOUD_LOCATION ? env.OPENSTACK_CLOUD_LOCATION : 'us'
 
     def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
@@ -231,6 +232,11 @@ def checkDeploymentTestSuite() {
         common.errorMsg('vSphere demo deployment will be aborted, VF -1 will be set')
     }
 
+    if (commitMsg ==~ /(?s).*\[disable-artifacts-build\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-artifacts-build\.*/) {
+        enableArtifactsBuild = false
+        common.errorMsg('artifacts build will be aborted, VF -1 will be set')
+    }
+
     // TODO (vnaumov) remove below condition after moving all releases to UCP
     def ucpChildMatches = (commitMsg =~ /(\[child-ucp\s*ucp-.*?\])/)
     if (ucpChildMatches.size() > 0) {
@@ -334,6 +340,7 @@ def checkDeploymentTestSuite() {
         VSPHERE provider deployment scheduled: ${enableVsphereDemo}
         OS provider deployment scheduled: ${enableOSDemo}
         BM provider deployment scheduled: ${enableBMDemo}
+        Artifacts build scheduled: ${enableArtifactsBuild}
         Multiregional configuration: ${multiregionalMappings}
         Service binaries fetching scheduled: ${fetchServiceBinaries}
         Current weight of the demo run: ${demoWeight} (Used to manage lockable resources)
@@ -372,6 +379,7 @@ def checkDeploymentTestSuite() {
         vsphereOnDemandDemoEnabled           : enableVsphereDemo, // TODO: remove after MCC 2.7 is out
         bmDemoEnabled                        : enableBMDemo,
         osDemoEnabled                        : enableOSDemo,
+        artifactsBuildEnabled                : enableArtifactsBuild,
         multiregionalConfiguration           : multiregionalMappings,
         demoWeight                           : demoWeight]
 }
