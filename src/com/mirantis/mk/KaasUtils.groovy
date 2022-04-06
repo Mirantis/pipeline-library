@@ -64,6 +64,7 @@ def checkDeploymentTestSuite() {
     def runMgmtConformance = env.RUN_MGMT_CFM ? env.RUN_MGMT_CFM.toBoolean() : false
     def runLMATest = env.RUN_LMA_TEST ? env.RUN_LMA_TEST.toBoolean() : false
     def runMgmtUserControllerTest = env.RUN_MGMT_USER_CONTROLLER_TEST ? env.RUN_MGMT_USER_CONTROLLER_TEST.toBoolean() : false
+    def runProxyChildTest = env.RUN_PROXY_CHILD_TEST ? env.RUN_PROXY_CHILD_TEST : false
     def runChildConformance = env.RUN_CHILD_CFM ? env.RUN_CHILD_CFM.toBoolean() : false
     def fetchServiceBinaries = env.FETCH_BINARIES_FROM_UPSTREAM ? env.FETCH_BINARIES_FROM_UPSTREAM.toBoolean() : false
     def equinixMetalV2ChildDiffMetro = env.EQUINIXMETALV2_CHILD_DIFF_METRO ? env.EQUINIXMETALV2_CHILD_DIFF_METRO.toBoolean() : false
@@ -103,7 +104,7 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[seed-macos\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*seed-macos.*/) {
         seedMacOs = true
     }
-    if (commitMsg ==~ /(?s).*\[child-deploy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-deploy.*/ || upgradeChild || runChildConformance) {
+    if (commitMsg ==~ /(?s).*\[child-deploy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-deploy.*/ || upgradeChild || runChildConformance || runProxyChildTest) {
         deployChild = true
     }
     if (commitMsg ==~ /(?s).*\[child-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-upgrade.*/) {
@@ -159,6 +160,11 @@ def checkDeploymentTestSuite() {
     }
     if (commitMsg ==~ /(?s).*\[test-user-controller\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*test-user-controller.*/) {
         runMgmtUserControllerTest = true
+    }
+    if (commitMsg ==~ /(?s).*\[test-proxy-child\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*test-proxy-child.*/) {
+        runProxyChildTest = true
+        deployChild = true
+        common.infoMsg('Child cluster deployment will be enabled since proxy child test suite will be executed')
     }
     if (commitMsg ==~ /(?s).*\[child-cfm\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-cfm.*/) {
         runChildConformance = true
@@ -330,6 +336,7 @@ def checkDeploymentTestSuite() {
         Mgmt user controller testing scheduled: ${runMgmtUserControllerTest}
         Mgmt UI e2e testing scheduled: ${runUie2e}
         Maintenance test: ${runMaintenanceTest}
+        Child proxy test: ${runProxyChildTest}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         Equinix provider deployment scheduled: ${equinixOnDemandDemo}
         EquinixmetalV2 provider deployment scheduled: ${equinixMetalV2OnDemandDemo}
@@ -367,6 +374,7 @@ def checkDeploymentTestSuite() {
         runMaintenanceTestEnable             : runMaintenanceTest,
         runLMATestEnabled                    : runLMATest,
         runMgmtUserControllerTestEnabled     : runMgmtUserControllerTest,
+        runProxyChildTestEnabled             : runProxyChildTest,
         fetchServiceBinariesEnabled          : fetchServiceBinaries,
         awsOnDemandDemoEnabled               : awsOnDemandDemo,
         equinixOnDemandDemoEnabled           : equinixOnDemandDemo,
@@ -645,6 +653,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'RUN_MGMT_USER_CONTROLLER_TEST', value: triggers.runMgmtUserControllerTestEnabled),
         booleanParam(name: 'DEPLOY_CHILD_CLUSTER', value: triggers.deployChildEnabled),
         booleanParam(name: 'UPGRADE_CHILD_CLUSTER', value: triggers.upgradeChildEnabled),
+        booleanParam(name: 'RUN_PROXY_CHILD_TEST', value: triggers.runProxyChildTestEnabled),
         booleanParam(name: 'ATTACH_BYO', value: triggers.attachBYOEnabled),
         booleanParam(name: 'UPGRADE_BYO', value: triggers.upgradeBYOEnabled),
         booleanParam(name: 'RUN_BYO_MATRIX', value: triggers.runBYOMatrixEnabled),
