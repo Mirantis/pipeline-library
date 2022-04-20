@@ -59,6 +59,7 @@ def checkDeploymentTestSuite() {
     def runBYOMatrix = env.RUN_BYO_MATRIX ? env.RUN_BYO_MATRIX.toBoolean() : false
     def defaultBYOOs = env.DEFAULT_BYO_OS ? env.DEFAULT_BYO_OS.toString() : 'ubuntu'
     def upgradeMgmt = env.UPGRADE_MGMT_CLUSTER ? env.UPGRADE_MGMT_CLUSTER.toBoolean() : false
+    def autoUpgradeMgmt = env.AUTO_UPGRADE_MCC ? env.AUTO_UPGRADE_MCC.toBoolean() : false
     def enableLMALogging = env.ENABLE_LMA_LOGGING ? env.ENABLE_LMA_LOGGING.toBoolean(): false
     def runUie2e = env.RUN_UI_E2E ? env.RUN_UI_E2E.toBoolean() : false
     def runMgmtConformance = env.RUN_MGMT_CFM ? env.RUN_MGMT_CFM.toBoolean() : false
@@ -147,6 +148,9 @@ def checkDeploymentTestSuite() {
     }
     if (commitMsg ==~ /(?s).*\[mgmt-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-upgrade.*/) {
         upgradeMgmt = true
+    }
+    if (commitMsg ==~ /(?s).*\[auto-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*auto-upgrade.*/) {
+        autoUpgradeMgmt = true
     }
     if (commitMsg ==~ /(?s).*\[lma-logging\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*lma-logging.*/) {
         enableLMALogging = true
@@ -324,6 +328,7 @@ def checkDeploymentTestSuite() {
         BYO test matrix whole suite scheduled: ${runBYOMatrix}
         Default BYO OS: ${defaultBYOOs}
         Mgmt cluster release upgrade scheduled: ${upgradeMgmt}
+        Mgmt cluster release auto upgrade scheduled: ${autoUpgradeMgmt}
         Mgmt LMA logging enabled: ${enableLMALogging}
         Mgmt conformance testing scheduled: ${runMgmtConformance}
         LMA testing scheduled: ${runLMATest}
@@ -361,6 +366,7 @@ def checkDeploymentTestSuite() {
         runBYOMatrixEnabled                  : runBYOMatrix,
         defaultBYOOs                         : defaultBYOOs,
         upgradeMgmtEnabled                   : upgradeMgmt,
+        autoUpgradeMgmtEnabled               : autoUpgradeMgmt,
         enableLMALoggingEnabled              : enableLMALogging,
         runUie2eEnabled                      : runUie2e,
         runMgmtConformanceEnabled            : runMgmtConformance,
@@ -637,6 +643,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'PROXY_CHILD_CLUSTER', value: triggers.proxyConfig['childProxy']),
         booleanParam(name: 'SEED_MACOS', value: triggers.useMacOsSeedNode),
         booleanParam(name: 'UPGRADE_MGMT_CLUSTER', value: triggers.upgradeMgmtEnabled),
+        booleanParam(name: 'AUTO_UPGRADE_MCC', value: triggers.autoUpgradeMgmtEnabled),
         booleanParam(name: 'ENABLE_LMA_LOGGING', value: triggers.enableLMALoggingEnabled),
         booleanParam(name: 'RUN_UI_E2E', value: triggers.runUie2eEnabled),
         booleanParam(name: 'RUN_MGMT_CFM', value: triggers.runMgmtConformanceEnabled),
