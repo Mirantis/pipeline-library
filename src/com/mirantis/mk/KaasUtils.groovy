@@ -54,6 +54,7 @@ def checkDeploymentTestSuite() {
     def mosDeployChild = env.DEPLOY_MOS_CHILD_CLUSTER ? env.DEPLOY_MOS_CHILD_CLUSTER.toBoolean() : false
     def mosUpgradeChild = env.UPGRADE_MOS_CHILD_CLUSTER ? env.UPGRADE_MOS_CHILD_CLUSTER.toBoolean() : false
     def customChildRelease = env.KAAS_CHILD_CLUSTER_RELEASE_NAME ? env.KAAS_CHILD_CLUSTER_RELEASE_NAME : ''
+    def mosTfDeploy = env.MOS_TF_DEPLOY ? env.MOS_TF_DEPLOY.toBoolean() : false
     def attachBYO = env.ATTACH_BYO ? env.ATTACH_BYO.toBoolean() : false
     def upgradeBYO = env.UPGRADE_BYO ? env.UPGRADE_BYO.toBoolean() : false
     def runBYOMatrix = env.RUN_BYO_MATRIX ? env.RUN_BYO_MATRIX.toBoolean() : false
@@ -310,6 +311,14 @@ def checkDeploymentTestSuite() {
         common.infoMsg("eu-demo was triggered, force switching CDN region to ${cdnRegion}")
         cdnConfig['mgmt']['openstack'] = cdnRegion
     }
+    if (commitMsg ==~ /(?s).*\[mos-tf-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mos-tf-demo.*/) {
+        openstackIMC = 'eu2'
+        MosTfDeploy = true
+        // use internal-eu because on internal-ci with eu cloud image pull takes much time
+        def cdnRegion = (proxyConfig['mgmtOffline'] == true) ? 'public-ci' : 'internal-eu'
+        common.infoMsg("eu2-demo was triggered, force switching CDN region to ${cdnRegion}")
+        cdnConfig['mgmt']['openstack'] = cdnRegion
+    }
 
     // calculate weight of current demo run to manage lockable resources
     def demoWeight = (deployChild) ? 2 : 1 // management = 1, child = 1
@@ -322,6 +331,7 @@ def checkDeploymentTestSuite() {
         Child cluster deployment scheduled: ${deployChild}
         Custom child cluster release: ${customChildRelease}
         Child cluster release upgrade scheduled: ${upgradeChild}
+        Mos-Tf deploy: ${mosTfDeploy}
         MOS child deploy scheduled: ${mosDeployChild}
         MOS child upgrade scheduled: ${mosUpgradeChild}
         Child conformance testing scheduled: ${runChildConformance}
@@ -360,6 +370,7 @@ def checkDeploymentTestSuite() {
         deployChildEnabled                   : deployChild,
         childDeployCustomRelease             : customChildRelease,
         upgradeChildEnabled                  : upgradeChild,
+        mosTfDeployEnabled                   : mosTfDeploy,
         mosDeployChildEnabled                : mosDeployChild,
         mosUpgradeChildEnabled               : mosUpgradeChild,
         runChildConformanceEnabled           : runChildConformance,
@@ -644,6 +655,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'OFFLINE_CHILD_CLUSTER', value: triggers.proxyConfig['childOffline']),
         booleanParam(name: 'PROXY_CHILD_CLUSTER', value: triggers.proxyConfig['childProxy']),
         booleanParam(name: 'SEED_MACOS', value: triggers.useMacOsSeedNode),
+        booleanParam(name: 'MOS_TF_DEPLOY', value: triggers.mosTfDeployEnabled),
         booleanParam(name: 'UPGRADE_MGMT_CLUSTER', value: triggers.upgradeMgmtEnabled),
         booleanParam(name: 'ENABLE_LMA_LOGGING', value: triggers.enableLMALoggingEnabled),
         booleanParam(name: 'RUN_UI_E2E', value: triggers.runUie2eEnabled),
