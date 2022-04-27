@@ -310,14 +310,11 @@ def checkDeploymentTestSuite() {
 
     if (commitMsg ==~ /(?s).*\[eu-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*eu-demo.*/) {
         openstackIMC = 'eu'
-        // use internal-eu because on internal-ci with eu cloud image pull takes much time
-        def cdnRegion = (proxyConfig['mgmtOffline'] == true) ? 'public-ci' : 'internal-eu'
-        common.infoMsg("eu-demo was triggered, force switching CDN region to ${cdnRegion}")
-        cdnConfig['mgmt']['openstack'] = cdnRegion
     }
     if (commitMsg ==~ /(?s).*\[mos-tf-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mos-tf-demo.*/) {
         openstackIMC = 'eu2'
-        MosTfDeploy = true
+    }
+    if (openstackIMC == 'eu' || openstackIMC == 'eu2') {
         // use internal-eu because on internal-ci with eu cloud image pull takes much time
         def cdnRegion = (proxyConfig['mgmtOffline'] == true) ? 'public-ci' : 'internal-eu'
         common.infoMsg("eu2-demo was triggered, force switching CDN region to ${cdnRegion}")
@@ -335,7 +332,6 @@ def checkDeploymentTestSuite() {
         Child cluster deployment scheduled: ${deployChild}
         Custom child cluster release: ${customChildRelease}
         Child cluster release upgrade scheduled: ${upgradeChild}
-        Mos-Tf deploy: ${mosTfDeploy}
         MOS child deploy scheduled: ${mosDeployChild}
         MOS child upgrade scheduled: ${mosUpgradeChild}
         Child conformance testing scheduled: ${runChildConformance}
@@ -375,7 +371,6 @@ def checkDeploymentTestSuite() {
         deployChildEnabled                   : deployChild,
         childDeployCustomRelease             : customChildRelease,
         upgradeChildEnabled                  : upgradeChild,
-        mosTfDeployEnabled                   : mosTfDeploy,
         mosDeployChildEnabled                : mosDeployChild,
         mosUpgradeChildEnabled               : mosUpgradeChild,
         runChildConformanceEnabled           : runChildConformance,
@@ -661,7 +656,6 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'OFFLINE_CHILD_CLUSTER', value: triggers.proxyConfig['childOffline']),
         booleanParam(name: 'PROXY_CHILD_CLUSTER', value: triggers.proxyConfig['childProxy']),
         booleanParam(name: 'SEED_MACOS', value: triggers.useMacOsSeedNode),
-        booleanParam(name: 'MOS_TF_DEPLOY', value: triggers.mosTfDeployEnabled),
         booleanParam(name: 'UPGRADE_MGMT_CLUSTER', value: triggers.upgradeMgmtEnabled),
         booleanParam(name: 'ENABLE_LMA_LOGGING', value: triggers.enableLMALoggingEnabled),
         booleanParam(name: 'RUN_UI_E2E', value: triggers.runUie2eEnabled),
