@@ -62,6 +62,7 @@ def checkDeploymentTestSuite() {
     def upgradeMgmt = env.UPGRADE_MGMT_CLUSTER ? env.UPGRADE_MGMT_CLUSTER.toBoolean() : false
     def enableLMALogging = env.ENABLE_LMA_LOGGING ? env.ENABLE_LMA_LOGGING.toBoolean(): false
     def runUie2e = env.RUN_UI_E2E ? env.RUN_UI_E2E.toBoolean() : false
+    def runUie2eNew = env.RUN_UI_E2E_NEW ? env.RUN_UI_E2E_NEW.toBoolean() : false
     def runMgmtConformance = env.RUN_MGMT_CFM ? env.RUN_MGMT_CFM.toBoolean() : false
     def runLMATest = env.RUN_LMA_TEST ? env.RUN_LMA_TEST.toBoolean() : false
     def runMgmtUserControllerTest = env.RUN_MGMT_USER_CONTROLLER_TEST ? env.RUN_MGMT_USER_CONTROLLER_TEST.toBoolean() : false
@@ -155,6 +156,9 @@ def checkDeploymentTestSuite() {
     }
     if (commitMsg ==~ /(?s).*\[ui-e2e\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-e2e.*/) {
         runUie2e = true
+    }
+    if (commitMsg ==~ /(?s).*\[ui-e2e-new\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-e2e-new.*/) {
+        runUie2eNew = true
     }
     if (commitMsg ==~ /(?s).*\[mgmt-cfm\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-cfm.*/) {
         runMgmtConformance = true
@@ -345,6 +349,7 @@ def checkDeploymentTestSuite() {
         LMA testing scheduled: ${runLMATest}
         Mgmt user controller testing scheduled: ${runMgmtUserControllerTest}
         Mgmt UI e2e testing scheduled: ${runUie2e}
+        Mgmt UI e2e playwrite testing scheduled: ${runUie2eNew}
         Maintenance test: ${runMaintenanceTest}
         Child proxy test: ${runProxyChildTest}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
@@ -381,6 +386,7 @@ def checkDeploymentTestSuite() {
         upgradeMgmtEnabled                   : upgradeMgmt,
         enableLMALoggingEnabled              : enableLMALogging,
         runUie2eEnabled                      : runUie2e,
+        runUie2eNewEnabled                   : runUie2eNew,
         runMgmtConformanceEnabled            : runMgmtConformance,
         runMaintenanceTestEnable             : runMaintenanceTest,
         runLMATestEnabled                    : runLMATest,
