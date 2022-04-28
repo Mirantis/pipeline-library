@@ -97,6 +97,7 @@ def checkDeploymentTestSuite() {
     def enableBMDemo = true
     def enableArtifactsBuild = true
     def openstackIMC = env.OPENSTACK_CLOUD_LOCATION ? env.OPENSTACK_CLOUD_LOCATION : 'us'
+    def enableVsphereUbuntu = env.VSPHERE_DEPLOY_UBUNTU ? env.VSPHERE_DEPLOY_UBUNTU.toBoolean() : false
 
     def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
     if (commitMsg ==~ /(?s).*\[mgmt-proxy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-proxy.*/) {
@@ -242,6 +243,10 @@ def checkDeploymentTestSuite() {
         enableVsphereDemo = false
         common.errorMsg('vSphere demo deployment will be aborted, VF -1 will be set')
     }
+    if (commitMsg ==~ /(?s).*\[vsphere-ubuntu\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*vsphere-ubuntu\.*/) {
+        enableVsphereUbuntu = true
+        common.warningMsg('Ubuntu will be used to deploy vsphere machines')
+    }
 
     if (commitMsg ==~ /(?s).*\[disable-artifacts-build\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-artifacts-build\.*/) {
         enableArtifactsBuild = false
@@ -362,6 +367,7 @@ def checkDeploymentTestSuite() {
         VSPHERE provider deployment scheduled: ${enableVsphereDemo}
         OS provider deployment scheduled: ${enableOSDemo}
         BM provider deployment scheduled: ${enableBMDemo}
+        Ubuntu on vSphere scheduled: ${enableVsphereUbuntu}
         Artifacts build scheduled: ${enableArtifactsBuild}
         Multiregional configuration: ${multiregionalMappings}
         Service binaries fetching scheduled: ${fetchServiceBinaries}
@@ -404,6 +410,7 @@ def checkDeploymentTestSuite() {
         vsphereOnDemandDemoEnabled           : enableVsphereDemo, // TODO: remove after MCC 2.7 is out
         bmDemoEnabled                        : enableBMDemo,
         osDemoEnabled                        : enableOSDemo,
+        vsphereUbuntuEnabled                 : enableVsphereUbuntu,
         artifactsBuildEnabled                : enableArtifactsBuild,
         multiregionalConfiguration           : multiregionalMappings,
         demoWeight                           : demoWeight]
