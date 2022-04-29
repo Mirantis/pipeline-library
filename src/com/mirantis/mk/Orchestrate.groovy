@@ -752,7 +752,7 @@ def installCicd(master, extra_tgt = '') {
     salt.enforceStateWithTest([saltId: master, target: "I@docker:swarm:role:master and I@jenkins:client ${dockerClientExclude} ${extra_tgt}", state: 'docker.client', retries: 2])
 
     // API timeout in minutes
-    def wait_timeout = 10
+    def wait_timeout = 30
 
     // Gerrit
     def gerrit_master_url = salt.getPillar(master, gerrit_compound, '_param:gerrit_master_url')
