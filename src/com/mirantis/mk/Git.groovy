@@ -511,31 +511,39 @@ def genCommitMessage(repo, message, changeId = '', changeIdSeed = ''){
  *   - changeAuthorEmail  Author's email of the change
  *   - changeAuthorName   Author's name of the change
  *   - forceUpdate        Whether to update change if no diff between local state and remote
- */  
+ *   - gerritPatch        Maps with patch information (result of gerrit.findGerritChange)
+ *   - amend              Do amend current patch
+ */
 def updateChangeRequest(Map params) {
     def gerrit = new com.mirantis.mk.Gerrit()
     def common = new com.mirantis.mk.Common()
 
     def commitMessage
-    def auth = params['gerritAuth']
     def creds = params['credentialsId']
     def repo = params['repo']
     def comment = params['comment']
     def change_id_seed = params.get('change_id_seed', JOB_NAME)
     def branch = params['branch']
     def topic = params['topic']
-    def project = params['project']
-    def status = params.get('status', 'open')
     def changeAuthorEmail = params['changeAuthorEmail']
     def changeAuthorName = params['changeAuthorName']
     def forceUpdate = params.get('forceUpdate', true)
-
-    def changeParams = ['owner': auth['USER'], 'status': status, 'project': project, 'branch': branch, 'topic': topic]
-    def gerritChange = gerrit.findGerritChange(creds, auth, changeParams, '--current-patch-set')
+    def amend = params.get('amend', false)
+    def jsonChange = params.get('gerritPatch', [:])
     def changeId = params.get('changeId', '')
     def commit
-    if (gerritChange) {
-        def jsonChange = readJSON text: gerritChange
+
+    if (!jsonChange) {
+        def auth = params['gerritAuth']
+        def status = params.get('status', 'open')
+        def project = params['project']
+        def changeParams = ['owner': auth['USER'], 'status': status, 'project': project, 'branch': branch, 'topic': topic]
+        def gerritChange = gerrit.findGerritChange(creds, auth, changeParams, '--current-patch-set')
+        if (gerritChange) {
+            jsonChange = readJSON text: gerritChange
+        }
+    }
+    if (jsonChange) {
         changeId = jsonChange['id']
         if(!forceUpdate){
             def ref = jsonChange['currentPatchSet']['ref']
@@ -552,9 +560,53 @@ def updateChangeRequest(Map params) {
         }
     }
     commitMessage = genCommitMessage(repo, comment, changeId, change_id_seed)
-    commitGitChanges(repo, commitMessage, changeAuthorEmail, changeAuthorName, false, false)
+    commitGitChanges(repo, commitMessage, changeAuthorEmail, changeAuthorName, false, amend)
     dir(repo){
         commit = getGitCommit()
     }
     pushForReview(repo, creds, commit, branch, topic)
+}
+
+/**
+ * Create new working branch for repo from patch if it exists
+ *
+ * @param params   Map of parameters to customize commit
+ *   - gerritAuth         A map containing information about Gerrit. Should include HOST, PORT and USER
+ *   - credentialsId      Jenkins credentials id for gerrit
+ *   - repo               Local directory with repository
+ *   - branch             Name of the branch for uploading
+ *   - topic              Topic of the change
+ *   - project            Gerrit project to search in for gerrit change request
+ *   - status             Change request's status to search for
+ */
+def createGitBranchFromRef(Map params) {
+    def gerrit = new com.mirantis.mk.Gerrit()
+    def common = new com.mirantis.mk.Common()
+
+    def auth = params['gerritAuth']
+    def creds = params['credentialsId']
+    def repo = params['repo']
+    def branch = params['branch']
+    def topic = params['topic']
+    def project = params['project']
+    def status = params.get('status', 'open')
+    def localBranch = "branch_${topic}"
+    def jsonChange = [:]
+
+    def changeParams = ['owner': auth['USER'], 'status': status, 'project': project, 'branch': branch, 'topic': topic]
+    def gerritChange = gerrit.findGerritChange(creds, auth, changeParams, '--current-patch-set')
+    if (gerritChange) {
+        jsonChange = readJSON text: gerritChange
+        def ref = jsonChange['currentPatchSet']['ref']
+        changeId = jsonChange['id']
+        dir(repo){
+            sshagent (credentials: [creds]){
+                common.shCmdStatus("git fetch origin ${ref} && git checkout -b ${localBranch} FETCH_HEAD")
+            }
+        }
+    }
+    else {
+        createGitBranch(repo, localBranch)
+    }
+    return jsonChange
 }
