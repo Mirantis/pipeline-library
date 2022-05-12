@@ -34,7 +34,6 @@ def checkoutGitRepository(path, url, branch, credentialsId = null, poll = true, 
             submoduleCfg: [],
             userRemoteConfigs: [[url: url, credentialsId: credentialsId, refspec: reference]]]
         )
-        sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
     }
 }
 
