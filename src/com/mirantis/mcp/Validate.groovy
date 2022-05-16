@@ -59,7 +59,7 @@ def runContainer(Map params){
                       "/root/test/": "/root/tempest/",
                       "/etc/hosts": "/etc/hosts"]
     params.mounts = default_mounts + params.mounts
-    if ( salt.cmdRun(params.master, params.target, "docker ps -f name=^${params.name}\$ -q", false, null, false)['return'][0].values()[0] ) {
+    if ( salt.cmdRun(params.master, params.target, "docker ps -a -f name=^${params.name}\$ -q", false, null, false)['return'][0].values()[0] ) {
         salt.cmdRun(params.master, params.target, "docker rm -f ${params.name}")
     }
     if (params.env_var.size() > 0) {
@@ -925,7 +925,7 @@ def openstack_cleanup(master, target, container_name="cvp", script_path="/home/r
  */
 def runCleanup(master, target, name='cvp') {
     def salt = new com.mirantis.mk.Salt()
-    if ( salt.cmdRun(master, target, "docker ps -f name=^${name}\$ -q", false, null, false)['return'][0].values()[0] ) {
+    if ( salt.cmdRun(master, target, "docker ps -a -f name=^${name}\$ -q", false, null, false)['return'][0].values()[0] ) {
         salt.cmdRun(master, target, "docker rm -f ${name}")
     }
 }
