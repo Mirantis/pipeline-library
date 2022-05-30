@@ -775,12 +775,27 @@ def generateLockResources(callBackDemo, triggers) {
             if (triggers.runBYOMatrixEnabled) { lockLabels['aws_core_ci_queue'] += 6 }
 
             // Define netMap for Vsphere region
-            if (runMultiregion && multiregionConfig.managementLocation == 'aws' &&
-                multiregionConfig.regionLocation == 'vsphere') {
-                if (deployChild) {
-                    addToProviderNetMap(netMap, 'vsphere', 'regional-child')
+            if (runMultiregion && multiregionConfig.managementLocation == 'aws') {
+                if (multiregionConfig.regionLocation == 'vsphere') {
+                    if (deployChild) {
+                        addToProviderNetMap(netMap, 'vsphere', 'regional-child')
+                    }
+                    addToProviderNetMap(netMap, 'vsphere', 'region')
                 }
-                addToProviderNetMap(netMap, 'vsphere', 'region')
+
+                if (multiregionConfig.regionLocation == 'azure') {
+                    lockLabels['azure_core_ci_queue'] = 1
+                    if (deployChild) {
+                        lockLabels['azure_core_ci_queue'] += 1
+                    }
+                }
+            }
+            if (triggers.azureOnAwsDemoEnabled) {
+                lockLabels['azure_core_ci_queue'] = 1
+            }
+
+            if (triggers.equinixOnAwsDemoEnabled) {
+                lockLabels['equinix_core_ci_queue'] = 1
             }
             break
         case 'vsphere':
@@ -796,8 +811,25 @@ def generateLockResources(callBackDemo, triggers) {
                 addToProviderNetMap(netMap, 'vsphere', 'region')
             }
             break
+        case 'azure':
+            lockLabels['azure_core_ci_queue'] = triggers.demoWeight
+            if (runMultiregion && multiregionConfig.managementLocation == 'azure') {
+                if (multiregionConfig.regionLocation == 'aws') {
+                    lockLabels['aws_core_ci_queue'] = 1
+                    if (deployChild) {
+                        lockLabels['aws_core_ci_queue'] += 1
+                    }
+                }
+
+                if (multiregionConfig.regionLocation == 'equinix') {
+                    lockLabels['equinix_core_ci_queue'] = 1
+                    if (deployChild) {
+                        lockLabels['equinix_core_ci_queue'] +=1
+                    }
+                }
+            }
         default:
-            error('Supposed to be called from aws or vsphere demos only')
+            error('Supposed to be called from aws, azure or vsphere demos only')
     }
 
     // Checking gerrit triggers and manage lock label quantity and network types in case of Offline deployment
