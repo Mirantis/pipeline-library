@@ -1,5 +1,7 @@
 package com.mirantis.mk
 
+import static groovy.json.JsonOutput.toJson
+
 /**
  *
  * KaaS Component Testing Utilities
@@ -985,4 +987,44 @@ Map getJobParamsFromCommitMsg(String jobName) {
         jobParams.putAll(jobsParams.getOrDefault(jobName, [:]))
     }
     return jobParams
+}
+
+/** Getting test scheme from text, which should be
+Imput example:
+text="""
+ DATA
+
+ kaas_bm_test_schemas:
+  KAAS_RELEASES_REFSPEC: ''
+  KEY: VAL
+
+ DATA
+ """
+
+ Call: parseTextForTestSchemas(['text' : text,'keyLine' : 'kaas_bm_test_schemas'])
+
+ Return:
+ ['KAAS_RELEASES_REFSPEC': '', 'KEY' : 'VAL']
+ **/
+def parseTextForTestSchemas(Map opts) {
+    String text = opts.get('text', '')
+    String keyLine = opts.getOrDefault('keyLine', '')
+    Map testScheme = [:]
+    if (!text || !keyLine) {
+        return [:]
+    }
+    if (text =~ /\n$keyLine\n.*/) {
+        def common = new com.mirantis.mk.Common()
+        try {
+            String regExp = '\\n' + keyLine + '\\n'
+            // regexep  block must be followed by empty line
+            testScheme = readYaml text: "${text.split(regExp)[1].split('\n\n')[0]}"
+            common.infoMsg("parseTextForTestSchemas result:\n" + testScheme)
+            common.mergeEnv(env, toJson(testScheme))
+        }
+        catch (Exception e) {
+            common.errorMsg("There is an error occured during parseTextForTestSchemas execution:\n${e}")
+            throw e
+        }
+    }
 }
