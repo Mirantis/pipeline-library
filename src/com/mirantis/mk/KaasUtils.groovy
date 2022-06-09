@@ -72,6 +72,7 @@ def checkDeploymentTestSuite() {
     def fetchServiceBinaries = env.FETCH_BINARIES_FROM_UPSTREAM ? env.FETCH_BINARIES_FROM_UPSTREAM.toBoolean() : false
     def equinixMetalV2ChildDiffMetro = env.EQUINIXMETALV2_CHILD_DIFF_METRO ? env.EQUINIXMETALV2_CHILD_DIFF_METRO.toBoolean() : false
     def runMaintenanceTest = env.RUN_MAINTENANCE_TEST ? env.RUN_MAINTENANCE_TEST.toBoolean() : false
+    def runContainerregistryTest = env.RUN_CONTAINER_REGISTRY_TEST ? env.RUN_CONTAINER_REGISTRY_TEST.toBoolean() : false
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
     def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
         enabled: false,
@@ -187,6 +188,9 @@ def checkDeploymentTestSuite() {
     }
     if (commitMsg ==~ /(?s).*\[maintenance-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*maintenance-test.*/) {
         runMaintenanceTest = true
+    }
+    if (commitMsg ==~ /(?s).*\[container-registry-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*container-registry-test.*/) {
+        runContainerregistryTest = true
     }
     if (commitMsg ==~ /(?s).*\[child-offline\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-offline.*/) {
         proxyConfig['childOffline'] = true
@@ -357,6 +361,7 @@ def checkDeploymentTestSuite() {
         Mgmt UI e2e testing scheduled: ${runUie2e}
         Mgmt UI e2e playwrite testing scheduled: ${runUie2eNew}
         Maintenance test: ${runMaintenanceTest}
+        Container Registry test: ${runContainerregistryTest}
         Child proxy test: ${runProxyChildTest}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         Equinix provider deployment scheduled: ${equinixOnDemandDemo}
@@ -395,7 +400,8 @@ def checkDeploymentTestSuite() {
         runUie2eEnabled                      : runUie2e,
         runUie2eNewEnabled                   : runUie2eNew,
         runMgmtConformanceEnabled            : runMgmtConformance,
-        runMaintenanceTestEnable             : runMaintenanceTest,
+        runMaintenanceTestEnabled            : runMaintenanceTest,
+        runContainerregistryTestEnabled      :runContainerregistryTest,
         runLMATestEnabled                    : runLMATest,
         runMgmtUserControllerTestEnabled     : runMgmtUserControllerTest,
         runProxyChildTestEnabled             : runProxyChildTest,
@@ -674,7 +680,8 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'ENABLE_LMA_LOGGING', value: triggers.enableLMALoggingEnabled),
         booleanParam(name: 'RUN_UI_E2E', value: triggers.runUie2eEnabled),
         booleanParam(name: 'RUN_MGMT_CFM', value: triggers.runMgmtConformanceEnabled),
-        booleanParam(name: 'RUN_MAINTENANCE_TEST', value: triggers.runMaintenanceTestEnable),
+        booleanParam(name: 'RUN_MAINTENANCE_TEST', value: triggers.runMaintenanceTestEnabled),
+        booleanParam(name: 'RUN_CONTAINER_REGISTRY_TEST', value: triggers.runContainerregistryTestEnabled),
         booleanParam(name: 'RUN_LMA_TEST', value: triggers.runLMATestEnabled),
         booleanParam(name: 'RUN_MGMT_USER_CONTROLLER_TEST', value: triggers.runMgmtUserControllerTestEnabled),
         booleanParam(name: 'DEPLOY_CHILD_CLUSTER', value: triggers.deployChildEnabled),
