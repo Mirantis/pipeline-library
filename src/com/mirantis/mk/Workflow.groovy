@@ -319,10 +319,12 @@ def runStep(global_variables, step, Boolean propagate = false, artifactoryBaseUr
             try {
                 if (wfPauseStepSlackReportChannel) {
                     def slack = new com.mirantis.mcp.SlackNotification()
-                    slack.jobResultNotification('wf_pause_step_before_run',
-                      wfPauseStepSlackReportChannel,
-                      env.JOB_NAME, null,
-                      env.BUILD_URL, 'slack_webhook_url')
+                    wfPauseStepSlackReportChannel.split(',').each {
+                        slack.jobResultNotification('wf_pause_step_before_run',
+                                                    it.toString(),
+                                                    env.JOB_NAME, null,
+                                                    env.BUILD_URL, 'slack_webhook_url')
+                    }
                 }
                 timeout(time: wfPauseStepTimeout, unit: 'MINUTES') {
                     input("Workflow pause requested before run: ${jobName}/${jobDescription}\n" +
