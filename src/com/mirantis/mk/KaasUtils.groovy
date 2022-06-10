@@ -1007,11 +1007,11 @@ text="""
  ['KAAS_RELEASES_REFSPEC': '', 'KEY' : 'VAL']
  **/
 def parseTextForTestSchemas(Map opts) {
-    String text = opts.get('text', '')
+    String text = opts.getOrDefault('text', '')
     String keyLine = opts.getOrDefault('keyLine', '')
     Map testScheme = [:]
     if (!text || !keyLine) {
-        return [:]
+        return testScheme
     }
     if (text =~ /\n$keyLine\n.*/) {
         def common = new com.mirantis.mk.Common()
@@ -1027,4 +1027,5 @@ def parseTextForTestSchemas(Map opts) {
             throw e
         }
     }
+    return testScheme
 }
