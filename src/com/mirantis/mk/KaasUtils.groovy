@@ -102,6 +102,7 @@ def checkDeploymentTestSuite() {
     def enableArtifactsBuild = true
     def openstackIMC = env.OPENSTACK_CLOUD_LOCATION ? env.OPENSTACK_CLOUD_LOCATION : 'us'
     def enableVsphereUbuntu = env.VSPHERE_DEPLOY_UBUNTU ? env.VSPHERE_DEPLOY_UBUNTU.toBoolean() : false
+    def childOsBootFromVolume = env.OPENSTACK_BOOT_FROM_VOLUME ? env.OPENSTACK_BOOT_FROM_VOLUME.toBoolean() : false
 
     def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
     if (commitMsg ==~ /(?s).*\[mgmt-proxy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-proxy.*/) {
@@ -263,6 +264,11 @@ def checkDeploymentTestSuite() {
         common.errorMsg('artifacts build will be aborted, VF -1 will be set')
     }
 
+    if (commitMsg ==~ /(?s).*\[child-os-boot-from-volume\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-os-boot-from-volume\.*/) {
+        childOsBootFromVolume = true
+        common.warningMsg('OS will be booted from Ceph volumes')
+    }
+
     // TODO (vnaumov) remove below condition after moving all releases to UCP
     def ucpChildMatches = (commitMsg =~ /(\[child-ucp\s*ucp-.*?\])/)
     if (ucpChildMatches.size() > 0) {
@@ -377,6 +383,7 @@ def checkDeploymentTestSuite() {
         BM provider deployment scheduled: ${enableBMDemo}
         Ubuntu on vSphere scheduled: ${enableVsphereUbuntu}
         Artifacts build scheduled: ${enableArtifactsBuild}
+        Boot OS child from Ceph volumes: ${childOsBootFromVolume}
         Multiregional configuration: ${multiregionalMappings}
         Service binaries fetching scheduled: ${fetchServiceBinaries}
         Current weight of the demo run: ${demoWeight} (Used to manage lockable resources)
@@ -421,6 +428,7 @@ def checkDeploymentTestSuite() {
         osDemoEnabled                        : enableOSDemo,
         vsphereUbuntuEnabled                 : enableVsphereUbuntu,
         artifactsBuildEnabled                : enableArtifactsBuild,
+        childOsBootFromVolume                : childOsBootFromVolume,
         multiregionalConfiguration           : multiregionalMappings,
         demoWeight                           : demoWeight]
 }
