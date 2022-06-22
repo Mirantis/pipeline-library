@@ -200,3 +200,21 @@ def gerritPatchsetCheckout(LinkedHashMap config) {
     ]
   )
 }
+
+/**
+ * Returns array of changed file names since last commit
+ * using optionally specified regexp filter.
+ *
+ * @param filter String, apply grep regexp
+ *              '.*' (Default): returns all files
+ *              regexp       : returns regexp-ed files
+ */
+def getChangedFiles(String filter = '.*') {
+  def res = []
+  try {
+    res = sh(script: "git diff HEAD~1 --name-only | grep -E '${filter}'", returnStdout: true).split().collect{it as String}
+  } catch (Exception e) {
+      println "Exception: '$e', probably filter '$filter' finds no files"
+  }
+  return res
+}
