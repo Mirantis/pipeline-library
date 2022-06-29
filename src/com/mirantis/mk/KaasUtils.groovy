@@ -795,6 +795,7 @@ def generateLockResources(callBackDemo, triggers) {
         vsphere_offline_networking_core_ci: 0,
     ]
     def deployChild = triggers.deployChildEnabled
+    def testUiVsphere = triggers.runUie2eEnabled
     def multiregionConfig = triggers.multiregionalConfiguration
     def runMultiregion = multiregionConfig.enabled
 
@@ -831,7 +832,7 @@ def generateLockResources(callBackDemo, triggers) {
             break
         case 'vsphere':
             addToProviderNetMap(netMap, 'vsphere', 'mgmt')
-            if (deployChild) {
+            if (deployChild || testUiVsphere) {
                 addToProviderNetMap(netMap, 'vsphere', 'child')
             }
             if (runMultiregion && multiregionConfig.managementLocation == 'vsphere' &&
