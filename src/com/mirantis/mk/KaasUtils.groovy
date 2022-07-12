@@ -106,6 +106,7 @@ def checkDeploymentTestSuite() {
     def openstackIMC = env.OPENSTACK_CLOUD_LOCATION ? env.OPENSTACK_CLOUD_LOCATION : 'us'
     def enableVsphereUbuntu = env.VSPHERE_DEPLOY_UBUNTU ? env.VSPHERE_DEPLOY_UBUNTU.toBoolean() : false
     def childOsBootFromVolume = env.OPENSTACK_BOOT_FROM_VOLUME ? env.OPENSTACK_BOOT_FROM_VOLUME.toBoolean() : false
+    def bootstrapV2Scenario = env.BOOTSTRAP_V2_ENABLED ? env.BOOTSTRAP_V2_ENABLED.toBoolean() : false
 
     def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
     if (commitMsg ==~ /(?s).*\[mgmt-proxy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-proxy.*/) {
@@ -357,6 +358,10 @@ def checkDeploymentTestSuite() {
     // calculate weight of current demo run to manage lockable resources
     def demoWeight = (deployChild) ? 2 : 1 // management = 1, child = 1
 
+    if (commitMsg ==~ /(?s).*\[bootstrapv2-scenario\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*bootstrapv2-scenario\.*/) {
+        bootstrapV2Scenario = true
+    }
+
     common.infoMsg("""
         OpenStack Cloud location: ${openstackIMC}
         CDN deployment configuration: ${cdnConfig}
@@ -402,6 +407,7 @@ def checkDeploymentTestSuite() {
         Multiregional configuration: ${multiregionalMappings}
         Service binaries fetching scheduled: ${fetchServiceBinaries}
         Current weight of the demo run: ${demoWeight} (Used to manage lockable resources)
+        Bootstrap v2 scenario enabled: ${bootstrapV2Scenario}
         Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [
         osCloudLocation                      : openstackIMC,
@@ -448,7 +454,8 @@ def checkDeploymentTestSuite() {
         artifactsBuildEnabled                : enableArtifactsBuild,
         childOsBootFromVolume                : childOsBootFromVolume,
         multiregionalConfiguration           : multiregionalMappings,
-        demoWeight                           : demoWeight]
+        demoWeight                           : demoWeight,
+        bootstrapV2Scenario                  : bootstrapV2Scenario]
 }
 
 /**
