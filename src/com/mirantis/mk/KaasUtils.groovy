@@ -362,6 +362,14 @@ def checkDeploymentTestSuite() {
         bootstrapV2Scenario = true
     }
 
+    // parse equinixmetalv2-metro trigger
+    def equinixMetalV2Metro = env.EQUINIX_MGMT_METRO ? env.EQUINIX_MGMT_METRO : ''
+    def equinixMetalV2MetroMatcher = (commitMsg =~ /\[equinixmetalv2-metro(\s+.*)?\]/)
+    if (equinixMetalV2OnDemandDemo && equinixMetalV2MetroMatcher.size() > 0) {
+        equinixMetalV2Metro = equinixMetalV2MetroMatcher[0][0].trim()
+        common.infoMsg("Forced Equnix mgmt deployment using custom metro ${equinixMetalV2Metro}")
+    }
+
     common.infoMsg("""
         OpenStack Cloud location: ${openstackIMC}
         CDN deployment configuration: ${cdnConfig}
@@ -395,6 +403,7 @@ def checkDeploymentTestSuite() {
         Equinix provider deployment scheduled: ${equinixOnDemandDemo}
         EquinixmetalV2 provider deployment scheduled: ${equinixMetalV2OnDemandDemo}
         EquinixmetalV2 child deploy in a separate metro scheduled: ${equinixMetalV2ChildDiffMetro}
+        EquinixmetalV2 mgmt will be deployed on the ${equinixMetalV2Metro} metro
         Equinix@AWS child cluster deployment scheduled: ${equinixOnAwsDemo}
         Azure provider deployment scheduled: ${azureOnDemandDemo}
         Azure@AWS child cluster deployment scheduled: ${azureOnAwsDemo}
@@ -455,14 +464,15 @@ def checkDeploymentTestSuite() {
         childOsBootFromVolume                : childOsBootFromVolume,
         multiregionalConfiguration           : multiregionalMappings,
         demoWeight                           : demoWeight,
-        bootstrapV2Scenario                  : bootstrapV2Scenario]
+        bootstrapV2Scenario                  : bootstrapV2Scenario,
+        equinixMetalV2Metro                  : equinixMetalV2Metro]
 }
 
 /**
  * Determine management and regional setup for demo workflow scenario
  *
  *
- * @param:        keyword (string) string , represents keyworkd trigger, specified in gerrit commit body, like `[multiregion aws,os]`
+ * @param:        keyword (string) string , represents keyword trigger, specified in gerrit commit body, like `[multiregion aws,os]`
                                    or Jenkins environment string variable in form like 'aws,os'
  * @return        (map)[
                           enabled: (bool),
