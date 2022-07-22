@@ -366,7 +366,7 @@ def checkDeploymentTestSuite() {
     def equinixMetalV2Metro = env.EQUINIX_MGMT_METRO ? env.EQUINIX_MGMT_METRO : ''
     def equinixMetalV2MetroMatcher = (commitMsg =~ /\[equinixmetalv2-metro(\s+.*)?\]/)
     if (equinixMetalV2OnDemandDemo && equinixMetalV2MetroMatcher.size() > 0) {
-        equinixMetalV2Metro = equinixMetalV2MetroMatcher[0][0].trim()
+        equinixMetalV2Metro = equinixMetalV2MetroMatcher[0][1].trim().toLowerCase()
         common.infoMsg("Forced Equnix mgmt deployment using custom metro ${equinixMetalV2Metro}")
     }
 
