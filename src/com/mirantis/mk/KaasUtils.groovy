@@ -107,6 +107,7 @@ def checkDeploymentTestSuite() {
     def enableVsphereUbuntu = env.VSPHERE_DEPLOY_UBUNTU ? env.VSPHERE_DEPLOY_UBUNTU.toBoolean() : false
     def childOsBootFromVolume = env.OPENSTACK_BOOT_FROM_VOLUME ? env.OPENSTACK_BOOT_FROM_VOLUME.toBoolean() : false
     def bootstrapV2Scenario = env.BOOTSTRAP_V2_ENABLED ? env.BOOTSTRAP_V2_ENABLED.toBoolean() : false
+    def equinixMetalV2Metro = env.EQUINIX_MGMT_METRO ? env.EQUINIX_MGMT_METRO : ''
 
     def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
     if (commitMsg ==~ /(?s).*\[mgmt-proxy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-proxy.*/) {
@@ -144,7 +145,18 @@ def checkDeploymentTestSuite() {
         attachBYO = true
         upgradeBYO = true
     }
-
+    if (commitMsg ==~ /(?s).*\[ui-test-on-all-providers\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-test-on-all-providers.*/) {
+        enableVsphereDemo = true
+        enableOSDemo = true
+        awsOnDemandDemo = true
+        azureOnDemandDemo = true
+        equinixOnDemandDemo = true
+        equinixMetalV2OnDemandDemo = true
+        runUie2e = true
+        equinixMetalV2Metro = 'sv'
+        // Edit after fix PRODX-3961
+        enableBMDemo = false
+    }
     def byoDeployMatches = (commitMsg =~ /(\[run-byo-matrix\s*(ubuntu|centos)\])/)
     if (commitMsg ==~ /(?s).*\[run-byo-matrix\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*run-byo-matrix\.*/ || byoDeployMatches.size() > 0) {
         runBYOMatrix = true
@@ -363,7 +375,6 @@ def checkDeploymentTestSuite() {
     }
 
     // parse equinixmetalv2-metro trigger
-    def equinixMetalV2Metro = env.EQUINIX_MGMT_METRO ? env.EQUINIX_MGMT_METRO : ''
     def equinixMetalV2MetroMatcher = (commitMsg =~ /\[equinixmetalv2-metro(\s+.*)?\]/)
     if (equinixMetalV2OnDemandDemo && equinixMetalV2MetroMatcher.size() > 0) {
         equinixMetalV2Metro = equinixMetalV2MetroMatcher[0][1].trim().toLowerCase()
