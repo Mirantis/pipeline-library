@@ -174,3 +174,29 @@ def check_36461_2 (salt, venvPepper, String cluster_name, Boolean raise_exc) {
     }
     return waStatus
 }
+
+def check_36960 (salt, venvPepper, String cluster_name, Boolean raise_exc) {
+    if (!salt.testTarget(venvPepper, 'I@redis:server')) {
+        return
+    }
+    def redisVersionPillar = salt.getPillar(venvPepper, 'I@redis:server', 'redis:server:version').get("return")[0].values()[0]
+
+    List redisVersion = redisVersionPillar.toString().tokenize('.')
+
+    def majorVersion = redisVersion[0].toInteger()
+    def minorVersion = redisVersion[1].toInteger()
+
+    def waStatus = [prodId: "PROD-36960", isFixed: "", waInfo: ""]
+
+    if (majorVersion >= 5 && minorVersion >= 0) {
+        waStatus.isFixed = 'Nothing to do. Redis-server version pillar is set to required version (5.0+).'
+        return waStatus
+    }
+    waStatus.isFixed = "Fix should be applied manually"
+    waStatus.waInfo = """To apply latest MU to openstack control plane you MUST set correct version for redis-server package. \n
+Please set pillar "redis:server:version" to "5.0" to openstack/telemetry.yml and refresh pillars."""
+    if (raise_exc) {
+        error('Option is not set to required value.\n' + waStatus.waInfo)
+    }
+    return waStatus
+}
