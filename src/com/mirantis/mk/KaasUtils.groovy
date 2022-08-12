@@ -1094,3 +1094,36 @@ def parseTextForTestSchemas(Map opts) {
     }
     return testScheme
 }
+
+
+/**
+* getEquinixMetrosWithCapacity returns list of Equinix metros using specified
+* instance type (nodeType) and desired count of instances (nodeCount) in a metro.
+* Function downloads metal CLI from the
+* https://github.com/equinix/metal-cli/releases/download/v0.9.0/metal-linux-amd64
+* Empty list is returned in case of errors.
+*
+* @param:        nodeCount (int)      Desired count of instances
+* @param:        nodeType  (string)   Instance type
+* @return                  ([]string) List of selected metros
+*
+**/
+def getEquinixMetrosWithCapacity(nodeCount = 10, nodeType = 'c3.small.x86', version = '0.9.0') {
+    def common = new com.mirantis.mk.Common()
+    def metalUrl = "https://artifactory.mcp.mirantis.net:443/artifactory/binary-dev-kaas-local/core/bin/mirror/metal-${version}-linux"
+    def metros = []
+    def out = ''
+    try {
+        sh "curl -o metal -# ${metalUrl} && chmod +x metal"
+        withCredentials([string(credentialsId: env.KAAS_EQUINIX_API_TOKEN, variable: 'KAAS_EQUINIX_API_TOKEN')]) {
+            sh 'echo "project-id: ${KAAS_EQUINIX_PROJECT_ID}\ntoken: ${KAAS_EQUINIX_API_TOKEN}" >metal.yaml'
+            out = sh(script: "./metal --config metal.yaml capacity get -m -P ${nodeType}|awk '/${nodeType}/ {print \$2}'|paste -s -d,|xargs ./metal --config metal.yaml capacity check -P ${nodeType} -q ${nodeCount} -m|grep true|awk '{print \$2}'|paste -s -d,", returnStdout: true).trim()
+            sh 'rm metal.yaml'
+        }
+        metros = out.tokenize(',')
+    } catch (Exception e) {
+        common.errorMsg "Exception: '${e}'"
+        return []
+    }
+    return metros
+}
