@@ -414,7 +414,7 @@ def checkDeploymentTestSuite() {
         Equinix provider deployment scheduled: ${equinixOnDemandDemo}
         EquinixmetalV2 provider deployment scheduled: ${equinixMetalV2OnDemandDemo}
         EquinixmetalV2 child deploy in a separate metro scheduled: ${equinixMetalV2ChildDiffMetro}
-        EquinixmetalV2 mgmt will be deployed on the ${equinixMetalV2Metro} metro
+        EquinixmetalV2 mgmt will be deployed on the metro: ${equinixMetalV2Metro?:'auto'}
         Equinix@AWS child cluster deployment scheduled: ${equinixOnAwsDemo}
         Azure provider deployment scheduled: ${azureOnDemandDemo}
         Azure@AWS child cluster deployment scheduled: ${azureOnAwsDemo}
