@@ -153,7 +153,6 @@ def checkDeploymentTestSuite() {
         equinixOnDemandDemo = true
         equinixMetalV2OnDemandDemo = true
         runUie2e = true
-        equinixMetalV2Metro = 'sv'
         // Edit after fix PRODX-3961
         enableBMDemo = false
     }
