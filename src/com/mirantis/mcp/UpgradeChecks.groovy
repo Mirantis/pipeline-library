@@ -138,18 +138,39 @@ For additional information please see https://docs.mirantis.com/mcp/q4-18/mcp-re
 }
 
 def check_36461_2 (salt, venvPepper, String cluster_name, Boolean raise_exc) {
-    def cephMonPillar = salt.getPillar(venvPepper, 'I@ceph:mon', 'ceph:common:config:mon:auth_allow_insecure_global_id_reclaim').get("return")[0].values()[0]
-    def cephVersion = salt.getPillar(venvPepper, 'I@ceph:mon', 'ceph:common:version').get("return")[0].values()[0]
-    def waStatus = [prodId: "PROD-36461_2", isFixed: "", waInfo: ""]
-    if (cephMonPillar.toString().toLowerCase() != 'false' && cephVersion.toString().toLowerCase() == 'nautilus') {
+    def saltTarget = salt.getFirstMinion(venvPepper, 'I@ceph:mon')
+    def cephVersionNum = salt.cmdRun(venvPepper, saltTarget, "ceph version | awk '{print \$3}'").get('return')[0].values()[0].replaceAll('Salt command execution success', '').trim()
+    List cephVersion = cephVersionNum.tokenize('.')
+
+    def majorVersion = cephVersion[0].toInteger()
+    def minorVersion = cephVersion[1].toInteger()
+    def minorSubversion = cephVersion[2].toInteger()
+
+    def waStatus = [prodId: "PROD-36461,PROD-36942", isFixed: "", waInfo: ""]
+
+    def allowInsecureReclaimIdPillar = salt.getPillar(venvPepper, 'I@ceph:mon', 'ceph:common:config:mon:auth_allow_insecure_global_id_reclaim').get("return")[0].values()[0]
+    allowInsecureReclaimIdPillar = allowInsecureReclaimIdPillar.toString().toLowerCase().trim()
+
+    if (majorVersion >= 14 && minorVersion >= 2 && minorSubversion >= 20) {
+        if ( allowInsecureReclaimIdPillar == 'false' ){
+            waStatus.isFixed = "Installed ceph version is 14.2.20+ and insecure global reclaim_id is disabled. Nothing to do."
+            return waStatus
+        }
         waStatus.isFixed = "Work-around should be applied manually"
-        waStatus.waInfo = "See https://docs.mirantis.com/mcp/q4-18/mcp-release-notes/single/index.html#i-cve-2021-20288 for more info"
+        waStatus.waInfo = "Ceph is vulnerable for CVE-2021-20288. See https://docs.mirantis.com/mcp/q4-18/mcp-release-notes/single/index.html#i-cve-2021-20288 for more info"
         if (raise_exc) {
-            error('Needed option is not set.\n' +
-            waStatus.waInfo)
+            error('Option is not set to required value.\n' + waStatus.waInfo)
         }
         return waStatus
     }
-    waStatus.isFixed = "Work-around for PROD-36461_2 already applied, nothing todo"
+
+    if ( allowInsecureReclaimIdPillar == 'false' ) {
+        waStatus.isFixed = "Work-around should be applied manually"
+        waStatus.waInfo = "To upgrade ceph from version below 14.2.20 you MUST set ceph:common:config:mon:auth_allow_insecure_global_id_reclaim pillar to \"true\"."
+        if (raise_exc) {
+            error('Option is not set to required value.\n' + waStatus.waInfo)
+        }
+        return waStatus
+    }
     return waStatus
 }
