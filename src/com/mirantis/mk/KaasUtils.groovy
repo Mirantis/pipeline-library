@@ -1112,17 +1112,34 @@ def getEquinixMetrosWithCapacity(nodeCount = 10, nodeType = 'c3.small.x86', vers
     def metalUrl = "https://artifactory.mcp.mirantis.net:443/artifactory/binary-dev-kaas-local/core/bin/mirror/metal-${version}-linux"
     def metros = []
     def out = ''
+    def retries = 10 // number of retries
+    def i = 0
+    def delay = 60 // 1 minute sleep
     try {
         sh "curl -o metal -# ${metalUrl} && chmod +x metal"
         withCredentials([string(credentialsId: env.KAAS_EQUINIX_API_TOKEN, variable: 'KAAS_EQUINIX_API_TOKEN')]) {
             sh 'echo "project-id: ${KAAS_EQUINIX_PROJECT_ID}\ntoken: ${KAAS_EQUINIX_API_TOKEN}" >metal.yaml'
-            out = sh(script: "./metal --config metal.yaml capacity get -m -P ${nodeType}|awk '/${nodeType}/ {print \$2}'|paste -s -d,|xargs ./metal --config metal.yaml capacity check -P ${nodeType} -q ${nodeCount} -m|grep true|awk '{print \$2}'|paste -s -d,", returnStdout: true).trim()
-            sh 'rm metal.yaml'
         }
-        metros = out.tokenize(',')
+        common.infoMsg("Selecting available Equinix metro with free ${nodeCount} ${nodeType} hosts")
+        while (metros.size() == 0 && i < retries) {
+            common.infoMsg("Try ${i+1}/${retries} ...")
+            if (i > 0 ) { // skip sleep on first step
+                sleep(delay)
+            }
+            out = sh(script: "./metal --config metal.yaml capacity get -m -P ${nodeType}|awk '/${nodeType}/ {print \$2}'|paste -s -d,|xargs ./metal --config metal.yaml capacity check -P ${nodeType} -q ${nodeCount} -m|grep true|awk '{print \$2}'|paste -s -d,", returnStdout: true).trim()
+            metros = out.tokenize(',')
+            i++
+        }
     } catch (Exception e) {
         common.errorMsg "Exception: '${e}'"
         return []
+    } finally {
+        sh 'rm metal.yaml'
+    }
+    if (metros.size() > 0) {
+        common.infoMsg("Selected metros: ${metros}")
+    } else {
+        common.warningMsg('No any metros have been selected !!! :(')
     }
     return metros
 }
