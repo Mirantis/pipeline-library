@@ -80,7 +80,8 @@ def check_36461(salt, venvPepper, String cluster_name, Boolean raise_exc){
     def common = new com.mirantis.mk.Common()
     def waStatus = [prodId: "PROD-36461", isFixed: "", waInfo: ""]
     if (!salt.testTarget(venvPepper, 'I@ceph:radosgw')) {
-        return
+        waStatus.isFixed = 'Nothing to do. Ceph is not enabled.'
+        return waStatus
     }
     def clusterModelPath = "/srv/salt/reclass/classes/cluster/${cluster_name}"
     def checkFile = "${clusterModelPath}/ceph/rgw.yml"
