@@ -176,17 +176,19 @@ def check_36461_2 (salt, venvPepper, String cluster_name, Boolean raise_exc) {
 }
 
 def check_36960 (salt, venvPepper, String cluster_name, Boolean raise_exc) {
+    def waStatus = [prodId: "PROD-36960", isFixed: "", waInfo: ""]
+
     if (!salt.testTarget(venvPepper, 'I@redis:server')) {
-        return
+        waStatus.isFixed = 'Nothing to do. There are no redis-servers.'
+        return waStatus
     }
+
     def redisVersionPillar = salt.getPillar(venvPepper, 'I@redis:server', 'redis:server:version').get("return")[0].values()[0]
 
     List redisVersion = redisVersionPillar.toString().tokenize('.')
 
     def majorVersion = redisVersion[0].toInteger()
     def minorVersion = redisVersion[1].toInteger()
-
-    def waStatus = [prodId: "PROD-36960", isFixed: "", waInfo: ""]
 
     if (majorVersion >= 5 && minorVersion >= 0) {
         waStatus.isFixed = 'Nothing to do. Redis-server version pillar is set to required version (5.0+).'
