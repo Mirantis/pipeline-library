@@ -82,6 +82,7 @@ def checkDeploymentTestSuite() {
     def runChildDeleteMasterTest = env.RUN_CHILD_DELETE_MASTER_TEST ? env.RUN_CHILD_DELETE_MASTER_TEST.toBoolean() : false
     def runGracefulRebootTest = env.RUN_GRACEFUL_REBOOT_TEST ? env.RUN_GRACEFUL_REBOOT_TEST.toBoolean() : false
     def pauseForDebug = env.PAUSE_FOR_DEBUG ? env.PAUSE_FOR_DEBUG.toBoolean() : false
+    def runChildMachineDeletionPolicyTest = env.RUN_CHILD_MACHINE_DELETION_POLICY_TEST ? env.RUN_CHILD_MACHINE_DELETION_POLICY_TEST.toBoolean() : false
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
     def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
         enabled: false,
@@ -233,6 +234,13 @@ def checkDeploymentTestSuite() {
     }
     if (commitMsg ==~ /(?s).*\[child-delete-master-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-delete-master-test.*/) {
         runChildDeleteMasterTest = true
+        deployChild = true
+        common.infoMsg('Child cluster deployment will be enabled since delete child master node test suite will be executed')
+    }
+    if (commitMsg ==~ /(?s).*\[child-machine-deletion-policy-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-machine-deletion-policy-test.*/) {
+        runChildMachineDeletionPolicyTest = true
+        deployChild = true
+        common.infoMsg('Child cluster deployment will be enabled since machine deletion child policy test suite will be executed')
     }
     if (commitMsg ==~ /(?s).*\[graceful-reboot-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*graceful-reboot-test.*/) {
         runGracefulRebootTest = true
@@ -440,6 +448,7 @@ def checkDeploymentTestSuite() {
         Delete mgmt master node test: ${runMgmtDeleteMasterTest}
         Delete rgnl master node test: ${runRgnlDeleteMasterTest}
         Delete child master node test: ${runChildDeleteMasterTest}
+        Child machine deletion policy test: ${runChildMachineDeletionPolicyTest}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         Equinix provider deployment scheduled: ${equinixOnDemandDemo}
         EquinixmetalV2 provider deployment scheduled: ${equinixMetalV2OnDemandDemo}
@@ -462,58 +471,59 @@ def checkDeploymentTestSuite() {
         Pause for debug enabled: ${pauseForDebug}
         Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [
-        osCloudLocation                      : openstackIMC,
-        cdnConfig                            : cdnConfig,
-        proxyConfig                          : proxyConfig,
-        useMacOsSeedNode                     : seedMacOs,
-        deployChildEnabled                   : deployChild,
-        childDeployCustomRelease             : customChildRelease,
-        upgradeChildEnabled                  : upgradeChild,
-        fullUpgradeChildEnabled              : fullUpgradeChild,
-        mosDeployChildEnabled                : mosDeployChild,
-        mosUpgradeChildEnabled               : mosUpgradeChild,
-        runChildConformanceEnabled           : runChildConformance,
-        attachBYOEnabled                     : attachBYO,
-        upgradeBYOEnabled                    : upgradeBYO,
-        runBYOMatrixEnabled                  : runBYOMatrix,
-        defaultBYOOs                         : defaultBYOOs,
-        upgradeMgmtEnabled                   : upgradeMgmt,
-        autoUpgradeMgmtEnabled               : autoUpgradeMgmt,
-        enableLMALoggingEnabled              : enableLMALogging,
-        deployOsOnMosEnabled                 : deployOsOnMos,
-        runUie2eEnabled                      : runUie2e,
-        runUie2eNewEnabled                   : runUie2eNew,
-        runMgmtConformanceEnabled            : runMgmtConformance,
-        runMaintenanceTestEnabled            : runMaintenanceTest,
-        runContainerregistryTestEnabled      : runContainerregistryTest,
-        runGracefulRebootTestEnabled         : runGracefulRebootTest,
-        pauseForDebugEnabled                 : pauseForDebug,
-        runMgmtDeleteMasterTestEnabled       : runMgmtDeleteMasterTest,
-        runRgnlDeleteMasterTestEnabled       : runRgnlDeleteMasterTest,
-        runChildDeleteMasterTestEnabled      : runChildDeleteMasterTest,
-        runLMATestEnabled                    : runLMATest,
-        runMgmtUserControllerTestEnabled     : runMgmtUserControllerTest,
-        runProxyChildTestEnabled             : runProxyChildTest,
-        fetchServiceBinariesEnabled          : fetchServiceBinaries,
-        awsOnDemandDemoEnabled               : awsOnDemandDemo,
-        equinixOnDemandDemoEnabled           : equinixOnDemandDemo,
-        equinixMetalV2OnDemandDemoEnabled    : equinixMetalV2OnDemandDemo,
-        equinixMetalV2ChildDiffMetroEnabled  : equinixMetalV2ChildDiffMetro,
-        equinixOnAwsDemoEnabled              : equinixOnAwsDemo,
-        azureOnDemandDemoEnabled             : azureOnDemandDemo,
-        azureOnAwsDemoEnabled                : azureOnAwsDemo,
-        vsphereDemoEnabled                   : enableVsphereDemo,
-        vsphereOnDemandDemoEnabled           : enableVsphereDemo, // TODO: remove after MCC 2.7 is out
-        bmDemoEnabled                        : enableBMDemo,
-        osDemoEnabled                        : enableOSDemo,
-        vsphereUbuntuEnabled                 : enableVsphereUbuntu,
-        artifactsBuildEnabled                : enableArtifactsBuild,
-        childOsBootFromVolume                : childOsBootFromVolume,
-        multiregionalConfiguration           : multiregionalMappings,
-        demoWeight                           : demoWeight,
-        bootstrapV2Scenario                  : bootstrapV2Scenario,
-        equinixMetalV2Metro                  : equinixMetalV2Metro,
-        enableFips                           : enableFips]
+        osCloudLocation                          : openstackIMC,
+        cdnConfig                                : cdnConfig,
+        proxyConfig                              : proxyConfig,
+        useMacOsSeedNode                         : seedMacOs,
+        deployChildEnabled                       : deployChild,
+        childDeployCustomRelease                 : customChildRelease,
+        upgradeChildEnabled                      : upgradeChild,
+        fullUpgradeChildEnabled                  : fullUpgradeChild,
+        mosDeployChildEnabled                    : mosDeployChild,
+        mosUpgradeChildEnabled                   : mosUpgradeChild,
+        runChildConformanceEnabled               : runChildConformance,
+        attachBYOEnabled                         : attachBYO,
+        upgradeBYOEnabled                        : upgradeBYO,
+        runBYOMatrixEnabled                      : runBYOMatrix,
+        defaultBYOOs                             : defaultBYOOs,
+        upgradeMgmtEnabled                       : upgradeMgmt,
+        autoUpgradeMgmtEnabled                   : autoUpgradeMgmt,
+        enableLMALoggingEnabled                  : enableLMALogging,
+        deployOsOnMosEnabled                     : deployOsOnMos,
+        runUie2eEnabled                          : runUie2e,
+        runUie2eNewEnabled                       : runUie2eNew,
+        runMgmtConformanceEnabled                : runMgmtConformance,
+        runMaintenanceTestEnabled                : runMaintenanceTest,
+        runContainerregistryTestEnabled          : runContainerregistryTest,
+        runGracefulRebootTestEnabled             : runGracefulRebootTest,
+        pauseForDebugEnabled                     : pauseForDebug,
+        runMgmtDeleteMasterTestEnabled           : runMgmtDeleteMasterTest,
+        runRgnlDeleteMasterTestEnabled           : runRgnlDeleteMasterTest,
+        runChildDeleteMasterTestEnabled          : runChildDeleteMasterTest,
+        runChildMachineDeletionPolicyTestEnabled : runChildMachineDeletionPolicyTest,
+        runLMATestEnabled                        : runLMATest,
+        runMgmtUserControllerTestEnabled         : runMgmtUserControllerTest,
+        runProxyChildTestEnabled                 : runProxyChildTest,
+        fetchServiceBinariesEnabled              : fetchServiceBinaries,
+        awsOnDemandDemoEnabled                   : awsOnDemandDemo,
+        equinixOnDemandDemoEnabled               : equinixOnDemandDemo,
+        equinixMetalV2OnDemandDemoEnabled        : equinixMetalV2OnDemandDemo,
+        equinixMetalV2ChildDiffMetroEnabled      : equinixMetalV2ChildDiffMetro,
+        equinixOnAwsDemoEnabled                  : equinixOnAwsDemo,
+        azureOnDemandDemoEnabled                 : azureOnDemandDemo,
+        azureOnAwsDemoEnabled                    : azureOnAwsDemo,
+        vsphereDemoEnabled                       : enableVsphereDemo,
+        vsphereOnDemandDemoEnabled               : enableVsphereDemo, // TODO: remove after MCC 2.7 is out
+        bmDemoEnabled                            : enableBMDemo,
+        osDemoEnabled                            : enableOSDemo,
+        vsphereUbuntuEnabled                     : enableVsphereUbuntu,
+        artifactsBuildEnabled                    : enableArtifactsBuild,
+        childOsBootFromVolume                    : childOsBootFromVolume,
+        multiregionalConfiguration               : multiregionalMappings,
+        demoWeight                               : demoWeight,
+        bootstrapV2Scenario                      : bootstrapV2Scenario,
+        equinixMetalV2Metro                      : equinixMetalV2Metro,
+        enableFips                               : enableFips]
 }
 
 /**
@@ -794,6 +804,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'RUN_MGMT_DELETE_MASTER_TEST', value: triggers.runMgmtDeleteMasterTestEnabled),
         booleanParam(name: 'RUN_RGNL_DELETE_MASTER_TEST', value: triggers.runRgnlDeleteMasterTestEnabled),
         booleanParam(name: 'RUN_CHILD_DELETE_MASTER_TEST', value: triggers.runChildDeleteMasterTestEnabled),
+        booleanParam(name: 'RUN_CHILD_MACHINE_DELETION_POLICY_TEST', value: triggers.runChildMachineDeletionPolicyTestEnabled),
         booleanParam(name: 'RUN_LMA_TEST', value: triggers.runLMATestEnabled),
         booleanParam(name: 'RUN_MGMT_USER_CONTROLLER_TEST', value: triggers.runMgmtUserControllerTestEnabled),
         booleanParam(name: 'DEPLOY_CHILD_CLUSTER', value: triggers.deployChildEnabled),
