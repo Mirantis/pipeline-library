@@ -367,7 +367,7 @@ def checkDeploymentTestSuite() {
     }
 
     // calculate weight of current demo run to manage lockable resources
-    def demoWeight = (deployChild || runUie2e) ? 2 : 1 // management = 1, child = 1
+    def demoWeight = deployChild ? 3 : 2 // management = 1 + 1 ui child, child += 1
 
     if (commitMsg ==~ /(?s).*\[bootstrapv2-scenario\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*bootstrapv2-scenario\.*/) {
         bootstrapV2Scenario = true
