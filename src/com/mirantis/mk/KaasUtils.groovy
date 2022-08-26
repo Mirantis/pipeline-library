@@ -1146,3 +1146,56 @@ def getEquinixMetrosWithCapacity(nodeCount = 10, nodeType = 'c3.small.x86', vers
     }
     return metros
 }
+
+
+/**
+ * genCommandLine prepares command line for artifactory-replication
+ * command using legacy environment variables
+ *
+ * @return: (string) Prepared command line
+ */
+def genCommandLine() {
+    def envToParam = [
+        'DESTINATION_USER': '-dst-user',
+        'ARTIFACT_FILTER': '-artifact-filter',
+        'ARTIFACT_FILTER_PROD':  '-artifact-filter-prod',
+        'ARTIFACT_TYPE': '-artifact-type',
+        'BINARY_CLEAN': '-bin-cleanup',
+        'BINARY_CLEAN_KEEP_DAYS': '-bin-clean-keep-days',
+        'BINARY_CLEAN_PREFIX': '-bin-clean-prefix',
+        'BUILD_URL': '-slack-build-url',
+        'CHECK_REPOS': '-check-repos',
+        'DESTINATION_REGISTRY': '-dst-repo',
+        'DESTINATION_REGISTRY_TYPE': '-dst-repo-type',
+        'DOCKER_CLEAN': '-cleanup',
+        'DOCKER_REPO_PREFIX': '-docker-repo-prefix',
+        'DOCKER_TAG': '-docker-tag',
+        'FORCE': '-force',
+        'HELM_CDN_DOMAIN': '-helm-cdn-domain',
+        'SLACK_CHANNEL': '-slack-channel',
+        'SLACK_USER': '-slack-user',
+        'SOURCE_REGISTRY': '-src-repo',
+        'SOURCE_REGISTRY_TYPE': '-src-repo-type',
+        'SYNC_PATTERN': '-sync-pattern'
+    ]
+    def cmdParams = ''
+    for (e in envToParam) {
+        if (env[e.key] == null) {
+            continue
+        }
+        if (e.key == 'CHECK_REPOS' || e.key == 'DOCKER_CLEAN') {
+            if (env[e.key].toBoolean()) {
+                cmdParams += e.value + ' '
+            } else {
+                cmdParams += '-replicate '
+            }
+        } else if (e.key == 'FORCE') {
+            if (env[e.key].toBoolean()) {
+                cmdParams += e.value + ' '
+            }
+        } else {
+            cmdParams += e.value + ' ' + env[e.key] + ' '
+        }
+    }
+    return cmdParams
+}
