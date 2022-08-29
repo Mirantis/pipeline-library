@@ -1201,7 +1201,7 @@ def genCommandLine() {
                 cmdParams += e.value + ' '
             }
         } else {
-            cmdParams += e.value + ' ' + env[e.key] + ' '
+            cmdParams += "${e.value} '${env[e.key]}' "
         }
     }
     return cmdParams
