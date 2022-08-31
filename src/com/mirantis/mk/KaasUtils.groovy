@@ -1186,15 +1186,16 @@ def genCommandLine() {
         'SYNC_PATTERN': '-sync-pattern'
     ]
     def cmdParams = ''
+    def isCheckClean = false
     for (e in envToParam) {
         if (env[e.key] == null) {
             continue
         }
         if (e.key == 'CHECK_REPOS' || e.key == 'DOCKER_CLEAN') {
-            if (env[e.key].toBoolean()) {
+            // Avoid CHECK_REPOS=true and DOCKER_CLEAN=true
+            if (env[e.key].toBoolean() && !isCheckClean) {
                 cmdParams += e.value + ' '
-            } else {
-                cmdParams += '-replicate '
+                isCheckClean = true
             }
         } else if (e.key == 'FORCE') {
             if (env[e.key].toBoolean()) {
@@ -1203,6 +1204,10 @@ def genCommandLine() {
         } else {
             cmdParams += "${e.value} '${env[e.key]}' "
         }
+    }
+    // No any check or clean was specified - take a default action
+    if (!isCheckClean) {
+        cmdParams += '-replicate'
     }
     return cmdParams
 }
