@@ -574,6 +574,7 @@ def checkCustomSIRefspec() {
  * @param configurationFile    (str) path to configuration file in yaml format
  *
  * @return                     (map)[     siTestsFeatureFlags (string) dedicated feature flags that will be used in SI tests,
+ *                                        siTestsFeatureFlagsStable (string) dedicated feature flags that will be used in SI tests for deploying stable release
  *                                  ]
  */
 def parseKaaSComponentCIParameters(configurationFile){
@@ -581,9 +582,11 @@ def parseKaaSComponentCIParameters(configurationFile){
    def ciConfig = readYaml file: configurationFile
    def ciSpec = [
    siTestsFeatureFlags: env.SI_TESTS_FEATURE_FLAGS ?: '',
+   siTestsFeatureFlagsStable: env.SI_TESTS_FEATURE_FLAGS_STABLE ?: '',
    ]
 
-   if (ciConfig.containsKey('si-tests-feature-flags')) {
+   // If exists and not empty
+   if (ciConfig.getOrDefault('si-tests-feature-flags', [])) {
        common.infoMsg("""SI tests feature flags customization detected,
            results will be merged with existing flags: [${ciSpec['siTestsFeatureFlags']}] identification...""")
 
@@ -593,9 +596,20 @@ def parseKaaSComponentCIParameters(configurationFile){
        ciSpec['siTestsFeatureFlags'] = ffMeta.unique().join(',')
        common.infoMsg("SI tests custom feature flags: ${ciSpec['siTestsFeatureFlags']}")
    }
+   if (ciConfig.getOrDefault('si-tests-feature-flags-stable', [])) {
+       common.infoMsg("""SI tests feature flags for stable release customization detected,
+           results will be merged with existing flags: [${ciSpec['siTestsFeatureFlagsStable']}] identification...""")
+
+       def ffMeta = ciSpec['siTestsFeatureFlagsStable'].tokenize(',').collect { it.trim() }
+       ffMeta.addAll(ciConfig['si-tests-feature-flags-stable'])
+
+       ciSpec['siTestsFeatureFlagsStable'] = ffMeta.unique().join(',')
+       common.infoMsg("SI tests custom feature flags for stable release: ${ciSpec['siTestsFeatureFlagsStable']}")
+   }
 
    common.infoMsg("""Additional ci configuration parsed successfully:
-       siTestsFeatureFlags: ${ciSpec['siTestsFeatureFlags']}""")
+       siTestsFeatureFlags: ${ciSpec['siTestsFeatureFlags']}
+       siTestsFeatureFlagsStable: ${ciSpec['siTestsFeatureFlagsStable']}""")
    return ciSpec
 }
 
