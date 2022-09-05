@@ -1225,3 +1225,49 @@ def genCommandLine() {
     }
     return cmdParams
 }
+
+/**
+ * custom scheduling algorithm
+ * it ensures that builds of the same job are distributed as much as possible between different nodes
+ * @param label (string) desired node label
+ * @return: (string) node name
+ */
+def schedule (label='docker') {
+    def common = new com.mirantis.mk.Common()
+    def freeNodes = []
+    def nodesMap = [:]
+
+    // filter nodes with the specified label and at least one free executor
+    timeout(time: 30, unit: 'MINUTES') {
+        while (!freeNodes) {
+            freeNodes = jenkins.model.Jenkins.instance.computers.findAll { node ->
+                label in node.getAssignedLabels().collect { it.name } &&
+                        node.isPartiallyIdle()
+            }
+            if (!freeNodes) {
+                echo 'No nodes available for scheduling, retrying...'
+                sleep 30
+            }
+        }
+    }
+
+    // generate a map of nodes matching other criteria
+    for (node in freeNodes) {
+        // sameJobExecutors is the number of executors running the same job as the calling one
+        sameJobExecutors = node.getExecutors() // get all executors
+                .collect { executor -> executor.getCurrentExecutable() } // get running "threads"
+                .collect { thread -> thread?.displayName } // filter job names from threads
+                .minus(null) // null = empty executors, remove them from the list
+                .findAll { it.contains(env.JOB_NAME) } // filter the same jobs as the calling one
+                .size()
+
+        // calculate busy executors, we don't want to count "sameJobExecutors" twice
+        totalBusyExecutors = node.countBusy() - sameJobExecutors
+        // generate the final map which contains nodes matching criteria with their load score
+        // builds of the same jobs have x10 score, all others x1
+        nodesMap += ["${node.getName()}" : sameJobExecutors * 10 + totalBusyExecutors]
+    }
+
+    // return the least loaded node
+    return common.SortMapByValueAsc(nodesMap).collect { it.key }[0]
+}
