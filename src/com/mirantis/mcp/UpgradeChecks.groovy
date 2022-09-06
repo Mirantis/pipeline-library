@@ -80,7 +80,8 @@ def check_36461(salt, venvPepper, String cluster_name, Boolean raise_exc){
     def common = new com.mirantis.mk.Common()
     def waStatus = [prodId: "PROD-36461", isFixed: "", waInfo: ""]
     if (!salt.testTarget(venvPepper, 'I@ceph:radosgw')) {
-        return
+        waStatus.isFixed = 'Nothing to do. Ceph is not enabled.'
+        return waStatus
     }
     def clusterModelPath = "/srv/salt/reclass/classes/cluster/${cluster_name}"
     def checkFile = "${clusterModelPath}/ceph/rgw.yml"
@@ -138,18 +139,67 @@ For additional information please see https://docs.mirantis.com/mcp/q4-18/mcp-re
 }
 
 def check_36461_2 (salt, venvPepper, String cluster_name, Boolean raise_exc) {
-    def cephMonPillar = salt.getPillar(venvPepper, 'I@ceph:mon', 'ceph:common:config:mon:auth_allow_insecure_global_id_reclaim').get("return")[0].values()[0]
-    def cephVersion = salt.getPillar(venvPepper, 'I@ceph:mon', 'ceph:common:version').get("return")[0].values()[0]
-    def waStatus = [prodId: "PROD-36461_2", isFixed: "", waInfo: ""]
-    if (cephMonPillar.toString().toLowerCase() != 'false' && cephVersion.toString().toLowerCase() == 'nautilus') {
+    def saltTarget = salt.getFirstMinion(venvPepper, 'I@ceph:mon')
+    def cephVersionNum = salt.cmdRun(venvPepper, saltTarget, "ceph version | awk '{print \$3}'").get('return')[0].values()[0].replaceAll('Salt command execution success', '').trim()
+    List cephVersion = cephVersionNum.tokenize('.')
+
+    def majorVersion = cephVersion[0].toInteger()
+    def minorVersion = cephVersion[1].toInteger()
+    def minorSubversion = cephVersion[2].toInteger()
+
+    def waStatus = [prodId: "PROD-36461,PROD-36942", isFixed: "", waInfo: ""]
+
+    def allowInsecureReclaimIdPillar = salt.getPillar(venvPepper, 'I@ceph:mon', 'ceph:common:config:mon:auth_allow_insecure_global_id_reclaim').get("return")[0].values()[0]
+    allowInsecureReclaimIdPillar = allowInsecureReclaimIdPillar.toString().toLowerCase().trim()
+
+    if (majorVersion >= 14 && minorVersion >= 2 && minorSubversion >= 20) {
+        if ( allowInsecureReclaimIdPillar == 'false' ){
+            waStatus.isFixed = "Installed ceph version is 14.2.20+ and insecure global reclaim_id is disabled. Nothing to do."
+            return waStatus
+        }
         waStatus.isFixed = "Work-around should be applied manually"
-        waStatus.waInfo = "See https://docs.mirantis.com/mcp/q4-18/mcp-release-notes/single/index.html#i-cve-2021-20288 for more info"
+        waStatus.waInfo = "Ceph is vulnerable for CVE-2021-20288. See https://docs.mirantis.com/mcp/q4-18/mcp-release-notes/single/index.html#i-cve-2021-20288 for more info"
         if (raise_exc) {
-            error('Needed option is not set.\n' +
-            waStatus.waInfo)
+            error('Option is not set to required value.\n' + waStatus.waInfo)
         }
         return waStatus
     }
-    waStatus.isFixed = "Work-around for PROD-36461_2 already applied, nothing todo"
+
+    if ( allowInsecureReclaimIdPillar == 'false' ) {
+        waStatus.isFixed = "Work-around should be applied manually"
+        waStatus.waInfo = "To upgrade ceph from version below 14.2.20 you MUST set ceph:common:config:mon:auth_allow_insecure_global_id_reclaim pillar to \"true\"."
+        if (raise_exc) {
+            error('Option is not set to required value.\n' + waStatus.waInfo)
+        }
+        return waStatus
+    }
+    return waStatus
+}
+
+def check_36960 (salt, venvPepper, String cluster_name, Boolean raise_exc) {
+    def waStatus = [prodId: "PROD-36960", isFixed: "", waInfo: ""]
+
+    if (!salt.testTarget(venvPepper, 'I@redis:server')) {
+        waStatus.isFixed = 'Nothing to do. There are no redis-servers.'
+        return waStatus
+    }
+
+    def redisVersionPillar = salt.getPillar(venvPepper, 'I@redis:server', 'redis:server:version').get("return")[0].values()[0]
+
+    List redisVersion = redisVersionPillar.toString().tokenize('.')
+
+    def majorVersion = redisVersion[0].toInteger()
+    def minorVersion = redisVersion[1].toInteger()
+
+    if (majorVersion >= 5 && minorVersion >= 0) {
+        waStatus.isFixed = 'Nothing to do. Redis-server version pillar is set to required version (5.0+).'
+        return waStatus
+    }
+    waStatus.isFixed = "Fix should be applied manually"
+    waStatus.waInfo = """To apply latest MU to openstack control plane you MUST set correct version for redis-server package. \n
+Please set pillar "redis:server:version" to "5.0" to openstack/telemetry.yml and refresh pillars."""
+    if (raise_exc) {
+        error('Option is not set to required value.\n' + waStatus.waInfo)
+    }
     return waStatus
 }
