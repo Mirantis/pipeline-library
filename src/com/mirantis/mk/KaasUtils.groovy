@@ -1127,32 +1127,34 @@ def parseTextForTestSchemas(Map opts) {
 def getEquinixMetrosWithCapacity(nodeCount = 50, nodeType = 'c3.small.x86', version = '0.9.0') {
     def common = new com.mirantis.mk.Common()
     def metalUrl = "https://artifactory.mcp.mirantis.net:443/artifactory/binary-dev-kaas-local/core/bin/mirror/metal-${version}-linux"
+    def metal = './metal --config metal.yaml'
     def metros = []
+    def facility = []
     def out = ''
     def retries = 3 // number of retries
     def i = 0
     def delay = 60 // 1 minute sleep
-    def metal = './metal --config metal.yaml'
+    def facilityToMetro = [am6: 'am', at4: 'at', ch3: 'ch', da11: 'da', da6: 'da', dc10: 'dc', dc13: 'dc', fr2: 'fr', fr8: 'fr', hk2: 'hk', la4: 'la', ld7: 'ld', md2: 'md', ny5: 'ny', ny7: 'ny', pa4: 'pa', se4: 'se', sg1: 'sg', sg4: 'sg', sl1: 'sl', sp4: 'sp', sv15: 'sv', sv16: 'sv', sy4: 'sy', sy5: 'sy', tr2: 'tr', ty11: 'ty']
     try {
         sh "curl -o metal -# ${metalUrl} && chmod +x metal"
         withCredentials([string(credentialsId: env.KAAS_EQUINIX_API_TOKEN, variable: 'KAAS_EQUINIX_API_TOKEN')]) {
             sh 'echo "project-id: ${KAAS_EQUINIX_PROJECT_ID}\ntoken: ${KAAS_EQUINIX_API_TOKEN}" >metal.yaml'
         }
-        while (metros.size() == 0 && i < retries) {
-            common.infoMsg("Selecting available Equinix metro with free ${nodeCount} ${nodeType} hosts, try ${i+1}/${retries} ...")
+        while (facility.size() == 0 && i < retries) {
+            common.infoMsg("Selecting available Equinix facility with free ${nodeCount} ${nodeType} hosts, try ${i+1}/${retries} ...")
             if (i > 0 ) { // skip sleep on first step
                 sleep(delay)
             }
-            out = sh(script: "${metal} capacity get -m -P ${nodeType}|awk '/${nodeType}/ {print \$2}'|paste -s -d,|xargs ${metal} capacity check -P ${nodeType} -q ${nodeCount} -m|grep true|awk '{print \$2}'|paste -s -d,", returnStdout: true).trim()
-            metros = out.tokenize(',')
-            if (metros.size() == 0) {
+            out = sh(script: "${metal} capacity get -f -P ${nodeType}|awk '/${nodeType}/ {print \$2}'|paste -s -d,|xargs ${metal} capacity check -P ${nodeType} -q ${nodeCount} -f|grep true|awk '{print \$2}'|paste -s -d,", returnStdout: true).trim()
+            facility = out.tokenize(',')
+            if (facility.size() == 0) {
                 nodeCount -= 10
             }
             i++
         }
-        if (metros.size() > 0) {
-            m = metros.size() > 1 ? "${metros[0]},${metros[1]}" : "${metros[0]}"
-            sh "${metal} capacity check -P ${nodeType} -m ${m} -q ${nodeCount}"
+        if (facility.size() > 0) {
+            f = facility.size() > 1 ? "${facility[0]},${facility[1]}" : "${facility[0]}"
+            sh "${metal} capacity check -P ${nodeType} -f ${f} -q ${nodeCount}"
         }
     } catch (Exception e) {
         common.errorMsg "Exception: '${e}'"
@@ -1160,8 +1162,12 @@ def getEquinixMetrosWithCapacity(nodeCount = 50, nodeType = 'c3.small.x86', vers
     } finally {
         sh 'rm metal.yaml'
     }
-    if (metros.size() > 0) {
-        common.infoMsg("Selected metros: ${metros}")
+    if (facility.size() > 0) {
+        common.infoMsg("Selected facilities: ${facility}")
+        facility.each {
+            metros += facilityToMetro[it]
+        }
+        common.infoMsg("Selected appropriate metros: ${metros}")
     } else {
         common.warningMsg('No any metros have been selected !!! :(')
     }
