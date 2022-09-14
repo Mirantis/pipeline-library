@@ -1113,28 +1113,26 @@ def parseTextForTestSchemas(Map opts) {
 
 
 /**
-* getEquinixMetrosWithCapacity returns list of Equinix metros using specified
-* instance type (nodeType) and desired count of instances (nodeCount) in a metro.
+* getEquinixFacilityWithCapacity returns list of Equinix facilities using specified
+* instance type (nodeType) and desired count of instances (nodeCount) in a facility.
 * Function downloads metal CLI from the
-* https://github.com/equinix/metal-cli/releases/download/v0.9.0/metal-linux-amd64
-* Empty list is returned in case of errors.
+* https://artifactory.mcp.mirantis.net:443/artifactory/binary-dev-kaas-local/core/bin/mirror/metal-${version}-linux
+* Empty list is returned in case of no facilities with specified capacity was found or any other errors.
 *
 * @param:        nodeCount (int)      Desired count of instances
 * @param:        nodeType  (string)   Instance type
-* @return                  ([]string) List of selected metros
+* @return                  ([]string) List of selected facilities
 *
 **/
-def getEquinixMetrosWithCapacity(nodeCount = 50, nodeType = 'c3.small.x86', version = '0.9.0') {
+def getEquinixFacilityWithCapacity(nodeCount = 50, nodeType = 'c3.small.x86', version = '0.9.0') {
     def common = new com.mirantis.mk.Common()
     def metalUrl = "https://artifactory.mcp.mirantis.net:443/artifactory/binary-dev-kaas-local/core/bin/mirror/metal-${version}-linux"
     def metal = './metal --config metal.yaml'
-    def metros = []
     def facility = []
     def out = ''
     def retries = 3 // number of retries
     def i = 0
     def delay = 60 // 1 minute sleep
-    def facilityToMetro = [am6: 'am', at4: 'at', ch3: 'ch', da11: 'da', da6: 'da', dc10: 'dc', dc13: 'dc', fr2: 'fr', fr8: 'fr', hk2: 'hk', la4: 'la', ld7: 'ld', md2: 'md', ny5: 'ny', ny7: 'ny', pa4: 'pa', se4: 'se', sg1: 'sg', sg4: 'sg', sl1: 'sl', sp4: 'sp', sv15: 'sv', sv16: 'sv', sy4: 'sy', sy5: 'sy', tr2: 'tr', ty11: 'ty']
     try {
         sh "curl -o metal -# ${metalUrl} && chmod +x metal"
         withCredentials([string(credentialsId: env.KAAS_EQUINIX_API_TOKEN, variable: 'KAAS_EQUINIX_API_TOKEN')]) {
@@ -1164,14 +1162,10 @@ def getEquinixMetrosWithCapacity(nodeCount = 50, nodeType = 'c3.small.x86', vers
     }
     if (facility.size() > 0) {
         common.infoMsg("Selected facilities: ${facility}")
-        facility.each {
-            metros += facilityToMetro[it]
-        }
-        common.infoMsg("Selected appropriate metros: ${metros}")
     } else {
-        common.warningMsg('No any metros have been selected !!! :(')
+        common.warningMsg('No any facilities have been selected !!! :(')
     }
-    return metros
+    return facility
 }
 
 
