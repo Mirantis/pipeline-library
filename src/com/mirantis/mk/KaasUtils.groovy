@@ -64,6 +64,7 @@ def checkDeploymentTestSuite() {
     def upgradeMgmt = env.UPGRADE_MGMT_CLUSTER ? env.UPGRADE_MGMT_CLUSTER.toBoolean() : false
     def autoUpgradeMgmt = env.AUTO_UPGRADE_MCC ? env.AUTO_UPGRADE_MCC.toBoolean() : false
     def enableLMALogging = env.ENABLE_LMA_LOGGING ? env.ENABLE_LMA_LOGGING.toBoolean(): false
+    def deployOsOnMos = env.DEPLOY_OS_ON_MOS? env.DEPLOY_OS_ON_MOS.toBoolean() : false
     def runUie2e = env.RUN_UI_E2E ? env.RUN_UI_E2E.toBoolean() : false
     def runUie2eNew = env.RUN_UI_E2E_NEW ? env.RUN_UI_E2E_NEW.toBoolean() : false
     def runMgmtConformance = env.RUN_MGMT_CFM ? env.RUN_MGMT_CFM.toBoolean() : false
@@ -177,6 +178,11 @@ def checkDeploymentTestSuite() {
     }
     if (commitMsg ==~ /(?s).*\[lma-logging\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*lma-logging.*/) {
         enableLMALogging = true
+    }
+    if (commitMsg ==~ /(?s).*\[deploy-os-on-mos\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*deploy-os-on-mos.*/) {
+        deployOsOnMos = true
+        mosDeployChild = true
+        openstackIMC = 'eu2'
     }
     if (commitMsg ==~ /(?s).*\[ui-e2e\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-e2e.*/) {
         runUie2e = true
@@ -401,6 +407,7 @@ def checkDeploymentTestSuite() {
         Mgmt cluster release upgrade scheduled: ${upgradeMgmt}
         Mgmt cluster release auto upgrade scheduled: ${autoUpgradeMgmt}
         Mgmt LMA logging enabled: ${enableLMALogging}
+        Deploy Os on child with mos release ${deployOsOnMos}
         Mgmt conformance testing scheduled: ${runMgmtConformance}
         LMA testing scheduled: ${runLMATest}
         Mgmt user controller testing scheduled: ${runMgmtUserControllerTest}
@@ -449,6 +456,7 @@ def checkDeploymentTestSuite() {
         upgradeMgmtEnabled                   : upgradeMgmt,
         autoUpgradeMgmtEnabled               : autoUpgradeMgmt,
         enableLMALoggingEnabled              : enableLMALogging,
+        deployOsOnMosEnabled                 : deployOsOnMos,
         runUie2eEnabled                      : runUie2e,
         runUie2eNewEnabled                   : runUie2eNew,
         runMgmtConformanceEnabled            : runMgmtConformance,
@@ -750,6 +758,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'UPGRADE_MGMT_CLUSTER', value: triggers.upgradeMgmtEnabled),
         booleanParam(name: 'AUTO_UPGRADE_MCC', value: triggers.autoUpgradeMgmtEnabled),
         booleanParam(name: 'ENABLE_LMA_LOGGING', value: triggers.enableLMALoggingEnabled),
+        booleanParam(name: 'DEPLOY_OS_ON_MOS', value: triggers.deployOsOnMosEnabled),
         booleanParam(name: 'RUN_UI_E2E', value: triggers.runUie2eEnabled),
         booleanParam(name: 'RUN_MGMT_CFM', value: triggers.runMgmtConformanceEnabled),
         booleanParam(name: 'RUN_MAINTENANCE_TEST', value: triggers.runMaintenanceTestEnabled),
