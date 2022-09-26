@@ -53,6 +53,7 @@ def checkDeploymentTestSuite() {
     def seedMacOs = env.SEED_MACOS ? env.SEED_MACOS.toBoolean() : false
     def deployChild = env.DEPLOY_CHILD_CLUSTER ? env.DEPLOY_CHILD_CLUSTER.toBoolean() : false
     def upgradeChild = env.UPGRADE_CHILD_CLUSTER ? env.UPGRADE_CHILD_CLUSTER.toBoolean() : false
+    def fullUpgradeChild = env.FULL_UPGRADE_CHILD_CLUSTER ? env.FULL_UPGRADE_CHILD_CLUSTER.toBoolean() : false
     def mosDeployChild = env.DEPLOY_MOS_CHILD_CLUSTER ? env.DEPLOY_MOS_CHILD_CLUSTER.toBoolean() : false
     def mosUpgradeChild = env.UPGRADE_MOS_CHILD_CLUSTER ? env.UPGRADE_MOS_CHILD_CLUSTER.toBoolean() : false
     def customChildRelease = env.KAAS_CHILD_CLUSTER_RELEASE_NAME ? env.KAAS_CHILD_CLUSTER_RELEASE_NAME : ''
@@ -123,6 +124,11 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[child-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-upgrade.*/) {
         deployChild = true
         upgradeChild = true
+    }
+    if (commitMsg ==~ /(?s).*\[child-upgrade-full\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-upgrade-full.*/) {
+        deployChild = true
+        upgradeChild = true
+        fullUpgradeChild = true
     }
     def childDeployMatches = (commitMsg =~ /(\[child-deploy\s*(\w|\-)+?\])/)
     if (childDeployMatches.size() > 0) {
@@ -391,6 +397,7 @@ def checkDeploymentTestSuite() {
         Child cluster deployment scheduled: ${deployChild}
         Custom child cluster release: ${customChildRelease}
         Child cluster release upgrade scheduled: ${upgradeChild}
+        Full Child cluster release upgrade scheduled: ${fullUpgradeChild}
         MOS child deploy scheduled: ${mosDeployChild}
         MOS child upgrade scheduled: ${mosUpgradeChild}
         Child conformance testing scheduled: ${runChildConformance}
@@ -439,6 +446,7 @@ def checkDeploymentTestSuite() {
         deployChildEnabled                   : deployChild,
         childDeployCustomRelease             : customChildRelease,
         upgradeChildEnabled                  : upgradeChild,
+        fullUpgradeChildEnabled              : fullUpgradeChild,
         mosDeployChildEnabled                : mosDeployChild,
         mosUpgradeChildEnabled               : mosUpgradeChild,
         runChildConformanceEnabled           : runChildConformance,
@@ -761,6 +769,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'RUN_MGMT_USER_CONTROLLER_TEST', value: triggers.runMgmtUserControllerTestEnabled),
         booleanParam(name: 'DEPLOY_CHILD_CLUSTER', value: triggers.deployChildEnabled),
         booleanParam(name: 'UPGRADE_CHILD_CLUSTER', value: triggers.upgradeChildEnabled),
+        booleanParam(name: 'FULL_UPGRADE_CHILD_CLUSTER', value: triggers.fullUpgradeChildEnabled),
         booleanParam(name: 'RUN_PROXY_CHILD_TEST', value: triggers.runProxyChildTestEnabled),
         booleanParam(name: 'ATTACH_BYO', value: triggers.attachBYOEnabled),
         booleanParam(name: 'UPGRADE_BYO', value: triggers.upgradeBYOEnabled),
