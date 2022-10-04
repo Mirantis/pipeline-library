@@ -1142,7 +1142,11 @@ def getEquinixFacilityWithCapacity(nodeCount = 50, nodeType = 'c3.small.x86', ve
     def retries = 3 // number of retries
     def i = 0
     def delay = 60 // 1 minute sleep
+    def excludeFacility = ['am6', 'da6', 'da11', 'dc10', 'dc13'] // list of facilities to exclude from selection
     try {
+        if (excludeFacility.size() > 0) {
+            common.infoMsg("Excluded facilities: ${excludeFacility}")
+        }
         sh "curl -o metal -# ${metalUrl} && chmod +x metal"
         withCredentials([string(credentialsId: env.KAAS_EQUINIX_API_TOKEN, variable: 'KAAS_EQUINIX_API_TOKEN')]) {
             sh 'echo "project-id: ${KAAS_EQUINIX_PROJECT_ID}\ntoken: ${KAAS_EQUINIX_API_TOKEN}" >metal.yaml'
@@ -1154,6 +1158,7 @@ def getEquinixFacilityWithCapacity(nodeCount = 50, nodeType = 'c3.small.x86', ve
             }
             out = sh(script: "${metal} capacity get -f -P ${nodeType}|awk '/${nodeType}/ {print \$2}'|paste -s -d,|xargs ${metal} capacity check -P ${nodeType} -q ${nodeCount} -f|grep true|awk '{print \$2}'|paste -s -d,", returnStdout: true).trim()
             facility = out.tokenize(',')
+            facility -= excludeFacility
             if (facility.size() == 0) {
                 nodeCount -= 10
             }
