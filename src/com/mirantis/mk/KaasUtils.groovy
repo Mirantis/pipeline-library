@@ -1132,17 +1132,20 @@ def parseTextForTestSchemas(Map opts) {
 
 /**
 * getEquinixFacilityWithCapacity returns list of Equinix facilities using specified
-* instance type (nodeType) and desired count of instances (nodeCount) in a facility.
+* instance type (nodeType), desired count of facilities (facilityCount) and
+* instances (nodeCount) in a facility using specified matal version.
 * Function downloads metal CLI from the
 * https://artifactory.mcp.mirantis.net:443/artifactory/binary-dev-kaas-local/core/bin/mirror/metal-${version}-linux
 * Empty list is returned in case of no facilities with specified capacity was found or any other errors.
 *
-* @param:        nodeCount (int)      Desired count of instances
-* @param:        nodeType  (string)   Instance type
+* @param:        facilityCount  (int) Desired count of facilities
+* @param:        nodeCount      (int) Desired count of instances
+* @param:        nodeType    (string) Instance type
+* @param:        version     (string) Metal version to use
 * @return                  ([]string) List of selected facilities
 *
 **/
-def getEquinixFacilityWithCapacity(nodeCount = 50, nodeType = 'c3.small.x86', version = '0.9.0') {
+def getEquinixFacilityWithCapacity(facilityCount = 1, nodeCount = 50, nodeType = 'c3.small.x86', version = '0.9.0') {
     def common = new com.mirantis.mk.Common()
     def metalUrl = "https://artifactory.mcp.mirantis.net:443/artifactory/binary-dev-kaas-local/core/bin/mirror/metal-${version}-linux"
     def metal = './metal --config metal.yaml'
@@ -1151,7 +1154,7 @@ def getEquinixFacilityWithCapacity(nodeCount = 50, nodeType = 'c3.small.x86', ve
     def retries = 3 // number of retries
     def i = 0
     def delay = 60 // 1 minute sleep
-    def excludeFacility = ['am6', 'da6', 'da11', 'dc10', 'dc13'] // list of facilities to exclude from selection
+    def excludeFacility = [] // list of facilities to exclude from selection
     try {
         if (excludeFacility.size() > 0) {
             common.infoMsg("Excluded facilities: ${excludeFacility}")
@@ -1160,15 +1163,18 @@ def getEquinixFacilityWithCapacity(nodeCount = 50, nodeType = 'c3.small.x86', ve
         withCredentials([string(credentialsId: env.KAAS_EQUINIX_API_TOKEN, variable: 'KAAS_EQUINIX_API_TOKEN')]) {
             sh 'echo "project-id: ${KAAS_EQUINIX_PROJECT_ID}\ntoken: ${KAAS_EQUINIX_API_TOKEN}" >metal.yaml'
         }
-        while (facility.size() == 0 && i < retries) {
-            common.infoMsg("Selecting available Equinix facility with free ${nodeCount} ${nodeType} hosts, try ${i+1}/${retries} ...")
+        while (facility.size() < facilityCount && i < retries) {
+            common.infoMsg("Selecting ${facilityCount} available Equinix facilities with free ${nodeCount} ${nodeType} hosts, try ${i+1}/${retries} ...")
             if (i > 0 ) { // skip sleep on first step
                 sleep(delay)
             }
             out = sh(script: "${metal} capacity get -f -P ${nodeType}|awk '/${nodeType}/ {print \$2}'|paste -s -d,|xargs ${metal} capacity check -P ${nodeType} -q ${nodeCount} -f|grep true|awk '{print \$2}'|paste -s -d,", returnStdout: true).trim()
             facility = out.tokenize(',')
             facility -= excludeFacility
-            if (facility.size() == 0) {
+            if (facility.size() < facilityCount) {
+                nodeCount -= 10
+            // We need different metros for the [equinixmetalv2-child-diff-metro] case, facility[][0, 1] contains a metro name
+            } else if (facility.size() == 2 && facility[0][0, 1] == facility[1][0, 1]) {
                 nodeCount -= 10
             }
             i++
