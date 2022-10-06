@@ -1151,7 +1151,7 @@ def getEquinixFacilityWithCapacity(nodeCount = 50, nodeType = 'c3.small.x86', ve
     def retries = 3 // number of retries
     def i = 0
     def delay = 60 // 1 minute sleep
-    def excludeFacility = ['am6', 'da6', 'da11', 'dc10', 'dc13'] // list of facilities to exclude from selection
+    def excludeFacility = [] // list of facilities to exclude from selection
     try {
         if (excludeFacility.size() > 0) {
             common.infoMsg("Excluded facilities: ${excludeFacility}")
