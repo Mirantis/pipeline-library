@@ -1137,6 +1137,7 @@ def parseTextForTestSchemas(Map opts) {
 * Function downloads metal CLI from the
 * https://artifactory.mcp.mirantis.net:443/artifactory/binary-dev-kaas-local/core/bin/mirror/metal-${version}-linux
 * Empty list is returned in case of no facilities with specified capacity was found or any other errors.
+* Non-empty list is shuffled.
 *
 * @param:        facilityCount  (int) Desired count of facilities
 * @param:        nodeCount      (int) Desired count of instances
@@ -1190,6 +1191,7 @@ def getEquinixFacilityWithCapacity(facilityCount = 1, nodeCount = 50, nodeType =
         sh 'rm metal.yaml'
     }
     if (facility.size() > 0) {
+        Collections.shuffle(facility)
         common.infoMsg("Selected facilities: ${facility}")
     } else {
         common.warningMsg('No any facilities have been selected !!! :(')
