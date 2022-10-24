@@ -295,8 +295,7 @@ def postGerritComment(LinkedHashMap config) {
  */
 LinkedHashMap getDependentPatches(LinkedHashMap changeInfo) {
     def dependentPatches = [:]
-    def currentChange = getGerritChange(changeInfo.gerritName, changeInfo.gerritHost, changeInfo.gerritChangeNumber, changeInfo.credentialsId, true)
-    def dependentCommits = currentChange.commitMessage.tokenize('\n').findAll { it  ==~ /Depends-On: \b[^ ]+\b(\/)?/  }
+    def dependentCommits = changeInfo.gerritCommitMessage.tokenize('\n').findAll { it  ==~ /Depends-On: \b[^ ]+\b(\/)?/  }
     if (dependentCommits) {
         dependentCommits.each { commit ->
             def patchLink = commit.tokenize(' ')[1]
