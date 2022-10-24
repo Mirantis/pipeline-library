@@ -110,6 +110,7 @@ def checkDeploymentTestSuite() {
     def childOsBootFromVolume = env.OPENSTACK_BOOT_FROM_VOLUME ? env.OPENSTACK_BOOT_FROM_VOLUME.toBoolean() : false
     def bootstrapV2Scenario = env.BOOTSTRAP_V2_ENABLED ? env.BOOTSTRAP_V2_ENABLED.toBoolean() : false
     def equinixMetalV2Metro = env.EQUINIX_MGMT_METRO ? env.EQUINIX_MGMT_METRO : ''
+    def enableFips = env.ENABLE_FIPS ? env.ENABLE_FIPS.toBoolean() : false
 
     def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
     if (commitMsg ==~ /(?s).*\[mgmt-proxy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-proxy.*/) {
@@ -388,6 +389,10 @@ def checkDeploymentTestSuite() {
         bootstrapV2Scenario = true
     }
 
+    if (commitMsg ==~ /(?s).*\[enable-fips\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*enable-fips\.*/) {
+        enableFips = true
+    }
+
     // parse equinixmetalv2-metro trigger
     def equinixMetalV2MetroMatcher = (commitMsg =~ /\[equinixmetalv2-metro(\s+.*)?\]/)
     if (equinixMetalV2OnDemandDemo && equinixMetalV2MetroMatcher.size() > 0) {
@@ -444,6 +449,7 @@ def checkDeploymentTestSuite() {
         Service binaries fetching scheduled: ${fetchServiceBinaries}
         Current weight of the demo run: ${demoWeight} (Used to manage lockable resources)
         Bootstrap v2 scenario enabled: ${bootstrapV2Scenario}
+        FIPS enabled: ${enableFips}
         Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [
         osCloudLocation                      : openstackIMC,
@@ -494,7 +500,8 @@ def checkDeploymentTestSuite() {
         multiregionalConfiguration           : multiregionalMappings,
         demoWeight                           : demoWeight,
         bootstrapV2Scenario                  : bootstrapV2Scenario,
-        equinixMetalV2Metro                  : equinixMetalV2Metro]
+        equinixMetalV2Metro                  : equinixMetalV2Metro,
+        enableFips                           : enableFips]
 }
 
 /**
