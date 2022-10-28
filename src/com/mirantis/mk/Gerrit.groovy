@@ -187,7 +187,7 @@ def getGerritChange(gerritName, gerritHost, gerritChangeNumber, credentialsId, i
     if(includeCurrentPatchset){
         curPatchset = "--current-patch-set"
     }
-    return common.parseJSON(ssh.agentSh(String.format("ssh -p 29418 %s@%s gerrit query ${curPatchset} --format=JSON change:%s", gerritName, gerritHost, gerritChangeNumber)))
+    return common.parseJSON(ssh.agentSh(String.format("ssh -p 29418 %s@%s gerrit query ${curPatchset} --commit-message --format=JSON change:%s", gerritName, gerritHost, gerritChangeNumber)))
 }
 
 /**
