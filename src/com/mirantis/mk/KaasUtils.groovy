@@ -80,6 +80,7 @@ def checkDeploymentTestSuite() {
     def runMgmtDeleteMasterTest = env.RUN_MGMT_DELETE_MASTER_TEST ? env.RUN_MGMT_DELETE_MASTER_TEST.toBoolean() : false
     def runRgnlDeleteMasterTest = env.RUN_RGNL_DELETE_MASTER_TEST ? env.RUN_RGNL_DELETE_MASTER_TEST.toBoolean() : false
     def runChildDeleteMasterTest = env.RUN_CHILD_DELETE_MASTER_TEST ? env.RUN_CHILD_DELETE_MASTER_TEST.toBoolean() : false
+    def runGracefulRebootTest = env.RUN_GRACEFUL_REBOOT_TEST ? env.RUN_GRACEFUL_REBOOT_TEST.toBoolean() : false
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
     def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
         enabled: false,
@@ -231,6 +232,9 @@ def checkDeploymentTestSuite() {
     }
     if (commitMsg ==~ /(?s).*\[child-delete-master-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-delete-master-test.*/) {
         runChildDeleteMasterTest = true
+    }
+    if (commitMsg ==~ /(?s).*\[graceful-reboot-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*graceful-reboot-test.*/) {
+        runGracefulRebootTest = true
     }
     if (commitMsg ==~ /(?s).*\[child-offline\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-offline.*/) {
         proxyConfig['childOffline'] = true
@@ -428,6 +432,7 @@ def checkDeploymentTestSuite() {
         Maintenance test: ${runMaintenanceTest}
         Container Registry test: ${runContainerregistryTest}
         Child proxy test: ${runProxyChildTest}
+        Graceful reboot test: ${runGracefulRebootTest}
         Delete mgmt master node test: ${runMgmtDeleteMasterTest}
         Delete rgnl master node test: ${runRgnlDeleteMasterTest}
         Delete child master node test: ${runChildDeleteMasterTest}
@@ -476,6 +481,7 @@ def checkDeploymentTestSuite() {
         runMgmtConformanceEnabled            : runMgmtConformance,
         runMaintenanceTestEnabled            : runMaintenanceTest,
         runContainerregistryTestEnabled      : runContainerregistryTest,
+        runGracefulRebootTestEnabled         : runGracefulRebootTest,
         runMgmtDeleteMasterTestEnabled       : runMgmtDeleteMasterTest,
         runRgnlDeleteMasterTestEnabled       : runRgnlDeleteMasterTest,
         runChildDeleteMasterTestEnabled      : runChildDeleteMasterTest,
@@ -778,6 +784,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'RUN_MGMT_CFM', value: triggers.runMgmtConformanceEnabled),
         booleanParam(name: 'RUN_MAINTENANCE_TEST', value: triggers.runMaintenanceTestEnabled),
         booleanParam(name: 'RUN_CONTAINER_REGISTRY_TEST', value: triggers.runContainerregistryTestEnabled),
+        booleanParam(name: 'RUN_GRACEFUL_REBOOT_TEST', value: triggers.runGracefulRebootTestEnabled),
         booleanParam(name: 'RUN_MGMT_DELETE_MASTER_TEST', value: triggers.runMgmtDeleteMasterTestEnabled),
         booleanParam(name: 'RUN_RGNL_DELETE_MASTER_TEST', value: triggers.runRgnlDeleteMasterTestEnabled),
         booleanParam(name: 'RUN_CHILD_DELETE_MASTER_TEST', value: triggers.runChildDeleteMasterTestEnabled),
