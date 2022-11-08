@@ -81,6 +81,7 @@ def checkDeploymentTestSuite() {
     def runRgnlDeleteMasterTest = env.RUN_RGNL_DELETE_MASTER_TEST ? env.RUN_RGNL_DELETE_MASTER_TEST.toBoolean() : false
     def runChildDeleteMasterTest = env.RUN_CHILD_DELETE_MASTER_TEST ? env.RUN_CHILD_DELETE_MASTER_TEST.toBoolean() : false
     def runGracefulRebootTest = env.RUN_GRACEFUL_REBOOT_TEST ? env.RUN_GRACEFUL_REBOOT_TEST.toBoolean() : false
+    def pauseForDebug = env.PAUSE_FOR_DEBUG ? env.PAUSE_FOR_DEBUG.toBoolean() : false
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
     def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
         enabled: false,
@@ -235,6 +236,9 @@ def checkDeploymentTestSuite() {
     }
     if (commitMsg ==~ /(?s).*\[graceful-reboot-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*graceful-reboot-test.*/) {
         runGracefulRebootTest = true
+    }
+    if (commitMsg ==~ /(?s).*\[pause-for-debug\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*pause-for-debug.*/) {
+        pauseForDebug = true
     }
     if (commitMsg ==~ /(?s).*\[child-offline\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-offline.*/) {
         proxyConfig['childOffline'] = true
@@ -455,6 +459,7 @@ def checkDeploymentTestSuite() {
         Current weight of the demo run: ${demoWeight} (Used to manage lockable resources)
         Bootstrap v2 scenario enabled: ${bootstrapV2Scenario}
         FIPS enabled: ${enableFips}
+        Pause for debug enabled: ${pauseForDebug}
         Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [
         osCloudLocation                      : openstackIMC,
@@ -482,6 +487,7 @@ def checkDeploymentTestSuite() {
         runMaintenanceTestEnabled            : runMaintenanceTest,
         runContainerregistryTestEnabled      : runContainerregistryTest,
         runGracefulRebootTestEnabled         : runGracefulRebootTest,
+        pauseForDebugEnabled                 : pauseForDebug,
         runMgmtDeleteMasterTestEnabled       : runMgmtDeleteMasterTest,
         runRgnlDeleteMasterTestEnabled       : runRgnlDeleteMasterTest,
         runChildDeleteMasterTestEnabled      : runChildDeleteMasterTest,
@@ -806,6 +812,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'ALLOW_AZURE_ON_DEMAND', value: triggers.azureOnDemandDemoEnabled),
         booleanParam(name: 'AZURE_ON_AWS_DEMO', value: triggers.azureOnAwsDemoEnabled),
         booleanParam(name: 'VSPHERE_DEPLOY_UBUNTU', value: triggers.vsphereUbuntuEnabled),
+        booleanParam(name: 'PAUSE_FOR_DEBUG', value: triggers.pauseForDebugEnabled),
     ]
 
     // customize multiregional demo
