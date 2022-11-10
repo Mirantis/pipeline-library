@@ -1294,7 +1294,8 @@ def schedule (label='docker') {
         while (!freeNodes) {
             freeNodes = jenkins.model.Jenkins.instance.computers.findAll { node ->
                 label in node.getAssignedLabels().collect { it.name } &&
-                        node.isPartiallyIdle()
+                        node.isPartiallyIdle() &&
+                        node.isOnline()
             }
             if (!freeNodes) {
                 echo 'No nodes available for scheduling, retrying...'
