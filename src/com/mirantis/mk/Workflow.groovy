@@ -542,6 +542,24 @@ def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '') {
         list_id += 1
     }
 
+    def pause_step_id = list_id
+    for (step in scenario['pause']) {
+        def display_name = step['job']
+        if (step['description'] != null && step['description'].toString() != "") {
+            display_name = step['description']
+        }
+        jobs_data.add([list_id   : "$list_id",
+                       type      : "pause",
+                       name      : "$display_name",
+                       build_url : "0",
+                       build_id  : "-",
+                       status    : "-",
+                       desc      : "",
+                       child_desc: "",
+                       duration  : '-'])
+        list_id += 1
+    }
+
     def finally_step_id = list_id
     for (step in scenario['finally']) {
         def display_name = step['job']
@@ -559,18 +577,30 @@ def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '') {
                        duration  : '-'])
         list_id += 1
     }
-
+    def job_failed_flag = false
     try {
         // Run the 'workflow' jobs
         runSteps(scenario['workflow'], global_variables, failed_jobs, jobs_data, step_id, false, artifactoryBaseUrl)
     } catch (InterruptedException x) {
+        job_failed_flag = true
         error "The job was aborted"
     } catch (e) {
+        job_failed_flag = true
         error("Build failed: " + e.toString())
+
     } finally {
-        // Switching to 'finally' step index
+        flag_pause_variable = (env.PAUSE_FOR_DEBUG) != null
+        // Run the 'finally' or 'pause' jobs
+        if (flag_pause_variable && (PAUSE_FOR_DEBUG && job_failed_flag)) {
+            // Switching to 'pause' step index
+            common.infoMsg("FINALLY BLOCK - PAUSE")
+            step_id = pause_step_id
+            runSteps(scenario['pause'], global_variables, failed_jobs, jobs_data, step_id, false, artifactoryBaseUrl)
+
+        }
+         // Switching to 'finally' step index
+        common.infoMsg("FINALLY BLOCK - CLEAR")
         step_id = finally_step_id
-        // Run the 'finally' jobs
         runSteps(scenario['finally'], global_variables, failed_jobs, jobs_data, step_id, false, artifactoryBaseUrl)
 
         if (failed_jobs) {
