@@ -60,6 +60,7 @@ def setupOpenstackVirtualenv(path, version = 'latest', python="python2") {
         'warlock>1.3.1;python_version=="3.5"',
         // NOTE: pin client packages to current latest to prevent
         // downloading packages which are not support Python 2.7
+        'keystoneauth1<=5.0.0',
         'python-openstackclient==4.0.0',
         'python-ironicclient==3.1.2',
         'openstacksdk<0.44.0',
