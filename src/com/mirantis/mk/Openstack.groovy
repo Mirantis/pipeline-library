@@ -56,6 +56,7 @@ def setupOpenstackVirtualenv(path, version = 'latest', python="python2") {
         'cmd2>=0.9.1;python_version=="3.5"',
         // NOTE: pin client packages to current latest to prevent
         // downloading packages which are not support Python 2.7
+        'keystoneauth1<=5.0.0',
         'python-openstackclient==4.0.0',
         'python-heatclient==1.18.0',
         'docutils==0.16',
