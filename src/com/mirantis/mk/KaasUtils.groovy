@@ -114,6 +114,7 @@ def checkDeploymentTestSuite() {
     def bootstrapV2Scenario = env.BOOTSTRAP_V2_ENABLED ? env.BOOTSTRAP_V2_ENABLED.toBoolean() : false
     def equinixMetalV2Metro = env.EQUINIX_MGMT_METRO ? env.EQUINIX_MGMT_METRO : ''
     def enableFips = env.ENABLE_FIPS ? env.ENABLE_FIPS.toBoolean() : false
+    def aioCluster = env.AIO_CLUSTER ? env.AIO_CLUSTER.toBoolean() : false
 
     def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
     if (commitMsg ==~ /(?s).*\[mgmt-proxy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-proxy.*/) {
@@ -333,6 +334,10 @@ def checkDeploymentTestSuite() {
         upgradeChild = false
     }
 
+    if (commitMsg ==~ /(?s).*\[aio-cluster\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*aio-cluster.*/) {
+        aioCluster = true
+    }
+
     // multiregional tests
     def multiRegionalMatches = (commitMsg =~ /(\[multiregion\s*.*?\])/)
     if (multiRegionalMatches.size() > 0) {
@@ -469,6 +474,7 @@ def checkDeploymentTestSuite() {
         Bootstrap v2 scenario enabled: ${bootstrapV2Scenario}
         FIPS enabled: ${enableFips}
         Pause for debug enabled: ${pauseForDebug}
+        AIO cluster: ${aioCluster}
         Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [
         osCloudLocation                          : openstackIMC,
@@ -523,7 +529,8 @@ def checkDeploymentTestSuite() {
         demoWeight                               : demoWeight,
         bootstrapV2Scenario                      : bootstrapV2Scenario,
         equinixMetalV2Metro                      : equinixMetalV2Metro,
-        enableFips                               : enableFips]
+        enableFips                               : enableFips,
+        aioCluster                               : aioCluster]
 }
 
 /**
@@ -824,7 +831,8 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'AZURE_ON_AWS_DEMO', value: triggers.azureOnAwsDemoEnabled),
         booleanParam(name: 'VSPHERE_DEPLOY_UBUNTU', value: triggers.vsphereUbuntuEnabled),
         booleanParam(name: 'PAUSE_FOR_DEBUG', value: triggers.pauseForDebugEnabled),
-        booleanParam(name: 'ENABLE_FIPS', value: triggers.enableFips)
+        booleanParam(name: 'ENABLE_FIPS', value: triggers.enableFips),
+        booleanParam(name: 'AIO_CLUSTER', value: triggers.aioCluster),
     ]
 
     // customize multiregional demo
