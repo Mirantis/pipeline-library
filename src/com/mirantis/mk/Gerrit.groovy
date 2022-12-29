@@ -552,7 +552,7 @@ def isGate(gerritEventCommentText, gerritEventType) {
         common.infoMsg("GERRIT_EVENT_COMMENT_TEXT is ${gerritEventCommentTextStr}")
     }
     def gateComment = gerritEventCommentTextStr.split('\n')[0]
-    if (gerritEventType == 'comment-added' && gateComment =~ /^Patch Set \d+:\s.*Workflow\+1$/) {
+    if (gerritEventType == 'comment-added' && gateComment =~ /^Patch Set \d+:\s.*Workflow\+1.*$/) {
         common.infoMsg("Running in gate mode")
         res = true
     }
