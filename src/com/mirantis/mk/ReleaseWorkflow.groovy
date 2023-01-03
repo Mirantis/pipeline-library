@@ -64,7 +64,7 @@ def getReleaseMetadataValue(String key, Map params = [:]) {
     docker.image(appDockerImage).inside("--volume ${repoDir}:/workspace") {
         checkResult = sh(script: "metadata-app --path /workspace/metadata ${opts} validate --structure", returnStatus: true)
         if (checkResult != 0) {
-            throw new Exception("Invalid metadata structure")
+            throw new Exception("Invalid metadata structure, see errors in the metadata.log file")
         }
         result = sh(script: "metadata-app --path /workspace/metadata ${opts} get --key ${key}", returnStdout: true).trim()
     }
@@ -165,9 +165,9 @@ def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth
                     }
                     try {
                         sh "metadata-app --path /workspace/metadata update --create --key '${keyArr[i]}' ${valueExpression}"
-                        checkResult = sh(script: "metadata-app --path /workspace/metadata ${opts} validate --structure", returnStatus: true)
+                        checkResult = sh(script: "metadata-app --path /workspace/metadata validate --structure", returnStatus: true)
                         if (checkResult != 0) {
-                            throw new Exception("Invalid metadata structure")
+                            throw new Exception("Invalid metadata structure, see errors in the metadata.log file")
                         }
                     } finally {
                         if (valuesFromFile){
