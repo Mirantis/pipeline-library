@@ -110,6 +110,7 @@ def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth
     String changeAuthorName     = params.get('crAuthorName', 'MCP-CI')
     String changeAuthorEmail    = params.get('crAuthorEmail', 'mcp-ci-jenkins@ci.mcp.mirantis.net')
     Boolean valuesFromFile      = params.get('valuesFromFile', false)
+    Boolean catMetadataLog       = params.get('catMetadataLog', false)
 
     def cred = common.getCredentials(gitCredentialsId, 'key')
     String gerritUser = cred.username
@@ -166,12 +167,18 @@ def updateReleaseMetadata(String key, String value, Map params, Integer dirdepth
                     try {
                         sh "metadata-app --path /workspace/metadata update --create --key '${keyArr[i]}' ${valueExpression}"
                         checkResult = sh(script: "metadata-app --path /workspace/metadata validate --structure", returnStatus: true)
+                        def MetadataLogFile = readFile("metadata.log")
+                        if (MetadataLogFile.size() > 0) {
+                            if (catMetadataLog) {
+                                common.errorMsg("Invalid metadata structure, metadata.log file content:\n${MetadataLogFile}")
+                            }
+                        }
                         if (checkResult != 0) {
                             throw new Exception("Invalid metadata structure, see errors in the metadata.log file")
                         }
                     } finally {
-                        if (valuesFromFile){
-                            sh "rm ${tmpFile}"
+                        if (valuesFromFile) {
+                            sh "rm -v ${tmpFile}"
                         }
                     }
                 }
