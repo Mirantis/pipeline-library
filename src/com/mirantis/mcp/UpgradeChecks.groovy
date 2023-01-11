@@ -202,3 +202,32 @@ Please set pillar "redis:server:version" to "5.0" to openstack/telemetry.yml and
     }
     return waStatus
 }
+
+def check_37068 (salt, venvPepper, String cluster_name, Boolean raise_exc) {
+    def waStatus = [prodId: "PROD-37068", isFixed: "", waInfo: ""]
+    def dogtag_enabled = salt.getPillar(venvPepper, 'I@dogtag:server', "dogtag:server:enabled").get("return")[0].values()[0]
+    def pushgateway_enabled = salt.getPillar(venvPepper, 'I@docker:client:stack:monitoring', "prometheus:pushgateway:enabled").get("return")[0].values()[0]
+    if (dogtag_enabled == '' || dogtag_enabled == 'false' || dogtag_enabled == null) {
+        waStatus.isFixed = 'Nothing to do. Dogtag is disabled.'
+        return waStatus
+    } else {
+        if (pushgateway_enabled == '' || pushgateway_enabled == 'false' || pushgateway_enabled == null) {
+            waStatus.isFixed = 'Nothing to do. Pushgateway is disabled.'
+            return waStatus
+        } else {
+            def stacklightMonitorHostnamePillar = salt.getPillar(venvPepper, 'I@dogtag:server', 'dogtag:server:stacklight_monitor_hostname').get("return")[0].values()[0]
+            if (stacklightMonitorHostnamePillar == '' || stacklightMonitorHostnamePillar == 'null' || stacklightMonitorHostnamePillar == null) {
+                waStatus.isFixed = "Work-around should be applied manually"
+                waStatus.waInfo = """To enable dogtag certificates expriration alerts you MUST set stacklight monitor endpoint. \n
+Please set pillar "dogtag:server:stacklight_monitor_hostname" to the value of _param:stacklight_monitor_hostname in openstack/barbican.yml and refresh pillars."""
+                if (raise_exc) {
+                    error('Pillar dogtag:server:stacklight_monitor_hostname is not defined.\n' +
+                    waStatus.waInfo)
+                }
+                return waStatus
+            }
+            waStatus.isFixed = "Work-around for PROD-37068 already applied, nothing todo"
+            return waStatus
+        }
+    }
+}
