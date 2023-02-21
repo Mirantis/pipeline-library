@@ -92,10 +92,6 @@ def check_36461(salt, venvPepper, String cluster_name, Boolean raise_exc){
     catch (Exception e) {
         waStatus.isFixed = "Check skipped"
         waStatus.waInfo = "Unable to check ordering of RadosGW imports, file ${checkFile} not found, skipping"
-        if (raise_exc) {
-            common.warningMsg(waStatus.waInfo)
-            return
-        }
         return waStatus
     }
     def fileContent = salt.cmdRun(venvPepper, saltTarget, "cat ${checkFile}").get('return')[0].values()[0].replaceAll('Salt command execution success', '').trim()
@@ -140,14 +136,17 @@ For additional information please see https://docs.mirantis.com/mcp/q4-18/mcp-re
 
 def check_36461_2 (salt, venvPepper, String cluster_name, Boolean raise_exc) {
     def saltTarget = salt.getFirstMinion(venvPepper, 'I@ceph:mon')
+    def waStatus = [prodId: "PROD-36461,PROD-36942", isFixed: "", waInfo: ""]
+    if (!saltTarget){
+        waStatus.isFixed = "Ceph not enabled, skipping"
+        return waStatus
+    }
     def cephVersionNum = salt.cmdRun(venvPepper, saltTarget, "ceph version | awk '{print \$3}'").get('return')[0].values()[0].replaceAll('Salt command execution success', '').trim()
     List cephVersion = cephVersionNum.tokenize('.')
 
     def majorVersion = cephVersion[0].toInteger()
     def minorVersion = cephVersion[1].toInteger()
     def minorSubversion = cephVersion[2].toInteger()
-
-    def waStatus = [prodId: "PROD-36461,PROD-36942", isFixed: "", waInfo: ""]
 
     def allowInsecureReclaimIdPillar = salt.getPillar(venvPepper, 'I@ceph:mon', 'ceph:common:config:mon:auth_allow_insecure_global_id_reclaim').get("return")[0].values()[0]
     allowInsecureReclaimIdPillar = allowInsecureReclaimIdPillar.toString().toLowerCase().trim()
