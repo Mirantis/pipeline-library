@@ -17,6 +17,23 @@ package com.mirantis.mk
  */
 
 /**
+ * Print 'global_variables' accumulated during workflow execution, including
+ * collected artifacts.
+ * Output is prepared in format that can be copy-pasted into groovy code
+ * to replay the workflow using the already created artifacts.
+ *
+ * @param global_variables  Map that keeps the artifact URLs and used 'env' objects:
+ *                          {'PARAM1_NAME': <param1 value>, 'PARAM2_NAME': 'http://.../artifacts/param2_value', ...}
+ */
+def printVariables(global_variables) {
+    def message = "// Collected global_variables during the workflow:\n"
+    for (variable in global_variables) {
+        message += "env.${variable.key}=\"${variable.value}\"\n"
+    }
+    common.warningMsg(message)
+}
+
+/**
  * Get Jenkins parameter names, values and types from jobName
  * @param jobName job name
  * @return Map with parameter names as keys and the following map as values:
@@ -511,7 +528,7 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
  *   wf_pause_step_timeout: timeout im minutes to wait for manual unpause.
  */
 
-def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '') {
+def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '', Boolean logGlobalVariables = false) {
     // Clear description before adding new messages
     currentBuild.description = ''
     // Collect the parameters for the jobs here
@@ -589,6 +606,11 @@ def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '') {
         error("Build failed: " + e.toString())
 
     } finally {
+        // Log global_variables
+        if (logGlobalVariables) {
+            printVariables(global_variables)
+        }
+
         flag_pause_variable = (env.PAUSE_FOR_DEBUG) != null
         // Run the 'finally' or 'pause' jobs
         common.infoMsg(failed_jobs)
