@@ -17,9 +17,20 @@ package com.mirantis.mk
  * @param timeout         Set checkout timeout (default 10)
  * @param depth           Git depth param (default 0 means no depth)
  * @param reference       Git reference param to checkout (default empyt, i.e. no reference)
+ * @param withWipeOut     Enable workspace wipe before checkout
  */
-def checkoutGitRepository(path, url, branch, credentialsId = null, poll = true, timeout = 10, depth = 0, reference = ''){
+def checkoutGitRepository(path, url, branch, credentialsId = null, poll = true, timeout = 10, depth = 0, reference = '', withWipeOut = false){
     def branch_name = reference ? 'FETCH_HEAD' : "*/${branch}"
+    def scmExtensions = [
+        [$class: 'CheckoutOption', timeout: timeout],
+        [$class: 'CloneOption', depth: depth, noTags: false, shallow: depth > 0, timeout: timeout]
+    ]
+
+    // wipe workspace before checkout
+    if (withWipeOut) {
+        scmExtensions.add([$class: 'WipeWorkspace'])
+    }
+
     dir(path) {
         checkout(
             changelog:true,
@@ -28,9 +39,7 @@ def checkoutGitRepository(path, url, branch, credentialsId = null, poll = true, 
                 $class: 'GitSCM',
                 branches: [[name: branch_name]],
             doGenerateSubmoduleConfigurations: false,
-            extensions: [
-                [$class: 'CheckoutOption', timeout: timeout],
-                [$class: 'CloneOption', depth: depth, noTags: false, shallow: depth > 0, timeout: timeout]],
+            extensions: scmExtensions,
             submoduleCfg: [],
             userRemoteConfigs: [[url: url, credentialsId: credentialsId, refspec: reference]]]
         )
