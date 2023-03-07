@@ -92,10 +92,6 @@ def check_36461(salt, venvPepper, String cluster_name, Boolean raise_exc){
     catch (Exception e) {
         waStatus.isFixed = "Check skipped"
         waStatus.waInfo = "Unable to check ordering of RadosGW imports, file ${checkFile} not found, skipping"
-        if (raise_exc) {
-            common.warningMsg(waStatus.waInfo)
-            return
-        }
         return waStatus
     }
     def fileContent = salt.cmdRun(venvPepper, saltTarget, "cat ${checkFile}").get('return')[0].values()[0].replaceAll('Salt command execution success', '').trim()
@@ -140,14 +136,17 @@ For additional information please see https://docs.mirantis.com/mcp/q4-18/mcp-re
 
 def check_36461_2 (salt, venvPepper, String cluster_name, Boolean raise_exc) {
     def saltTarget = salt.getFirstMinion(venvPepper, 'I@ceph:mon')
+    def waStatus = [prodId: "PROD-36461,PROD-36942", isFixed: "", waInfo: ""]
+    if (!saltTarget){
+        waStatus.isFixed = "Ceph not enabled, skipping"
+        return waStatus
+    }
     def cephVersionNum = salt.cmdRun(venvPepper, saltTarget, "ceph version | awk '{print \$3}'").get('return')[0].values()[0].replaceAll('Salt command execution success', '').trim()
     List cephVersion = cephVersionNum.tokenize('.')
 
     def majorVersion = cephVersion[0].toInteger()
     def minorVersion = cephVersion[1].toInteger()
     def minorSubversion = cephVersion[2].toInteger()
-
-    def waStatus = [prodId: "PROD-36461,PROD-36942", isFixed: "", waInfo: ""]
 
     def allowInsecureReclaimIdPillar = salt.getPillar(venvPepper, 'I@ceph:mon', 'ceph:common:config:mon:auth_allow_insecure_global_id_reclaim').get("return")[0].values()[0]
     allowInsecureReclaimIdPillar = allowInsecureReclaimIdPillar.toString().toLowerCase().trim()
@@ -202,4 +201,33 @@ Please set pillar "redis:server:version" to "5.0" to openstack/telemetry.yml and
         error('Option is not set to required value.\n' + waStatus.waInfo)
     }
     return waStatus
+}
+
+def check_37068 (salt, venvPepper, String cluster_name, Boolean raise_exc) {
+    def waStatus = [prodId: "PROD-37068", isFixed: "", waInfo: ""]
+    def dogtag_enabled = salt.getPillar(venvPepper, 'I@dogtag:server', "dogtag:server:enabled").get("return")[0].values()[0]
+    def pushgateway_enabled = salt.getPillar(venvPepper, 'I@docker:client:stack:monitoring', "prometheus:pushgateway:enabled").get("return")[0].values()[0]
+    if (dogtag_enabled == '' || dogtag_enabled == 'false' || dogtag_enabled == null) {
+        waStatus.isFixed = 'Nothing to do. Dogtag is disabled.'
+        return waStatus
+    } else {
+        if (pushgateway_enabled == '' || pushgateway_enabled == 'false' || pushgateway_enabled == null) {
+            waStatus.isFixed = 'Nothing to do. Pushgateway is disabled.'
+            return waStatus
+        } else {
+            def stacklightMonitorHostnamePillar = salt.getPillar(venvPepper, 'I@dogtag:server', 'dogtag:server:stacklight_monitor_hostname').get("return")[0].values()[0]
+            if (stacklightMonitorHostnamePillar == '' || stacklightMonitorHostnamePillar == 'null' || stacklightMonitorHostnamePillar == null) {
+                waStatus.isFixed = "Work-around should be applied manually"
+                waStatus.waInfo = """To enable dogtag certificates expriration alerts you MUST set stacklight monitor endpoint. \n
+Please set pillar "dogtag:server:stacklight_monitor_hostname" to the value of _param:stacklight_monitor_hostname in openstack/barbican.yml and refresh pillars."""
+                if (raise_exc) {
+                    error('Pillar dogtag:server:stacklight_monitor_hostname is not defined.\n' +
+                    waStatus.waInfo)
+                }
+                return waStatus
+            }
+            waStatus.isFixed = "Work-around for PROD-37068 already applied, nothing todo"
+            return waStatus
+        }
+    }
 }
