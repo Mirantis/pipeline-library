@@ -83,6 +83,7 @@ def checkDeploymentTestSuite() {
     def runGracefulRebootTest = env.RUN_GRACEFUL_REBOOT_TEST ? env.RUN_GRACEFUL_REBOOT_TEST.toBoolean() : false
     def pauseForDebug = env.PAUSE_FOR_DEBUG ? env.PAUSE_FOR_DEBUG.toBoolean() : false
     def runChildMachineDeletionPolicyTest = env.RUN_CHILD_MACHINE_DELETION_POLICY_TEST ? env.RUN_CHILD_MACHINE_DELETION_POLICY_TEST.toBoolean() : false
+    def runChildCustomCertTest = env.RUN_CHILD_CUSTOM_CHILD_TEST ? env.RUN_CHILD_CUSTOM_CHILD_TEST.toBoolean() : false
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
     def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
         enabled: false,
@@ -324,6 +325,12 @@ def checkDeploymentTestSuite() {
         common.warningMsg('OS will be booted from Ceph volumes')
     }
 
+    if (commitMsg ==~ /(?s).*\[child-custom-cert-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-custom-cert-test\.*/) {
+        runChildCustomCertTest = true
+        deployChild = true
+        common.warningMsg('Child cluster deployment will be enabled since custom cert child test suite will be executed')
+    }
+
     // TODO (vnaumov) remove below condition after moving all releases to UCP
     def ucpChildMatches = (commitMsg =~ /(\[child-ucp\s*ucp-.*?\])/)
     if (ucpChildMatches.size() > 0) {
@@ -459,6 +466,7 @@ def checkDeploymentTestSuite() {
         Delete rgnl master node test: ${runRgnlDeleteMasterTest}
         Delete child master node test: ${runChildDeleteMasterTest}
         Child machine deletion policy test: ${runChildMachineDeletionPolicyTest}
+        Custom cert test for child clusters: ${runChildCustomCertTest}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         Equinix provider deployment scheduled: ${equinixOnDemandDemo}
         EquinixmetalV2 provider deployment scheduled: ${equinixMetalV2OnDemandDemo}
@@ -512,6 +520,7 @@ def checkDeploymentTestSuite() {
         runMgmtDeleteMasterTestEnabled           : runMgmtDeleteMasterTest,
         runRgnlDeleteMasterTestEnabled           : runRgnlDeleteMasterTest,
         runChildDeleteMasterTestEnabled          : runChildDeleteMasterTest,
+        runChildCustomCertTestEnabled            : runChildCustomCertTest,
         runChildMachineDeletionPolicyTestEnabled : runChildMachineDeletionPolicyTest,
         runLMATestEnabled                        : runLMATest,
         runMgmtUserControllerTestEnabled         : runMgmtUserControllerTest,
@@ -818,6 +827,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'RUN_MGMT_DELETE_MASTER_TEST', value: triggers.runMgmtDeleteMasterTestEnabled),
         booleanParam(name: 'RUN_RGNL_DELETE_MASTER_TEST', value: triggers.runRgnlDeleteMasterTestEnabled),
         booleanParam(name: 'RUN_CHILD_DELETE_MASTER_TEST', value: triggers.runChildDeleteMasterTestEnabled),
+        booleanParam(name: 'RUN_CHILD_CUSTOM_CERT_TEST', value: triggers.runChildCustomCertTestEnabled),
         booleanParam(name: 'RUN_CHILD_MACHINE_DELETION_POLICY_TEST', value: triggers.runChildMachineDeletionPolicyTestEnabled),
         booleanParam(name: 'RUN_LMA_TEST', value: triggers.runLMATestEnabled),
         booleanParam(name: 'RUN_MGMT_USER_CONTROLLER_TEST', value: triggers.runMgmtUserControllerTestEnabled),
