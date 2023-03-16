@@ -83,7 +83,7 @@ def checkDeploymentTestSuite() {
     def runGracefulRebootTest = env.RUN_GRACEFUL_REBOOT_TEST ? env.RUN_GRACEFUL_REBOOT_TEST.toBoolean() : false
     def pauseForDebug = env.PAUSE_FOR_DEBUG ? env.PAUSE_FOR_DEBUG.toBoolean() : false
     def runChildMachineDeletionPolicyTest = env.RUN_CHILD_MACHINE_DELETION_POLICY_TEST ? env.RUN_CHILD_MACHINE_DELETION_POLICY_TEST.toBoolean() : false
-    def runChildCustomCertTest = env.RUN_CHILD_CUSTOM_CHILD_TEST ? env.RUN_CHILD_CUSTOM_CHILD_TEST.toBoolean() : false
+    def runChildCustomCertTest = env.RUN_CHILD_CUSTOM_CERT_TEST ? env.RUN_CHILD_CUSTOM_CERT_TEST.toBoolean() : false
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
     def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
         enabled: false,
