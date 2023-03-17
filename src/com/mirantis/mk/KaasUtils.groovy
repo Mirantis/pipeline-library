@@ -197,10 +197,10 @@ def checkDeploymentTestSuite() {
         mosDeployChild = true
         openstackIMC = 'eu2'
     }
-    if (commitMsg ==~ /(?s).*\[ui-e2e\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-e2e.*/) {
+    if (commitMsg ==~ /(?s).*\[ui-e2e-nw\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-e2e-nw.*/) {
         runUie2e = true
     }
-    if (commitMsg ==~ /(?s).*\[ui-e2e-new\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-e2e-new.*/) {
+    if (commitMsg ==~ /(?s).*\[ui-e2e-pw\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-e2e-pw.*/) {
         runUie2eNew = true
     }
     if (commitMsg ==~ /(?s).*\[mgmt-cfm\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-cfm.*/) {
@@ -410,7 +410,7 @@ def checkDeploymentTestSuite() {
 
     // calculate weight of current demo run to manage lockable resources
     def demoWeight = deployChild ? 2 : 1 // management = 1, child += 1
-    if (runUie2e) {
+    if (runUie2e || runUie2eNew) {
         demoWeight += 1
     }
 
