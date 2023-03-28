@@ -297,6 +297,13 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[azure-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*azure-demo\.*/) {
         azureOnDemandDemo = true
     }
+    if (commitMsg ==~ /(?s).*\[disable-all-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-all-demo\.*/) {
+        enableVsphereDemo = false
+        enableOSDemo = false
+        enableBMDemo = false
+        common.errorMsg('vSphere, BM, Openstack demo deployments will be aborted, VF -1 will be set')
+    }
+
     if (commitMsg ==~ /(?s).*\[disable-os-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-os-demo\.*/) {
         enableOSDemo = false
         common.errorMsg('Openstack demo deployment will be aborted, VF -1 will be set')
