@@ -539,6 +539,7 @@ def updateChangeRequest(Map params) {
     def amend = params.get('amend', false)
     def jsonChange = params.get('gerritPatch', [:])
     def changeId = params.get('changeId', '')
+    def remote = params.get('remote', 'origin')
     def commit
 
     if (!jsonChange) {
@@ -572,7 +573,7 @@ def updateChangeRequest(Map params) {
     dir(repo){
         commit = getGitCommit()
     }
-    pushForReview(repo, creds, commit, branch, topic)
+    pushForReview(repo, creds, commit, branch, topic, remote)
 }
 
 /**
