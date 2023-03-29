@@ -118,6 +118,7 @@ def checkDeploymentTestSuite() {
     def enableFips = env.ENABLE_FIPS ? env.ENABLE_FIPS.toBoolean() : false
     def aioCluster = env.AIO_CLUSTER ? env.AIO_CLUSTER.toBoolean() : false
     def useVsphereVvmtObjects = env.VSPHERE_USE_VVMT_OBJECTS ? env.VSPHERE_USE_VVMT_OBJECTS.toBoolean() : false
+    def enableBv2Smoke = true
 
     def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
     if (commitMsg ==~ /(?s).*\[mgmt-proxy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-proxy.*/) {
@@ -322,6 +323,10 @@ def checkDeploymentTestSuite() {
         enableVsphereUbuntu = true
         common.warningMsg('Ubuntu will be used to deploy vsphere machines')
     }
+    if (commitMsg ==~ /(?s).*\[disable-bv2-smoke\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-bv2-smoke\.*/) {
+        enableBv2Smoke = false
+        common.errorMsg('Bootstrap v2 smoke checks will be aborted, WF -1 will be set')
+    }
 
     if (commitMsg ==~ /(?s).*\[disable-artifacts-build\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-artifacts-build\.*/) {
         enableArtifactsBuild = false
@@ -504,6 +509,7 @@ def checkDeploymentTestSuite() {
         Pause for debug enabled: ${pauseForDebug}
         AIO cluster: ${aioCluster}
         Use Vsphere VVMT Objects: ${useVsphereVvmtObjects}
+        Bootsrap v2 smoke checks enabled: ${enableBv2Smoke}
         Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [
         osCloudLocation                          : openstackIMC,
@@ -562,7 +568,8 @@ def checkDeploymentTestSuite() {
         equinixMetalV2Metro                      : equinixMetalV2Metro,
         enableFips                               : enableFips,
         aioCluster                               : aioCluster,
-        useVsphereVvmtObjects                    : useVsphereVvmtObjects]
+        useVsphereVvmtObjects                    : useVsphereVvmtObjects,
+        bv2SmokeEnabled                          : enableBv2Smoke]
 }
 
 /**
