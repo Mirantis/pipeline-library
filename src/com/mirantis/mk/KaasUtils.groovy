@@ -73,6 +73,7 @@ def checkDeploymentTestSuite() {
     def runMgmtUserControllerTest = env.RUN_MGMT_USER_CONTROLLER_TEST ? env.RUN_MGMT_USER_CONTROLLER_TEST.toBoolean() : false
     def runProxyChildTest = env.RUN_PROXY_CHILD_TEST ? env.RUN_PROXY_CHILD_TEST.toBoolean() : false
     def runChildConformance = env.RUN_CHILD_CFM ? env.RUN_CHILD_CFM.toBoolean() : false
+    def runChildHPA = env.RUN_CHILD_HPA ? env.RUN_CHILD_HPA.toBoolean() : false
     def fetchServiceBinaries = env.FETCH_BINARIES_FROM_UPSTREAM ? env.FETCH_BINARIES_FROM_UPSTREAM.toBoolean() : false
     def equinixMetalV2ChildDiffMetro = env.EQUINIXMETALV2_CHILD_DIFF_METRO ? env.EQUINIXMETALV2_CHILD_DIFF_METRO.toBoolean() : false
     def runMaintenanceTest = env.RUN_MAINTENANCE_TEST ? env.RUN_MAINTENANCE_TEST.toBoolean() : false
@@ -128,7 +129,7 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[seed-macos\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*seed-macos.*/) {
         seedMacOs = true
     }
-    if (commitMsg ==~ /(?s).*\[child-deploy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-deploy.*/ || upgradeChild || runChildConformance || runProxyChildTest) {
+    if (commitMsg ==~ /(?s).*\[child-deploy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-deploy.*/ || upgradeChild || runChildConformance || runProxyChildTest || runChildHPA) {
         deployChild = true
     }
     if (commitMsg ==~ /(?s).*\[child-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-upgrade.*/) {
@@ -218,6 +219,10 @@ def checkDeploymentTestSuite() {
     }
     if (commitMsg ==~ /(?s).*\[child-cfm\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-cfm.*/) {
         runChildConformance = true
+        deployChild = true
+    }
+    if (commitMsg ==~ /(?s).*\[child-hpa\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-hpa.*/) {
+        runChildHPA = true
         deployChild = true
     }
     if (commitMsg ==~ /(?s).*\[lma-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*lma-test.*/) {
@@ -464,6 +469,7 @@ def checkDeploymentTestSuite() {
         MOS child deploy scheduled: ${mosDeployChild}
         MOS child upgrade scheduled: ${mosUpgradeChild}
         Child conformance testing scheduled: ${runChildConformance}
+        Child HPA testing scheduled: ${runChildHPA}
         Single BYO cluster attachment scheduled: ${attachBYO}
         Single Attached BYO cluster upgrade test scheduled: ${upgradeBYO}
         BYO test matrix whole suite scheduled: ${runBYOMatrix}
@@ -523,6 +529,7 @@ def checkDeploymentTestSuite() {
         mosDeployChildEnabled                    : mosDeployChild,
         mosUpgradeChildEnabled                   : mosUpgradeChild,
         runChildConformanceEnabled               : runChildConformance,
+        runChildHPAEnabled                       : runChildHPA,
         attachBYOEnabled                         : attachBYO,
         upgradeBYOEnabled                        : upgradeBYO,
         runBYOMatrixEnabled                      : runBYOMatrix,
@@ -863,6 +870,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'UPGRADE_BYO', value: triggers.upgradeBYOEnabled),
         booleanParam(name: 'RUN_BYO_MATRIX', value: triggers.runBYOMatrixEnabled),
         booleanParam(name: 'RUN_CHILD_CFM', value: triggers.runChildConformanceEnabled),
+        booleanParam(name: 'RUN_CHILD_HPA', value: triggers.runChildHPAEnabled),
         booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled),
         booleanParam(name: 'ALLOW_EQUINIX_ON_DEMAND', value: triggers.equinixOnDemandDemoEnabled),
         booleanParam(name: 'ALLOW_EQUINIXMETALV2_ON_DEMAND', value: triggers.equinixMetalV2OnDemandDemoEnabled),
