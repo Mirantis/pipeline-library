@@ -86,6 +86,7 @@ def checkDeploymentTestSuite() {
     def runChildMachineDeletionPolicyTest = env.RUN_CHILD_MACHINE_DELETION_POLICY_TEST ? env.RUN_CHILD_MACHINE_DELETION_POLICY_TEST.toBoolean() : false
     def runChildCustomCertTest = env.RUN_CHILD_CUSTOM_CERT_TEST ? env.RUN_CHILD_CUSTOM_CERT_TEST.toBoolean() : false
     def runByoChildCustomCertTest = env.RUN_BYO_CHILD_CUSTOM_CERT_TEST ? env.RUN_BYO_CHILD_CUSTOM_CERT_TEST.toBoolean() : false
+    def runMgmtCustomCacheCertTest = env.RUN_MGMT_CUSTOM_CACHE_CERT_TEST ? env.RUN_MGMT_CUSTOM_CACHE_CERT_TEST.toBoolean() : false
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
     def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
         enabled: false,
@@ -349,6 +350,12 @@ def checkDeploymentTestSuite() {
         common.warningMsg('Child cluster deployment will be enabled since custom cert child test suite will be executed')
     }
 
+    if (commitMsg ==~ /(?s).*\[mgmt-custom-cache-cert-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-custom-cache-cert-test\.*/) {
+        runMgmtCustomCacheCertTest = true
+        deployChild = true
+        common.warningMsg('Child cluster deployment will be enabled as the test replaces the mgmt and cluster childcertificates')
+    }
+
     if (commitMsg ==~ /(?s).*\[byo-child-custom-cert-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*byo-child-custom-cert-test\.*/) {
         runByoChildCustomCertTest = true
         attachBYO = true
@@ -493,6 +500,7 @@ def checkDeploymentTestSuite() {
         Child machine deletion policy test: ${runChildMachineDeletionPolicyTest}
         Custom cert test for child clusters: ${runChildCustomCertTest}
         Custom cert test for Byo child clusters: ${runByoChildCustomCertTest}
+        Custom cache cert test for mgmt and child clusters: ${runMgmtCustomCacheCertTest}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         Equinix provider deployment scheduled: ${equinixOnDemandDemo}
         EquinixmetalV2 provider deployment scheduled: ${equinixMetalV2OnDemandDemo}
@@ -549,6 +557,7 @@ def checkDeploymentTestSuite() {
         runRgnlDeleteMasterTestEnabled           : runRgnlDeleteMasterTest,
         runChildDeleteMasterTestEnabled          : runChildDeleteMasterTest,
         runChildCustomCertTestEnabled            : runChildCustomCertTest,
+        runMgmtCustomCacheCertTestEnabled        : runMgmtCustomCacheCertTest,
         runByoChildCustomCertTestEnabled         : runByoChildCustomCertTest,
         runChildMachineDeletionPolicyTestEnabled : runChildMachineDeletionPolicyTest,
         runLMATestEnabled                        : runLMATest,
@@ -858,6 +867,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'RUN_RGNL_DELETE_MASTER_TEST', value: triggers.runRgnlDeleteMasterTestEnabled),
         booleanParam(name: 'RUN_CHILD_DELETE_MASTER_TEST', value: triggers.runChildDeleteMasterTestEnabled),
         booleanParam(name: 'RUN_CHILD_CUSTOM_CERT_TEST', value: triggers.runChildCustomCertTestEnabled),
+        booleanParam(name: 'RUN_MGMT_CUSTOM_CACHE_CERT_TEST', value: triggers.runMgmtCustomCacheCertTestEnabled),
         booleanParam(name: 'RUN_BYO_CHILD_CUSTOM_CERT_TEST', value: triggers.runByoChildCustomCertTestEnabled),
         booleanParam(name: 'RUN_CHILD_MACHINE_DELETION_POLICY_TEST', value: triggers.runChildMachineDeletionPolicyTestEnabled),
         booleanParam(name: 'RUN_LMA_TEST', value: triggers.runLMATestEnabled),
