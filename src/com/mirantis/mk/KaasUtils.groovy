@@ -1403,3 +1403,23 @@ def schedule (label='docker') {
     // return the least loaded node
     return common.SortMapByValueAsc(nodesMap).collect { it.key }[0]
 }
+
+
+/**
+ * Get latest tag for test/frontend & equinix-private-infra images
+ * @param version   (str)    default tag value from main workflow
+ * @param isChanged (bool)   is dependent directory files were changed
+ * @param imageName (string) image name for information message
+ * @return:         (string) tag name
+ */
+def getImageTag(version, isChanged, imageName) {
+    def common = new com.mirantis.mk.Common()
+    def latestTag = env.GERRIT_BRANCH ? env.GERRIT_BRANCH : env.GERRIT_REFSPEC ? env.GERRIT_REFSPEC : 'master'
+    if (!(env.GERRIT_EVENT_TYPE == 'ref-updated') && isChanged) {
+        latestTag = version
+    } else if (latestTag != 'master') {
+        latestTag = latestTag.replaceAll('/', '_')
+    }
+    common.infoMsg("${imageName} image will use tag '${latestTag}'")
+    return latestTag
+}
