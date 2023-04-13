@@ -69,10 +69,12 @@ def checkDeploymentTestSuite() {
     def runUie2e = env.RUN_UI_E2E ? env.RUN_UI_E2E.toBoolean() : false
     def runUie2eNew = env.RUN_UI_E2E_NEW ? env.RUN_UI_E2E_NEW.toBoolean() : false
     def runMgmtConformance = env.RUN_MGMT_CFM ? env.RUN_MGMT_CFM.toBoolean() : false
+    def runMgmtConformanceNetworkPolicy = env.RUN_MGMT_CFM_NETWORK_POLICY ? env.RUN_MGMT_CFM_NETWORK_POLICY.toBoolean() : false
     def runLMATest = env.RUN_LMA_TEST ? env.RUN_LMA_TEST.toBoolean() : false
     def runMgmtUserControllerTest = env.RUN_MGMT_USER_CONTROLLER_TEST ? env.RUN_MGMT_USER_CONTROLLER_TEST.toBoolean() : false
     def runProxyChildTest = env.RUN_PROXY_CHILD_TEST ? env.RUN_PROXY_CHILD_TEST.toBoolean() : false
     def runChildConformance = env.RUN_CHILD_CFM ? env.RUN_CHILD_CFM.toBoolean() : false
+    def runChildConformanceNetworkPolicy = env.RUN_CHILD_CFM_NETWORK_POLICY ? env.RUN_CHILD_CFM_NETWORK_POLICY.toBoolean() : false
     def runChildHPA = env.RUN_CHILD_HPA ? env.RUN_CHILD_HPA.toBoolean() : false
     def fetchServiceBinaries = env.FETCH_BINARIES_FROM_UPSTREAM ? env.FETCH_BINARIES_FROM_UPSTREAM.toBoolean() : false
     def equinixMetalV2ChildDiffMetro = env.EQUINIXMETALV2_CHILD_DIFF_METRO ? env.EQUINIXMETALV2_CHILD_DIFF_METRO.toBoolean() : false
@@ -130,7 +132,8 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[seed-macos\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*seed-macos.*/) {
         seedMacOs = true
     }
-    if (commitMsg ==~ /(?s).*\[child-deploy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-deploy.*/ || upgradeChild || runChildConformance || runProxyChildTest || runChildHPA) {
+    if (commitMsg ==~ /(?s).*\[child-deploy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-deploy.*/ ||
+            upgradeChild || runChildConformance || runProxyChildTest || runChildHPA || runChildConformanceNetworkPolicy) {
         deployChild = true
     }
     if (commitMsg ==~ /(?s).*\[child-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-upgrade.*/) {
@@ -210,6 +213,9 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[mgmt-cfm\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-cfm.*/) {
         runMgmtConformance = true
     }
+    if (commitMsg ==~ /(?s).*\[mgmt-cfm-netpolicy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-cfm-netpolicy.*/) {
+        runMgmtConformanceNetworkPolicy = true
+    }
     if (commitMsg ==~ /(?s).*\[test-user-controller\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*test-user-controller.*/) {
         runMgmtUserControllerTest = true
     }
@@ -220,6 +226,10 @@ def checkDeploymentTestSuite() {
     }
     if (commitMsg ==~ /(?s).*\[child-cfm\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-cfm.*/) {
         runChildConformance = true
+        deployChild = true
+    }
+    if (commitMsg ==~ /(?s).*\[child-cfm-netpolicy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-cfm-netpolicy.*/) {
+        runChildConformanceNetworkPolicy = true
         deployChild = true
     }
     if (commitMsg ==~ /(?s).*\[child-hpa\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-hpa.*/) {
@@ -476,6 +486,7 @@ def checkDeploymentTestSuite() {
         MOS child deploy scheduled: ${mosDeployChild}
         MOS child upgrade scheduled: ${mosUpgradeChild}
         Child conformance testing scheduled: ${runChildConformance}
+        Child conformance network policy testing scheduled: ${runChildConformanceNetworkPolicy}
         Child HPA testing scheduled: ${runChildHPA}
         Single BYO cluster attachment scheduled: ${attachBYO}
         Single Attached BYO cluster upgrade test scheduled: ${upgradeBYO}
@@ -486,6 +497,7 @@ def checkDeploymentTestSuite() {
         Mgmt LMA logging enabled: ${enableLMALogging}
         Deploy Os on child with mos release ${deployOsOnMos}
         Mgmt conformance testing scheduled: ${runMgmtConformance}
+        Mgmt conformance network policy testing scheduled: ${runMgmtConformanceNetworkPolicy}
         LMA testing scheduled: ${runLMATest}
         Mgmt user controller testing scheduled: ${runMgmtUserControllerTest}
         Mgmt UI e2e testing scheduled: ${runUie2e}
@@ -537,6 +549,7 @@ def checkDeploymentTestSuite() {
         mosDeployChildEnabled                    : mosDeployChild,
         mosUpgradeChildEnabled                   : mosUpgradeChild,
         runChildConformanceEnabled               : runChildConformance,
+        runChildConformanceNetworkPolicyEnabled  : runChildConformanceNetworkPolicy,
         runChildHPAEnabled                       : runChildHPA,
         attachBYOEnabled                         : attachBYO,
         upgradeBYOEnabled                        : upgradeBYO,
@@ -549,6 +562,7 @@ def checkDeploymentTestSuite() {
         runUie2eEnabled                          : runUie2e,
         runUie2eNewEnabled                       : runUie2eNew,
         runMgmtConformanceEnabled                : runMgmtConformance,
+        runMgmtConformanceNetworkPolicyEnabled   : runMgmtConformanceNetworkPolicy,
         runMaintenanceTestEnabled                : runMaintenanceTest,
         runContainerregistryTestEnabled          : runContainerregistryTest,
         runGracefulRebootTestEnabled             : runGracefulRebootTest,
@@ -860,6 +874,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'DEPLOY_OS_ON_MOS', value: triggers.deployOsOnMosEnabled),
         booleanParam(name: 'RUN_UI_E2E', value: triggers.runUie2eEnabled),
         booleanParam(name: 'RUN_MGMT_CFM', value: triggers.runMgmtConformanceEnabled),
+        booleanParam(name: 'RUN_MGMT_CFM_NETWORK_POLICY', value: triggers.runMgmtConformanceNetworkPolicyEnabled),
         booleanParam(name: 'RUN_MAINTENANCE_TEST', value: triggers.runMaintenanceTestEnabled),
         booleanParam(name: 'RUN_CONTAINER_REGISTRY_TEST', value: triggers.runContainerregistryTestEnabled),
         booleanParam(name: 'RUN_GRACEFUL_REBOOT_TEST', value: triggers.runGracefulRebootTestEnabled),
@@ -880,6 +895,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'UPGRADE_BYO', value: triggers.upgradeBYOEnabled),
         booleanParam(name: 'RUN_BYO_MATRIX', value: triggers.runBYOMatrixEnabled),
         booleanParam(name: 'RUN_CHILD_CFM', value: triggers.runChildConformanceEnabled),
+        booleanParam(name: 'RUN_CHILD_CFM_NETPOLICY', value: triggers.runChildConformanceNetworkPolicyEnabled),
         booleanParam(name: 'RUN_CHILD_HPA', value: triggers.runChildHPAEnabled),
         booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled),
         booleanParam(name: 'ALLOW_EQUINIX_ON_DEMAND', value: triggers.equinixOnDemandDemoEnabled),
