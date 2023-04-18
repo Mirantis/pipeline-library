@@ -193,23 +193,28 @@ def runOrGetJob(job_name, job_parameters, global_variables, propagate, String fu
 /**
  * Store URLs of the specified artifacts to the global_variables
  *
- * @param build_url         URL of the completed job
- * @param step_artifacts    Map that contains artifact names in the job, and variable names
- *                          where the URLs to that atrifacts should be stored, for example:
- *                          {'ARTIFACT1': 'logs.tar.gz', 'ARTIFACT2': 'test_report.xml', ...}
- * @param global_variables  Map that will keep the artifact URLs. Variable 'ARTIFACT1', for example,
- *                          be used in next job parameters: {'ARTIFACT1_URL':{ 'use_variable': 'ARTIFACT1', ...}}
+ * @param build_url           URL of the completed job
+ * @param step_artifacts      Map that contains artifact names in the job, and variable names
+ *                            where the URLs to that atrifacts should be stored, for example:
+ *                            {'ARTIFACT1': 'logs.tar.gz', 'ARTIFACT2': 'test_report.xml', ...}
+ * @param global_variables    Map that will keep the artifact URLs. Variable 'ARTIFACT1', for example,
+ *                            be used in next job parameters: {'ARTIFACT1_URL':{ 'use_variable': 'ARTIFACT1', ...}}
  *
- *                          If the artifact with the specified name not found, the parameter ARTIFACT1_URL
- *                          will be empty.
+ *                            If the artifact with the specified name not found, the parameter ARTIFACT1_URL
+ *                            will be empty.
+ * @param artifactory_server  Artifactory server ID defined in Jenkins config
  *
  */
-def storeArtifacts(build_url, step_artifacts, global_variables, job_name, build_num, artifactory_url = '') {
+def storeArtifacts(build_url, step_artifacts, global_variables, job_name, build_num, artifactory_url = '', artifactory_server = '') {
     def common = new com.mirantis.mk.Common()
     def http = new com.mirantis.mk.Http()
-    if (!artifactory_url) {
-        artifactory_url = 'https://artifactory.mcp.mirantis.net/api/storage/si-local/jenkins-job-artifacts'
+    def artifactory = new com.mirantis.mcp.MCPArtifactory()
+    if(!artifactory_url && !artifactory_server) {
+        artifactory_url = 'https://artifactory.mcp.mirantis.net/artifactory/api/storage/si-local/jenkins-job-artifacts'
+    } else if (!artifactory_url && artifactory_server) {
+        artifactory_url = artifactory.getArtifactoryServer(artifactory_server).getUrl() + '/artifactory/api/storage/si-local/jenkins-job-artifacts'
     }
+
     def baseJenkins = [:]
     def baseArtifactory = [:]
     build_url = build_url.replaceAll(~/\/+$/, "")
@@ -312,7 +317,7 @@ def updateDescription(jobs_data) {
     currentBuild.description = table_template_start + table + table_template_end + child_jobs_description
 }
 
-def runStep(global_variables, step, Boolean propagate = false, artifactoryBaseUrl = '') {
+def runStep(global_variables, step, Boolean propagate = false, artifactoryBaseUrl = '', artifactoryServer = '') {
     return {
         def common = new com.mirantis.mk.Common()
         def engine = new groovy.text.GStringTemplateEngine()
@@ -379,7 +384,7 @@ def runStep(global_variables, step, Boolean propagate = false, artifactoryBaseUr
         }
         // Store links to the resulting artifacts into 'global_variables'
         storeArtifacts(jobSummary['build_url'], step['artifacts'],
-          global_variables, jobName, jobSummary['build_id'], artifactoryBaseUrl)
+          global_variables, jobName, jobSummary['build_id'], artifactoryBaseUrl, artifactoryServer)
         return jobSummary
     }
 }
@@ -394,14 +399,14 @@ def runStep(global_variables, step, Boolean propagate = false, artifactoryBaseUr
  * @param propagate               Boolean. If false: allows to collect artifacts after job is finished, even with FAILURE status
  *                                If true: immediatelly fails the pipeline. DO NOT USE 'true' with runScenario().
  */
-def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean propagate = false, artifactoryBaseUrl = '') {
+def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean propagate = false, artifactoryBaseUrl = '', artifactoryServer = '') {
     common = new com.mirantis.mk.Common()
     // Show expected jobs list in description
     updateDescription(jobs_data)
 
     for (step in steps) {
         stage("Preparing for run job ${step['job']}") {
-            def job_summary = runStep(global_variables, step, propagate, artifactoryBaseUrl).call()
+            def job_summary = runStep(global_variables, step, propagate, artifactoryBaseUrl, artifactoryServer).call()
 
             // Update jobs_data for updating description
             jobs_data[step_id]['build_url'] = job_summary['build_url']
@@ -528,7 +533,7 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
  *   wf_pause_step_timeout: timeout im minutes to wait for manual unpause.
  */
 
-def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '', Boolean logGlobalVariables = false) {
+def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '', Boolean logGlobalVariables = false, artifactoryServer = '') {
     // Clear description before adding new messages
     currentBuild.description = ''
     // Collect the parameters for the jobs here
@@ -597,7 +602,7 @@ def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '', Bool
     def job_failed_flag = false
     try {
         // Run the 'workflow' jobs
-        runSteps(scenario['workflow'], global_variables, failed_jobs, jobs_data, step_id, false, artifactoryBaseUrl)
+        runSteps(scenario['workflow'], global_variables, failed_jobs, jobs_data, step_id, false, artifactoryBaseUrl, artifactoryServer)
     } catch (InterruptedException x) {
         job_failed_flag = true
         error "The job was aborted"
@@ -618,13 +623,13 @@ def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '', Bool
             // Switching to 'pause' step index
             common.infoMsg("FINALLY BLOCK - PAUSE")
             step_id = pause_step_id
-            runSteps(scenario['pause'], global_variables, failed_jobs, jobs_data, step_id, false, artifactoryBaseUrl)
+            runSteps(scenario['pause'], global_variables, failed_jobs, jobs_data, step_id, false, artifactoryBaseUrl, artifactoryServer)
 
         }
          // Switching to 'finally' step index
         common.infoMsg("FINALLY BLOCK - CLEAR")
         step_id = finally_step_id
-        runSteps(scenario['finally'], global_variables, failed_jobs, jobs_data, step_id, false, artifactoryBaseUrl)
+        runSteps(scenario['finally'], global_variables, failed_jobs, jobs_data, step_id, false, artifactoryBaseUrl, artifactoryServer)
 
         if (failed_jobs) {
             def statuses = []
