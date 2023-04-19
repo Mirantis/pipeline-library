@@ -1431,7 +1431,7 @@ def schedule (label='docker') {
 def getImageTag(version, isChanged, imageName) {
     def common = new com.mirantis.mk.Common()
     def latestTag = env.GERRIT_BRANCH ? env.GERRIT_BRANCH : env.GERRIT_REFSPEC ? env.GERRIT_REFSPEC : 'master'
-    if (!(env.GERRIT_EVENT_TYPE == 'ref-updated') && isChanged) {
+    if (!(env.GERRIT_EVENT_TYPE in ['change-merged', 'ref-updated']) && isChanged) {
         latestTag = version
     } else if (latestTag != 'master') {
         latestTag = latestTag.replaceAll('/', '_')
