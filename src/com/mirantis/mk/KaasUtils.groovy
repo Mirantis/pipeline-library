@@ -1446,3 +1446,57 @@ def getImageTag(version, isChanged, imageName) {
     common.infoMsg("${imageName} image will use tag '${latestTag}'")
     return latestTag
 }
+
+
+/**
+ * Translates set of environment vars into actual replicator command line
+ * @return: (string cmdParams, string jobDescription)
+ *      cmdParams      - generated command line
+ *      jobDescription - job description
+ */
+def genReplicatorCommandLine() {
+    def mainModes = ['REPLICATE', 'CLEANUP', 'CHECK_REPOS', 'BIN_CLEANUP']
+    def parameterWithoutArgument = mainModes + 'DRY_RUN'
+    def parametersList = parameterWithoutArgument + [
+        'ARTIFACT_FILTER',
+        'ARTIFACT_TYPE',
+        'BIN_CLEAN_KEEP_DAYS',
+        'BIN_CLEAN_PREFIX',
+        'DOCKER_TAG',
+        // DST_ will be changed to TARGET_
+        'DST_REPO',
+        'DST_REPO_TYPE',
+        'DST_USER',
+        'OLDER_THAN_DAYS',
+        'SLACK_BUILD_URL',
+        'SLACK_CHANNEL',
+        'SLACK_USER',
+        'SRC_REPO',
+        'SRC_REPO_TYPE',
+        'SRC_USER',
+        'SYNC_PATTERN',
+        'THREAD_COUNT'
+    ]
+    def mainModesDescriptions = [
+        'REPLICATE': 'Replicating binaries/Docker images',
+        'CLEANUP': 'Cleaning Docker images',
+        'BIN_CLEANUP': 'Cleaning binaries',
+        'CHECK_REPOS': 'Checking binaries'
+    ]
+
+    def cmdParams = ''
+    def jobDescription = ''
+    for (e in parametersList) {
+        if (env[e] == null || env[e] == '') {
+            continue
+        }
+        if (e in mainModes) {
+            jobDescription = mainModesDescriptions[e]
+        }
+        cmdParams += "-${e.replaceAll('_', '-').toLowerCase()} "
+        if (!(e in parameterWithoutArgument)) {
+            cmdParams += "'${env[e]}' "
+        }
+    }
+    return [cmdParams, jobDescription]
+}
