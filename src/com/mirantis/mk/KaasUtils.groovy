@@ -1456,7 +1456,7 @@ def getImageTag(version, isChanged, imageName) {
  */
 def genReplicatorCommandLine() {
     def mainModes = ['REPLICATE', 'CLEANUP', 'CHECK_REPOS', 'BIN_CLEANUP']
-    def parameterWithoutArgument = mainModes + 'DRY_RUN'
+    def parameterWithoutArgument = mainModes
     def parametersList = parameterWithoutArgument + [
         'ARTIFACT_FILTER',
         'ARTIFACT_TYPE',
