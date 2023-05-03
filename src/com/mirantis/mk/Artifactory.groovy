@@ -521,3 +521,15 @@ def getRepoFiles(art, repoName, path = '') {
   }
   return result
 }
+
+/**
+ * Get artifactory server object
+ *
+ * @param serverName     Artifactory server name
+ */
+def getArtifactoryServer(serverName = ''){
+    if (!serverName) {
+        error ("Artifactory serverName must be specified")
+    }
+    return Artifactory.server(serverName)
+}
