@@ -607,3 +607,15 @@ def uploadArtifactsToArtifactory(LinkedHashMap config) {
     }
     return artifactsDescription
 }
+
+/**
+ * Get artifactory server object
+ *
+ * @param serverName     Artifactory server name
+ */
+def getArtifactoryServer(serverName = ''){
+    if (!serverName) {
+        error ("Artifactory serverName must be specified")
+    }
+    return Artifactory.server(serverName)
+}
