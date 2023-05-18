@@ -659,6 +659,22 @@ def SortMapByValueAsc(_map) {
 }
 
 /**
+ * Function receives ArrayList variable as input and sorts it
+ * by version number ascending. Returns sorted list
+ * @param _versions ArrayList variable
+ */
+@NonCPS
+def sortVersionsList(ArrayList versions) {
+    return versions.collectEntries {
+        [it, it.split(/\./).collect { (it =~ /([0-9]+).*/)[0][1] }*.toInteger()]
+    }.sort { a, b ->
+        [a.value, b.value].transpose().findResult { x, y -> x <=> y ?: null } ?:
+                a.value.size() <=> b.value.size() ?:
+                        a.key <=> b.key
+    }.keySet()
+}
+
+/**
  *  Compare 'old' and 'new' dir's recursively
  * @param diffData =' Only in new/XXX/infra: secrets.yml
  Files old/XXX/init.yml and new/XXX/init.yml differ
