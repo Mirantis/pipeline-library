@@ -428,7 +428,7 @@ def checkDeploymentTestSuite() {
     // CDN configuration
     def cdnConfig = [
         mgmt: [
-            openstack:  (proxyConfig['mgmtOffline'] == true) ? 'public-ci' : 'internal-ci',
+            openstack: 'internal-ci',
             vsphere:  'internal-ci',
             aws: 'public-ci',
             equinix: 'public-ci',
@@ -444,7 +444,7 @@ def checkDeploymentTestSuite() {
     }
     if (openstackIMC == 'eu' || openstackIMC == 'eu2') {
         // use internal-eu because on internal-ci with eu cloud image pull takes much time
-        def cdnRegion = (proxyConfig['mgmtOffline'] == true) ? 'public-ci' : 'internal-eu'
+        def cdnRegion = 'internal-eu'
         common.infoMsg("eu2-demo was triggered, force switching CDN region to ${cdnRegion}")
         cdnConfig['mgmt']['openstack'] = cdnRegion
     }
