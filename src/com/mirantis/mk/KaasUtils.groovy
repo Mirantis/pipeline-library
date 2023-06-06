@@ -123,6 +123,7 @@ def checkDeploymentTestSuite() {
     def aioCluster = env.AIO_CLUSTER ? env.AIO_CLUSTER.toBoolean() : false
     def useVsphereVvmtObjects = env.VSPHERE_USE_VVMT_OBJECTS ? env.VSPHERE_USE_VVMT_OBJECTS.toBoolean() : false
     def enableBv2Smoke = true
+    def runCacheWarmup = env.CACHE_WARMUP_ENABLED ? env.CACHE_WARMUP_ENABLED.toBoolean() : false
 
     def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
     if (commitMsg ==~ /(?s).*\[mgmt-proxy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-proxy.*/) {
@@ -387,6 +388,15 @@ def checkDeploymentTestSuite() {
         aioCluster = true
     }
 
+    if (commitMsg ==~ /(?s).*\[cache-warmup\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*cache-warmup.*/) {
+        runCacheWarmup = true
+    }
+
+    if (runCacheWarmup && (!deployChild && !mosDeployChild)) {
+        runCacheWarmup = false
+        common.errorMsg('Child cluster deployment is not enabled, skipping Cache Warmup')
+    }
+
     // multiregional tests
     def multiRegionalMatches = (commitMsg =~ /(\[multiregion\s*.*?\])/)
     if (multiRegionalMatches.size() > 0) {
@@ -536,6 +546,7 @@ def checkDeploymentTestSuite() {
         AIO cluster: ${aioCluster}
         Use Vsphere VVMT Objects: ${useVsphereVvmtObjects}
         Bootsrap v2 smoke checks enabled: ${enableBv2Smoke}
+        Run Cache warmup for child clusters: ${runCacheWarmup}
         Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [
         osCloudLocation                          : openstackIMC,
@@ -599,7 +610,9 @@ def checkDeploymentTestSuite() {
         enableFips                               : enableFips,
         aioCluster                               : aioCluster,
         useVsphereVvmtObjects                    : useVsphereVvmtObjects,
-        bv2SmokeEnabled                          : enableBv2Smoke]
+        bv2SmokeEnabled                          : enableBv2Smoke,
+        runCacheWarmup                           : runCacheWarmup,
+    ]
 }
 
 /**
