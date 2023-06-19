@@ -144,7 +144,9 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[child-upgrade-full\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-upgrade-full.*/) {
         deployChild = true
         upgradeChild = true
-        fullUpgradeChild = true
+        common.warningMsg("2-step child updates are not testing (PRODX-33510)")
+        //TODO: revert after start testing the two-step upgrade again (PRODX-33510)
+        //fullUpgradeChild = true
     }
     def childDeployMatches = (commitMsg =~ /(\[child-deploy\s*(\w|\-)+?\])/)
     if (childDeployMatches.size() > 0) {
