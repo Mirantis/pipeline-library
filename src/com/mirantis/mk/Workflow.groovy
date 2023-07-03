@@ -28,7 +28,7 @@ package com.mirantis.mk
 def printVariables(global_variables) {
     def message = "// Collected global_variables during the workflow:\n"
     for (variable in global_variables) {
-        message += "env.${variable.key}=\"${variable.value}\"\n"
+        message += "env.${variable.key}=\"\"\"${variable.value}\"\"\"\n"
     }
     common.warningMsg(message)
 }
