@@ -130,6 +130,12 @@ def checkDeploymentTestSuite() {
         proxyConfig['mgmtOffline'] = true
         common.warningMsg('Forced running offline mgmt deployment, some provider CDN regions for mgmt deployment may be set to *public-ci* to verify proxy configuration')
     }
+    if (commitMsg ==~ /(?s).*\[mgmt-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-upgrade.*/) {
+        upgradeMgmt = true
+    }
+    if (commitMsg ==~ /(?s).*\[auto-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*auto-upgrade.*/) {
+        autoUpgradeMgmt = true
+    }
     if (commitMsg ==~ /(?s).*\[seed-macos\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*seed-macos.*/) {
         seedMacOs = true
     }
@@ -148,6 +154,10 @@ def checkDeploymentTestSuite() {
         //TODO: revert after start testing the two-step upgrade again (PRODX-33510)
         //fullUpgradeChild = true
     }
+    if ((upgradeMgmt || autoUpgradeMgmt) && deployChild) {
+        upgradeChild = true
+        common.warningMsg('child upgrade is automatically enabled as mgmt upgrade and child deploy are enabled')
+    }
     def childDeployMatches = (commitMsg =~ /(\[child-deploy\s*(\w|\-)+?\])/)
     if (childDeployMatches.size() > 0) {
         // override child version when it set explicitly
@@ -161,6 +171,10 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[mos-child-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mos-child-upgrade.*/) {
         mosDeployChild = true
         mosUpgradeChild = true
+    }
+    if ((upgradeMgmt || autoUpgradeMgmt) && mosDeployChild) {
+        mosUpgradeChild = true
+        common.warningMsg('MOSK child upgrade is automatically enabled as mgmt upgrade and MOSK child deploy are enabled')
     }
     if (commitMsg ==~ /(?s).*\[byo-attach\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*byo-attach.*/) {
         attachBYO = true
@@ -192,12 +206,6 @@ def checkDeploymentTestSuite() {
         common.warningMsg('Forced byo matrix test via run-byo-matrix, all other byo triggers will be skipped')
         attachBYO = false
         upgradeBYO = false
-    }
-    if (commitMsg ==~ /(?s).*\[mgmt-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-upgrade.*/) {
-        upgradeMgmt = true
-    }
-    if (commitMsg ==~ /(?s).*\[auto-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*auto-upgrade.*/) {
-        autoUpgradeMgmt = true
     }
     if (commitMsg ==~ /(?s).*\[lma-logging\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*lma-logging.*/) {
         enableLMALogging = true
