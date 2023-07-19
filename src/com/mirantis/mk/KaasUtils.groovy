@@ -265,8 +265,10 @@ def checkDeploymentTestSuite() {
         runRgnlDeleteMasterTest = true
     }
     if (commitMsg ==~ /(?s).*\[child-delete-master-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-delete-master-test.*/) {
+        if (!mosDeployChild) {
+            deployChild = true
+        }
         runChildDeleteMasterTest = true
-        deployChild = true
         common.infoMsg('Child cluster deployment will be enabled since delete child master node test suite will be executed')
     }
     if (commitMsg ==~ /(?s).*\[child-machine-deletion-policy-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-machine-deletion-policy-test.*/) {
