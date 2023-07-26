@@ -435,6 +435,9 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
                         break;
                     case "UNSTABLE":
                         ignoreStepResult = step['ignore_unstable'] ?: (step['ignore_failed'] ?: false)
+                        if (ignoreStepResult && !step['skip_results'] ?: false) {
+                            failed_jobs[build_url] = job_result
+                        }
                         break;
                     default:
                         ignoreStepResult = step['ignore_failed'] ?: false
@@ -524,6 +527,7 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
  *
  *   job: string. Jenkins job name
  *   ignore_failed: bool. if true, keep running the workflow jobs if the job is failed, but fail the workflow at finish
+ *   ignore_unstable: bool. if true, keep running the workflow jobs if the job is unstable, but mark the workflow is unstable at finish
  *   skip_results: bool. if true, keep running the workflow jobs if the job is failed, but do not fail the workflow at finish. Makes sense only when ignore_failed is set.
  *   ignore_not_built: bool. if true, keep running the workflow jobs if the job set own status to NOT_BUILT, do not fail the workflow at finish for such jobs
  *   inherit_parent_params: bool. if true, provide all parameters from the parent job to the child job as defaults
@@ -647,6 +651,8 @@ def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '', Bool
         } else {
             currentBuild.result = 'SUCCESS'
         }
+
+        common.infoMsg("Workflow finished with result: ${currentBuild.result}")
 
         if (slackReportChannel) {
             def slack = new com.mirantis.mcp.SlackNotification()
