@@ -623,7 +623,8 @@ def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '', Bool
         flag_pause_variable = (env.PAUSE_FOR_DEBUG) != null
         // Run the 'finally' or 'pause' jobs
         common.infoMsg(failed_jobs)
-        if (flag_pause_variable && (PAUSE_FOR_DEBUG && (job_failed_flag || failed_jobs))) {
+        // Run only if there are failed jobs in the scenario
+        if (flag_pause_variable && (PAUSE_FOR_DEBUG && job_failed_flag)) {
             // Switching to 'pause' step index
             common.infoMsg("FINALLY BLOCK - PAUSE")
             step_id = pause_step_id
