@@ -121,6 +121,7 @@ def checkDeploymentTestSuite() {
     def bootstrapV2Scenario = env.BOOTSTRAP_V2_ENABLED ? env.BOOTSTRAP_V2_ENABLED.toBoolean() : false
     def equinixMetalV2Metro = env.EQUINIX_MGMT_METRO ? env.EQUINIX_MGMT_METRO : ''
     def enableFips = env.ENABLE_FIPS ? env.ENABLE_FIPS.toBoolean() : false
+    def enableMkeDebug = env.ENABLE_MKE_DEBUG ? env.ENABLE_MKE_DEBUG.toBoolean() : false
     def aioCluster = env.AIO_CLUSTER ? env.AIO_CLUSTER.toBoolean() : false
     def useVsphereVvmtObjects = env.VSPHERE_USE_VVMT_OBJECTS ? env.VSPHERE_USE_VVMT_OBJECTS.toBoolean() : false
     def enableBv2Smoke = true
@@ -490,6 +491,10 @@ def checkDeploymentTestSuite() {
         enableFips = true
     }
 
+    if (commitMsg ==~ /(?s).*\[enable-mke-debug\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*enable-mke-debug\.*/) {
+        enableMkeDebug = true
+    }
+
     if (commitMsg ==~ /(?s).*\[vsphere-vvmt-obj\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*vsphere-vvmt-obj\.*/) {
         useVsphereVvmtObjects = true
     }
@@ -560,6 +565,7 @@ def checkDeploymentTestSuite() {
         Current weight of the demo run: ${demoWeight} (Used to manage lockable resources)
         Bootstrap v2 scenario enabled: ${bootstrapV2Scenario}
         FIPS enabled: ${enableFips}
+        MKE DEBUG enabled: ${enableMkeDebug}
         Pause for debug enabled: ${pauseForDebug}
         AIO cluster: ${aioCluster}
         Use Vsphere VVMT Objects: ${useVsphereVvmtObjects}
@@ -627,6 +633,7 @@ def checkDeploymentTestSuite() {
         bootstrapV2Scenario                      : bootstrapV2Scenario,
         equinixMetalV2Metro                      : equinixMetalV2Metro,
         enableFips                               : enableFips,
+        enableMkeDebugEnabled                    : enableMkeDebug,
         aioCluster                               : aioCluster,
         useVsphereVvmtObjects                    : useVsphereVvmtObjects,
         bv2SmokeEnabled                          : enableBv2Smoke,
@@ -940,6 +947,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'VSPHERE_DEPLOY_UBUNTU', value: triggers.vsphereUbuntuEnabled),
         booleanParam(name: 'PAUSE_FOR_DEBUG', value: triggers.pauseForDebugEnabled),
         booleanParam(name: 'ENABLE_FIPS', value: triggers.enableFips),
+        booleanParam(name: 'ENABLE_MKE_DUBUG', value: triggers.enableMkeDebugEnabled),
         booleanParam(name: 'AIO_CLUSTER', value: triggers.aioCluster),
     ]
 
