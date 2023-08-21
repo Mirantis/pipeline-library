@@ -1022,7 +1022,7 @@ def generateLockResources(callBackDemo, triggers) {
         vsphere_offline_networking_core_ci: 0,
     ]
     def deployChild = triggers.deployChildEnabled
-    def testUiVsphere = triggers.runUie2eEnabled
+    def testUiVsphere = triggers.runUie2eEnabled || triggers.runUie2eNewEnabled
     def multiregionConfig = triggers.multiregionalConfiguration
     def runMultiregion = multiregionConfig.enabled
 
