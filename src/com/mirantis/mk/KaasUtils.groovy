@@ -483,6 +483,10 @@ def checkDeploymentTestSuite() {
         demoWeight += 1
     }
 
+    if (commitMsg ==~ /(?s).*\[bootstrapv1-scenario\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*bootstrapv1-scenario\.*/) {
+        bootstrapV2Scenario = false
+    }
+
     if (commitMsg ==~ /(?s).*\[bootstrapv2-scenario\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*bootstrapv2-scenario\.*/) {
         bootstrapV2Scenario = true
     }
