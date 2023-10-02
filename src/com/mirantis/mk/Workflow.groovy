@@ -643,7 +643,10 @@ def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '', Bool
             }
             if (statuses.contains('FAILURE')) {
                 currentBuild.result = 'FAILURE'
-            } else if (statuses.contains('UNSTABLE')) {
+            } else if (statuses.contains('ABORTED')) {
+                currentBuild.result = 'ABORTED'
+            }
+            else if (statuses.contains('UNSTABLE')) {
                 currentBuild.result = 'UNSTABLE'
             } else {
                 currentBuild.result = 'FAILURE'
