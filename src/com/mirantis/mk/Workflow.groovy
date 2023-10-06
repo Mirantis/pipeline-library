@@ -266,12 +266,12 @@ def updateDescription(jobs_data) {
     for (jobdata in jobs_data) {
         def trstyle = "<tr>"
         // Grey background for 'finally' jobs in list
-        if (jobdata['type'] == 'finally') {
+        if (jobdata.getOrDefault('type', '') == 'finally') {
             trstyle = "<tr style='background: #DDDDDD;'>"
         }
         // 'description' instead of job name if it exists
         def display_name = "'${jobdata['name']}': ${jobdata['build_id']}"
-        if (jobdata['desc'].toString() != "") {
+        if ((jobdata.getOrDefault('desc', '').toString() != '') && (jobdata.getOrDefault('desc', '').toString() != 'null')) {
             display_name = "'${jobdata['desc']}': ${jobdata['build_id']}"
         }
 
@@ -309,7 +309,7 @@ def updateDescription(jobs_data) {
         if (jobdata['child_desc'] != "") {
             child_jobs_description += "<b><small><a href=${jobdata['build_url']}>- ${jobdata['name']} (${jobdata['status']}):</a></small></b><br>"
             // remove "null" message-result from description, but leave XXX:JOBRESULT in description
-            if (jobdata['child_desc'] != "null") {
+            if (jobdata['child_desc'] != 'null') {
                 child_jobs_description += "<small>${jobdata['child_desc']}</small><br>"
             }
         }
@@ -553,7 +553,7 @@ def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '', Bool
     def list_id = 0
     for (step in scenario['workflow']) {
         def display_name = step['job']
-        if (step['description'] != null && step['description'].toString() != "") {
+        if (step['description'] != null && step['description'] != 'null' && step['description'].toString() != '') {
             display_name = step['description']
         }
         jobs_data.add([list_id   : "$list_id",
