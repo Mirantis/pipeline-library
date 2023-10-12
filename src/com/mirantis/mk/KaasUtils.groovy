@@ -333,7 +333,8 @@ def checkDeploymentTestSuite() {
         enableVsphereDemo = false
         enableOSDemo = false
         enableBMDemo = false
-        common.errorMsg('vSphere, BM, Openstack demo deployments will be aborted, VF -1 will be set')
+        enableBv2Smoke = false
+        common.errorMsg('vSphere, BM, Openstack, demo deployments and Bootstrap v2 smoke checks will be aborted, VF -1 will be set')
     }
 
     if (commitMsg ==~ /(?s).*\[disable-os-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-os-demo\.*/) {
