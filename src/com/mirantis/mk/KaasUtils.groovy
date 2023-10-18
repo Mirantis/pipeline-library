@@ -90,6 +90,7 @@ def checkDeploymentTestSuite() {
     def runByoChildCustomCertTest = env.RUN_BYO_CHILD_CUSTOM_CERT_TEST ? env.RUN_BYO_CHILD_CUSTOM_CERT_TEST.toBoolean() : false
     def runMgmtCustomCacheCertTest = env.RUN_MGMT_CUSTOM_CACHE_CERT_TEST ? env.RUN_MGMT_CUSTOM_CACHE_CERT_TEST.toBoolean() : false
     def runMkeCustomCertTest = env.RUN_MKE_CUSTOM_CERT_TEST ? env.RUN_MKE_CUSTOM_CERT_TEST.toBoolean() : false
+    def runCustomHostnames = env.RUN_CUSTOM_HOSTNAMES ? env.RUN_CUSTOM_HOSTNAMES.toBoolean() : false
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
     def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
         enabled: false,
@@ -386,6 +387,11 @@ def checkDeploymentTestSuite() {
         runMkeCustomCertTest = true
     }
 
+    if (commitMsg ==~ /(?s).*\[custom-hostnames\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*custom-hostnames\.*/) {
+        runCustomHostnames = true
+        common.warningMsg('All clusters will be deployed with Custom Hostnames')
+    }
+
     if (commitMsg ==~ /(?s).*\[byo-child-custom-cert-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*byo-child-custom-cert-test\.*/) {
         runByoChildCustomCertTest = true
         attachBYO = true
@@ -551,6 +557,7 @@ def checkDeploymentTestSuite() {
         Custom cert test for Byo child clusters: ${runByoChildCustomCertTest}
         Custom cache cert test for mgmt and child clusters: ${runMgmtCustomCacheCertTest}
         MKE custom cert test for mgmt/region: ${runMkeCustomCertTest}
+        Custom hostnames for all clisuers: ${runCustomHostnames}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         Equinix provider deployment scheduled: ${equinixOnDemandDemo}
         EquinixmetalV2 provider deployment scheduled: ${equinixMetalV2OnDemandDemo}
@@ -613,6 +620,7 @@ def checkDeploymentTestSuite() {
         runChildCustomCertTestEnabled            : runChildCustomCertTest,
         runMgmtCustomCacheCertTestEnabled        : runMgmtCustomCacheCertTest,
         runMkeCustomCertTestEnabled              : runMkeCustomCertTest,
+        runCustomHostnamesEnabled                : runCustomHostnames,
         runByoChildCustomCertTestEnabled         : runByoChildCustomCertTest,
         runChildMachineDeletionPolicyTestEnabled : runChildMachineDeletionPolicyTest,
         runLMATestEnabled                        : runLMATest,
@@ -928,6 +936,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'RUN_CHILD_CUSTOM_CERT_TEST', value: triggers.runChildCustomCertTestEnabled),
         booleanParam(name: 'RUN_MGMT_CUSTOM_CACHE_CERT_TEST', value: triggers.runMgmtCustomCacheCertTestEnabled),
         booleanParam(name: 'RUN_MKE_CUSTOM_CERT_TEST', value: triggers.runMkeCustomCertTestEnabled),
+        booleanParam(name: 'RUN_CUSTOM_HOSTNAMES', value: triggers.runCustomHostnamesEnabled),
         booleanParam(name: 'RUN_BYO_CHILD_CUSTOM_CERT_TEST', value: triggers.runByoChildCustomCertTestEnabled),
         booleanParam(name: 'RUN_CHILD_MACHINE_DELETION_POLICY_TEST', value: triggers.runChildMachineDeletionPolicyTestEnabled),
         booleanParam(name: 'RUN_LMA_TEST', value: triggers.runLMATestEnabled),
