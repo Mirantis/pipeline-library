@@ -1035,6 +1035,35 @@ def setEnvDefaults(Object envVar, Object defaults) {
     }
 }
 
+@NonCPS
+def getEnvAsMap() {
+    /** return env, EnvActionImpl, as usual map
+     *
+     */
+    def envVars = [:]
+    env.getEnvironment().each { k, v ->
+        envVars[k.toString()] = v.toString()
+    }
+    return envVars
+}
+
+@NonCPS
+def simpleTemplate(String ptrDescriptionTemplate) {
+    /** Render simplest template from string, using current env variables
+     *
+     */
+    def engine = new groovy.text.GStringTemplateEngine()
+    def envVars = getEnvAsMap()
+    String result = ''
+    try {
+        // withDefault required to correctly set\ignore unknown defaults
+        result = engine.createTemplate(ptrDescriptionTemplate).make(envVars.withDefault { key -> "ERROR: ${key} env variable not found" }).toString()
+    } catch (e) {
+        errorMsg("Failed genarate template:${ptrDescriptionTemplate}, using env vars,error:\n" + e.toString())
+    }
+    return result
+}
+
 /**
  * Wrapper around parallel pipeline function
  * with ability to restrict number of parallel threads
