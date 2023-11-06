@@ -119,6 +119,7 @@ def checkDeploymentTestSuite() {
     def enableArtifactsBuild = true
     def openstackIMC = env.OPENSTACK_CLOUD_LOCATION ? env.OPENSTACK_CLOUD_LOCATION : 'us'
     def enableVsphereUbuntu = env.VSPHERE_DEPLOY_UBUNTU ? env.VSPHERE_DEPLOY_UBUNTU.toBoolean() : false
+    def enableVsphereRHEL = env.VSPHERE_DEPLOY_RHEL ? env.VSPHERE_DEPLOY_RHEL.toBoolean() : false
     def childOsBootFromVolume = env.OPENSTACK_BOOT_FROM_VOLUME ? env.OPENSTACK_BOOT_FROM_VOLUME.toBoolean() : false
     def bootstrapV2Scenario = env.BOOTSTRAP_V2_ENABLED ? env.BOOTSTRAP_V2_ENABLED.toBoolean() : false
     def equinixMetalV2Metro = env.EQUINIX_MGMT_METRO ? env.EQUINIX_MGMT_METRO : ''
@@ -357,6 +358,10 @@ def checkDeploymentTestSuite() {
         enableVsphereUbuntu = true
         common.warningMsg('Ubuntu will be used to deploy vsphere machines')
     }
+    if (commitMsg ==~ /(?s).*\[vsphere-rhel\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*vsphere-rhel\.*/) {
+        enableVsphereRHEL = true
+        common.warningMsg('RHEL will be used to deploy vsphere machines')
+    }
     if (commitMsg ==~ /(?s).*\[disable-bv2-smoke\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-bv2-smoke\.*/) {
         enableBv2Smoke = false
         common.errorMsg('Bootstrap v2 smoke checks will be aborted, WF -1 will be set')
@@ -577,6 +582,7 @@ def checkDeploymentTestSuite() {
         OS provider deployment scheduled: ${enableOSDemo}
         BM provider deployment scheduled: ${enableBMDemo}
         Ubuntu on vSphere scheduled: ${enableVsphereUbuntu}
+        RHEL on vSphere scheduled: ${enableVsphereRHEL}
         Artifacts build scheduled: ${enableArtifactsBuild}
         Boot OS child from Ceph volumes: ${childOsBootFromVolume}
         Multiregional configuration: ${multiregionalMappings}
@@ -643,10 +649,10 @@ def checkDeploymentTestSuite() {
         azureOnDemandDemoEnabled                 : azureOnDemandDemo,
         azureOnAwsDemoEnabled                    : azureOnAwsDemo,
         vsphereDemoEnabled                       : enableVsphereDemo,
-        vsphereOnDemandDemoEnabled               : enableVsphereDemo, // TODO: remove after MCC 2.7 is out
         bmDemoEnabled                            : enableBMDemo,
         osDemoEnabled                            : enableOSDemo,
         vsphereUbuntuEnabled                     : enableVsphereUbuntu,
+        vsphereRHELEnabled                       : enableVsphereRHEL,
         artifactsBuildEnabled                    : enableArtifactsBuild,
         childOsBootFromVolume                    : childOsBootFromVolume,
         multiregionalConfiguration               : multiregionalMappings,
