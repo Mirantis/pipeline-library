@@ -138,10 +138,10 @@ def commitGitChanges(path, message, gitEmail='jenkins@localhost', gitName='jenki
         gitOpts = ''
     }
     def gitEnv = [
-        "GIT_AUTHOR_NAME=${gitName}",
-        "GIT_AUTHOR_EMAIL=${gitEmail}",
-        "GIT_COMMITTER_NAME=${gitName}",
-        "GIT_COMMITTER_EMAIL=${gitEmail}",
+        "GIT_AUTHOR_NAME='${gitName}'",
+        "GIT_AUTHOR_EMAIL='${gitEmail}'",
+        "GIT_COMMITTER_NAME='${gitName}'",
+        "GIT_COMMITTER_EMAIL='${gitEmail}'",
     ]
     dir(path) {
         sh "git config ${global_arg} user.email '${gitEmail}'"
