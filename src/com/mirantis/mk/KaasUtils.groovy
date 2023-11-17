@@ -1317,6 +1317,76 @@ def parseTextForTestSchemas(Map opts) {
 
 
 /**
+* getEquinixMetroWithCapacity returns list of Equinix metros using specified
+* instance type (nodeType), desired count of metros (metroCount) and
+* instances (nodeCount) in a metro using specified matal version.
+* Function downloads metal CLI from the
+* https://artifactory.mcp.mirantis.net:443/artifactory/binary-dev-kaas-local/core/bin/mirror/metal-${version}-linux
+* Empty list is returned in case of no metros with specified capacity was found or any other errors.
+* Non-empty list is shuffled.
+*
+* @param:        metroCount     (int) Desired count of metros
+* @param:        nodeCount      (int) Desired count of instances
+* @param:        nodeType    (string) Instance type
+* @param:        version     (string) Metal version to use
+* @return                  ([]string) List of selected metros
+*
+**/
+def getEquinixMetroWithCapacity(metroCount = 1, nodeCount = 50, nodeType = 'c3.small.x86', version = '0.9.0') {
+    def common = new com.mirantis.mk.Common()
+    def metalUrl = "https://artifactory.mcp.mirantis.net:443/artifactory/binary-dev-kaas-local/core/bin/mirror/metal-${version}-linux"
+    def metal = './metal --config metal.yaml'
+    def metro = []
+    def out = ''
+    def retries = 3 // number of retries
+    def i = 0
+    def delay = 60 // 1 minute sleep
+    def excludeMetro = [] // list of metros to exclude from selection
+    try {
+        if (excludeMetro.size() > 0) {
+            common.infoMsg("Excluded metros: ${excludeMetros}")
+        }
+        sh "curl -o metal -# ${metalUrl} && chmod +x metal"
+        withCredentials([string(credentialsId: env.KAAS_EQUINIX_API_TOKEN, variable: 'KAAS_EQUINIX_API_TOKEN')]) {
+            sh 'echo "project-id: ${KAAS_EQUINIX_PROJECT_ID}\ntoken: ${KAAS_EQUINIX_API_TOKEN}" >metal.yaml'
+        }
+        while (metro.size() < metroCount && i < retries) {
+            common.infoMsg("Selecting ${metroCount} available Equinix metros with free ${nodeCount} ${nodeType} hosts, try ${i+1}/${retries} ...")
+            if (i > 0) { // skip sleep on first step
+                sleep(delay)
+            }
+            out = sh(script: "${metal} capacity get -m -P ${nodeType}|awk '/${nodeType}/ {print \$2}'|paste -s -d,|xargs ${metal} capacity check -P ${nodeType} -q ${nodeCount} -m|grep true|awk '{print \$2}'|paste -s -d,", returnStdout: true).trim()
+            metro = out.tokenize(',')
+            metro -= excludeMetro
+            if (metro.size() < metroCount) {
+                nodeCount -= 10
+            // We need different metros for the [equinixmetalv2-child-diff-metro] case
+            } else if (metro.size() == 2 && metro[0][0, 1] == metro[1][0, 1]) {
+                nodeCount -= 10
+            }
+            i++
+        }
+        if (metro.size() > 0) {
+            f = metro.size() > 1 ? "${metro[0]},${metro[1]}" : "${metro[0]}"
+            sh "${metal} capacity check -P ${nodeType} -f ${f} -q ${nodeCount}"
+        }
+    } catch (Exception e) {
+        common.errorMsg "Exception: '${e}'"
+        return []
+    } finally {
+        sh 'rm metal.yaml'
+    }
+    if (metro.size() > 0) {
+        Collections.shuffle(metro)
+        common.infoMsg("Selected metros: ${metro}")
+    } else {
+        common.warningMsg('No any metros have been selected !!! :(')
+    }
+    return metro
+}
+
+
+/**
 * getEquinixFacilityWithCapacity returns list of Equinix facilities using specified
 * instance type (nodeType), desired count of facilities (facilityCount) and
 * instances (nodeCount) in a facility using specified matal version.
@@ -1332,7 +1402,9 @@ def parseTextForTestSchemas(Map opts) {
 * @return                  ([]string) List of selected facilities
 *
 **/
+@Deprecated
 def getEquinixFacilityWithCapacity(facilityCount = 1, nodeCount = 50, nodeType = 'c3.small.x86', version = '0.9.0') {
+    common.warningMsg('You are using deprecated method getEquinixFacilityWithCapacity. Use getEquinixMetroWithCapacity instead')
     def common = new com.mirantis.mk.Common()
     def metalUrl = "https://artifactory.mcp.mirantis.net:443/artifactory/binary-dev-kaas-local/core/bin/mirror/metal-${version}-linux"
     def metal = './metal --config metal.yaml'
