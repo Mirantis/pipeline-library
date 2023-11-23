@@ -129,6 +129,7 @@ def checkDeploymentTestSuite() {
     def useVsphereVvmtObjects = env.VSPHERE_USE_VVMT_OBJECTS ? env.VSPHERE_USE_VVMT_OBJECTS.toBoolean() : false
     def enableBv2Smoke = true
     def runCacheWarmup = env.CACHE_WARMUP_ENABLED ? env.CACHE_WARMUP_ENABLED.toBoolean() : false
+    def cveScan = false
 
     def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
     if (commitMsg ==~ /(?s).*\[mgmt-proxy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-proxy.*/) {
@@ -367,6 +368,11 @@ def checkDeploymentTestSuite() {
         common.errorMsg('Bootstrap v2 smoke checks will be aborted, WF -1 will be set')
     }
 
+    if (commitMsg ==~ /(?s).*\[cve-scan\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*cve-scan\.*/) {
+        cveScan = true
+        common.errorMsg('CVE Scan job enabled')
+    }
+
     if (commitMsg ==~ /(?s).*\[disable-artifacts-build\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-artifacts-build\.*/) {
         enableArtifactsBuild = false
         common.errorMsg('artifacts build will be aborted, VF -1 will be set')
@@ -596,6 +602,7 @@ def checkDeploymentTestSuite() {
         Use Vsphere VVMT Objects: ${useVsphereVvmtObjects}
         Bootsrap v2 smoke checks enabled: ${enableBv2Smoke}
         Run Cache warmup for child clusters: ${runCacheWarmup}
+        CVE Scan enabled: ${cveScan}
         Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [
         osCloudLocation                          : openstackIMC,
@@ -665,6 +672,7 @@ def checkDeploymentTestSuite() {
         useVsphereVvmtObjects                    : useVsphereVvmtObjects,
         bv2SmokeEnabled                          : enableBv2Smoke,
         runCacheWarmup                           : runCacheWarmup,
+        cveScanEnabled                           : cveScan,
     ]
 }
 
