@@ -1375,8 +1375,8 @@ def getEquinixMetroWithCapacity(metroCount = 1, nodeCount = 50, nodeType = 'c3.s
             i++
         }
         if (metro.size() > 0) {
-            f = metro.size() > 1 ? "${metro[0]},${metro[1]}" : "${metro[0]}"
-            sh "${metal} capacity check -P ${nodeType} -f ${f} -q ${nodeCount}"
+            m = metro.size() > 1 ? "${metro[0]},${metro[1]}" : "${metro[0]}"
+            sh "${metal} capacity check -P ${nodeType} -m ${m} -q ${nodeCount}"
         }
     } catch (Exception e) {
         common.errorMsg "Exception: '${e}'"
