@@ -397,7 +397,7 @@ def runStep(global_variables, step, Boolean propagate = false, artifactoryBaseUr
  * @param jobs_data               Map with all job names and result statuses, to showing it in description
  * @param step_id                 Counter for matching step ID with cell ID in description table
  * @param propagate               Boolean. If false: allows to collect artifacts after job is finished, even with FAILURE status
- *                                If true: immediatelly fails the pipeline. DO NOT USE 'true' with runScenario().
+ *                                If true: immediately fails the pipeline. DO NOT USE 'true' with runScenario().
  */
 def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean propagate = false, artifactoryBaseUrl = '', artifactoryServer = '') {
     common = new com.mirantis.mk.Common()
@@ -537,7 +537,22 @@ def runSteps(steps, global_variables, failed_jobs, jobs_data, step_id, Boolean p
  *   wf_pause_step_timeout: timeout im minutes to wait for manual unpause.
  */
 
+
 def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '', Boolean logGlobalVariables = false, artifactoryServer = '') {
+    runScenario(['scenario'          : scenario,
+                 'slackReportChannel': slackReportChannel,
+                 'artifactoryBaseUrl': artifactoryBaseUrl,
+                 'logGlobalVariables': logGlobalVariables,
+                 'artifactoryServer' : artifactoryServer,
+    ])
+}
+
+def runScenario(Map opts) {
+    Map scenario = opts['scenario']
+    String slackReportChannel = opts.getOrDefault('slackReportChannel', '')
+    String artifactoryBaseUrl = opts.getOrDefault('artifactoryBaseUrl', '')
+    Boolean logGlobalVariables = opts.getOrDefault('logGlobalVariables', false)
+    String artifactoryServer = opts.getOrDefault('artifactoryServer', '')
     // Clear description before adding new messages
     currentBuild.description = ''
     // Collect the parameters for the jobs here
