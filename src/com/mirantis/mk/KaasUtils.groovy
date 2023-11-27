@@ -1412,8 +1412,8 @@ def getEquinixMetroWithCapacity(metroCount = 1, nodeCount = 50, nodeType = 'c3.s
 **/
 @Deprecated
 def getEquinixFacilityWithCapacity(facilityCount = 1, nodeCount = 50, nodeType = 'c3.small.x86', version = '0.9.0') {
-    common.warningMsg('You are using deprecated method getEquinixFacilityWithCapacity. Use getEquinixMetroWithCapacity instead')
     def common = new com.mirantis.mk.Common()
+    common.warningMsg('You are using deprecated method getEquinixFacilityWithCapacity. Use getEquinixMetroWithCapacity instead')
     def metalUrl = "https://artifactory.mcp.mirantis.net:443/artifactory/binary-dev-kaas-local/core/bin/mirror/metal-${version}-linux"
     def metal = './metal --config metal.yaml'
     def facility = []
