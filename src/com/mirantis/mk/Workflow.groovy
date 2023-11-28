@@ -134,13 +134,14 @@ def generateParameters(job_parameters, global_variables) {
     def env_variables = common.getEnvAsMap()
 
     // Collect required parameters from 'global_variables' or 'env'
+    def _msg = ''
     for (param in job_parameters) {
         if (param.value.containsKey('use_variable')) {
             if (!global_variables[param.value.use_variable]) {
                 global_variables[param.value.use_variable] = env[param.value.use_variable] ?: ''
             }
             parameters.add([$class: "${param.value.type}", name: "${param.key}", value: global_variables[param.value.use_variable]])
-            common.infoMsg("${param.key}: <${param.value.type}> ${global_variables[param.value.use_variable]}")
+            _msg += "\n${param.key}: <${param.value.type}> From:${param.value.use_variable}, Value:${global_variables[param.value.use_variable]}"
         } else if (param.value.containsKey('get_variable_from_url')) {
             if (!global_variables[param.value.get_variable_from_url]) {
                 global_variables[param.value.get_variable_from_url] = env[param.value.get_variable_from_url] ?: ''
@@ -150,9 +151,9 @@ def generateParameters(job_parameters, global_variables) {
                 // http.restGet() attempts to read the response as a JSON, and may return an object instead of a string
                 variable_content = "${variable_content}".trim()
                 parameters.add([$class: "${param.value.type}", name: "${param.key}", value: variable_content])
-                common.infoMsg("${param.key}: <${param.value.type}> ${variable_content}")
+                _msg += "\n${param.key}: <${param.value.type}> Content from url: ${variable_content}"
             } else {
-                common.warningMsg("${param.key} is empty, skipping get_variable_from_url")
+                _msg += "\n${param.key} is empty, skipping get_variable_from_url"
             }
         } else if (param.value.containsKey('get_variable_from_yaml')) {
             if (param.value.get_variable_from_yaml.containsKey('yaml_url') && param.value.get_variable_from_yaml.containsKey('yaml_key')) {
@@ -167,13 +168,13 @@ def generateParameters(job_parameters, global_variables) {
                 //  <yaml_map_variable>.key.to.the[0].required.data , where yaml_key = '.key.to.the[0].required.data'
                 if (yaml_url) {
                     if (!yamls_from_urls[yaml_url]) {
-                        common.infoMsg("Reading YAML from ${yaml_url} for ${param.key}")
+                        _msg += "\nReading YAML from ${yaml_url} for ${param.key}"
                         def yaml_content = http.restGet(base, yaml_url)
                         yamls_from_urls[yaml_url] = readYaml text: yaml_content
                     }
-                    common.infoMsg("Getting key ${yaml_key} from YAML ${yaml_url} for ${param.key}")
+                    _msg += "\nGetting key ${yaml_key} from YAML ${yaml_url} for ${param.key}"
                     def template_variables = [
-                        'yaml_data': yamls_from_urls[yaml_url],
+                      'yaml_data': yamls_from_urls[yaml_url],
                     ]
                     def request = "\${yaml_data${yaml_key}}"
                     def result
@@ -192,7 +193,7 @@ def generateParameters(job_parameters, global_variables) {
                     }
 
                     parameters.add([$class: "${param.value.type}", name: "${param.key}", value: result])
-                    common.infoMsg("${param.key}: <${param.value.type}>\n${result}")
+                    _msg += "\n${param.key}: <${param.value.type}>\n${result}"
                 } else {
                     common.warningMsg("'yaml_url' in ${param.key} is empty, skipping get_variable_from_yaml")
                 }
@@ -202,26 +203,27 @@ def generateParameters(job_parameters, global_variables) {
         } else if (param.value.containsKey('use_template')) {
             template = engine.createTemplate(param.value.use_template.toString()).make(env_variables + global_variables)
             parameters.add([$class: "${param.value.type}", name: "${param.key}", value: template.toString()])
-            common.infoMsg("${param.key}: <${param.value.type}>\n${template.toString()}")
+            _msg += "\n${param.key}: <${param.value.type}>\n${template.toString()}"
         } else if (param.value.containsKey('use_variables_map')) {
-              // Generate multistring YAML with key/value pairs (like job_parameters) from a nested parameters map
-              def nested_parameters = generateParameters(param.value.use_variables_map, global_variables)
-              def nested_values = [:]
-              for (_parameter in nested_parameters) {
-                  if (_parameter.$class == '_defaultText') {
-                      // This is a special type for multiline with default values
-                      def _values = readYaml(text: _parameter.value ?: '---') ?: [:]
-                      _values << nested_values
-                      nested_values = _values
-                  } else {
-                      nested_values[_parameter.name] = _parameter.value
-                  }
-              }
-              def multistring_value = mcpcommon.dumpYAML(nested_values)
-              parameters.add([$class: "${param.value.type}", name: "${param.key}", value: multistring_value])
-              common.infoMsg("${param.key}: <${param.value.type}>\n${multistring_value}")
+            // Generate multistring YAML with key/value pairs (like job_parameters) from a nested parameters map
+            def nested_parameters = generateParameters(param.value.use_variables_map, global_variables)
+            def nested_values = [:]
+            for (_parameter in nested_parameters) {
+                if (_parameter.$class == '_defaultText') {
+                    // This is a special type for multiline with default values
+                    def _values = readYaml(text: _parameter.value ?: '---') ?: [:]
+                    _values << nested_values
+                    nested_values = _values
+                } else {
+                    nested_values[_parameter.name] = _parameter.value
+                }
+            }
+            def multistring_value = mcpcommon.dumpYAML(nested_values)
+            parameters.add([$class: "${param.value.type}", name: "${param.key}", value: multistring_value])
+            _msg += "\n${param.key}: <${param.value.type}>\n${multistring_value}"
         }
     }
+    common.infoMsg(_msg)
     return parameters
 }
 
@@ -262,8 +264,6 @@ def runOrGetJob(job_name, job_parameters, global_variables, propagate, String fu
     if (fullTaskName in jobsOverrides.keySet()) {
         common.warningMsg("Overriding: ${fullTaskName}/${job_name} <<< ${jobOverrideID}")
         common.infoMsg("For debug pin use:\n'${fullTaskName}' : ${jobOverrideID}")
-        // return Jenkins.instance.getItemByFullName(job_name,
-        //    hudson.model.Job.class).getBuildByNumber(jobOverrideID.toInteger())
         return Jenkins.instance.getItemByFullName(job_name, hudson.model.Job).getBuildByNumber(jobOverrideID.toInteger())
     } else {
         return runJob(job_name, job_parameters, global_variables, propagate)
