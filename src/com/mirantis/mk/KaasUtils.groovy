@@ -74,6 +74,7 @@ def checkDeploymentTestSuite() {
     def runMgmtUserControllerTest = env.RUN_MGMT_USER_CONTROLLER_TEST ? env.RUN_MGMT_USER_CONTROLLER_TEST.toBoolean() : false
     def runProxyChildTest = env.RUN_PROXY_CHILD_TEST ? env.RUN_PROXY_CHILD_TEST.toBoolean() : false
     def runChildConformance = env.RUN_CHILD_CFM ? env.RUN_CHILD_CFM.toBoolean() : false
+    def runChildStacklightHa = env.RUN_STACKLIGHT_CHILD_HA ? env.RUN_STACKLIGHT_CHILD_HA.toBoolean() : false
     def runChildConformanceNetworkPolicy = env.RUN_CHILD_CFM_NETWORK_POLICY ? env.RUN_CHILD_CFM_NETWORK_POLICY.toBoolean() : false
     def runChildHPA = env.RUN_CHILD_HPA ? env.RUN_CHILD_HPA.toBoolean() : false
     def fetchServiceBinaries = env.FETCH_BINARIES_FROM_UPSTREAM ? env.FETCH_BINARIES_FROM_UPSTREAM.toBoolean() : false
@@ -251,6 +252,10 @@ def checkDeploymentTestSuite() {
     }
     if (commitMsg ==~ /(?s).*\[child-hpa\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-hpa.*/) {
         runChildHPA = true
+        deployChild = true
+    }
+    if (commitMsg ==~ /(?s).*\[child-sl-ha\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-sl-ha.*/) {
+        runChildStacklightHa = true
         deployChild = true
     }
     if (commitMsg ==~ /(?s).*\[lma-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*lma-test.*/) {
@@ -548,6 +553,7 @@ def checkDeploymentTestSuite() {
         Child conformance testing scheduled: ${runChildConformance}
         Child conformance network policy testing scheduled: ${runChildConformanceNetworkPolicy}
         Child HPA testing scheduled: ${runChildHPA}
+        Child Stacklight HA: ${runChildStacklightHa}
         Single BYO cluster attachment scheduled: ${attachBYO}
         Single Attached BYO cluster upgrade test scheduled: ${upgradeBYO}
         BYO test matrix whole suite scheduled: ${runBYOMatrix}
@@ -618,6 +624,7 @@ def checkDeploymentTestSuite() {
         runChildConformanceEnabled               : runChildConformance,
         runChildConformanceNetworkPolicyEnabled  : runChildConformanceNetworkPolicy,
         runChildHPAEnabled                       : runChildHPA,
+        runChildStacklightHaEnabled              : runChildStacklightHa,
         attachBYOEnabled                         : attachBYO,
         upgradeBYOEnabled                        : upgradeBYO,
         runBYOMatrixEnabled                      : runBYOMatrix,
@@ -974,6 +981,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'RUN_CHILD_CFM', value: triggers.runChildConformanceEnabled),
         booleanParam(name: 'RUN_CHILD_CFM_NETPOLICY', value: triggers.runChildConformanceNetworkPolicyEnabled),
         booleanParam(name: 'RUN_CHILD_HPA', value: triggers.runChildHPAEnabled),
+        booleanParam(name: 'RUN_STACKLIGHT_CHILD_HA', value: triggers.runChildStacklightHaEnabled),
         booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled),
         booleanParam(name: 'ALLOW_EQUINIX_ON_DEMAND', value: triggers.equinixOnDemandDemoEnabled),
         booleanParam(name: 'ALLOW_EQUINIXMETALV2_ON_DEMAND', value: triggers.equinixMetalV2OnDemandDemoEnabled),
