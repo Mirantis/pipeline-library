@@ -1523,6 +1523,7 @@ def genCommandLine() {
         'CHECK_REPOS': '-check-repos',
         'DESTINATION_REGISTRY': '-dst-repo',
         'DESTINATION_REGISTRY_TYPE': '-dst-repo-type',
+        'SIGNED_IMAGES_PATH': '-signed-images-path',
         'DOCKER_CLEAN': '-cleanup',
         'DOCKER_REPO_PREFIX': '-docker-repo-prefix',
         'DOCKER_TAG': '-docker-tag',
