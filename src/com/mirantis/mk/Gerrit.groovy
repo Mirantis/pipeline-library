@@ -323,9 +323,9 @@ LinkedHashMap getDependentPatches(LinkedHashMap changeInfo) {
  * @param extraFlags        Additional flags for gerrit querry for example
  *                          '--current-patch-set' or '--comments' as a simple string
  */
-def findGerritChange(credentialsId, LinkedHashMap gerritAuth, LinkedHashMap changeParams, String extraFlags = '') {
+def findGerritChange(credentialsId, LinkedHashMap gerritAuth, LinkedHashMap changeParams, String extraFlags = '', String sshOpts = '') {
     scriptText = """
-                 ssh -p ${gerritAuth['PORT']} ${gerritAuth['USER']}@${gerritAuth['HOST']} \
+                 ssh ${sshOpts} -p ${gerritAuth['PORT']} ${gerritAuth['USER']}@${gerritAuth['HOST']} \
                  gerrit query ${extraFlags} \
                  --format JSON \
                  """
@@ -335,9 +335,9 @@ def findGerritChange(credentialsId, LinkedHashMap gerritAuth, LinkedHashMap chan
     scriptText += " | fgrep -v runTimeMilliseconds || :"
     sshagent([credentialsId]) {
         jsonChange = sh(
-             script:scriptText,
-             returnStdout: true,
-           ).trim()
+          script: scriptText,
+          returnStdout: true,
+          ).trim()
     }
     return jsonChange
 }
