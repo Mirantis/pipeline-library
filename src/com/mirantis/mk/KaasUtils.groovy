@@ -94,6 +94,7 @@ def checkDeploymentTestSuite() {
     def runCustomHostnames = env.RUN_CUSTOM_HOSTNAMES ? env.RUN_CUSTOM_HOSTNAMES.toBoolean() : false
     def slLatest = env.SL_LATEST ? env.SL_LATEST.toBoolean() : false
     def disableKubeApiAudit = env.DISABLE_KUBE_API_AUDIT ? env.DISABLE_KUBE_API_AUDIT.toBoolean() : false
+    def customSlackChannel = env.SLACK_CHANNEL_NOTIFY ? env.SLACK_CHANNEL_NOTIFY : ''
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
     def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
         enabled: false,
@@ -396,6 +397,13 @@ def checkDeploymentTestSuite() {
         common.errorMsg('CVE Scan job enabled')
     }
 
+    def slackChannelMatches = (commitMsg =~ /(\[slack-channel\s*[#@](\S+)])/)
+    if (slackChannelMatches.size() > 0) {
+        // override chanenel notify when it set explicitly
+        customSlackChannel = slackChannelMatches[0][0].split("slack-channel")[1].replaceAll('[\\[\\]]', '').trim()
+        common.warningMsg("Forced send notify to ${customSlackChannel} channel")
+    }
+
     if (commitMsg ==~ /(?s).*\[disable-artifacts-build\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-artifacts-build\.*/) {
         enableArtifactsBuild = false
         common.errorMsg('artifacts build will be aborted, VF -1 will be set')
@@ -669,6 +677,7 @@ def checkDeploymentTestSuite() {
         runRgnlDeleteMasterTestEnabled           : runRgnlDeleteMasterTest,
         runChildDeleteMasterTestEnabled          : runChildDeleteMasterTest,
         runChildCustomCertTestEnabled            : runChildCustomCertTest,
+        customSlackChannelEnabled                : customSlackChannel,
         runMgmtCustomCacheCertTestEnabled        : runMgmtCustomCacheCertTest,
         runMkeCustomCertTestEnabled              : runMkeCustomCertTest,
         runCustomHostnamesEnabled                : runCustomHostnames,
@@ -973,6 +982,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         string(name: 'CUSTOM_RELEASE_PATCH_SPEC', value: patchSpec),
         string(name: 'KAAS_CHILD_CLUSTER_RELEASE_NAME', value: triggers.childDeployCustomRelease),
         string(name: 'OPENSTACK_CLOUD_LOCATION', value: triggers.osCloudLocation),
+        string(name: 'SLACK_CHANNEL_NOTIFY', value: triggers.customSlackChannelEnabled),
         booleanParam(name: 'OFFLINE_MGMT_CLUSTER', value: triggers.proxyConfig['mgmtOffline']),
         booleanParam(name: 'OFFLINE_CHILD_CLUSTER', value: triggers.proxyConfig['childOffline']),
         booleanParam(name: 'PROXY_CHILD_CLUSTER', value: triggers.proxyConfig['childProxy']),
