@@ -220,7 +220,6 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[deploy-os-on-mos\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*deploy-os-on-mos.*/) {
         deployOsOnMos = true
         mosDeployChild = true
-        openstackIMC = 'eu2'
     }
     if (commitMsg ==~ /(?s).*\[ui-e2e-nw\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-e2e-nw.*/) {
         runUie2e = true
@@ -496,13 +495,10 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[eu-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*eu-demo.*/) {
         openstackIMC = 'eu'
     }
-    if (commitMsg ==~ /(?s).*\[mos-tf-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mos-tf-demo.*/) {
-        openstackIMC = 'eu2'
-    }
-    if (openstackIMC == 'eu' || openstackIMC == 'eu2') {
+
+    if (openstackIMC == 'eu') {
         // use internal-eu because on internal-ci with eu cloud image pull takes much time
         def cdnRegion = 'internal-eu'
-        common.infoMsg("eu2-demo was triggered, force switching CDN region to ${cdnRegion}")
         cdnConfig['mgmt']['openstack'] = cdnRegion
     }
 
