@@ -117,7 +117,10 @@ def checkDeploymentTestSuite() {
     def enableVsphereDemo = true
     def enableOSDemo = true
     def enableBMDemo = true
+    def enablebmCoreDemo = false
+    def bmCoreCleanup = env.BM_CORE_CLEANUP ? env.BM_CORE_CLEANUP : true
     def enableArtifactsBuild = true
+    def bmDeployType = 'virtual'
     def openstackIMC = env.OPENSTACK_CLOUD_LOCATION ? env.OPENSTACK_CLOUD_LOCATION : 'us'
     def enableVsphereUbuntu = env.VSPHERE_DEPLOY_UBUNTU ? env.VSPHERE_DEPLOY_UBUNTU.toBoolean() : false
     def enableVsphereRHEL = env.VSPHERE_DEPLOY_RHEL ? env.VSPHERE_DEPLOY_RHEL.toBoolean() : false
@@ -221,6 +224,12 @@ def checkDeploymentTestSuite() {
         deployOsOnMos = true
         mosDeployChild = true
     }
+
+    if (commitMsg ==~ /(?s).*\[half-virtual\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*half-virtual.*/ || upgradeMgmt) {
+        bmDeployType = 'half-virtual'
+        common.infoMsg('Half-virtual will be deployed by default on upgrade case')
+    }
+
     if (commitMsg ==~ /(?s).*\[ui-e2e-nw\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-e2e-nw.*/) {
         runUie2e = true
     }
@@ -353,6 +362,15 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[disable-bm-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-bm-demo\.*/) {
         enableBMDemo = false
         common.errorMsg('BM demo deployment will be aborted, VF -1 will be set')
+    }
+
+    if (commitMsg ==~ /(?s).*\[bm-core-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*bm-core-demo\\.*/) {
+        enablebmCoreDemo = true
+        enableBMDemo = false
+    }
+
+    if (commitMsg ==~ /(?s).*\[disable-bm-core-cleanup\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-bm-core-cleanup\\.*/) {
+        bmCoreCleanup = false
     }
 
     if (commitMsg ==~ /(?s).*\[disable-vsphere-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-vsphere-demo\.*/) {
@@ -588,6 +606,9 @@ def checkDeploymentTestSuite() {
         Azure@AWS child cluster deployment scheduled: ${azureOnAwsDemo}
         VSPHERE provider deployment scheduled: ${enableVsphereDemo}
         OS provider deployment scheduled: ${enableOSDemo}
+        BM Core provider deployment scheduled: ${enablebmCoreDemo}
+        BM Core type deplyment: ${bmDeployType}
+        BM Core cleanup: ${bmCoreCleanup}
         BM provider deployment scheduled: ${enableBMDemo}
         Ubuntu on vSphere scheduled: ${enableVsphereUbuntu}
         RHEL on vSphere scheduled: ${enableVsphereRHEL}
@@ -660,6 +681,9 @@ def checkDeploymentTestSuite() {
         azureOnAwsDemoEnabled                    : azureOnAwsDemo,
         vsphereDemoEnabled                       : enableVsphereDemo,
         bmDemoEnabled                            : enableBMDemo,
+        bmCoreDemoEnabled                        : enablebmCoreDemo,
+        bmCoreCleanup                            : bmCoreCleanup,
+        bmDeployTypeEnabled                      : bmDeployType,
         osDemoEnabled                            : enableOSDemo,
         vsphereUbuntuEnabled                     : enableVsphereUbuntu,
         vsphereRHELEnabled                       : enableVsphereRHEL,
@@ -990,6 +1014,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'ENABLE_FIPS', value: triggers.enableFips),
         booleanParam(name: 'ENABLE_MKE_DUBUG', value: triggers.enableMkeDebugEnabled),
         booleanParam(name: 'AIO_CLUSTER', value: triggers.aioCluster),
+        booleanParam(name: 'BM_CORE_CLEANUP', value: triggers.bmCoreCleanup),
     ]
 
     // customize multiregional demo
