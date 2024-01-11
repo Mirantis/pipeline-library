@@ -93,6 +93,7 @@ def checkDeploymentTestSuite() {
     def runMkeCustomCertTest = env.RUN_MKE_CUSTOM_CERT_TEST ? env.RUN_MKE_CUSTOM_CERT_TEST.toBoolean() : false
     def runCustomHostnames = env.RUN_CUSTOM_HOSTNAMES ? env.RUN_CUSTOM_HOSTNAMES.toBoolean() : false
     def slLatest = env.SL_LATEST ? env.SL_LATEST.toBoolean() : false
+    def disableKubeApiAudit = env.DISABLE_KUBE_API_AUDIT ? env.DISABLE_KUBE_API_AUDIT.toBoolean() : false
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
     def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
         enabled: false,
@@ -431,6 +432,11 @@ def checkDeploymentTestSuite() {
         common.warningMsg('All clusters will be deployed with Stacklight version from artifact-metadata')
     }
 
+    if (commitMsg ==~ /(?s).*\[disable-kube-api-audit\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-kube-api-audit\.*/) {
+        disableKubeApiAudit = true
+        common.warningMsg('Disable KUBE API audit for mgmt cluster')
+    }
+
     if (commitMsg ==~ /(?s).*\[byo-child-custom-cert-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*byo-child-custom-cert-test\.*/) {
         runByoChildCustomCertTest = true
         attachBYO = true
@@ -596,6 +602,7 @@ def checkDeploymentTestSuite() {
         MKE custom cert test for mgmt/region: ${runMkeCustomCertTest}
         Custom hostnames for all clisuers: ${runCustomHostnames}
         Stacklight templates enchanced with latest version from artifact-metadata: ${slLatest}
+        Disable Kubernetes API audit: ${disableKubeApiAudit}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         Equinix provider deployment scheduled: ${equinixOnDemandDemo}
         EquinixmetalV2 provider deployment scheduled: ${equinixMetalV2OnDemandDemo}
@@ -700,6 +707,7 @@ def checkDeploymentTestSuite() {
         bv2SmokeEnabled                          : enableBv2Smoke,
         runCacheWarmup                           : runCacheWarmup,
         cveScanEnabled                           : cveScan,
+        disableKubeApiAudit                      : disableKubeApiAudit,
     ]
 }
 
@@ -1015,6 +1023,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'ENABLE_MKE_DUBUG', value: triggers.enableMkeDebugEnabled),
         booleanParam(name: 'AIO_CLUSTER', value: triggers.aioCluster),
         booleanParam(name: 'BM_CORE_CLEANUP', value: triggers.bmCoreCleanup),
+        booleanParam(name: 'DISABLE_KUBE_API_AUDIT', value: triggers.disableKubeApiAudit),
     ]
 
     // customize multiregional demo
