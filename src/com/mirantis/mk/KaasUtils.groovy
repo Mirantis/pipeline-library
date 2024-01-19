@@ -1529,6 +1529,7 @@ def genCommandLine() {
         'FORCE': '-force',
         'HELM_CDN_DOMAIN': '-helm-cdn-domain',
         'SLACK_CHANNEL': '-slack-channel',
+        'SLACK_CHANNELS': '-slack-channels',
         'SLACK_USER': '-slack-user',
         'SOURCE_REGISTRY': '-src-repo',
         'SOURCE_REGISTRY_TYPE': '-src-repo-type',
