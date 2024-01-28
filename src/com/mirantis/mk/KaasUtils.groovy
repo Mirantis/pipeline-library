@@ -1017,6 +1017,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'EQUINIX_ON_AWS_DEMO', value: triggers.equinixOnAwsDemoEnabled),
         booleanParam(name: 'ALLOW_AZURE_ON_DEMAND', value: triggers.azureOnDemandDemoEnabled),
         booleanParam(name: 'AZURE_ON_AWS_DEMO', value: triggers.azureOnAwsDemoEnabled),
+        booleanParam(name: 'ALLOW_BM_CORE_ON_DEMAND', value: triggers.bmCoreDemoEnabled),
         booleanParam(name: 'VSPHERE_DEPLOY_UBUNTU', value: triggers.vsphereUbuntuEnabled),
         booleanParam(name: 'PAUSE_FOR_DEBUG', value: triggers.pauseForDebugEnabled),
         booleanParam(name: 'ENABLE_FIPS', value: triggers.enableFips),
