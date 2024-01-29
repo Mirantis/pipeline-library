@@ -118,7 +118,7 @@ def checkDeploymentTestSuite() {
     def enableVsphereDemo = true
     def enableOSDemo = true
     def enableBMDemo = true
-    def enablebmCoreDemo = false
+    def enablebmCoreDemo = env.ALLOW_BM_CORE_ON_DEMAND ? env.ALLOW_BM_CORE_ON_DEMAND.toBoolean() : false
     def bmCoreCleanup = env.BM_CORE_CLEANUP ? env.BM_CORE_CLEANUP : true
     def enableArtifactsBuild = true
     def bmDeployType = 'virtual'
