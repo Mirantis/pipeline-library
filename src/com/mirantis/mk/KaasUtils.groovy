@@ -95,6 +95,12 @@ def checkDeploymentTestSuite() {
     def slLatest = env.SL_LATEST ? env.SL_LATEST.toBoolean() : false
     def disableKubeApiAudit = env.DISABLE_KUBE_API_AUDIT ? env.DISABLE_KUBE_API_AUDIT.toBoolean() : false
     def customSlackChannel = env.SLACK_CHANNEL_NOTIFY ? env.SLACK_CHANNEL_NOTIFY : ''
+    // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
+    def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
+        enabled: false,
+        managementLocation: '',
+        regionLocation: '',
+    ]
 
     // proxy customization
     def proxyConfig = [
@@ -105,7 +111,11 @@ def checkDeploymentTestSuite() {
 
     // optional demo deployment customization
     def awsOnDemandDemo = env.ALLOW_AWS_ON_DEMAND ? env.ALLOW_AWS_ON_DEMAND.toBoolean() : false
+    def equinixOnDemandDemo = env.ALLOW_EQUINIX_ON_DEMAND ? env.ALLOW_EQUINIX_ON_DEMAND.toBoolean() : false
     def equinixMetalV2OnDemandDemo = env.ALLOW_EQUINIXMETALV2_ON_DEMAND ? env.ALLOW_EQUINIXMETALV2_ON_DEMAND.toBoolean() : false
+    def equinixOnAwsDemo = env.EQUINIX_ON_AWS_DEMO ? env.EQUINIX_ON_AWS_DEMO.toBoolean() : false
+    def azureOnAwsDemo = env.AZURE_ON_AWS_DEMO ? env.AZURE_ON_AWS_DEMO.toBoolean() : false
+    def azureOnDemandDemo = env.ALLOW_AZURE_ON_DEMAND ? env.ALLOW_AZURE_ON_DEMAND.toBoolean() : false
     def enableVsphereDemo = true
     def enableOSDemo = true
     def enableBMDemo = true
@@ -189,6 +199,8 @@ def checkDeploymentTestSuite() {
         enableVsphereDemo = true
         enableOSDemo = true
         awsOnDemandDemo = true
+        azureOnDemandDemo = true
+        equinixOnDemandDemo = true
         equinixMetalV2OnDemandDemo = true
         runUie2e = true
         // Edit after fix PRODX-3961
@@ -303,15 +315,28 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[fetch.*binaries\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*fetch.*binaries.*/) {
         fetchServiceBinaries = true
     }
+    if (commitMsg ==~ /(?s).*\[equinix-on-aws\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*equinix-on-aws.*/) {
+        equinixOnAwsDemo = true
+        common.warningMsg('Forced running child cluster deployment on EQUINIX METAL provider based on AWS management cluster, triggered on patchset using custom keyword: \'[equinix-on-aws]\' ')
+    }
+    if (commitMsg ==~ /(?s).*\[azure-on-aws\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*azure-on-aws.*/) {
+        azureOnAwsDemo = true
+        common.warningMsg('Forced running child cluster deployment on Azure provider based on AWS management cluster, triggered on patchset using custom keyword: \'[azure-on-aws]\' ')
+    }
     if (commitMsg ==~ /(?s).*\[aws-demo\].*/                 ||
         env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*aws-demo.*/ ||
         attachBYO                                            ||
         upgradeBYO                                           ||
         runBYOMatrix                                         ||
-        seedMacOs) {
+        seedMacOs                                            ||
+        equinixOnAwsDemo                                     ||
+        azureOnAwsDemo) {
 
         awsOnDemandDemo = true
         common.warningMsg('Running additional kaas deployment with AWS provider, may be forced due applied trigger cross dependencies, follow docs to clarify info')
+    }
+    if (commitMsg ==~ /(?s).*\[equinix-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*equinix-demo\.*/) {
+        equinixOnDemandDemo = true
     }
     if (commitMsg ==~ /(?s).*\[equinixmetalv2-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*equinixmetalv2-demo\.*/) {
         equinixMetalV2OnDemandDemo = true
@@ -319,6 +344,9 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[equinixmetalv2-child-diff-metro\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*equinixmetalv2-child-diff-metro\.*/) {
         equinixMetalV2OnDemandDemo = true
         equinixMetalV2ChildDiffMetro = true
+    }
+    if (commitMsg ==~ /(?s).*\[azure-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*azure-demo\.*/) {
+        azureOnDemandDemo = true
     }
     if (commitMsg ==~ /(?s).*\[disable-all-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-all-demo\.*/) {
         enableVsphereDemo = false
@@ -447,6 +475,44 @@ def checkDeploymentTestSuite() {
         common.errorMsg('Child cluster deployment is not enabled, skipping Cache Warmup')
     }
 
+    // multiregional tests
+    def multiRegionalMatches = (commitMsg =~ /(\[multiregion\s*.*?\])/)
+    if (multiRegionalMatches.size() > 0) {
+        multiregionalMappings = multiregionWorkflowParser(multiRegionalMatches)
+    }
+    switch (multiregionalMappings['managementLocation']) {
+        case 'aws':
+            common.warningMsg('Forced running additional kaas deployment with AWS provider according multiregional demo request')
+            awsOnDemandDemo = true
+
+            if (multiregionalMappings['regionLocation'] != 'aws' && seedMacOs) { // macstadium seed node has access only to *public* providers
+                error('incompatible triggers: [seed-macos] and multiregional deployment based on *private* regional provider cannot be applied simultaneously')
+            }
+            break
+        case 'os':
+            if (enableOSDemo == false) {
+                error('incompatible triggers: [disable-os-demo] and multiregional deployment based on OSt management region cannot be applied simultaneously')
+            }
+            break
+        case 'vsphere':
+            if (enableVsphereDemo == false) {
+                error('incompatible triggers: [disable-vsphere-demo] and multiregional deployment based on Vsphere management region cannot be applied simultaneously')
+            }
+            break
+        case 'equinix':
+            common.warningMsg('Forced running additional kaas deployment with Equinix provider according multiregional demo request')
+            equinixOnDemandDemo = true
+            break
+        case 'equinixmetalv2':
+            common.warningMsg('Forced running additional kaas deployment with Equinix Metal V2 provider according multiregional demo request')
+            equinixMetalV2OnDemandDemo = true
+            break
+        case 'azure':
+            common.warningMsg('Forced running additional kaas deployment with Azure provider according multiregional demo request')
+            azureOnDemandDemo = true
+            break
+    }
+
     // CDN configuration
     def cdnConfig = [
         mgmt: [
@@ -454,6 +520,7 @@ def checkDeploymentTestSuite() {
             vsphere:  'internal-ci',
             aws: 'public-ci',
             equinix: 'public-ci',
+            azure: 'public-ci',
         ],
     ]
 
@@ -545,9 +612,13 @@ def checkDeploymentTestSuite() {
         Stacklight templates enchanced with latest version from artifact-metadata: ${slLatest}
         Disable Kubernetes API audit: ${disableKubeApiAudit}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
+        Equinix provider deployment scheduled: ${equinixOnDemandDemo}
         EquinixmetalV2 provider deployment scheduled: ${equinixMetalV2OnDemandDemo}
         EquinixmetalV2 child deploy in a separate metro scheduled: ${equinixMetalV2ChildDiffMetro}
         EquinixmetalV2 mgmt will be deployed on the metro: ${equinixMetalV2Metro?:'auto'}
+        Equinix@AWS child cluster deployment scheduled: ${equinixOnAwsDemo}
+        Azure provider deployment scheduled: ${azureOnDemandDemo}
+        Azure@AWS child cluster deployment scheduled: ${azureOnAwsDemo}
         VSPHERE provider deployment scheduled: ${enableVsphereDemo}
         OS provider deployment scheduled: ${enableOSDemo}
         BM Core provider deployment scheduled: ${enablebmCoreDemo}
@@ -558,6 +629,7 @@ def checkDeploymentTestSuite() {
         RHEL on vSphere scheduled: ${enableVsphereRHEL}
         Artifacts build scheduled: ${enableArtifactsBuild}
         Boot OS child from Ceph volumes: ${childOsBootFromVolume}
+        Multiregional configuration: ${multiregionalMappings}
         Service binaries fetching scheduled: ${fetchServiceBinaries}
         Current weight of the demo run: ${demoWeight} (Used to manage lockable resources)
         Bootstrap v2 scenario enabled: ${bootstrapV2Scenario}
@@ -617,8 +689,12 @@ def checkDeploymentTestSuite() {
         runProxyChildTestEnabled                 : runProxyChildTest,
         fetchServiceBinariesEnabled              : fetchServiceBinaries,
         awsOnDemandDemoEnabled                   : awsOnDemandDemo,
+        equinixOnDemandDemoEnabled               : equinixOnDemandDemo,
         equinixMetalV2OnDemandDemoEnabled        : equinixMetalV2OnDemandDemo,
         equinixMetalV2ChildDiffMetroEnabled      : equinixMetalV2ChildDiffMetro,
+        equinixOnAwsDemoEnabled                  : equinixOnAwsDemo,
+        azureOnDemandDemoEnabled                 : azureOnDemandDemo,
+        azureOnAwsDemoEnabled                    : azureOnAwsDemo,
         vsphereDemoEnabled                       : enableVsphereDemo,
         bmDemoEnabled                            : enableBMDemo,
         bmCoreDemoEnabled                        : enablebmCoreDemo,
@@ -629,6 +705,7 @@ def checkDeploymentTestSuite() {
         vsphereRHELEnabled                       : enableVsphereRHEL,
         artifactsBuildEnabled                    : enableArtifactsBuild,
         childOsBootFromVolume                    : childOsBootFromVolume,
+        multiregionalConfiguration               : multiregionalMappings,
         demoWeight                               : demoWeight,
         bootstrapV2Scenario                      : bootstrapV2Scenario,
         equinixMetalV2Metro                      : equinixMetalV2Metro,
@@ -643,6 +720,50 @@ def checkDeploymentTestSuite() {
     ]
 }
 
+/**
+ * Determine management and regional setup for demo workflow scenario
+ *
+ *
+ * @param:        keyword (string) string , represents keyword trigger, specified in gerrit commit body, like `[multiregion aws,os]`
+                                   or Jenkins environment string variable in form like 'aws,os'
+ * @return        (map)[
+                          enabled: (bool),
+ *                        managementLocation: (string), //aws,os
+ *                        regionLocation: (string), //aws,os
+ *                     ]
+ */
+def multiregionWorkflowParser(keyword) {
+    def common = new com.mirantis.mk.Common()
+    def supportedManagementProviders = ['os', 'aws', 'vsphere', 'equinix', 'equinixmetalv2', 'azure']
+    def supportedRegionalProviders = ['os', 'vsphere', 'equinix', 'equinixmetalv2', 'bm', 'azure', 'aws']
+
+    def clusterTypes = ''
+    if (keyword.toString().contains('multiregion')) {
+        common.infoMsg('Multiregion definition configured via gerrit keyword trigger')
+        clusterTypes = keyword[0][0].split('multiregion')[1].replaceAll('[\\[\\]]', '').trim().split(',')
+    } else {
+        common.infoMsg('Multiregion definition configured via environment variable')
+        clusterTypes = keyword.trim().split(',')
+    }
+
+    if (clusterTypes.size() != 2) {
+        error("Incorrect regions definiton, valid scheme: [multiregion ${management}, ${region}], got: ${clusterTypes}")
+    }
+
+    def desiredManagementProvider = clusterTypes[0].trim()
+    def desiredRegionalProvider = clusterTypes[1].trim()
+    if (! supportedManagementProviders.contains(desiredManagementProvider) || ! supportedRegionalProviders.contains(desiredRegionalProvider)) {
+        error("""unsupported management <-> regional bundle, available options:
+              management providers list - ${supportedManagementProviders}
+              regional providers list - ${supportedRegionalProviders}""")
+    }
+
+    return [
+        enabled: true,
+        managementLocation: desiredManagementProvider,
+        regionLocation: desiredRegionalProvider,
+    ]
+}
 
 /**
  * Determine if custom si tests/pipelines refspec forwarded from gerrit change request
@@ -835,8 +956,14 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         if (triggers.awsOnDemandDemoEnabled) {
             platforms.add('aws')
         }
+        if (triggers.equinixOnDemandDemoEnabled) {
+            platforms.add('equinix')
+        }
         if (triggers.equinixMetalV2OnDemandDemoEnabled) {
             platforms.add('equinixmetalv2')
+        }
+        if (triggers.azureOnDemandDemoEnabled) {
+            platforms.add('azure')
         }
         if (triggers.vsphereDemoEnabled) {
             platforms.add('vsphere')
@@ -894,8 +1021,12 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'RUN_CHILD_HPA', value: triggers.runChildHPAEnabled),
         booleanParam(name: 'RUN_STACKLIGHT_CHILD_HA', value: triggers.runChildStacklightHaEnabled),
         booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled),
+        booleanParam(name: 'ALLOW_EQUINIX_ON_DEMAND', value: triggers.equinixOnDemandDemoEnabled),
         booleanParam(name: 'ALLOW_EQUINIXMETALV2_ON_DEMAND', value: triggers.equinixMetalV2OnDemandDemoEnabled),
         booleanParam(name: 'EQUINIXMETALV2_CHILD_DIFF_METRO', value: triggers.equinixMetalV2ChildDiffMetroEnabled),
+        booleanParam(name: 'EQUINIX_ON_AWS_DEMO', value: triggers.equinixOnAwsDemoEnabled),
+        booleanParam(name: 'ALLOW_AZURE_ON_DEMAND', value: triggers.azureOnDemandDemoEnabled),
+        booleanParam(name: 'AZURE_ON_AWS_DEMO', value: triggers.azureOnAwsDemoEnabled),
         booleanParam(name: 'ALLOW_BM_CORE_ON_DEMAND', value: triggers.bmCoreDemoEnabled),
         booleanParam(name: 'VSPHERE_DEPLOY_UBUNTU', value: triggers.vsphereUbuntuEnabled),
         booleanParam(name: 'PAUSE_FOR_DEBUG', value: triggers.pauseForDebugEnabled),
@@ -905,6 +1036,13 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'BM_CORE_CLEANUP', value: triggers.bmCoreCleanup),
         booleanParam(name: 'DISABLE_KUBE_API_AUDIT', value: triggers.disableKubeApiAudit),
     ]
+
+    // customize multiregional demo
+    if (triggers.multiregionalConfiguration.enabled) {
+        parameters.add(string(name: 'MULTIREGION_SETUP',
+                              value: "${triggers.multiregionalConfiguration.managementLocation},${triggers.multiregionalConfiguration.regionLocation}"
+                              ))
+    }
 
     // Determine component team custom context
     if (coreContext != '') {
@@ -953,6 +1091,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
  *
  * @param:        callBackDemo (string) Demo which requested to generate lockResources [aws or vsphere]
  * @param:        triggers (map) Custom trigger keywords forwarded from gerrit
+ * @param:        multiregionalConfiguration (map) Multiregional configuration
  * @return        (map) Return aggregated map with lockResources and netMap
  */
 
@@ -970,6 +1109,8 @@ def generateLockResources(callBackDemo, triggers) {
     ]
     def deployChild = triggers.deployChildEnabled
     def testUiVsphere = triggers.runUie2eEnabled || triggers.runUie2eNewEnabled
+    def multiregionConfig = triggers.multiregionalConfiguration
+    def runMultiregion = multiregionConfig.enabled
 
     // Generate vsphere netMap and lockLabels based on demo context
     switch (callBackDemo) {
@@ -977,15 +1118,63 @@ def generateLockResources(callBackDemo, triggers) {
             // Add aws specific lock label with quantity calculated based on single mgmt deploy or mgmt + child
             lockLabels['aws_core_ci_queue'] = triggers.demoWeight
             if (triggers.runBYOMatrixEnabled) { lockLabels['aws_core_ci_queue'] += 6 }
+
+            // Define netMap for Vsphere region
+            if (runMultiregion && multiregionConfig.managementLocation == 'aws') {
+                if (multiregionConfig.regionLocation == 'vsphere') {
+                    if (deployChild) {
+                        addToProviderNetMap(netMap, 'vsphere', 'regional-child')
+                    }
+                    addToProviderNetMap(netMap, 'vsphere', 'region')
+                }
+
+                if (multiregionConfig.regionLocation == 'azure') {
+                    lockLabels['azure_core_ci_queue'] = 1
+                    if (deployChild) {
+                        lockLabels['azure_core_ci_queue'] += 1
+                    }
+                }
+            }
+            if (triggers.azureOnAwsDemoEnabled) {
+                lockLabels['azure_core_ci_queue'] = 1
+            }
+
+            if (triggers.equinixOnAwsDemoEnabled) {
+                lockLabels['equinix_core_ci_queue'] = 1
+            }
             break
         case 'vsphere':
             addToProviderNetMap(netMap, 'vsphere', 'mgmt')
             if (deployChild || testUiVsphere) {
                 addToProviderNetMap(netMap, 'vsphere', 'child')
             }
+            if (runMultiregion && multiregionConfig.managementLocation == 'vsphere' &&
+                multiregionConfig.regionLocation == 'vsphere') {
+                if (deployChild) {
+                    addToProviderNetMap(netMap, 'vsphere', 'regional-child')
+                }
+                addToProviderNetMap(netMap, 'vsphere', 'region')
+            }
             break
+        case 'azure':
+            lockLabels['azure_core_ci_queue'] = triggers.demoWeight
+            if (runMultiregion && multiregionConfig.managementLocation == 'azure') {
+                if (multiregionConfig.regionLocation == 'aws') {
+                    lockLabels['aws_core_ci_queue'] = 1
+                    if (deployChild) {
+                        lockLabels['aws_core_ci_queue'] += 1
+                    }
+                }
+
+                if (multiregionConfig.regionLocation == 'equinix') {
+                    lockLabels['equinix_core_ci_queue'] = 1
+                    if (deployChild) {
+                        lockLabels['equinix_core_ci_queue'] +=1
+                    }
+                }
+            }
         default:
-            error('Supposed to be called from aws or vsphere demos only')
+            error('Supposed to be called from aws, azure or vsphere demos only')
     }
 
     // Checking gerrit triggers and manage lock label quantity and network types in case of Offline deployment
