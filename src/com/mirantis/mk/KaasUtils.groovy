@@ -1,6 +1,7 @@
 package com.mirantis.mk
 
 import static groovy.json.JsonOutput.toJson
+import java.util.regex.Pattern
 
 /**
  *
@@ -1647,6 +1648,31 @@ def getImageTag(version, isChanged, imageName) {
     common.infoMsg("${imageName} image will use tag '${latestTag}'")
     return latestTag
 }
+
+/**
+ * Get actual branch version for os deployment job
+ * @param mosChildPreviouseComplexRelease   (string) kaas_previous_complex_mosk_cluster_release_version.txt
+ * @param mosChildLatestComplexRelease      (string) kaas_latest_complex_mosk_cluster_release_version.txt
+ * @param upgradeFlag                       (boolean)
+ * all parametrs get from si-test-release-sanity-check-prepare-configuration job
+ * @return:         (string) branch verison
+ */
+def getOpenstackbranchVersion(mosChildPreviouseComplexRelease, mosChildLatestComplexRelease, upgradeFlag) {
+    def common = new com.mirantis.mk.Common()
+    def regex = Pattern.compile('([a-z]+)-([0-9]+-[0-9]+-[0-9]+)-([a-z]*)-?([0-9]+-[0-9]+-?[0-9]*)')
+
+    def mosVersionBranch = upgradeFlag ? mosChildPreviouseComplexRelease : mosChildLatestComplexRelease
+    def matcherComplexVersion = regex.matcher((mosVersionBranch).toString())
+    def releaseOpenstackK8sBranch = 'master'
+
+    if (matcherComplexVersion.find()) {
+        def matcherComplexVersionParts = matcherComplexVersion.group(2).split('-')
+        releaseOpenstackK8sBranch = String.format('%s.%s.%s', matcherComplexVersionParts[0], matcherComplexVersionParts[1], '0')
+    }
+    common.infoMsg("Use: OPENSTACK_DEPLOY_RELEASE_DIR ${releaseOpenstackK8sBranch}")
+    return releaseOpenstackK8sBranch
+}
+
 
 
 /**
