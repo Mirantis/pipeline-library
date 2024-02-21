@@ -619,3 +619,22 @@ def createGitBranchFromRef(Map params) {
     }
     return jsonChange
 }
+
+/**
+ * Return array with branches that contains specific tag
+ *
+ * @param path            Path to the git repository
+ * @param tag             search tag
+ */
+def getBranchesContainsTag(String path, String tag) {
+    List result
+    dir(path) {
+        def gitResult = sh (
+            script: "git branch --contains tags/${tag}",
+            returnStdout: true
+        ).trim()
+        result  = gitResult.readLines()
+        result.removeAll {it -> it.contains("HEAD detached")}
+    }
+    return result*.trim()
+}
