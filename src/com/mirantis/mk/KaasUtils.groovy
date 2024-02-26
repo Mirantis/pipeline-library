@@ -94,6 +94,7 @@ def checkDeploymentTestSuite() {
     def runMkeCustomCertTest = env.RUN_MKE_CUSTOM_CERT_TEST ? env.RUN_MKE_CUSTOM_CERT_TEST.toBoolean() : false
     def runCustomHostnames = env.RUN_CUSTOM_HOSTNAMES ? env.RUN_CUSTOM_HOSTNAMES.toBoolean() : false
     def slLatest = env.SL_LATEST ? env.SL_LATEST.toBoolean() : false
+    def coreKeycloakLdap = env.CORE_KEYCLOAK_LDAP_ENABLED ? env.CORE_KEYCLOAK_LDAP_ENABLED.toBoolean() : false
     def disableKubeApiAudit = env.DISABLE_KUBE_API_AUDIT ? env.DISABLE_KUBE_API_AUDIT.toBoolean() : false
     def customSlackChannel = env.SLACK_CHANNEL_NOTIFY ? env.SLACK_CHANNEL_NOTIFY : ''
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
@@ -441,6 +442,11 @@ def checkDeploymentTestSuite() {
         common.warningMsg('All clusters will be deployed with Stacklight version from artifact-metadata')
     }
 
+    if (commitMsg ==~ /(?s).*\[keycloak-ldap\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*keycloak-ldap\.*/) {
+        coreKeycloakLdap = true
+        common.warningMsg('Management cluster will be deployed with LDAP integration enabled and after-deployment checks will be executed')
+    }
+
     if (commitMsg ==~ /(?s).*\[disable-kube-api-audit\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-kube-api-audit\.*/) {
         disableKubeApiAudit = true
         common.warningMsg('Disable KUBE API audit for mgmt cluster')
@@ -642,6 +648,7 @@ def checkDeploymentTestSuite() {
         Bootsrap v2 smoke checks enabled: ${enableBv2Smoke}
         Run Cache warmup for child clusters: ${runCacheWarmup}
         CVE Scan enabled: ${cveScan}
+        Keycloak+LDAP integration enabled: ${coreKeycloakLdap}
         Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [
         osCloudLocation                          : openstackIMC,
@@ -718,6 +725,7 @@ def checkDeploymentTestSuite() {
         runCacheWarmup                           : runCacheWarmup,
         cveScanEnabled                           : cveScan,
         disableKubeApiAudit                      : disableKubeApiAudit,
+        coreKeycloakLdapEnabled                  : coreKeycloakLdap,
     ]
 }
 
@@ -1036,6 +1044,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'AIO_CLUSTER', value: triggers.aioCluster),
         booleanParam(name: 'BM_CORE_CLEANUP', value: triggers.bmCoreCleanup),
         booleanParam(name: 'DISABLE_KUBE_API_AUDIT', value: triggers.disableKubeApiAudit),
+        booleanParam(name: 'CORE_KEYCLOAK_LDAP_ENABLED', value: triggers.coreKeycloakLdapEnabled)
     ]
 
     // customize multiregional demo
