@@ -327,8 +327,6 @@ def checkDeploymentTestSuite() {
     }
     if (commitMsg ==~ /(?s).*\[aws-demo\].*/                 ||
         env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*aws-demo.*/ ||
-        attachBYO                                            ||
-        upgradeBYO                                           ||
         runBYOMatrix                                         ||
         seedMacOs                                            ||
         equinixOnAwsDemo                                     ||
