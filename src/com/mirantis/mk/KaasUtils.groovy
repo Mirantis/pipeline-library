@@ -977,6 +977,9 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         if (triggers.vsphereDemoEnabled) {
             platforms.add('vsphere')
         }
+        if (triggers.bmCoreDemoEnabled) {
+            platforms.add('bm')
+        }
     }
 
     def jobs = [:]
