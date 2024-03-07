@@ -1117,6 +1117,7 @@ def generateLockResources(callBackDemo, triggers) {
     ]
     def deployChild = triggers.deployChildEnabled
     def testUiVsphere = triggers.runUie2eEnabled || triggers.runUie2eNewEnabled
+    def vsphereByo = triggers.attachBYOEnabled
     def multiregionConfig = triggers.multiregionalConfiguration
     def runMultiregion = multiregionConfig.enabled
 
@@ -1153,7 +1154,7 @@ def generateLockResources(callBackDemo, triggers) {
             break
         case 'vsphere':
             addToProviderNetMap(netMap, 'vsphere', 'mgmt')
-            if (deployChild || testUiVsphere) {
+            if (deployChild || testUiVsphere || vsphereByo) {
                 addToProviderNetMap(netMap, 'vsphere', 'child')
             }
             if (runMultiregion && multiregionConfig.managementLocation == 'vsphere' &&
