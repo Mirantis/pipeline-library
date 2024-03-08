@@ -373,6 +373,12 @@ def checkDeploymentTestSuite() {
         enableBMDemo = false
     }
 
+    // Projects may or may not have BM Core demo enabled by default
+    if (commitMsg ==~ /(?s).*\[disable-bm-core-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-bm-core-demo\.*/) {
+        enablebmCoreDemo = false
+        common.errorMsg('BM Core demo deployment will be aborted, VF -1 will be set')
+    }
+
     if (commitMsg ==~ /(?s).*\[disable-bm-core-cleanup\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-bm-core-cleanup\\.*/) {
         bmCoreCleanup = false
     }
