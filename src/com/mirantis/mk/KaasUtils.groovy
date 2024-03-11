@@ -124,7 +124,7 @@ def checkDeploymentTestSuite() {
     def enablebmCoreDemo = env.ALLOW_BM_CORE_ON_DEMAND ? env.ALLOW_BM_CORE_ON_DEMAND.toBoolean() : false
     def bmCoreCleanup = env.BM_CORE_CLEANUP ? env.BM_CORE_CLEANUP : true
     def enableArtifactsBuild = true
-    def bmDeployType = 'virtual'
+    def bmDeployType = env.BM_DEPLOY_TYPE ? env.BM_DEPLOY_TYPE.toString() : 'virtual'
     def openstackIMC = env.OPENSTACK_CLOUD_LOCATION ? env.OPENSTACK_CLOUD_LOCATION : 'us'
     def enableVsphereUbuntu = env.VSPHERE_DEPLOY_UBUNTU ? env.VSPHERE_DEPLOY_UBUNTU.toBoolean() : false
     def enableVsphereRHEL = env.VSPHERE_DEPLOY_RHEL ? env.VSPHERE_DEPLOY_RHEL.toBoolean() : false
@@ -1052,6 +1052,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'ENABLE_MKE_DUBUG', value: triggers.enableMkeDebugEnabled),
         booleanParam(name: 'AIO_CLUSTER', value: triggers.aioCluster),
         booleanParam(name: 'BM_CORE_CLEANUP', value: triggers.bmCoreCleanup),
+        booleanParam(name: 'BM_DEPLOY_TYPE', value: triggers.bmDeployTypeEnabled),
         booleanParam(name: 'DISABLE_KUBE_API_AUDIT', value: triggers.disableKubeApiAudit),
         booleanParam(name: 'CORE_KEYCLOAK_LDAP_ENABLED', value: triggers.coreKeycloakLdapEnabled)
     ]
