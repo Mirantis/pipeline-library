@@ -1555,6 +1555,7 @@ def genCommandLine() {
         'DESTINATION_REGISTRY_TYPE': '-dst-repo-type',
         'SIGNED_IMAGES_PATH': '-signed-images-path',
         'DOCKER_CLEAN': '-cleanup',
+        'DOCKER_OLDER_THAN_DAYS': '-older-than-days',
         'DOCKER_REPO_PREFIX': '-docker-repo-prefix',
         'DOCKER_TAG': '-docker-tag',
         'FORCE': '-force',
