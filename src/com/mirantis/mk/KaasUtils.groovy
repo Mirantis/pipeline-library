@@ -95,6 +95,7 @@ def checkDeploymentTestSuite() {
     def runCustomHostnames = env.RUN_CUSTOM_HOSTNAMES ? env.RUN_CUSTOM_HOSTNAMES.toBoolean() : false
     def slLatest = env.SL_LATEST ? env.SL_LATEST.toBoolean() : false
     def coreKeycloakLdap = env.CORE_KEYCLOAK_LDAP_ENABLED ? env.CORE_KEYCLOAK_LDAP_ENABLED.toBoolean() : false
+    def configureInternalNTP = env.CORE_KAAS_NTP_ENABLED ? env.CORE_KAAS_NTP_ENABLED.toBoolean() : false
     def disableKubeApiAudit = env.DISABLE_KUBE_API_AUDIT ? env.DISABLE_KUBE_API_AUDIT.toBoolean() : false
     def customSlackChannel = env.SLACK_CHANNEL_NOTIFY ? env.SLACK_CHANNEL_NOTIFY : ''
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
@@ -445,6 +446,11 @@ def checkDeploymentTestSuite() {
         common.warningMsg('Management cluster will be deployed with LDAP integration enabled and after-deployment checks will be executed')
     }
 
+    if (commitMsg ==~ /(?s).*\[internal-ntp\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*internal-ntp\.*/ || proxyConfig['mgmtOffline'] || proxyConfig['childOffline']) {
+        configureInternalNTP = true
+        common.warningMsg('Internal NTP servers will be used')
+    }
+
     if (commitMsg ==~ /(?s).*\[disable-kube-api-audit\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-kube-api-audit\.*/) {
         disableKubeApiAudit = true
         common.warningMsg('Disable KUBE API audit for mgmt cluster')
@@ -724,6 +730,7 @@ def checkDeploymentTestSuite() {
         cveScanEnabled                           : cveScan,
         disableKubeApiAudit                      : disableKubeApiAudit,
         coreKeycloakLdapEnabled                  : coreKeycloakLdap,
+        internalNTPServersEnabled                : configureInternalNTP,
     ]
 }
 
@@ -1046,7 +1053,8 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'BM_CORE_CLEANUP', value: triggers.bmCoreCleanup),
         booleanParam(name: 'BM_DEPLOY_TYPE', value: triggers.bmDeployTypeEnabled),
         booleanParam(name: 'DISABLE_KUBE_API_AUDIT', value: triggers.disableKubeApiAudit),
-        booleanParam(name: 'CORE_KEYCLOAK_LDAP_ENABLED', value: triggers.coreKeycloakLdapEnabled)
+        booleanParam(name: 'CORE_KEYCLOAK_LDAP_ENABLED', value: triggers.coreKeycloakLdapEnabled),
+        booleanParam(name: 'CORE_KAAS_NTP_ENABLED', value: triggers.internalNTPServersEnabled)
     ]
 
     // customize multiregional demo
