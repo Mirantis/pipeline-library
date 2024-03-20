@@ -123,7 +123,7 @@ def checkDeploymentTestSuite() {
     def enableOSDemo = true
     def enableBMDemo = true
     def enablebmCoreDemo = env.ALLOW_BM_CORE_ON_DEMAND ? env.ALLOW_BM_CORE_ON_DEMAND.toBoolean() : false
-    def bmCoreCleanup = env.BM_CORE_CLEANUP ? env.BM_CORE_CLEANUP : true
+    def bmCoreCleanup = env.BM_CORE_CLEANUP ? env.BM_CORE_CLEANUP.toBoolean() : true
     def enableArtifactsBuild = true
     def bmDeployType = env.BM_DEPLOY_TYPE ? env.BM_DEPLOY_TYPE.toString() : 'virtual'
     def openstackIMC = env.OPENSTACK_CLOUD_LOCATION ? env.OPENSTACK_CLOUD_LOCATION : 'us'
