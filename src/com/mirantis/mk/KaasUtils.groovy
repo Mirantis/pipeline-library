@@ -97,6 +97,7 @@ def checkDeploymentTestSuite() {
     def coreKeycloakLdap = env.CORE_KEYCLOAK_LDAP_ENABLED ? env.CORE_KEYCLOAK_LDAP_ENABLED.toBoolean() : false
     def configureInternalNTP = env.CORE_KAAS_NTP_ENABLED ? env.CORE_KAAS_NTP_ENABLED.toBoolean() : false
     def disableKubeApiAudit = env.DISABLE_KUBE_API_AUDIT ? env.DISABLE_KUBE_API_AUDIT.toBoolean() : false
+    def auditd = env.ENABLE_AUDITD ? env.ENABLE_AUDITD.toBoolean() : false
     def customSlackChannel = env.SLACK_CHANNEL_NOTIFY ? env.SLACK_CHANNEL_NOTIFY : ''
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
     def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
@@ -456,6 +457,10 @@ def checkDeploymentTestSuite() {
         common.warningMsg('Disable KUBE API audit for mgmt cluster')
     }
 
+    if (commitMsg ==~ /(?s).*\[auditd\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-kube-api-audit\.*/) {
+        auditd = true
+    }
+
     if (commitMsg ==~ /(?s).*\[byo-child-custom-cert-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*byo-child-custom-cert-test\.*/) {
         runByoChildCustomCertTest = true
         attachBYO = true
@@ -622,6 +627,7 @@ def checkDeploymentTestSuite() {
         Custom hostnames for all clisuers: ${runCustomHostnames}
         Stacklight templates enchanced with latest version from artifact-metadata: ${slLatest}
         Disable Kubernetes API audit: ${disableKubeApiAudit}
+        Enable Auditd : ${auditd}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
         Equinix provider deployment scheduled: ${equinixOnDemandDemo}
         EquinixmetalV2 provider deployment scheduled: ${equinixMetalV2OnDemandDemo}
@@ -729,6 +735,7 @@ def checkDeploymentTestSuite() {
         runCacheWarmup                           : runCacheWarmup,
         cveScanEnabled                           : cveScan,
         disableKubeApiAudit                      : disableKubeApiAudit,
+        auditdEnabled                            : auditd,
         coreKeycloakLdapEnabled                  : coreKeycloakLdap,
         internalNTPServersEnabled                : configureInternalNTP,
     ]
@@ -1053,6 +1060,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'BM_CORE_CLEANUP', value: triggers.bmCoreCleanup),
         booleanParam(name: 'BM_DEPLOY_TYPE', value: triggers.bmDeployTypeEnabled),
         booleanParam(name: 'DISABLE_KUBE_API_AUDIT', value: triggers.disableKubeApiAudit),
+        booleanParam(name: "ENABLE_AUDITD", value: triggers.auditdEnabled),
         booleanParam(name: 'CORE_KEYCLOAK_LDAP_ENABLED', value: triggers.coreKeycloakLdapEnabled),
         booleanParam(name: 'CORE_KAAS_NTP_ENABLED', value: triggers.internalNTPServersEnabled)
     ]
