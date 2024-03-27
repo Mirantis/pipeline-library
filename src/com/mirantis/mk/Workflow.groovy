@@ -285,7 +285,7 @@ def runOrGetJob(job_name, job_parameters, global_variables, propagate, String fu
  * @param artifactory_server  Artifactory server ID defined in Jenkins config
  *
  */
-def storeArtifacts(build_url, step_artifacts, global_variables, job_name, build_num, artifactory_url = '', artifactory_server = '') {
+def storeArtifacts(build_url, step_artifacts, global_variables, job_name, build_num, artifactory_url = '', artifactory_server = '', artifacts_msg='local artifacts') {
     def common = new com.mirantis.mk.Common()
     def http = new com.mirantis.mk.Http()
     def artifactory = new com.mirantis.mcp.MCPArtifactory()
@@ -302,7 +302,7 @@ def storeArtifacts(build_url, step_artifacts, global_variables, job_name, build_
     baseJenkins["url"] = build_url
     def job_config = http.restGet(baseJenkins, "/api/json/")
     def job_artifacts = job_config['artifacts']
-    common.infoMsg("Attempt to storeArtifacts for: ${job_name}/${build_num}")
+    common.infoMsg("Attempt to store ${artifacts_msg} for: ${job_name}/${build_num}")
     for (artifact in step_artifacts) {
         try {
             def artifactoryResp = http.restGet(baseArtifactory, "/${artifact.value}")
@@ -505,7 +505,7 @@ def updateDescription(jobs_data) {
 }
 
 
-def runStep(global_variables, step, Boolean propagate = false, artifactoryBaseUrl = '', artifactoryServer = '') {
+def runStep(global_variables, step, Boolean propagate = false, artifactoryBaseUrl = '', artifactoryServer = '', parent_global_variables=null) {
     return {
         def common = new com.mirantis.mk.Common()
         def engine = new groovy.text.GStringTemplateEngine()
@@ -577,13 +577,19 @@ def runStep(global_variables, step, Boolean propagate = false, artifactoryBaseUr
         }
         // Store links to the resulting artifacts into 'global_variables'
         storeArtifacts(jobSummary['build_url'], step['artifacts'],
-          global_variables, jobName, jobSummary['build_id'], artifactoryBaseUrl, artifactoryServer)
+          global_variables, jobName, jobSummary['build_id'], artifactoryBaseUrl, artifactoryServer, artifacts_msg='artifacts to local variables')
+        // Store links to the resulting 'global_artifacts' into 'global_variables'
+        storeArtifacts(jobSummary['build_url'], step['global_artifacts'],
+          global_variables, jobName, jobSummary['build_id'], artifactoryBaseUrl, artifactoryServer, artifacts_msg='global_artifacts to local variables')
+        // Store links to the resulting 'global_artifacts' into 'parent_global_variables'
+        storeArtifacts(jobSummary['build_url'], step['global_artifacts'],
+          parent_global_variables, jobName, jobSummary['build_id'], artifactoryBaseUrl, artifactoryServer, artifacts_msg='global_artifacts to global_variables')
         return jobSummary
     }
 }
 
 
-def runScript(global_variables, step, artifactoryBaseUrl = '', artifactoryServer = '', scriptsLibrary = null) {
+def runScript(global_variables, step, artifactoryBaseUrl = '', artifactoryServer = '', scriptsLibrary = null, parent_global_variables=null) {
     def common = new com.mirantis.mk.Common()
     def env_variables = common.getEnvAsMap()
 
@@ -624,15 +630,21 @@ def runScript(global_variables, step, artifactoryBaseUrl = '', artifactoryServer
         printStackTrace(e)
     }
 
-    // Store links to the resulting artifacts into 'global_variables'
+    // Store links to the resulting 'artifacts' into 'global_variables'
     storeArtifacts(env.BUILD_URL, step['artifacts'],
-                   global_variables, env.JOB_NAME, env.BUILD_NUMBER, artifactoryBaseUrl, artifactoryServer)
+                   global_variables, env.JOB_NAME, env.BUILD_NUMBER, artifactoryBaseUrl, artifactoryServer, artifacts_msg='artifacts to local variables')
+    // Store links to the resulting 'global_artifacts' into 'global_variables'
+    storeArtifacts(env.BUILD_URL, step['global_artifacts'],
+                   global_variables, env.JOB_NAME, env.BUILD_NUMBER, artifactoryBaseUrl, artifactoryServer, artifacts_msg='global_artifacts to local variables')
+    // Store links to the resulting 'global_artifacts' into 'parent_global_variables'
+    storeArtifacts(env.BUILD_URL, step['global_artifacts'],
+                   parent_global_variables, env.JOB_NAME, env.BUILD_NUMBER, artifactoryBaseUrl, artifactoryServer, artifacts_msg='global_artifacts to global_variables')
 
     return scriptSummary
 }
 
 
-def runParallel(global_variables, step, failed_jobs, global_jobs_data, nested_steps_data, artifactoryBaseUrl = '', artifactoryServer = '', scriptsLibrary = null, prefixMsg = '') {
+def runParallel(global_variables, step, failed_jobs, global_jobs_data, nested_steps_data, artifactoryBaseUrl = '', artifactoryServer = '', scriptsLibrary = null, prefixMsg = '', parent_global_variables=null) {
     // Run the specified steps in parallel
     // Repeat the steps for each parameters set from 'repeat_with_parameters_from_yaml'
     // If 'repeat_with_parameters_from_yaml' is not provided, then 'parallel' step will perform just one iteration for a default "- _FOO: _BAR" parameter
@@ -719,7 +731,7 @@ def runParallel(global_variables, step, failed_jobs, global_jobs_data, nested_st
                 }
 
                 try {
-                    runWorkflowStep(nested_global_variables, nested_step, 0, nested_steps_data[nested_step_name], global_jobs_data, failed_jobs, false, artifactoryBaseUrl, artifactoryServer, scriptsLibrary, nested_prefix_name)
+                    runWorkflowStep(nested_global_variables, nested_step, 0, nested_steps_data[nested_step_name], global_jobs_data, failed_jobs, false, artifactoryBaseUrl, artifactoryServer, scriptsLibrary, nested_prefix_name, parent_global_variables)
                 }
                 catch (e) {
                     failed_concurrent.add(step_name)
@@ -766,7 +778,7 @@ def runParallel(global_variables, step, failed_jobs, global_jobs_data, nested_st
 }
 
 
-def runSequence(global_variables, step, failed_jobs, global_jobs_data, nested_steps_data, artifactoryBaseUrl = '', artifactoryServer = '', scriptsLibrary = null, prefixMsg = '') {
+def runSequence(global_variables, step, failed_jobs, global_jobs_data, nested_steps_data, artifactoryBaseUrl = '', artifactoryServer = '', scriptsLibrary = null, prefixMsg = '', parent_global_variables=null) {
     // Run the steps in the specified order, like in main workflow, but repeat the sequence for each parameters set from 'repeat_with_parameters_from_yaml'
     // If 'repeat_with_parameters_from_yaml' is not provided, then 'sequence' step will perform just one iteration for a default "- _FOO: _BAR" parameter
     // If 'repeat_with_parameters_from_yaml' is present, but the specified artifact contains empty list '[]', then 'sequence' step will be skipped
@@ -820,7 +832,7 @@ def runSequence(global_variables, step, failed_jobs, global_jobs_data, nested_st
 
         jobs[step_name] = {
 
-            runSteps(nested_steps, nested_global_variables, failed_jobs, nested_steps_data[nested_step_name], global_jobs_data, 0, false, artifactoryBaseUrl, artifactoryServer, scriptsLibrary, nested_prefix_name)
+            runSteps(nested_steps, nested_global_variables, failed_jobs, nested_steps_data[nested_step_name], global_jobs_data, 0, false, artifactoryBaseUrl, artifactoryServer, scriptsLibrary, nested_prefix_name, parent_global_variables)
 
         } // 'jobs' closure
 
@@ -894,7 +906,7 @@ def checkResult(job_result, build_url, step, failed_jobs) {
     }
 }
 
-def runWorkflowStep(global_variables, step, step_id, jobs_data, global_jobs_data, failed_jobs, propagate, artifactoryBaseUrl, artifactoryServer, scriptsLibrary = null, prefixMsg = '') {
+def runWorkflowStep(global_variables, step, step_id, jobs_data, global_jobs_data, failed_jobs, propagate, artifactoryBaseUrl, artifactoryServer, scriptsLibrary = null, prefixMsg = '', parent_global_variables=null) {
     def common = new com.mirantis.mk.Common()
 
     def _sep = "\n======================\n"
@@ -903,7 +915,7 @@ def runWorkflowStep(global_variables, step, step_id, jobs_data, global_jobs_data
         common.printMsg("${_sep}${prefixMsg}Run job ${step['job']} [at ${java.time.LocalDateTime.now()}]${_sep}", "blue")
         stage("Run job ${step['job']}") {
 
-            def job_summary = runStep(global_variables, step, propagate, artifactoryBaseUrl, artifactoryServer).call()
+            def job_summary = runStep(global_variables, step, propagate, artifactoryBaseUrl, artifactoryServer, parent_global_variables).call()
 
             // Update jobs_data for updating description
             jobs_data[step_id]['build_url'] = job_summary['build_url']
@@ -923,7 +935,7 @@ def runWorkflowStep(global_variables, step, step_id, jobs_data, global_jobs_data
         common.printMsg("${_sep}${prefixMsg}Run script ${step['script']} [at ${java.time.LocalDateTime.now()}]${_sep}", "blue")
         stage("Run script ${step['script']}") {
 
-            def scriptResult = runScript(global_variables, step, artifactoryBaseUrl, artifactoryServer, scriptsLibrary)
+            def scriptResult = runScript(global_variables, step, artifactoryBaseUrl, artifactoryServer, scriptsLibrary, parent_global_variables)
 
             // Use build_url just as an unique key for failed_jobs.
             // All characters after '#' are 'comment'
@@ -947,7 +959,7 @@ def runWorkflowStep(global_variables, step, step_id, jobs_data, global_jobs_data
             def nested_steps_data = [:]
             jobs_data[step_id]['nested_steps_data'] = nested_steps_data
 
-            def parallelResult = runParallel(global_variables, step, failed_jobs, global_jobs_data, nested_steps_data, artifactoryBaseUrl, artifactoryServer, scriptsLibrary, prefixMsg)
+            def parallelResult = runParallel(global_variables, step, failed_jobs, global_jobs_data, nested_steps_data, artifactoryBaseUrl, artifactoryServer, scriptsLibrary, prefixMsg, parent_global_variables)
 
             // Use build_url just as an unique key for failed_jobs.
             // All characters after '#' are 'comment'
@@ -971,7 +983,7 @@ def runWorkflowStep(global_variables, step, step_id, jobs_data, global_jobs_data
             def nested_steps_data = [:]
             jobs_data[step_id]['nested_steps_data'] = nested_steps_data
 
-            def sequenceResult = runSequence(global_variables, step, failed_jobs, global_jobs_data, nested_steps_data, artifactoryBaseUrl, artifactoryServer, scriptsLibrary, prefixMsg)
+            def sequenceResult = runSequence(global_variables, step, failed_jobs, global_jobs_data, nested_steps_data, artifactoryBaseUrl, artifactoryServer, scriptsLibrary, prefixMsg, parent_global_variables)
 
             // Use build_url just as an unique key for failed_jobs.
             // All characters after '#' are 'comment'
@@ -1008,13 +1020,13 @@ def runWorkflowStep(global_variables, step, step_id, jobs_data, global_jobs_data
  * @param propagate               Boolean. If false: allows to collect artifacts after job is finished, even with FAILURE status
  *                                If true: immediatelly fails the pipeline. DO NOT USE 'true' with runScenario().
  */
-def runSteps(steps, global_variables, failed_jobs, jobs_data, global_jobs_data, step_id, Boolean propagate = false, artifactoryBaseUrl = '', artifactoryServer = '', scriptsLibrary = null, prefixMsg = '') {
+def runSteps(steps, global_variables, failed_jobs, jobs_data, global_jobs_data, step_id, Boolean propagate = false, artifactoryBaseUrl = '', artifactoryServer = '', scriptsLibrary = null, prefixMsg = '', parent_global_variables=null) {
     // Show expected jobs list in description
     updateDescription(global_jobs_data)
 
     for (step in steps) {
 
-        runWorkflowStep(global_variables, step, step_id, jobs_data, global_jobs_data, failed_jobs, propagate, artifactoryBaseUrl, artifactoryServer, scriptsLibrary, prefixMsg)
+        runWorkflowStep(global_variables, step, step_id, jobs_data, global_jobs_data, failed_jobs, propagate, artifactoryBaseUrl, artifactoryServer, scriptsLibrary, prefixMsg, parent_global_variables)
 
         // Jump to next ID for updating next job data in description table
         step_id++
@@ -1110,6 +1122,8 @@ def prepareJobsData(scenario_steps, step_type, jobs_data) {
  *           get_variable_from_yaml:
  *               yaml_url: SI_CONFIG_ARTIFACT
  *               yaml_key: .clusters[0].release_name
+ *       global_artifacts:
+ *         CHILD_CONFIG_1: artifacts/child_kubeconfig
  *
  *     - job: test-kaas-ui
  *       ignore_not_built: false
@@ -1187,7 +1201,7 @@ def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '', Bool
     def job_failed_flag = false
     try {
         // Run the 'workflow' jobs
-        runSteps(scenario['workflow'], global_variables, failed_jobs, jobs_data, global_jobs_data, step_id, false, artifactoryBaseUrl, artifactoryServer, scriptsLibrary, '')
+        runSteps(scenario['workflow'], global_variables, failed_jobs, jobs_data, global_jobs_data, step_id, false, artifactoryBaseUrl, artifactoryServer, scriptsLibrary, '', global_variables)
     } catch (InterruptedException e) {
         job_failed_flag = true
         error "The job was aborted"
@@ -1210,13 +1224,13 @@ def runScenario(scenario, slackReportChannel = '', artifactoryBaseUrl = '', Bool
             // Switching to 'pause' step index
             common.infoMsg("FINALLY BLOCK - PAUSE")
             step_id = pause_step_id
-            runSteps(scenario['pause'], global_variables, failed_jobs, jobs_data, global_jobs_data, step_id, false, artifactoryBaseUrl, artifactoryServer, scriptsLibrary, '')
+            runSteps(scenario['pause'], global_variables, failed_jobs, jobs_data, global_jobs_data, step_id, false, artifactoryBaseUrl, artifactoryServer, scriptsLibrary, '', global_variables)
 
         }
          // Switching to 'finally' step index
         common.infoMsg("FINALLY BLOCK - CLEAR")
         step_id = finally_step_id
-        runSteps(scenario['finally'], global_variables, failed_jobs, jobs_data, global_jobs_data, step_id, false, artifactoryBaseUrl, artifactoryServer, scriptsLibrary, '')
+        runSteps(scenario['finally'], global_variables, failed_jobs, jobs_data, global_jobs_data, step_id, false, artifactoryBaseUrl, artifactoryServer, scriptsLibrary, '', global_variables)
 
         if (failed_jobs) {
             def statuses = []
