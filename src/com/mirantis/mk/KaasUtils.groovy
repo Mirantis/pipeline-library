@@ -449,7 +449,8 @@ def checkDeploymentTestSuite() {
 
     if (commitMsg ==~ /(?s).*\[internal-ntp\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*internal-ntp\.*/ || proxyConfig['mgmtOffline'] || proxyConfig['childOffline']) {
         configureInternalNTP = true
-        common.warningMsg('Internal NTP servers will be used')
+        openstackIMC = 'eu'
+        common.warningMsg('Internal NTP servers will be used. Forced deployment for an offline case in eu cloud')
     }
 
     if (commitMsg ==~ /(?s).*\[disable-kube-api-audit\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-kube-api-audit\.*/) {
@@ -532,8 +533,8 @@ def checkDeploymentTestSuite() {
     // CDN configuration
     def cdnConfig = [
         mgmt: [
-            openstack: 'internal-ci',
-            vsphere:  'internal-ci',
+            openstack:  (proxyConfig['mgmtOffline'] == true) ? 'public-ci' : 'internal-ci',
+            vsphere:  (proxyConfig['mgmtOffline'] == true) ? 'public-ci' : 'internal-eu',
             aws: 'public-ci',
             equinix: 'public-ci',
             azure: 'public-ci',
@@ -546,7 +547,8 @@ def checkDeploymentTestSuite() {
 
     if (openstackIMC == 'eu') {
         // use internal-eu because on internal-ci with eu cloud image pull takes much time
-        def cdnRegion = 'internal-eu'
+        def cdnRegion = (proxyConfig['mgmtOffline'] == true) ? 'public-ci' : 'internal-eu'
+        common.infoMsg("eu-demo was triggered, force switching CDN region to ${cdnRegion}")
         cdnConfig['mgmt']['openstack'] = cdnRegion
     }
 
