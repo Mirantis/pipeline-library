@@ -534,7 +534,7 @@ def checkDeploymentTestSuite() {
     def cdnConfig = [
         mgmt: [
             openstack: 'internal-ci',
-            vsphere:  'internal-ci',
+            vsphere:  'internal-eu',
             aws: 'public-ci',
             equinix: 'public-ci',
             azure: 'public-ci',
