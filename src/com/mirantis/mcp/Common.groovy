@@ -7,7 +7,6 @@ import java.util.zip.GZIPOutputStream
 @Grab(group='org.yaml', module='snakeyaml', version='1.17')
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.DumperOptions
-import org.yaml.snakeyaml.LoaderOptions
 
 /**
  * https://issues.jenkins-ci.org/browse/JENKINS-26481
@@ -46,9 +45,7 @@ def runTox(String env = null) {
  */
 @NonCPS
 def loadYAML(String data) {
-  LoaderOptions options = new LoaderOptions()
-  options.setMaxAliasesForCollections(100)
-  def yaml = new Yaml(options)
+  def yaml = new Yaml()
   return yaml.load(data)
 }
 
