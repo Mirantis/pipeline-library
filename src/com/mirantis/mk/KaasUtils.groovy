@@ -99,6 +99,7 @@ def checkDeploymentTestSuite() {
     def disableKubeApiAudit = env.DISABLE_KUBE_API_AUDIT ? env.DISABLE_KUBE_API_AUDIT.toBoolean() : false
     def auditd = env.AUDITD_ENABLE ? env.AUDITD_ENABLE.toBoolean() : false
     def customSlackChannel = env.SLACK_CHANNEL_NOTIFY ? env.SLACK_CHANNEL_NOTIFY : ''
+    def runNTPUpdateTest = env.RUN_NTP_UPDATE_TEST ? env.RUN_NTP_UPDATE_TEST.toBoolean() : false
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
     def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
         enabled: false,
@@ -447,6 +448,11 @@ def checkDeploymentTestSuite() {
         common.warningMsg('Management cluster will be deployed with LDAP integration enabled and after-deployment checks will be executed')
     }
 
+    if (commitMsg ==~ /(?s).*\[ntp-update\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ntp-update\.*/) {
+        runNTPUpdateTest = true
+        common.warningMsg('After deployment of mgmt job with NTP update will be executed')
+    }
+
     if (commitMsg ==~ /(?s).*\[internal-ntp\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*internal-ntp\.*/ || proxyConfig['mgmtOffline'] || proxyConfig['childOffline']) {
         configureInternalNTP = true
         openstackIMC = 'eu'
@@ -660,6 +666,7 @@ def checkDeploymentTestSuite() {
         Run Cache warmup for child clusters: ${runCacheWarmup}
         CVE Scan enabled: ${cveScan}
         Keycloak+LDAP integration enabled: ${coreKeycloakLdap}
+        NTP update job scheduled: ${runNTPUpdateTest}
         Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [
         osCloudLocation                          : openstackIMC,
@@ -739,6 +746,7 @@ def checkDeploymentTestSuite() {
         auditdEnabled                            : auditd,
         coreKeycloakLdapEnabled                  : coreKeycloakLdap,
         internalNTPServersEnabled                : configureInternalNTP,
+        runNTPUpdateTestEnabled                  : runNTPUpdateTest,
     ]
 }
 
@@ -1063,7 +1071,8 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'DISABLE_KUBE_API_AUDIT', value: triggers.disableKubeApiAudit),
         booleanParam(name: "AUDITD_ENABLE", value: triggers.auditdEnabled),
         booleanParam(name: 'CORE_KEYCLOAK_LDAP_ENABLED', value: triggers.coreKeycloakLdapEnabled),
-        booleanParam(name: 'CORE_KAAS_NTP_ENABLED', value: triggers.internalNTPServersEnabled)
+        booleanParam(name: 'CORE_KAAS_NTP_ENABLED', value: triggers.internalNTPServersEnabled),
+        booleanParam(name: 'RUN_NTP_UPDATE_TEST', value: triggers.runNTPUpdateTestEnabled)
     ]
 
     // customize multiregional demo
