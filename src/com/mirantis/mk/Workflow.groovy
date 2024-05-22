@@ -893,6 +893,12 @@ def checkResult(job_result, build_url, step, failed_jobs) {
                     failed_jobs[build_url] = job_result
                 }
                 break
+            case "ABORTED":
+                ignoreStepResult = step['ignore_aborted'] ?: (step['ignore_failed'] ?: false)
+                if (ignoreStepResult && !step['skip_results'] ?: false) {
+                    failed_jobs[build_url] = job_result
+                }
+                break
             default:
                 ignoreStepResult = step['ignore_failed'] ?: false
                 if (ignoreStepResult && !step['skip_results'] ?: false) {
@@ -1156,6 +1162,7 @@ def prepareJobsData(scenario_steps, step_type, jobs_data) {
  *   job: string. Jenkins job name
  *   ignore_failed: bool. if true, keep running the workflow jobs if the job is failed, but fail the workflow at finish
  *   ignore_unstable: bool. if true, keep running the workflow jobs if the job is unstable, but mark the workflow is unstable at finish
+ *   ignore_aborted: bool. if true, keep running the workflow jobs if the job is aborted, but mark the workflow is unstable at finish
  *   skip_results: bool. if true, keep running the workflow jobs if the job is failed, but do not fail the workflow at finish. Makes sense only when ignore_failed is set.
  *   ignore_not_built: bool. if true, keep running the workflow jobs if the job set own status to NOT_BUILT, do not fail the workflow at finish for such jobs
  *   inherit_parent_params: bool. if true, provide all parameters from the parent job to the child job as defaults
