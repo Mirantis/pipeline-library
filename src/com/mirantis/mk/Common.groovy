@@ -8,6 +8,8 @@ import groovy.time.TimeCategory
 import com.cloudbees.groovy.cps.NonCPS
 import groovy.json.JsonSlurperClassic
 
+import java.lang.module.ModuleDescriptor.Version
+
 import org.jenkinsci.plugins.workflow.cps.EnvActionImpl
 
 /**
@@ -1192,6 +1194,18 @@ def isSemVer(version){
     // Official regex for Semver2 (https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string)
     String semVerRegex = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
     return version ==~ semVerRegex
+}
+
+
+/**
+ * Compare versions. Returns true if ver1 >= ver2, false if ver1 < ver2
+ * @param string ver1
+ * @param string ver2
+ */
+def isVerGreaterOrEqual (String ver1, String ver2) {
+    Version v1 = Version.parse(ver1)
+    Version v2 = Version.parse(ver2)
+    return v1 >= v2
 }
 
 def readYaml2(LinkedHashMap kwargs) {
