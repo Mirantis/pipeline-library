@@ -100,6 +100,7 @@ def checkDeploymentTestSuite() {
     def auditd = env.AUDITD_ENABLE ? env.AUDITD_ENABLE.toBoolean() : false
     def customSlackChannel = env.SLACK_CHANNEL_NOTIFY ? env.SLACK_CHANNEL_NOTIFY : ''
     def runNTPUpdateTest = env.RUN_NTP_UPDATE_TEST ? env.RUN_NTP_UPDATE_TEST.toBoolean() : false
+    def runMCCMariaBackupRestoreTest = env.RUN_MCC_MARIA_BACKUP_RESTORE_TEST ? env.RUN_MCC_MARIA_BACKUP_RESTORE_TEST.toBoolean() : false
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
     def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
         enabled: false,
@@ -453,6 +454,11 @@ def checkDeploymentTestSuite() {
         common.warningMsg('After deployment of mgmt job with NTP update will be executed')
     }
 
+    if (commitMsg ==~ /(?s).*\[mcc-maria-backup-restore\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mcc-maria-backup-restore\.*/) {
+        runMCCMariaBackupRestoreTest = true
+        common.warningMsg('MCC Maria Backup/Restore test will be executed as part of mgmt test suite')
+    }
+
     if (commitMsg ==~ /(?s).*\[internal-ntp\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*internal-ntp\.*/ || proxyConfig['mgmtOffline'] || proxyConfig['childOffline']) {
         configureInternalNTP = true
         openstackIMC = 'eu'
@@ -667,6 +673,7 @@ def checkDeploymentTestSuite() {
         CVE Scan enabled: ${cveScan}
         Keycloak+LDAP integration enabled: ${coreKeycloakLdap}
         NTP update job scheduled: ${runNTPUpdateTest}
+        MCC MariaDB Backup/Restore test enabled: ${runMCCMariaBackupRestoreTest}
         Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [
         osCloudLocation                          : openstackIMC,
@@ -747,6 +754,7 @@ def checkDeploymentTestSuite() {
         coreKeycloakLdapEnabled                  : coreKeycloakLdap,
         internalNTPServersEnabled                : configureInternalNTP,
         runNTPUpdateTestEnabled                  : runNTPUpdateTest,
+        runMCCMariaBackupRestoreTestEnabled      : runMCCMariaBackupRestoreTest,
     ]
 }
 
@@ -1072,7 +1080,8 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: "AUDITD_ENABLE", value: triggers.auditdEnabled),
         booleanParam(name: 'CORE_KEYCLOAK_LDAP_ENABLED', value: triggers.coreKeycloakLdapEnabled),
         booleanParam(name: 'CORE_KAAS_NTP_ENABLED', value: triggers.internalNTPServersEnabled),
-        booleanParam(name: 'RUN_NTP_UPDATE_TEST', value: triggers.runNTPUpdateTestEnabled)
+        booleanParam(name: 'RUN_NTP_UPDATE_TEST', value: triggers.runNTPUpdateTestEnabled),
+        booleanParam(name: 'RUN_MCC_MARIA_BACKUP_RESTORE_TEST', value: triggers.runMCCMariaBackupRestoreTestEnabled)
     ]
 
     // customize multiregional demo
