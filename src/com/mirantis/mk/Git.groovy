@@ -621,16 +621,16 @@ def createGitBranchFromRef(Map params) {
 }
 
 /**
- * Return array with branches that contains specific tag
+ * Return array with branches that contains specific commit ref
  *
  * @param path            Path to the git repository
- * @param tag             search tag
+ * @param ref             search ref
  */
-def getBranchesContainsTag(String path, String tag) {
+def getBranchesContainsRef(String path, String ref) {
     List result = []
     dir(path) {
         def gitResult = sh (
-            script: "git branch --all --contains tags/${tag}",
+            script: "git branch --all --contains ${ref}",
             returnStdout: true
         )
         for (line in gitResult.split('\n')) {
@@ -640,4 +640,14 @@ def getBranchesContainsTag(String path, String tag) {
         }
     }
     return result
+}
+
+/**
+ * Return array with branches that contains specific tag
+ *
+ * @param path            Path to the git repository
+ * @param tag             search tag
+ */
+def getBranchesContainsTag(String path, String tag) {
+    return getBranchesContainsRef(path, "tags/${tag}")
 }
