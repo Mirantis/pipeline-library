@@ -142,6 +142,9 @@ def checkDeploymentTestSuite() {
     def enableBv2Smoke = true
     def runCacheWarmup = env.CACHE_WARMUP_ENABLED ? env.CACHE_WARMUP_ENABLED.toBoolean() : false
     def cveScan = false
+    // Sync to public CDN is triggered automatically for corresponding scenarios
+    // This trigger is used only for on-demand cases
+    def publicCISync = false
 
     def commitMsg = env.GERRIT_CHANGE_COMMIT_MESSAGE ? new String(env.GERRIT_CHANGE_COMMIT_MESSAGE.decodeBase64()) : ''
     if (commitMsg ==~ /(?s).*\[mgmt-proxy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-proxy.*/) {
@@ -399,6 +402,11 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[cve-scan\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*cve-scan\.*/) {
         cveScan = true
         common.errorMsg('CVE Scan job enabled')
+    }
+
+    if (commitMsg ==~ /(?s).*\[public-ci-sync\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*public-ci-sync\.*/) {
+        publicCISync = true
+        common.errorMsg('Sync to public-ci CDN is enabled')
     }
 
     def slackChannelMatches = (commitMsg =~ /(\[slack-channel\s*[#@](\S+)])/)
@@ -674,6 +682,7 @@ def checkDeploymentTestSuite() {
         Keycloak+LDAP integration enabled: ${coreKeycloakLdap}
         NTP update job scheduled: ${runNTPUpdateTest}
         MCC MariaDB Backup/Restore test enabled: ${runMCCMariaBackupRestoreTest}
+        Sync to public-ci CDN enabled: ${publicCISync}
         Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [
         osCloudLocation                          : openstackIMC,
@@ -755,6 +764,7 @@ def checkDeploymentTestSuite() {
         internalNTPServersEnabled                : configureInternalNTP,
         runNTPUpdateTestEnabled                  : runNTPUpdateTest,
         runMCCMariaBackupRestoreTestEnabled      : runMCCMariaBackupRestoreTest,
+        publicCISyncEnabled                      : publicCISync,
     ]
 }
 
