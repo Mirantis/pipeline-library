@@ -1208,6 +1208,24 @@ def isVerGreaterOrEqual (String ver1, String ver2) {
     return v1 >= v2
 }
 
+/**
+ * Sort array of versions. Returns sorted array (ascending)
+ * @param ArrayList versions
+ */
+def sortVersions (ArrayList versions) {
+    for (int i = 0; i < versions.size(); i++) {
+        for (int j = 0; j < versions.size() - i - 1; j++) {
+            if (isVerGreaterOrEqual(versions[j], versions[j + 1])) {
+                def temp = versions[j]
+                versions[j] = versions[j + 1]
+                versions[j + 1] = temp
+            }
+        }
+    }
+
+    return versions
+}
+
 def readYaml2(LinkedHashMap kwargs) {
     /**
      *  readYaml wrapper to workaround case when initial file contains
