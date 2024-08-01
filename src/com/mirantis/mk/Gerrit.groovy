@@ -481,6 +481,10 @@ def getGerritUserOptions(credentialsId) {
             changeAuthorName = "MCP-CI"
             changeAuthorEmail = "mcp-ci-jenkins@ci.mcp.mirantis.net"
             break;
+        case 'product-ci':
+            changeAuThorName = "Product CI"
+            changeAuthorEmail = "infra+product-ci@mirantis.com"
+            break;
     }
     return ["changeAuthorName": changeAuthorName,
             "changeAuthorEmail": changeAuthorEmail]
