@@ -101,6 +101,12 @@ def checkDeploymentTestSuite() {
     def customSlackChannel = env.SLACK_CHANNEL_NOTIFY ? env.SLACK_CHANNEL_NOTIFY : ''
     def runNTPUpdateTest = env.RUN_NTP_UPDATE_TEST ? env.RUN_NTP_UPDATE_TEST.toBoolean() : false
     def runMCCMariaBackupRestoreTest = env.RUN_MCC_MARIA_BACKUP_RESTORE_TEST ? env.RUN_MCC_MARIA_BACKUP_RESTORE_TEST.toBoolean() : false
+    def runRuntimeMigrateExtendedTestMgmt = env.RUN_MGMT_RUNTIME_MIGRATE_EXTENDED_TEST ? env.RUN_MGMT_RUNTIME_MIGRATE_EXTENDED_TEST.toBoolean() : false
+    def runRuntimeMigrateQuickTestMgmt = env.RUN_MGMT_RUNTIME_MIGRATE_QUICK_TEST ? env.RUN_MGMT_RUNTIME_MIGRATE_QUICK_TEST.toBoolean() : false
+    def runRuntimeMigrateAndRollbackTestMgmt = env.RUN_MGMT_RUNTIME_MIGRATE_AND_ROLLBACK_TEST ? env.RUN_MGMT_RUNTIME_MIGRATE_AND_ROLLBACK_TEST.toBoolean() : false
+    def runRuntimeMigrateExtendedTestChild = env.RUN_CHILD_RUNTIME_MIGRATE_EXTENDED_TEST ? env.RUN_CHILD_RUNTIME_MIGRATE_EXTENDED_TEST.toBoolean() : false
+    def runRuntimeMigrateQuickTestChild = env.RUN_CHILD_RUNTIME_MIGRATE_QUICK_TEST ? env.RUN_CHILD_RUNTIME_MIGRATE_QUICK_TEST.toBoolean() : false
+    def runRuntimeMigrateAndRollbackTestChild = env.RUN_CHILD_RUNTIME_MIGRATE_AND_ROLLBACK_TEST ? env.RUN_CHILD_RUNTIME_MIGRATE_AND_ROLLBACK_TEST.toBoolean() : false
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
     def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
         enabled: false,
@@ -467,6 +473,36 @@ def checkDeploymentTestSuite() {
         common.warningMsg('MCC Maria Backup/Restore test will be executed as part of mgmt test suite')
     }
 
+    if (commitMsg ==~ /(?s).*\[runtime-migrate-extended-mgmt\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*runtime-migrate-extended-mgmt\.*/) {
+        runRuntimeMigrateExtendedTestMgmt = true
+        common.warningMsg('Runtime migration with semi-reverts (extended test) scheduled as part of mgmt test suite')
+    }
+
+    if (commitMsg ==~ /(?s).*\[runtime-migrate-quick-mgmt\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*runtime-migrate-quick-mgmt\.*/) {
+        runRuntimeMigrateQuickTestMgmt = true
+        common.warningMsg('Runtime migration of all nodes in one action (quick test) scheduled as part of mgmt test suite')
+    }
+
+    if (commitMsg ==~ /(?s).*\[runtime-migrate-and-rollback-mgmt\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*runtime-migrate-and-rollback-mgmt\.*/) {
+        runRuntimeMigrateAndRollbackTestMgmt = true
+        common.warningMsg('Runtime migration with semi-reverts (extended test) and runtime rollback scheduled as part of mgmt test suite')
+    }
+
+    if (commitMsg ==~ /(?s).*\[runtime-migrate-extended-child\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*runtime-migrate-extended-child\.*/) {
+        runRuntimeMigrateExtendedTestChild = true
+        common.warningMsg('Runtime migration with semi-reverts (extended test) scheduled as part of child test suite')
+    }
+
+    if (commitMsg ==~ /(?s).*\[runtime-migrate-quick-child\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*runtime-migrate-quick-child\.*/) {
+        runRuntimeMigrateQuickTestChild = true
+        common.warningMsg('Runtime migration of all nodes in one action (quick test) scheduled as part of child test suite')
+    }
+
+    if (commitMsg ==~ /(?s).*\[runtime-migrate-and-rollback-child\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*runtime-migrate-and-rollback-child\.*/) {
+        runRuntimeMigrateAndRollbackTestChild = true
+        common.warningMsg('Runtime migration with semi-reverts (extended test) and runtime rollback scheduled as part of child test suite')
+    }
+
     if (commitMsg ==~ /(?s).*\[internal-ntp\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*internal-ntp\.*/ || proxyConfig['mgmtOffline'] || proxyConfig['childOffline']) {
         configureInternalNTP = true
         openstackIMC = 'eu'
@@ -683,6 +719,12 @@ def checkDeploymentTestSuite() {
         NTP update job scheduled: ${runNTPUpdateTest}
         MCC MariaDB Backup/Restore test enabled: ${runMCCMariaBackupRestoreTest}
         Sync to public-ci CDN enabled: ${publicCISync}
+        Mgmt runtime migration (extended) enabled: ${runRuntimeMigrateExtendedTestMgmt}
+        Mgmt runtime migration (quick) enabled: ${runRuntimeMigrateQuickTestMgmt}
+        Mgmt runtime migration (extended) with rollback enabled: ${runRuntimeMigrateAndRollbackTestMgmt}
+        Child runtime migration (extended) enabled: ${runRuntimeMigrateExtendedTestChild}
+        Child runtime migration (quick) enabled: ${runRuntimeMigrateQuickTestChild}
+        Child runtime migration (extended) with rollback enabled: ${runRuntimeMigrateAndRollbackTestChild}
         Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [
         osCloudLocation                          : openstackIMC,
@@ -765,6 +807,12 @@ def checkDeploymentTestSuite() {
         runNTPUpdateTestEnabled                  : runNTPUpdateTest,
         runMCCMariaBackupRestoreTestEnabled      : runMCCMariaBackupRestoreTest,
         publicCISyncEnabled                      : publicCISync,
+        runtimeMigrateExtendedMgmtEnabled        : runRuntimeMigrateExtendedTestMgmt,
+        runtimeMigrateQuickMgmtEnabled           : runRuntimeMigrateQuickTestMgmt,
+        runtimeMigrateMgmtAndRollbackEnabled     : runRuntimeMigrateAndRollbackTestMgmt,
+        runtimeMigrateExtendedChildEnabled       : runRuntimeMigrateExtendedTestChild,
+        runtimeMigrateQuickChildEnabled          : runRuntimeMigrateQuickTestChild,
+        runtimeMigrateChildAndRollbackEnabled    : runRuntimeMigrateAndRollbackTestChild,
     ]
 }
 
@@ -1091,7 +1139,13 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'CORE_KEYCLOAK_LDAP_ENABLED', value: triggers.coreKeycloakLdapEnabled),
         booleanParam(name: 'CORE_KAAS_NTP_ENABLED', value: triggers.internalNTPServersEnabled),
         booleanParam(name: 'RUN_NTP_UPDATE_TEST', value: triggers.runNTPUpdateTestEnabled),
-        booleanParam(name: 'RUN_MCC_MARIA_BACKUP_RESTORE_TEST', value: triggers.runMCCMariaBackupRestoreTestEnabled)
+        booleanParam(name: 'RUN_MCC_MARIA_BACKUP_RESTORE_TEST', value: triggers.runMCCMariaBackupRestoreTestEnabled),
+        booleanParam(name: 'RUN_MGMT_RUNTIME_MIGRATE_EXTENDED_TEST', value: triggers.runtimeMigrateExtendedMgmtEnabled),
+        booleanParam(name: 'RUN_MGMT_RUNTIME_MIGRATE_QUICK_TEST', value: triggers.runtimeMigrateQuickMgmtEnabled),
+        booleanParam(name: 'RUN_MGMT_RUNTIME_MIGRATE_AND_ROLLBACK_TEST', value: triggers.runtimeMigrateMgmtAndRollbackEnabled),
+        booleanParam(name: 'RUN_CHILD_RUNTIME_MIGRATE_EXTENDED_TEST', value: triggers.runtimeMigrateExtendedChildEnabled),
+        booleanParam(name: 'RUN_CHILD_RUNTIME_MIGRATE_QUICK_TEST', value: triggers.runtimeMigrateQuickChildEnabled),
+        booleanParam(name: 'RUN_CHILD_RUNTIME_MIGRATE_AND_ROLLBACK_TEST', value: triggers.runtimeMigrateChildAndRollbackEnabled),
     ]
 
     // customize multiregional demo
