@@ -665,6 +665,7 @@ def runParallel(global_variables, step, failed_jobs, global_jobs_data, nested_st
     //   max_concurrent_interval: 300    # how many seconds should be passed between checking for an available concurrency
     //   check_failed_concurrent: false  # stop waiting for available concurrent executors if count of failed jobs >= max_concurrent,
     //                                   # which means that all available shared resources are occupied by the failed jobs
+    //   abort_on_parallel_fail: false                 # pass parallel.fail_fast option. force your parallel stages to all be aborted when any one of them fails
     def common = new com.mirantis.mk.Common()
 
     def sourceText = ""
@@ -696,6 +697,7 @@ def runParallel(global_variables, step, failed_jobs, global_jobs_data, nested_st
     def check_failed_concurrent = (step['check_failed_concurrent'] ?: false).toBoolean()
 
     def jobs = [:]
+    jobs.failFast = (step['abort_on_parallel_fail'] ?: false).toBoolean()
     def nested_step_id = 0
     def free_concurrent = max_concurrent
     def failed_concurrent = []
@@ -759,7 +761,6 @@ def runParallel(global_variables, step, failed_jobs, global_jobs_data, nested_st
         // Run parallel iterations
         try {
             common.infoMsg("${prefixMsg} Run steps in parallel")
-
             parallel jobs
 
             parallelSummary['nested_result'] = 'SUCCESS'
