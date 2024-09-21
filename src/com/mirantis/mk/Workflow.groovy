@@ -851,7 +851,8 @@ def runSequence(global_variables, step, failed_jobs, global_jobs_data, nested_st
             jobs.each { stepName, job ->
                 common.infoMsg("${prefixMsg} Running sequence ${stepName}")
                 job()
-                sleep(30)
+                // just in case sleep.
+                sleep(5)
             }
             sequenceSummary['nested_result'] = 'SUCCESS'
         } catch (InterruptedException e) {
