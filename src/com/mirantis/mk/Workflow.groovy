@@ -1300,7 +1300,11 @@ def manageArtifacts(entrypointDirectory, storeArtsInJenkins = false, artifactory
         artifactoryRepo: "artifactory/${artifactoryRepoPath}",
     ]
     def artDescription = mcpArtifactory.uploadArtifactsToArtifactory(artConfig)
-    currentBuild.description += "${artDescription}<br>"
+    if (currentBuild.description) {
+        currentBuild.description += "${artDescription}<br>"
+    } else {
+        currentBuild.description = "${artDescription}<br>"
+    }
 
     junit(testResults: "${entrypointDirectory}/**/*.xml", allowEmptyResults: true)
 
