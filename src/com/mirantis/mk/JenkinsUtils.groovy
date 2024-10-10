@@ -1,5 +1,6 @@
 package com.mirantis.mk
 import com.cloudbees.groovy.cps.NonCPS
+import org.jenkins.plugins.lockableresources.LockableResourcesManager as LRM
 
 /**
  *
@@ -328,4 +329,50 @@ def getWorkers(String labelString = null) {
         }
     }
     return workers
+}
+
+/**
+ * Get deployment environment and related jenkins lock label and lock resource
+ *
+ * @param initialEnv        (string) Name of initially requested environment e.g. imc-eu or auto
+ * @param namespace         (string) Name of environment namespace e.g imc-oscore-team
+ * @param resources         (int)    Quantity of required lockable resources
+ * @param candidateEnvs     (list)   List of names of env candidates to choose between
+ * @return                  (list)   List whith environment name, lock label and lock resource
+ */
+def getEnvWithLockableResources(initialEnv, namespace, resources = 1, candidateEnvs = ["imc-eu", "imc-us"]){
+    def common = new com.mirantis.mk.Common()
+    def lockResource = null
+    def env = initialEnv
+    def lockLabel = "${namespace}-${env}"
+    def lrm = LRM.get()
+    if (initialEnv == "auto"){
+        def freeResources = [:]
+        for (cEnv in candidateEnvs){
+            def label = "${namespace}-${cEnv}"
+            freeResources[label] = lrm.getFreeResourceAmount(label)
+        }
+        common.infoMsg("Detecting target environment from candidates ${freeResources}")
+        def max = 0
+        def keys = freeResources.keySet().toList()
+        Collections.shuffle(keys)
+        for (key in keys){
+            if (freeResources[key] >= max){
+                max = freeResources[key]
+                lockLabel = key
+            }
+        }
+        if (max < resources){
+            lockLabel = keys[0]
+        }
+        env = lockLabel.replaceAll("${namespace}-", "")
+        common.infoMsg("Detected target environment ${env} lock ${lockLabel}")
+    }
+    // If no label configured on existing resources, create random lockresource
+    if (! lrm.isValidLabel(lockLabel)){
+        common.infoMsg("Running without locking, lock label ${lockLabel} does not exist")
+        lockLabel = null
+        lockResource = UUID.randomUUID().toString()
+    }
+    return [env, lockLabel, lockResource]
 }
