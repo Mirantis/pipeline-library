@@ -113,7 +113,7 @@ def killStuckBuilds(maxSeconds, job){
                 runningBuilds[j].finish(hudson.model.Result.ABORTED, new java.io.IOException("Aborting build by long running jobs killer"));
                 result = true
             }catch(e){
-                common.errorMsg("Error occured during aborting build: Exception: ${e}")
+                common.errorMsg("Error occurred during aborting build: Exception: ${e}")
             }
         }
     }
