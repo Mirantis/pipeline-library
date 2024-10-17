@@ -543,11 +543,12 @@ def runStep(global_variables, step, Boolean propagate = false, artifactoryBaseUr
                       "Do you want to proceed workflow?")
                 }
             } catch (err) { // timeout reached or input false
-                def user = err.getCauses()[0].getUser()
-                if (user.toString() != 'SYSTEM') { // SYSTEM means timeout.
-                    error("Aborted after workFlow pause by: [${user}]")
-                } else {
+                def cause = err.getCauses().get(0)
+                if (cause instanceof org.jenkinsci.plugins.workflow.steps.TimeoutStepExecution.ExceededTimeout) {
                     common.infoMsg("Timeout finished, continue..")
+                } else {
+                    def user = causes[0].getUser()
+                    error("Aborted after workflow pause by: [${user}]")
                 }
             }
         }
