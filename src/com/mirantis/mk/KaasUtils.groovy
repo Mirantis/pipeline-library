@@ -1090,6 +1090,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'UPGRADE_MGMT_CLUSTER', value: triggers.upgradeMgmtEnabled),
         booleanParam(name: 'AUTO_UPGRADE_MCC', value: triggers.autoUpgradeMgmtEnabled),
         booleanParam(name: 'ENABLE_LMA_LOGGING', value: triggers.enableLMALoggingEnabled),
+        booleanParam(name: 'DEPLOY_MOS_CHILD_CLUSTER', value: triggers.mosDeployChild),
         booleanParam(name: 'DEPLOY_OS_ON_MOS', value: triggers.deployOsOnMosEnabled),
         booleanParam(name: 'RUN_UI_E2E', value: triggers.runUie2eEnabled),
         booleanParam(name: 'RUN_MGMT_CFM', value: triggers.runMgmtConformanceEnabled),
