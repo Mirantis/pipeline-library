@@ -144,6 +144,7 @@ def checkDeploymentTestSuite() {
     def enableFips = env.ENABLE_FIPS ? env.ENABLE_FIPS.toBoolean() : false
     def enableMkeDebug = env.ENABLE_MKE_DEBUG ? env.ENABLE_MKE_DEBUG.toBoolean() : false
     def aioCluster = env.AIO_CLUSTER ? env.AIO_CLUSTER.toBoolean() : false
+    def dockerServicesCheckSkip = env.DOCKER_SERVICES_CHECK_SKIP ? env.DOCKER_SERVICES_CHECK_SKIP.toBoolean() : false
     def useVsphereVvmtObjects = env.VSPHERE_USE_VVMT_OBJECTS ? env.VSPHERE_USE_VVMT_OBJECTS.toBoolean() : false
     def enableBv2Smoke = true
     def runCacheWarmup = env.CACHE_WARMUP_ENABLED ? env.CACHE_WARMUP_ENABLED.toBoolean() : false
@@ -244,7 +245,6 @@ def checkDeploymentTestSuite() {
 
     if (commitMsg ==~ /(?s).*\[half-virtual\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*half-virtual.*/ || upgradeMgmt) {
         bmDeployType = 'half-virtual'
-        common.infoMsg('Half-virtual will be deployed by default on upgrade case')
     }
 
     if (commitMsg ==~ /(?s).*\[ui-e2e-nw\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-e2e-nw.*/) {
@@ -382,6 +382,10 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[bm-core-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*bm-core-demo\\.*/) {
         enablebmCoreDemo = true
         enableBMDemo = false
+    }
+
+    if (bmDeployType == 'half-virtual' && enablebmCoreDemo) {
+        common.infoMsg('Half-virtual will be deployed by default on upgrade case')
     }
 
     if (commitMsg ==~ /(?s).*\[disable-bm-core-cleanup\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-bm-core-cleanup\\.*/) {
@@ -537,6 +541,11 @@ def checkDeploymentTestSuite() {
 
     if (commitMsg ==~ /(?s).*\[aio-cluster\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*aio-cluster.*/) {
         aioCluster = true
+    }
+
+    if (commitMsg ==~ /(?s).*\[enable-docker-services-check\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*aio-cluster.*/) {
+        dockerServicesCheckSkip = false
+        common.warningMsg('Forced enable docker service check for all job on WF')
     }
 
     if (commitMsg ==~ /(?s).*\[cache-warmup\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*cache-warmup.*/) {
@@ -711,6 +720,7 @@ def checkDeploymentTestSuite() {
         MKE DEBUG enabled: ${enableMkeDebug}
         Pause for debug enabled: ${pauseForDebug}
         AIO cluster: ${aioCluster}
+        Docker services check skip: ${dockerServicesCheckSkip}
         Use Vsphere VVMT Objects: ${useVsphereVvmtObjects}
         Bootsrap v2 smoke checks enabled: ${enableBv2Smoke}
         Run Cache warmup for child clusters: ${runCacheWarmup}
@@ -796,6 +806,7 @@ def checkDeploymentTestSuite() {
         enableFips                               : enableFips,
         enableMkeDebugEnabled                    : enableMkeDebug,
         aioCluster                               : aioCluster,
+        dockerServicesCheckSkip                  : dockerServicesCheckSkip,
         useVsphereVvmtObjects                    : useVsphereVvmtObjects,
         bv2SmokeEnabled                          : enableBv2Smoke,
         runCacheWarmup                           : runCacheWarmup,
@@ -1134,6 +1145,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'ENABLE_FIPS', value: triggers.enableFips),
         booleanParam(name: 'ENABLE_MKE_DUBUG', value: triggers.enableMkeDebugEnabled),
         booleanParam(name: 'AIO_CLUSTER', value: triggers.aioCluster),
+        booleanParam(name: 'DOCKER_SERVICES_CHECK_SKIP', value: triggers.dockerServicesCheckSkip),
         booleanParam(name: 'BM_CORE_CLEANUP', value: triggers.bmCoreCleanup),
         booleanParam(name: 'DISABLE_KUBE_API_AUDIT', value: triggers.disableKubeApiAudit),
         booleanParam(name: "AUDITD_ENABLE", value: triggers.auditdEnabled),
