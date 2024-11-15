@@ -107,6 +107,8 @@ def checkDeploymentTestSuite() {
     def runRuntimeMigrateExtendedTestChild = env.RUN_CHILD_RUNTIME_MIGRATE_EXTENDED_TEST ? env.RUN_CHILD_RUNTIME_MIGRATE_EXTENDED_TEST.toBoolean() : false
     def runRuntimeMigrateQuickTestChild = env.RUN_CHILD_RUNTIME_MIGRATE_QUICK_TEST ? env.RUN_CHILD_RUNTIME_MIGRATE_QUICK_TEST.toBoolean() : false
     def runRuntimeMigrateAndRollbackTestChild = env.RUN_CHILD_RUNTIME_MIGRATE_AND_ROLLBACK_TEST ? env.RUN_CHILD_RUNTIME_MIGRATE_AND_ROLLBACK_TEST.toBoolean() : false
+    def upgradeChildPlanSeq = env.UPGRADE_CHILD_PLAN_SEQ ? env.UPGRADE_CHILD_PLAN_SEQ.toBoolean() : false
+    def upgradeChildPlanBulk = env.UPGRADE_CHILD_PLAN_BULK ? env.UPGRADE_CHILD_PLAN_BULK.toBoolean() : false
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
     def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
         enabled: false,
@@ -181,6 +183,16 @@ def checkDeploymentTestSuite() {
         common.warningMsg("2-step child updates are not testing (PRODX-33510)")
         //TODO: revert after start testing the two-step upgrade again (PRODX-33510)
         //fullUpgradeChild = true
+    }
+    if (commitMsg ==~ /(?s).*\[child-upgrade-plan-sequental\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-upgrade-plan-sequental.*/) {
+        deployChild = true
+        upgradeChild = true
+        upgradeChildPlanSeq = true
+    }
+    if (commitMsg ==~ /(?s).*\[child-upgrade-plan-bulk\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-upgrade-plan-bulk.*/) {
+        deployChild = true
+        upgradeChild = true
+        upgradeChildPlanBulk = true
     }
     if ((upgradeMgmt || autoUpgradeMgmt) && deployChild) {
         upgradeChild = true
@@ -735,6 +747,8 @@ def checkDeploymentTestSuite() {
         Child runtime migration (extended) enabled: ${runRuntimeMigrateExtendedTestChild}
         Child runtime migration (quick) enabled: ${runRuntimeMigrateQuickTestChild}
         Child runtime migration (extended) with rollback enabled: ${runRuntimeMigrateAndRollbackTestChild}
+        Child Upgrade via update plan with sequental steps enabled: ${upgradeChildPlanSeq}
+        Child Upgrade via update plan with bulk steps enabled: ${upgradeChildPlanBulk}
         Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [
         osCloudLocation                          : openstackIMC,
@@ -824,6 +838,8 @@ def checkDeploymentTestSuite() {
         runtimeMigrateExtendedChildEnabled       : runRuntimeMigrateExtendedTestChild,
         runtimeMigrateQuickChildEnabled          : runRuntimeMigrateQuickTestChild,
         runtimeMigrateChildAndRollbackEnabled    : runRuntimeMigrateAndRollbackTestChild,
+        upgradeChildPlanSeqEnabled               : upgradeChildPlanSeq,
+        upgradeChildPlanBulkEnabled              : upgradeChildPlanBulk,
     ]
 }
 
@@ -1159,6 +1175,8 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'RUN_CHILD_RUNTIME_MIGRATE_EXTENDED_TEST', value: triggers.runtimeMigrateExtendedChildEnabled),
         booleanParam(name: 'RUN_CHILD_RUNTIME_MIGRATE_QUICK_TEST', value: triggers.runtimeMigrateQuickChildEnabled),
         booleanParam(name: 'RUN_CHILD_RUNTIME_MIGRATE_AND_ROLLBACK_TEST', value: triggers.runtimeMigrateChildAndRollbackEnabled),
+        booleanParam(name: 'UPGRADE_CHILD_PLAN_SEQ', value: triggers.upgradeChildPlanSeqEnabled),
+        booleanParam(name: 'UPGRADE_CHILD_PLAN_BULK', value: triggers.upgradeChildPlanBulkEnabled),
     ]
 
     // customize multiregional demo
