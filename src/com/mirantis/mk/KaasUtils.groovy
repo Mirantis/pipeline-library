@@ -1697,8 +1697,8 @@ def genCommandLine() {
         if (env[e.key] == null) {
             continue
         }
-        if (e.key == 'CHECK_REPOS' || e.key == 'DOCKER_CLEAN') {
-            // Avoid CHECK_REPOS=true and DOCKER_CLEAN=true
+        if (e.key == 'CHECK_REPOS' || e.key == 'DOCKER_CLEAN' || e.key == 'BINARY_CLEAN') {
+            // Avoid assigning values to boolean options
             if (env[e.key].toBoolean() && !isCheckClean) {
                 cmdParams += e.value + ' '
                 isCheckClean = true
