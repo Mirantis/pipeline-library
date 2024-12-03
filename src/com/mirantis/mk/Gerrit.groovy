@@ -577,38 +577,70 @@ def isGate(gerritEventCommentText, gerritEventType) {
  * @return A map containing information about the Gerrit change.
  */
 def getGerritChangeInfoByRefspec(Map gerritAuth, String repoName, String refSpec) {
-  def common = new com.mirantis.mk.Common()
-  String commitHash = ''
-  if (refSpec.startsWith('refs/') || refSpec == 'master') {
-    // why we have retry here? bz infra is awesome and stable!
-    common.retry(15, 10) {
-      sshagent([gerritAuth['credentialsId']]) {
-        commitHash = sh(script: "git ls-remote ssh://${gerritAuth['USER']}@${gerritAuth['HOST']}:${gerritAuth['PORT']}/${repoName} ${refSpec}", returnStdout: true).trim().split('\\t')[0]
-      }
+    def common = new com.mirantis.mk.Common()
+    String commitHash = ''
+    if (refSpec.startsWith('refs/') || refSpec == 'master') {
+        // why we have retry here? bz infra is awesome and stable!
+        common.retry(15, 10) {
+            sshagent([gerritAuth['credentialsId']]) {
+                commitHash = sh(script: "git ls-remote ssh://${gerritAuth['USER']}@${gerritAuth['HOST']}:${gerritAuth['PORT']}/${repoName} ${refSpec}", returnStdout: true).trim().split('\\t')[0]
+            }
+        }
+    } else {
+        commitHash = refSpec
     }
-  } else {
-    commitHash = refSpec
-  }
-  if (!commitHash) {
-    common.errorMsg("Could not get commit hash for refspec '${refSpec}'")
-    return [:]
-  }
-  LinkedHashMap gerritQuery = [
-    'commit': commitHash,
-  ]
-  String gerritFlags = '--current-patch-set'
-  String patchsetRawJson = findGerritChange(gerritAuth['credentialsId'], gerritAuth, gerritQuery, gerritFlags)
-  if (!patchsetRawJson) {
-    // WARNING(alexz): gerrit search only by CR. so merge event,like https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/si-tests/+/cabb45ea73ac538c653d62cb0a2ffb4802521251
-    // will not be catched here. In that case, return dummy raw_commit_hash only
-    common.errorMsg("Could not find gerrit change as refspec '${refSpec}' (commit: ${commitHash})")
-    return ['raw_commit_hash': commitHash]
-  }
-  try {
-    // It can (and should) return only one json for given commitHash
-    return readYaml(text: patchsetRawJson)
-  } catch (Exception e) {
-    common.errorMsg("Could not parse JSON: ${patchsetRawJson}\nError: ${e}")
-    return [:]
-  }
+    if (!commitHash) {
+        common.errorMsg("Could not get commit hash for refspec '${refSpec}'")
+        return [:]
+    }
+    LinkedHashMap gerritQuery = [
+        'commit': commitHash,
+    ]
+    String gerritFlags = '--current-patch-set'
+    String patchsetRawJson = findGerritChange(gerritAuth['credentialsId'], gerritAuth, gerritQuery, gerritFlags)
+    if (!patchsetRawJson) {
+        // WARNING(alexz): gerrit search only by CR. so merge event,like https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/si-tests/+/cabb45ea73ac538c653d62cb0a2ffb4802521251
+        // will not be catched here. In that case, return dummy raw_commit_hash only
+        common.errorMsg("Could not find gerrit change as refspec '${refSpec}' (commit: ${commitHash})")
+        return ['raw_commit_hash': commitHash]
+    }
+    try {
+        // It can (and should) return only one json for given commitHash
+        return readYaml(text: patchsetRawJson)
+    } catch (Exception e) {
+        common.errorMsg("Could not parse JSON: ${patchsetRawJson}\nError: ${e}")
+        return [:]
+    }
+}
+
+/**
+ * Get gerrit repository tags with gerrit API.
+ *
+ * @param repoName The name of the repository.
+ * @param credentialsId jenkins credentials id.
+ * @param trimTag Whether to trim the leading 'v' from tags.
+ * @return A list containing all repository tags.
+ */
+def listRepoTags(String repoName, String credentialsId, Boolean trimTag = false) {
+    def common = new com.mirantis.mk.Common()
+    def replacePattern = trimTag ? 'refs/tags/v' : 'refs/tags/'
+    def coreTags = ''
+    def tags = []
+    withCredentials([usernamePassword(credentialsId: credentialsId,
+                     usernameVariable: 'GERRIT_USERNAME',
+                     passwordVariable: 'GERRIT_PASSWORD')]) {
+        common.retry(15, 10) {
+            coreTags = sh(script: "echo \${GERRIT_PASSWORD} | curl -u ${GERRIT_USERNAME} https://gerrit.mcp.mirantis.com/a/projects/${repoName}/tags", returnStdout: true).trim()
+        }
+    }
+    def jsonResponse = coreTags.split('\n').last()
+    def jsonTags = readJSON text: jsonResponse
+    jsonTags.each { tagData ->
+        def tag = tagData['ref']?.replace(replacePattern, '')
+        if (tag) {
+            tags.add(tag)
+        }
+    }
+
+    return tags
 }
