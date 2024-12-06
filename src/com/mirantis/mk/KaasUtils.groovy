@@ -109,6 +109,7 @@ def checkDeploymentTestSuite() {
     def runRuntimeMigrateAndRollbackTestChild = env.RUN_CHILD_RUNTIME_MIGRATE_AND_ROLLBACK_TEST ? env.RUN_CHILD_RUNTIME_MIGRATE_AND_ROLLBACK_TEST.toBoolean() : false
     def upgradeChildPlanSeq = env.UPGRADE_CHILD_PLAN_SEQ ? env.UPGRADE_CHILD_PLAN_SEQ.toBoolean() : false
     def upgradeChildPlanBulk = env.UPGRADE_CHILD_PLAN_BULK ? env.UPGRADE_CHILD_PLAN_BULK.toBoolean() : false
+    def upgradeRestartChecker = env.ENABLE_RESTART_CHECKER_FOR_CHILD_UPGRADE ? env.ENABLE_RESTART_CHECKER_FOR_CHILD_UPGRADE.toBoolean() : false
     // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
     def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
         enabled: false,
@@ -193,6 +194,12 @@ def checkDeploymentTestSuite() {
         deployChild = true
         upgradeChild = true
         upgradeChildPlanBulk = true
+    }
+    if (commitMsg ==~ /(?s).*\[check-runtime-restart-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*check-runtime-restart-upgrade.*/) {
+        upgradeRestartChecker = true
+        deployChild = true
+        upgradeChild = true
+        common.warningMsg('Runtime restart checker enabled for child upgrade. Child deployment and upgrade will be enforced.')
     }
     if ((upgradeMgmt || autoUpgradeMgmt) && deployChild) {
         upgradeChild = true
@@ -749,6 +756,7 @@ def checkDeploymentTestSuite() {
         Child runtime migration (extended) with rollback enabled: ${runRuntimeMigrateAndRollbackTestChild}
         Child Upgrade via update plan with sequental steps enabled: ${upgradeChildPlanSeq}
         Child Upgrade via update plan with bulk steps enabled: ${upgradeChildPlanBulk}
+        Runtime restart checker for child upgrade enabled: ${upgradeRestartChecker}
         Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [
         osCloudLocation                          : openstackIMC,
@@ -840,6 +848,7 @@ def checkDeploymentTestSuite() {
         runtimeMigrateChildAndRollbackEnabled    : runRuntimeMigrateAndRollbackTestChild,
         upgradeChildPlanSeqEnabled               : upgradeChildPlanSeq,
         upgradeChildPlanBulkEnabled              : upgradeChildPlanBulk,
+        upgradeRestartCheckerEnabled             : upgradeRestartChecker,
     ]
 }
 
@@ -1177,6 +1186,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'RUN_CHILD_RUNTIME_MIGRATE_AND_ROLLBACK_TEST', value: triggers.runtimeMigrateChildAndRollbackEnabled),
         booleanParam(name: 'UPGRADE_CHILD_PLAN_SEQ', value: triggers.upgradeChildPlanSeqEnabled),
         booleanParam(name: 'UPGRADE_CHILD_PLAN_BULK', value: triggers.upgradeChildPlanBulkEnabled),
+        booleanParam(name: 'ENABLE_RESTART_CHECKER_FOR_CHILD_UPGRADE', value: triggers.upgradeRestartCheckerEnabled),
     ]
 
     // customize multiregional demo
