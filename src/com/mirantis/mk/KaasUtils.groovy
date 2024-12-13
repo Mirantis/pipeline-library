@@ -136,6 +136,7 @@ def checkDeploymentTestSuite() {
     def enableBMDemo = true
     def enablebmCoreDemo = env.ALLOW_BM_CORE_ON_DEMAND ? env.ALLOW_BM_CORE_ON_DEMAND.toBoolean() : false
     def bmCoreCleanup = env.BM_CORE_CLEANUP ? env.BM_CORE_CLEANUP.toBoolean() : true
+    def airGapped = env.ALLOW_AIRGAP ? env.ALLOW_AIRGAP.toBoolean() : false
     def enableArtifactsBuild = true
     def bmDeployType = env.BM_DEPLOY_TYPE ? env.BM_DEPLOY_TYPE.toString() : 'virtual'
     def openstackIMC = env.OPENSTACK_CLOUD_LOCATION ? env.OPENSTACK_CLOUD_LOCATION : 'us'
@@ -409,6 +410,10 @@ def checkDeploymentTestSuite() {
 
     if (commitMsg ==~ /(?s).*\[disable-bm-core-cleanup\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-bm-core-cleanup\\.*/) {
         bmCoreCleanup = false
+    }
+
+    if (commitMsg ==~ /(?s).*\[air-gapped\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*air-gapped\\.*/) {
+        airGapped = true
     }
 
     if (commitMsg ==~ /(?s).*\[disable-vsphere-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-vsphere-demo\.*/) {
@@ -727,6 +732,7 @@ def checkDeploymentTestSuite() {
         BM Core type deplyment: ${bmDeployType}
         BM Core cleanup: ${bmCoreCleanup}
         BM provider deployment scheduled: ${enableBMDemo}
+        airGapped deployment: ${airGapped}
         Ubuntu on vSphere scheduled: ${enableVsphereUbuntu}
         RHEL on vSphere scheduled: ${enableVsphereRHEL}
         Artifacts build scheduled: ${enableArtifactsBuild}
@@ -816,6 +822,7 @@ def checkDeploymentTestSuite() {
         bmCoreDemoEnabled                        : enablebmCoreDemo,
         bmCoreCleanup                            : bmCoreCleanup,
         bmDeployType                             : bmDeployType,
+        airGapped                                : airGapped,
         osDemoEnabled                            : enableOSDemo,
         vsphereUbuntuEnabled                     : enableVsphereUbuntu,
         vsphereRHELEnabled                       : enableVsphereRHEL,
@@ -1172,6 +1179,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'AIO_CLUSTER', value: triggers.aioCluster),
         booleanParam(name: 'DOCKER_SERVICES_CHECK_SKIP', value: triggers.dockerServicesCheckSkip),
         booleanParam(name: 'BM_CORE_CLEANUP', value: triggers.bmCoreCleanup),
+        booleanParam(name: 'ALLOW_AIRGAP', value: triggers.airGapped),
         booleanParam(name: 'DISABLE_KUBE_API_AUDIT', value: triggers.disableKubeApiAudit),
         booleanParam(name: "AUDITD_ENABLE", value: triggers.auditdEnabled),
         booleanParam(name: 'CORE_KEYCLOAK_LDAP_ENABLED', value: triggers.coreKeycloakLdapEnabled),
