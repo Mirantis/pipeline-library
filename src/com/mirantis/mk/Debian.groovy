@@ -258,7 +258,7 @@ def uploadPpa(ppaRepo, dirPath, privateKeyCredId) {
 * @param env       Salt Connection object or env  Salt command map
 * @param target    Salt target to upgrade packages on.
 * @param timeout   Sleep timeout when doing retries.
-* @param attempts  Number of attemps to wait for.
+* @param attempts  Number of attempts to wait for.
 */
 def osReboot(env, target, timeout=30, attempts=10) {
     def salt = new com.mirantis.mk.Salt()
@@ -282,7 +282,7 @@ def osReboot(env, target, timeout=30, attempts=10) {
 * @param mode            'upgrade' or 'dist-upgrade'
 * @param postponeReboot  Boolean flag to specify if reboot have to be postponed.
 * @param timeout   Sleep timeout when doing retries.
-* @param attempts  Number of attemps to wait for.
+* @param attempts  Number of attempts to wait for.
 */
 def osUpgradeNode(env, target, mode, postponeReboot=false, timeout=30, attempts=10, batch=null) {
     if(mode in ['upgrade', 'dist-upgrade']) {
