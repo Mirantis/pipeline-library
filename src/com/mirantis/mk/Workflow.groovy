@@ -223,6 +223,9 @@ def generateParameters(job_parameters, global_variables) {
             _msg += "\n${param.key}: <${param.value.type}>\n${multistring_value}"
         }
     }
+    // Inject hidden random parameter (is not showed in jjb) to be sure we are triggering unique downstream job.
+    // Most actual case - parallel run for same jobs( but with different params)
+    parameters.addAll([string(name: 'RANDOM_SEED_STRING', value: "${env.JOB_NAME.toLowerCase()}-${env.BUILD_NUMBER}-${UUID.randomUUID().toString().split('-')[0]}")])
     common.infoMsg(_msg)
     return parameters
 }
