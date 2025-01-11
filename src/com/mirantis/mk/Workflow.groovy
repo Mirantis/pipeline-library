@@ -223,11 +223,6 @@ def generateParameters(job_parameters, global_variables) {
             _msg += "\n${param.key}: <${param.value.type}>\n${multistring_value}"
         }
     }
-    // Inject hidden random parameter (is not showed in jjb) to be sure we are triggering unique downstream job.
-    // Most actual case - parallel run for same jobs( but with different params)
-    parameters.add([$class: "StringParameterValue",
-                    name  : "RANDOM_SEED_STRING",
-                    value : "${env.JOB_NAME.toLowerCase()}-${env.BUILD_NUMBER}-${UUID.randomUUID().toString().split('-')[0]}"])
     common.infoMsg(_msg)
     return parameters
 }
@@ -248,6 +243,14 @@ def runJob(job_name, job_parameters, global_variables, Boolean propagate = false
     def parameters = generateParameters(job_parameters, global_variables)
     // Build the job
     def job_info = build job: "${job_name}", parameters: parameters, propagate: propagate
+    // Inject hidden random parameter (is not showed in jjb) to be sure we are triggering unique downstream job.
+    // Most actual case - parallel run for same jobs( but with different params)
+    // WARNING: dont move hack to generateParameters:
+    // PRODX-48965 - it will conflict with si_run_steps logic and will be copy-paste to sub.jobs
+    String rand_value = "${env.JOB_NAME.toLowerCase()}-${env.BUILD_NUMBER}-${UUID.randomUUID().toString().split('-')[0]}"
+    parameters.add([$class: "StringParameterValue",
+                    name  : "RANDOM_SEED_STRING",
+                    value : rand_value])
     return job_info
 }
 
