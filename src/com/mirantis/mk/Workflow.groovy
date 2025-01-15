@@ -241,8 +241,6 @@ def generateParameters(job_parameters, global_variables) {
 def runJob(job_name, job_parameters, global_variables, Boolean propagate = false) {
 
     def parameters = generateParameters(job_parameters, global_variables)
-    // Build the job
-    def job_info = build job: "${job_name}", parameters: parameters, propagate: propagate
     // Inject hidden random parameter (is not showed in jjb) to be sure we are triggering unique downstream job.
     // Most actual case - parallel run for same jobs( but with different params)
     // WARNING: dont move hack to generateParameters:
@@ -251,6 +249,8 @@ def runJob(job_name, job_parameters, global_variables, Boolean propagate = false
     parameters.add([$class: "StringParameterValue",
                     name  : "RANDOM_SEED_STRING",
                     value : rand_value])
+    // Build the job
+    def job_info = build job: "${job_name}", parameters: parameters, propagate: propagate
     return job_info
 }
 
