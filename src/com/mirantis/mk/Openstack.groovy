@@ -590,7 +590,7 @@ def restoreGaleraDb(env) {
 def createOpenstackEnvInDocker(authUrl, credentialsId, project, project_domain="default", project_id="", user_domain="default", cacert="/etc/ssl/certs/ca-certificates.crt") {
     def common = new com.mirantis.mk.Common()
     creds = common.getPasswordCredentials(credentialsId)
-    def env = ["OS_USERNAME=${creds.username}", "OS_PASSWORD=${creds.password.toString()}", "OS_TENANT_NAME=${project}", "OS_AUTH_URL=${authUrl}", "OS_AUTH_STRATEGY=keystone -e OS_PROJECT_NAME=${project}", "OS_PROJECT_ID=${project_id}", "OS_PROJECT_DOMAIN_ID=${project_domain}", "OS_USER_DOMAIN_NAME=${user_domain}", "OS_CACERT=${cacert}"]
+    def env = ["OS_USERNAME=${creds.username}", "OS_PASSWORD=${creds.password.toString()}", "OS_TENANT_NAME=${project}", "OS_AUTH_URL=${authUrl}", "OS_AUTH_STRATEGY=keystone", "OS_PROJECT_NAME=${project}", "OS_PROJECT_ID=${project_id}", "OS_PROJECT_DOMAIN_ID=${project_domain}", "OS_USER_DOMAIN_NAME=${user_domain}", "OS_CACERT=${cacert}"]
     return env
 }
 
