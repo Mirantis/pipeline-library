@@ -94,6 +94,7 @@ def checkDeploymentTestSuite() {
     def runMkeCustomCertTest = env.RUN_MKE_CUSTOM_CERT_TEST ? env.RUN_MKE_CUSTOM_CERT_TEST.toBoolean() : false
     def runCustomHostnames = env.RUN_CUSTOM_HOSTNAMES ? env.RUN_CUSTOM_HOSTNAMES.toBoolean() : false
     def slLatest = env.SL_LATEST ? env.SL_LATEST.toBoolean() : false
+    def lcmAnsibleLatest = env.LCM_ANSIBLE_LATEST ? env.LCM_ANSIBLE_LATEST.toBoolean() : false
     def coreKeycloakLdap = env.CORE_KEYCLOAK_LDAP_ENABLED ? env.CORE_KEYCLOAK_LDAP_ENABLED.toBoolean() : false
     def configureInternalNTP = env.CORE_KAAS_NTP_ENABLED ? env.CORE_KAAS_NTP_ENABLED.toBoolean() : false
     def disableKubeApiAudit = env.DISABLE_KUBE_API_AUDIT ? env.DISABLE_KUBE_API_AUDIT.toBoolean() : false
@@ -486,6 +487,11 @@ def checkDeploymentTestSuite() {
         common.warningMsg('All clusters will be deployed with Stacklight version from artifact-metadata')
     }
 
+    if (commitMsg ==~ /(?s).*\[lcm-ansible-latest\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*lcm-ansible-latest\.*/) {
+        lcmAnsibleLatest = true
+        common.warningMsg('All clusters will be deployed with latest available lcm-ansible version')
+    }
+
     if (commitMsg ==~ /(?s).*\[keycloak-ldap\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*keycloak-ldap\.*/) {
         coreKeycloakLdap = true
         common.warningMsg('Management cluster will be deployed with LDAP integration enabled and after-deployment checks will be executed')
@@ -716,6 +722,7 @@ def checkDeploymentTestSuite() {
         MKE custom cert test for mgmt/region: ${runMkeCustomCertTest}
         Custom hostnames for all clisuers: ${runCustomHostnames}
         Stacklight templates enchanced with latest version from artifact-metadata: ${slLatest}
+        Latest lcm-ansible tarball is used: ${lcmAnsibleLatest}
         Disable Kubernetes API audit: ${disableKubeApiAudit}
         Enable Auditd : ${auditd}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
@@ -804,6 +811,7 @@ def checkDeploymentTestSuite() {
         runMkeCustomCertTestEnabled              : runMkeCustomCertTest,
         runCustomHostnamesEnabled                : runCustomHostnames,
         slLatestEnabled                          : slLatest,
+        lcmAnsibleLatestEnabled                  : lcmAnsibleLatest,
         runByoChildCustomCertTestEnabled         : runByoChildCustomCertTest,
         runChildMachineDeletionPolicyTestEnabled : runChildMachineDeletionPolicyTest,
         runLMATestEnabled                        : runLMATest,
@@ -1149,6 +1157,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'RUN_MKE_CUSTOM_CERT_TEST', value: triggers.runMkeCustomCertTestEnabled),
         booleanParam(name: 'RUN_CUSTOM_HOSTNAMES', value: triggers.runCustomHostnamesEnabled),
         booleanParam(name: 'SL_LATEST', value: triggers.slLatestEnabled),
+        booleanParam(name: 'LCM_ANSIBLE_LATEST', value: triggers.lcmAnsibleLatestEnabled),
         booleanParam(name: 'RUN_BYO_CHILD_CUSTOM_CERT_TEST', value: triggers.runByoChildCustomCertTestEnabled),
         booleanParam(name: 'RUN_CHILD_MACHINE_DELETION_POLICY_TEST', value: triggers.runChildMachineDeletionPolicyTestEnabled),
         booleanParam(name: 'RUN_LMA_TEST', value: triggers.runLMATestEnabled),
