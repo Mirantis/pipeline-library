@@ -680,3 +680,33 @@ def getKeyPairInDocker(env, name, img) {
     }
     return outputTable
 }
+
+/**
+ * Delete application credential
+ *
+ * @param env          Connection parameters for OpenStack API endpoint
+ * @param name         Name of the application credential to delete
+ */
+def deleteAppCredentialInDocker(env, name, img) {
+    def common = new com.mirantis.mk.Common()
+    common.infoMsg("Removing application credential ${name}")
+    def cmd = "openstack application credential delete ${name}"
+    runOpenstackCommandInDocker(cmd, env, img)
+}
+
+/**
+ * Check if application credential exists and delete it.
+ *
+ * @param env          Connection parameters for OpenStack API endpoint
+ * @param name         Name of the application credential to delete
+ **/
+def ensureAppCredentialRemovedInDocker(String name, env, img) {
+    def common = new com.mirantis.mk.Common()
+    def appCreds = runOpenstackCommandInDocker("openstack application credential list -f value -c Name", env, img).tokenize('\n')
+    if (name in appCreds) {
+        deleteAppCredentialInDocker(env, name, img)
+        common.infoMsg("Application credential ${name} has been deleted")
+    } else {
+        common.warningMsg("Application credential ${name} not found")
+    }
+}
