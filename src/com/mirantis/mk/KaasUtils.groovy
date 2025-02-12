@@ -138,6 +138,7 @@ def checkDeploymentTestSuite() {
     def enablebmCoreDemo = env.ALLOW_BM_CORE_ON_DEMAND ? env.ALLOW_BM_CORE_ON_DEMAND.toBoolean() : false
     def bmCoreCleanup = env.BM_CORE_CLEANUP ? env.BM_CORE_CLEANUP.toBoolean() : true
     def airGapped = env.ALLOW_AIRGAP ? env.ALLOW_AIRGAP.toBoolean() : false
+    def airGappedCDN = env.AIRGAP_CDN ? env.AIRGAP_CDN.toString() : 'internal-ci'
     def enableArtifactsBuild = true
     def bmDeployType = env.BM_DEPLOY_TYPE ? env.BM_DEPLOY_TYPE.toString() : 'virtual'
     def openstackIMC = env.OPENSTACK_CLOUD_LOCATION ? env.OPENSTACK_CLOUD_LOCATION : 'us'
@@ -415,6 +416,21 @@ def checkDeploymentTestSuite() {
 
     if (commitMsg ==~ /(?s).*\[air-gapped\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*air-gapped\\.*/) {
         airGapped = true
+    }
+
+    if (commitMsg ==~ /(?s).*\[airgap-cdn-(eu|us|public-ci)\].*/) {
+        def parsedStr = commitMsg =~ /\[airgap-cdn-(eu|us|public-ci)\]/
+        switch (parsedStr[0][1]) {
+            case 'eu':
+                airGappedCDN = 'internal-eu'
+                break
+            case 'us':
+                airGappedCDN = 'internal-ci'
+                break
+            case 'public-ci':
+                airGappedCDN = 'public-ci'
+                break
+        }
     }
 
     if (commitMsg ==~ /(?s).*\[disable-vsphere-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-vsphere-demo\.*/) {
@@ -740,6 +756,7 @@ def checkDeploymentTestSuite() {
         BM Core cleanup: ${bmCoreCleanup}
         BM provider deployment scheduled: ${enableBMDemo}
         airGapped deployment: ${airGapped}
+        airGap CDN region: ${airGappedCDN}
         Ubuntu on vSphere scheduled: ${enableVsphereUbuntu}
         RHEL on vSphere scheduled: ${enableVsphereRHEL}
         Artifacts build scheduled: ${enableArtifactsBuild}
@@ -831,6 +848,7 @@ def checkDeploymentTestSuite() {
         bmCoreCleanup                            : bmCoreCleanup,
         bmDeployType                             : bmDeployType,
         airGapped                                : airGapped,
+        airGappedCDN                             : airGappedCDN,
         osDemoEnabled                            : enableOSDemo,
         vsphereUbuntuEnabled                     : enableVsphereUbuntu,
         vsphereRHELEnabled                       : enableVsphereRHEL,
@@ -1134,6 +1152,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         string(name: 'OPENSTACK_CLOUD_LOCATION', value: triggers.osCloudLocation),
         string(name: 'SLACK_CHANNEL_NOTIFY', value: triggers.customSlackChannelEnabled),
         string(name: 'BM_DEPLOY_TYPE', value: triggers.bmDeployType),
+        string(name: 'AIRGAP_CDN', value: airGappedCDN),
         booleanParam(name: 'OFFLINE_MGMT_CLUSTER', value: triggers.proxyConfig['mgmtOffline']),
         booleanParam(name: 'OFFLINE_CHILD_CLUSTER', value: triggers.proxyConfig['childOffline']),
         booleanParam(name: 'PROXY_CHILD_CLUSTER', value: triggers.proxyConfig['childProxy']),
