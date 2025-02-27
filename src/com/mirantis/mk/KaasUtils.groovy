@@ -1668,7 +1668,6 @@ def genCommandLine() {
     def envToParam = [
         'DESTINATION_USER': '-dst-user',
         'ARTIFACT_FILTER': '-artifact-filter',
-        'ARTIFACT_FILTER_PROD':  '-artifact-filter-prod',
         'ARTIFACT_TYPE': '-artifact-type',
         'BINARY_CLEAN': '-bin-cleanup',
         'BINARY_CLEAN_KEEP_DAYS': '-bin-clean-keep-days',
@@ -1680,9 +1679,8 @@ def genCommandLine() {
         'SIGNED_IMAGES_PATH': '-signed-images-path',
         'DOCKER_CLEAN': '-cleanup',
         'DOCKER_OLDER_THAN_DAYS': '-older-than-days',
-        'DOCKER_REPO_PREFIX': '-docker-repo-prefix',
         'DOCKER_TAG': '-docker-tag',
-        'FORCE': '-force',
+        'DOCKER_OVERWRITE_TAG': '-docker-overwrite-tag',
         'HELM_CDN_DOMAIN': '-helm-cdn-domain',
         'SLACK_CHANNEL': '-slack-channel',
         'SLACK_CHANNELS': '-slack-channels',
@@ -1692,27 +1690,24 @@ def genCommandLine() {
         'SYNC_PATTERN': '-sync-pattern'
     ]
     def cmdParams = ''
-    def isCheckClean = false
+    def isActionSpecified = false
     for (e in envToParam) {
-        if (env[e.key] == null) {
+        if (env[e.key] == null || env[e.key] == 'false') {
             continue
-        }
-        if (e.key == 'CHECK_REPOS' || e.key == 'DOCKER_CLEAN' || e.key == 'BINARY_CLEAN') {
-            // Avoid assigning values to boolean options
-            if (env[e.key].toBoolean() && !isCheckClean) {
-                cmdParams += e.value + ' '
-                isCheckClean = true
-            }
-        } else if (e.key == 'FORCE') {
+        } else if ((e.key == 'CHECK_REPOS' || e.key == 'DOCKER_CLEAN' || e.key == 'BINARY_CLEAN') && !isActionSpecified) {
             if (env[e.key].toBoolean()) {
+                isActionSpecified = true
                 cmdParams += e.value + ' '
             }
+        } else if (env[e.key] == 'true') {
+            // The value true was specified — consider it as a flag
+            cmdParams += e.value + ' '
         } else {
             cmdParams += "${e.value} '${env[e.key]}' "
         }
     }
     // No any check or clean was specified - take a default action
-    if (!isCheckClean) {
+    if (!isActionSpecified) {
         cmdParams += '-replicate'
     }
     return cmdParams
