@@ -1152,7 +1152,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         string(name: 'OPENSTACK_CLOUD_LOCATION', value: triggers.osCloudLocation),
         string(name: 'SLACK_CHANNEL_NOTIFY', value: triggers.customSlackChannelEnabled),
         string(name: 'BM_DEPLOY_TYPE', value: triggers.bmDeployType),
-        string(name: 'AIRGAP_CDN', value: airGappedCDN),
+        string(name: 'AIRGAP_CDN', value: triggers.airGappedCDN),
         booleanParam(name: 'OFFLINE_MGMT_CLUSTER', value: triggers.proxyConfig['mgmtOffline']),
         booleanParam(name: 'OFFLINE_CHILD_CLUSTER', value: triggers.proxyConfig['childOffline']),
         booleanParam(name: 'PROXY_CHILD_CLUSTER', value: triggers.proxyConfig['childProxy']),
