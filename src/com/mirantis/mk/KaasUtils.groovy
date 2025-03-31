@@ -265,7 +265,7 @@ def checkDeploymentTestSuite() {
         mosDeployChild = true
     }
 
-    if (commitMsg ==~ /(?s).*\[half-virtual\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*half-virtual.*/ || upgradeMgmt) {
+    if (commitMsg ==~ /(?s).*\[half-virtual\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*half-virtual.*/) {
         bmDeployType = 'half-virtual'
     }
 
