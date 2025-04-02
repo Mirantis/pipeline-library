@@ -101,6 +101,7 @@ def checkDeploymentTestSuite() {
     def auditd = env.AUDITD_ENABLE ? env.AUDITD_ENABLE.toBoolean() : false
     def customSlackChannel = env.SLACK_CHANNEL_NOTIFY ? env.SLACK_CHANNEL_NOTIFY : ''
     def runNTPUpdateTest = env.RUN_NTP_UPDATE_TEST ? env.RUN_NTP_UPDATE_TEST.toBoolean() : false
+    def runHocTest = env.RUN_HOC_TEST ? env.RUN_HOC_TEST.toBoolean() : false
     def runMCCMariaBackupRestoreTest = env.RUN_MCC_MARIA_BACKUP_RESTORE_TEST ? env.RUN_MCC_MARIA_BACKUP_RESTORE_TEST.toBoolean() : false
     def runRuntimeMigrateExtendedTestMgmt = env.RUN_MGMT_RUNTIME_MIGRATE_EXTENDED_TEST ? env.RUN_MGMT_RUNTIME_MIGRATE_EXTENDED_TEST.toBoolean() : false
     def runRuntimeMigrateQuickTestMgmt = env.RUN_MGMT_RUNTIME_MIGRATE_QUICK_TEST ? env.RUN_MGMT_RUNTIME_MIGRATE_QUICK_TEST.toBoolean() : false
@@ -518,6 +519,11 @@ def checkDeploymentTestSuite() {
         common.warningMsg('After deployment of mgmt job with NTP update will be executed')
     }
 
+    if (commitMsg ==~ /(?s).*\[enable-hoc\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*enable-hoc\.*/) {
+        runHocTest = true
+        common.warningMsg('Enable to create a test HOC object before any LCM-related test, verify its status and delete it after LCM test')
+    }
+
     if (commitMsg ==~ /(?s).*\[mcc-maria-backup-restore\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mcc-maria-backup-restore\.*/) {
         runMCCMariaBackupRestoreTest = true
         common.warningMsg('MCC Maria Backup/Restore test will be executed as part of mgmt test suite')
@@ -776,6 +782,7 @@ def checkDeploymentTestSuite() {
         CVE Scan enabled: ${cveScan}
         Keycloak+LDAP integration enabled: ${coreKeycloakLdap}
         NTP update job scheduled: ${runNTPUpdateTest}
+        Enable HOC tests: ${runHocTest}
         MCC MariaDB Backup/Restore test enabled: ${runMCCMariaBackupRestoreTest}
         Sync to public-ci CDN enabled: ${publicCISync}
         Mgmt runtime migration (extended) enabled: ${runRuntimeMigrateExtendedTestMgmt}
@@ -871,6 +878,7 @@ def checkDeploymentTestSuite() {
         coreKeycloakLdapEnabled                  : coreKeycloakLdap,
         internalNTPServersEnabled                : configureInternalNTP,
         runNTPUpdateTestEnabled                  : runNTPUpdateTest,
+        runHocTestEnabled                        : runHocTest,
         runMCCMariaBackupRestoreTestEnabled      : runMCCMariaBackupRestoreTest,
         publicCISyncEnabled                      : publicCISync,
         runtimeMigrateExtendedMgmtEnabled        : runRuntimeMigrateExtendedTestMgmt,
@@ -1213,6 +1221,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'CORE_KEYCLOAK_LDAP_ENABLED', value: triggers.coreKeycloakLdapEnabled),
         booleanParam(name: 'CORE_KAAS_NTP_ENABLED', value: triggers.internalNTPServersEnabled),
         booleanParam(name: 'RUN_NTP_UPDATE_TEST', value: triggers.runNTPUpdateTestEnabled),
+        booleanParam(name: 'RUN_HOC_TEST', value: triggers.runHocTestEnabled),
         booleanParam(name: 'RUN_MCC_MARIA_BACKUP_RESTORE_TEST', value: triggers.runMCCMariaBackupRestoreTestEnabled),
         booleanParam(name: 'RUN_MGMT_RUNTIME_MIGRATE_EXTENDED_TEST', value: triggers.runtimeMigrateExtendedMgmtEnabled),
         booleanParam(name: 'RUN_MGMT_RUNTIME_MIGRATE_QUICK_TEST', value: triggers.runtimeMigrateQuickMgmtEnabled),
