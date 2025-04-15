@@ -44,7 +44,7 @@ def checkCoreCIFeatureFlags() {
  *
  * @return      (map)[
  *                    deployChildEnabled: (bool) True if need to deploy child cluster during demo-run
- *                    runUie2eEnabled:    (bool) True if need to run ui-e2e cluster during demo-run
+ *                    runUie2eNewEnabled:    (bool) True if need to run ui-e2e cluster during demo-run
  *                   ]
  */
 def checkDeploymentTestSuite() {
@@ -67,7 +67,6 @@ def checkDeploymentTestSuite() {
     def autoUpgradeMgmt = env.AUTO_UPGRADE_MCC ? env.AUTO_UPGRADE_MCC.toBoolean() : false
     def enableLMALogging = env.ENABLE_LMA_LOGGING ? env.ENABLE_LMA_LOGGING.toBoolean(): false
     def deployOsOnMos = env.DEPLOY_OS_ON_MOS? env.DEPLOY_OS_ON_MOS.toBoolean() : false
-    def runUie2e = env.RUN_UI_E2E ? env.RUN_UI_E2E.toBoolean() : false
     def runUie2eNew = env.RUN_UI_E2E_NEW ? env.RUN_UI_E2E_NEW.toBoolean() : false
     def runMgmtConformance = env.RUN_MGMT_CFM ? env.RUN_MGMT_CFM.toBoolean() : false
     def runMgmtConformanceNetworkPolicy = env.RUN_MGMT_CFM_NETWORK_POLICY ? env.RUN_MGMT_CFM_NETWORK_POLICY.toBoolean() : false
@@ -241,7 +240,7 @@ def checkDeploymentTestSuite() {
         azureOnDemandDemo = true
         equinixOnDemandDemo = true
         equinixMetalV2OnDemandDemo = true
-        runUie2e = true
+        runUie2eNew = true
         // Edit after fix PRODX-3961
         enableBMDemo = false
     }
@@ -270,9 +269,6 @@ def checkDeploymentTestSuite() {
         bmDeployType = 'half-virtual'
     }
 
-    if (commitMsg ==~ /(?s).*\[ui-e2e-nw\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-e2e-nw.*/) {
-        runUie2e = true
-    }
     if (commitMsg ==~ /(?s).*\[ui-e2e-pw\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-e2e-pw.*/) {
         runUie2eNew = true
     }
@@ -670,7 +666,7 @@ def checkDeploymentTestSuite() {
 
     // calculate weight of current demo run to manage lockable resources
     def demoWeight = deployChild ? 2 : 1 // management = 1, child += 1
-    if (runUie2e || runUie2eNew) {
+    if (runUie2eNew) {
         demoWeight += 1
     }
 
@@ -728,7 +724,6 @@ def checkDeploymentTestSuite() {
         Mgmt conformance network policy testing scheduled: ${runMgmtConformanceNetworkPolicy}
         LMA testing scheduled: ${runLMATest}
         Mgmt user controller testing scheduled: ${runMgmtUserControllerTest}
-        Mgmt UI e2e testing scheduled: ${runUie2e}
         Mgmt UI e2e playwrite testing scheduled: ${runUie2eNew}
         Maintenance test: ${runMaintenanceTest}
         Container Registry test: ${runContainerregistryTest}
@@ -818,7 +813,6 @@ def checkDeploymentTestSuite() {
         autoUpgradeMgmtEnabled                   : autoUpgradeMgmt,
         enableLMALoggingEnabled                  : enableLMALogging,
         deployOsOnMosEnabled                     : deployOsOnMos,
-        runUie2eEnabled                          : runUie2e,
         runUie2eNewEnabled                       : runUie2eNew,
         runMgmtConformanceEnabled                : runMgmtConformance,
         runMgmtConformanceNetworkPolicyEnabled   : runMgmtConformanceNetworkPolicy,
@@ -1170,7 +1164,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'ENABLE_LMA_LOGGING', value: triggers.enableLMALoggingEnabled),
         booleanParam(name: 'DEPLOY_MOS_CHILD_CLUSTER', value: triggers.mosDeployChildEnabled),
         booleanParam(name: 'DEPLOY_OS_ON_MOS', value: triggers.deployOsOnMosEnabled),
-        booleanParam(name: 'RUN_UI_E2E', value: triggers.runUie2eEnabled),
+        booleanParam(name: 'RUN_UI_E2E_NEW', value: triggers.runUie2eNewEnabled),
         booleanParam(name: 'RUN_MGMT_CFM', value: triggers.runMgmtConformanceEnabled),
         booleanParam(name: 'RUN_MGMT_CFM_NETWORK_POLICY', value: triggers.runMgmtConformanceNetworkPolicyEnabled),
         booleanParam(name: 'RUN_MAINTENANCE_TEST', value: triggers.runMaintenanceTestEnabled),
@@ -1305,7 +1299,7 @@ def generateLockResources(callBackDemo, triggers) {
         vsphere_offline_networking_core_ci: 0,
     ]
     def deployChild = triggers.deployChildEnabled
-    def testUiVsphere = triggers.runUie2eEnabled || triggers.runUie2eNewEnabled
+    def testUiVsphere = triggers.runUie2eNewEnabled
     def vsphereByo = triggers.attachBYOEnabled
     def multiregionConfig = triggers.multiregionalConfiguration
     def runMultiregion = multiregionConfig.enabled
