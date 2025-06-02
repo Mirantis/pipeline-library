@@ -78,7 +78,6 @@ def checkDeploymentTestSuite() {
     def runChildConformanceNetworkPolicy = env.RUN_CHILD_CFM_NETWORK_POLICY ? env.RUN_CHILD_CFM_NETWORK_POLICY.toBoolean() : false
     def runChildHPA = env.RUN_CHILD_HPA ? env.RUN_CHILD_HPA.toBoolean() : false
     def fetchServiceBinaries = env.FETCH_BINARIES_FROM_UPSTREAM ? env.FETCH_BINARIES_FROM_UPSTREAM.toBoolean() : false
-    def equinixMetalV2ChildDiffMetro = env.EQUINIXMETALV2_CHILD_DIFF_METRO ? env.EQUINIXMETALV2_CHILD_DIFF_METRO.toBoolean() : false
     def runMaintenanceTest = env.RUN_MAINTENANCE_TEST ? env.RUN_MAINTENANCE_TEST.toBoolean() : false
     def runContainerregistryTest = env.RUN_CONTAINER_REGISTRY_TEST ? env.RUN_CONTAINER_REGISTRY_TEST.toBoolean() : false
     def runMgmtDeleteMasterTest = env.RUN_MGMT_DELETE_MASTER_TEST ? env.RUN_MGMT_DELETE_MASTER_TEST.toBoolean() : false
@@ -111,12 +110,6 @@ def checkDeploymentTestSuite() {
     def upgradeChildPlanSeq = env.UPGRADE_CHILD_PLAN_SEQ ? env.UPGRADE_CHILD_PLAN_SEQ.toBoolean() : false
     def upgradeChildPlanBulk = env.UPGRADE_CHILD_PLAN_BULK ? env.UPGRADE_CHILD_PLAN_BULK.toBoolean() : false
     def upgradeRestartChecker = env.ENABLE_RESTART_CHECKER_FOR_CHILD_UPGRADE ? env.ENABLE_RESTART_CHECKER_FOR_CHILD_UPGRADE.toBoolean() : false
-    // multiregion configuration from env variable: comma-separated string in form $mgmt_provider,$regional_provider
-    def multiregionalMappings = env.MULTIREGION_SETUP ? multiregionWorkflowParser(env.MULTIREGION_SETUP) : [
-        enabled: false,
-        managementLocation: '',
-        regionLocation: '',
-    ]
 
     // proxy customization
     def proxyConfig = [
@@ -127,12 +120,6 @@ def checkDeploymentTestSuite() {
 
     // optional demo deployment customization
     def awsOnDemandDemo = env.ALLOW_AWS_ON_DEMAND ? env.ALLOW_AWS_ON_DEMAND.toBoolean() : false
-    def equinixOnDemandDemo = env.ALLOW_EQUINIX_ON_DEMAND ? env.ALLOW_EQUINIX_ON_DEMAND.toBoolean() : false
-    def equinixMetalV2OnDemandDemo = env.ALLOW_EQUINIXMETALV2_ON_DEMAND ? env.ALLOW_EQUINIXMETALV2_ON_DEMAND.toBoolean() : false
-    def equinixOnAwsDemo = env.EQUINIX_ON_AWS_DEMO ? env.EQUINIX_ON_AWS_DEMO.toBoolean() : false
-    def azureOnAwsDemo = env.AZURE_ON_AWS_DEMO ? env.AZURE_ON_AWS_DEMO.toBoolean() : false
-    def azureOnDemandDemo = env.ALLOW_AZURE_ON_DEMAND ? env.ALLOW_AZURE_ON_DEMAND.toBoolean() : false
-    def enableVsphereDemo = env.ALLOW_VSPHERE_ON_DEMAND ? env.ALLOW_VSPHERE_ON_DEMAND.toBoolean() : false
     def enableOSDemo = true
     def enableBMDemo = true
     def enablebmCoreDemo = env.ALLOW_BM_CORE_ON_DEMAND ? env.ALLOW_BM_CORE_ON_DEMAND.toBoolean() : false
@@ -142,16 +129,12 @@ def checkDeploymentTestSuite() {
     def enableArtifactsBuild = true
     def bmDeployType = env.BM_DEPLOY_TYPE ? env.BM_DEPLOY_TYPE.toString() : 'virtual'
     def openstackIMC = env.OPENSTACK_CLOUD_LOCATION ? env.OPENSTACK_CLOUD_LOCATION : 'us'
-    def enableVsphereUbuntu = env.VSPHERE_DEPLOY_UBUNTU ? env.VSPHERE_DEPLOY_UBUNTU.toBoolean() : false
-    def enableVsphereRHEL = env.VSPHERE_DEPLOY_RHEL ? env.VSPHERE_DEPLOY_RHEL.toBoolean() : false
     def childOsBootFromVolume = env.OPENSTACK_BOOT_FROM_VOLUME ? env.OPENSTACK_BOOT_FROM_VOLUME.toBoolean() : false
     def bootstrapV2Scenario = env.BOOTSTRAP_V2_ENABLED ? env.BOOTSTRAP_V2_ENABLED.toBoolean() : false
-    def equinixMetalV2Metro = env.EQUINIX_MGMT_METRO ? env.EQUINIX_MGMT_METRO : ''
     def enableFips = env.ENABLE_FIPS ? env.ENABLE_FIPS.toBoolean() : false
     def enableMkeDebug = env.ENABLE_MKE_DEBUG ? env.ENABLE_MKE_DEBUG.toBoolean() : false
     def aioCluster = env.AIO_CLUSTER ? env.AIO_CLUSTER.toBoolean() : false
     def dockerServicesCheckSkip = env.DOCKER_SERVICES_CHECK_SKIP ? env.DOCKER_SERVICES_CHECK_SKIP.toBoolean() : false
-    def useVsphereVvmtObjects = env.VSPHERE_USE_VVMT_OBJECTS ? env.VSPHERE_USE_VVMT_OBJECTS.toBoolean() : false
     def enableBv2Smoke = true
     def runCacheWarmup = env.CACHE_WARMUP_ENABLED ? env.CACHE_WARMUP_ENABLED.toBoolean() : false
     def cveScan = false
@@ -234,13 +217,9 @@ def checkDeploymentTestSuite() {
         upgradeBYO = true
     }
     if (commitMsg ==~ /(?s).*\[ui-test-on-all-providers\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-test-on-all-providers.*/) {
-        enableVsphereDemo = true
         enableOSDemo = true
         awsOnDemandDemo = true
-        azureOnDemandDemo = true
-        equinixOnDemandDemo = true
-        equinixMetalV2OnDemandDemo = true
-        runUie2eNew = true
+        runUie2e = true
         // Edit after fix PRODX-3961
         enableBMDemo = false
     }
@@ -349,43 +328,20 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[fetch.*binaries\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*fetch.*binaries.*/) {
         fetchServiceBinaries = true
     }
-    if (commitMsg ==~ /(?s).*\[equinix-on-aws\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*equinix-on-aws.*/) {
-        equinixOnAwsDemo = true
-        common.warningMsg('Forced running child cluster deployment on EQUINIX METAL provider based on AWS management cluster, triggered on patchset using custom keyword: \'[equinix-on-aws]\' ')
-    }
-    if (commitMsg ==~ /(?s).*\[azure-on-aws\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*azure-on-aws.*/) {
-        azureOnAwsDemo = true
-        common.warningMsg('Forced running child cluster deployment on Azure provider based on AWS management cluster, triggered on patchset using custom keyword: \'[azure-on-aws]\' ')
-    }
+
     if (commitMsg ==~ /(?s).*\[aws-demo\].*/                 ||
         env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*aws-demo.*/ ||
         runBYOMatrix                                         ||
-        seedMacOs                                            ||
-        equinixOnAwsDemo                                     ||
-        azureOnAwsDemo) {
+        seedMacOs) {
 
         awsOnDemandDemo = true
         common.warningMsg('Running additional kaas deployment with AWS provider, may be forced due applied trigger cross dependencies, follow docs to clarify info')
     }
-    if (commitMsg ==~ /(?s).*\[equinix-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*equinix-demo\.*/) {
-        equinixOnDemandDemo = true
-    }
-    if (commitMsg ==~ /(?s).*\[equinixmetalv2-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*equinixmetalv2-demo\.*/) {
-        equinixMetalV2OnDemandDemo = true
-    }
-    if (commitMsg ==~ /(?s).*\[equinixmetalv2-child-diff-metro\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*equinixmetalv2-child-diff-metro\.*/) {
-        equinixMetalV2OnDemandDemo = true
-        equinixMetalV2ChildDiffMetro = true
-    }
-    if (commitMsg ==~ /(?s).*\[azure-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*azure-demo\.*/) {
-        azureOnDemandDemo = true
-    }
     if (commitMsg ==~ /(?s).*\[disable-all-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-all-demo\.*/) {
-        enableVsphereDemo = false
         enableOSDemo = false
         enableBMDemo = false
         enableBv2Smoke = false
-        common.errorMsg('vSphere, BM, Openstack, demo deployments and Bootstrap v2 smoke checks will be aborted, VF -1 will be set')
+        common.errorMsg('BM, Openstack, demo deployments and Bootstrap v2 smoke checks will be aborted, VF -1 will be set')
     }
 
     if (commitMsg ==~ /(?s).*\[disable-os-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-os-demo\.*/) {
@@ -430,18 +386,6 @@ def checkDeploymentTestSuite() {
         }
     }
 
-    if (commitMsg ==~ /(?s).*\[disable-vsphere-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-vsphere-demo\.*/) {
-        enableVsphereDemo = false
-        common.errorMsg('vSphere demo deployment will be aborted, VF -1 will be set')
-    }
-    if (commitMsg ==~ /(?s).*\[vsphere-ubuntu\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*vsphere-ubuntu\.*/) {
-        enableVsphereUbuntu = true
-        common.warningMsg('Ubuntu will be used to deploy vsphere machines')
-    }
-    if (commitMsg ==~ /(?s).*\[vsphere-rhel\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*vsphere-rhel\.*/) {
-        enableVsphereRHEL = true
-        common.warningMsg('RHEL will be used to deploy vsphere machines')
-    }
     if (commitMsg ==~ /(?s).*\[disable-bv2-smoke\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-bv2-smoke\.*/) {
         enableBv2Smoke = false
         common.errorMsg('Bootstrap v2 smoke checks will be aborted, WF -1 will be set')
@@ -605,52 +549,11 @@ def checkDeploymentTestSuite() {
         common.errorMsg('Child cluster deployment is not enabled, skipping Cache Warmup')
     }
 
-    // multiregional tests
-    def multiRegionalMatches = (commitMsg =~ /(\[multiregion\s*.*?\])/)
-    if (multiRegionalMatches.size() > 0) {
-        multiregionalMappings = multiregionWorkflowParser(multiRegionalMatches)
-    }
-    switch (multiregionalMappings['managementLocation']) {
-        case 'aws':
-            common.warningMsg('Forced running additional kaas deployment with AWS provider according multiregional demo request')
-            awsOnDemandDemo = true
-
-            if (multiregionalMappings['regionLocation'] != 'aws' && seedMacOs) { // macstadium seed node has access only to *public* providers
-                error('incompatible triggers: [seed-macos] and multiregional deployment based on *private* regional provider cannot be applied simultaneously')
-            }
-            break
-        case 'os':
-            if (enableOSDemo == false) {
-                error('incompatible triggers: [disable-os-demo] and multiregional deployment based on OSt management region cannot be applied simultaneously')
-            }
-            break
-        case 'vsphere':
-            if (enableVsphereDemo == false) {
-                error('incompatible triggers: [disable-vsphere-demo] and multiregional deployment based on Vsphere management region cannot be applied simultaneously')
-            }
-            break
-        case 'equinix':
-            common.warningMsg('Forced running additional kaas deployment with Equinix provider according multiregional demo request')
-            equinixOnDemandDemo = true
-            break
-        case 'equinixmetalv2':
-            common.warningMsg('Forced running additional kaas deployment with Equinix Metal V2 provider according multiregional demo request')
-            equinixMetalV2OnDemandDemo = true
-            break
-        case 'azure':
-            common.warningMsg('Forced running additional kaas deployment with Azure provider according multiregional demo request')
-            azureOnDemandDemo = true
-            break
-    }
-
     // CDN configuration
     def cdnConfig = [
         mgmt: [
             openstack: 'internal-ci',
-            vsphere:  'internal-eu',
             aws: 'public-ci',
-            equinix: 'public-ci',
-            azure: 'public-ci',
         ],
     ]
 
@@ -684,17 +587,6 @@ def checkDeploymentTestSuite() {
 
     if (commitMsg ==~ /(?s).*\[enable-mke-debug\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*enable-mke-debug\.*/) {
         enableMkeDebug = true
-    }
-
-    if (commitMsg ==~ /(?s).*\[vsphere-vvmt-obj\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*vsphere-vvmt-obj\.*/) {
-        useVsphereVvmtObjects = true
-    }
-
-    // parse equinixmetalv2-metro trigger
-    def equinixMetalV2MetroMatcher = (commitMsg =~ /\[equinixmetalv2-metro(\s+.*)?\]/)
-    if (equinixMetalV2OnDemandDemo && equinixMetalV2MetroMatcher.size() > 0) {
-        equinixMetalV2Metro = equinixMetalV2MetroMatcher[0][1].trim().toLowerCase()
-        common.infoMsg("Forced Equnix mgmt deployment using custom metro ${equinixMetalV2Metro}")
     }
 
     common.infoMsg("""
@@ -743,14 +635,6 @@ def checkDeploymentTestSuite() {
         Disable Kubernetes API audit: ${disableKubeApiAudit}
         Enable Auditd : ${auditd}
         AWS provider deployment scheduled: ${awsOnDemandDemo}
-        Equinix provider deployment scheduled: ${equinixOnDemandDemo}
-        EquinixmetalV2 provider deployment scheduled: ${equinixMetalV2OnDemandDemo}
-        EquinixmetalV2 child deploy in a separate metro scheduled: ${equinixMetalV2ChildDiffMetro}
-        EquinixmetalV2 mgmt will be deployed on the metro: ${equinixMetalV2Metro?:'auto'}
-        Equinix@AWS child cluster deployment scheduled: ${equinixOnAwsDemo}
-        Azure provider deployment scheduled: ${azureOnDemandDemo}
-        Azure@AWS child cluster deployment scheduled: ${azureOnAwsDemo}
-        VSPHERE provider deployment scheduled: ${enableVsphereDemo}
         OS provider deployment scheduled: ${enableOSDemo}
         BM Core provider deployment scheduled: ${enablebmCoreDemo}
         BM Core type deplyment: ${bmDeployType}
@@ -758,11 +642,8 @@ def checkDeploymentTestSuite() {
         BM provider deployment scheduled: ${enableBMDemo}
         airGapped deployment: ${airGapped}
         airGap CDN region: ${airGappedCDN}
-        Ubuntu on vSphere scheduled: ${enableVsphereUbuntu}
-        RHEL on vSphere scheduled: ${enableVsphereRHEL}
         Artifacts build scheduled: ${enableArtifactsBuild}
         Boot OS child from Ceph volumes: ${childOsBootFromVolume}
-        Multiregional configuration: ${multiregionalMappings}
         Service binaries fetching scheduled: ${fetchServiceBinaries}
         Current weight of the demo run: ${demoWeight} (Used to manage lockable resources)
         Bootstrap v2 scenario enabled: ${bootstrapV2Scenario}
@@ -771,7 +652,6 @@ def checkDeploymentTestSuite() {
         Pause for debug enabled: ${pauseForDebug}
         AIO cluster: ${aioCluster}
         Docker services check skip: ${dockerServicesCheckSkip}
-        Use Vsphere VVMT Objects: ${useVsphereVvmtObjects}
         Bootsrap v2 smoke checks enabled: ${enableBv2Smoke}
         Run Cache warmup for child clusters: ${runCacheWarmup}
         CVE Scan enabled: ${cveScan}
@@ -837,13 +717,6 @@ def checkDeploymentTestSuite() {
         runProxyChildTestEnabled                 : runProxyChildTest,
         fetchServiceBinariesEnabled              : fetchServiceBinaries,
         awsOnDemandDemoEnabled                   : awsOnDemandDemo,
-        equinixOnDemandDemoEnabled               : equinixOnDemandDemo,
-        equinixMetalV2OnDemandDemoEnabled        : equinixMetalV2OnDemandDemo,
-        equinixMetalV2ChildDiffMetroEnabled      : equinixMetalV2ChildDiffMetro,
-        equinixOnAwsDemoEnabled                  : equinixOnAwsDemo,
-        azureOnDemandDemoEnabled                 : azureOnDemandDemo,
-        azureOnAwsDemoEnabled                    : azureOnAwsDemo,
-        vsphereDemoEnabled                       : enableVsphereDemo,
         bmDemoEnabled                            : enableBMDemo,
         bmCoreDemoEnabled                        : enablebmCoreDemo,
         bmCoreCleanup                            : bmCoreCleanup,
@@ -851,19 +724,14 @@ def checkDeploymentTestSuite() {
         airGapped                                : airGapped,
         airGappedCDN                             : airGappedCDN,
         osDemoEnabled                            : enableOSDemo,
-        vsphereUbuntuEnabled                     : enableVsphereUbuntu,
-        vsphereRHELEnabled                       : enableVsphereRHEL,
         artifactsBuildEnabled                    : enableArtifactsBuild,
         childOsBootFromVolume                    : childOsBootFromVolume,
-        multiregionalConfiguration               : multiregionalMappings,
         demoWeight                               : demoWeight,
         bootstrapV2Scenario                      : bootstrapV2Scenario,
-        equinixMetalV2Metro                      : equinixMetalV2Metro,
         enableFips                               : enableFips,
         enableMkeDebugEnabled                    : enableMkeDebug,
         aioCluster                               : aioCluster,
         dockerServicesCheckSkip                  : dockerServicesCheckSkip,
-        useVsphereVvmtObjects                    : useVsphereVvmtObjects,
         bv2SmokeEnabled                          : enableBv2Smoke,
         runCacheWarmup                           : runCacheWarmup,
         cveScanEnabled                           : cveScan,
@@ -887,50 +755,6 @@ def checkDeploymentTestSuite() {
     ]
 }
 
-/**
- * Determine management and regional setup for demo workflow scenario
- *
- *
- * @param:        keyword (string) string , represents keyword trigger, specified in gerrit commit body, like `[multiregion aws,os]`
-                                   or Jenkins environment string variable in form like 'aws,os'
- * @return        (map)[
-                          enabled: (bool),
- *                        managementLocation: (string), //aws,os
- *                        regionLocation: (string), //aws,os
- *                     ]
- */
-def multiregionWorkflowParser(keyword) {
-    def common = new com.mirantis.mk.Common()
-    def supportedManagementProviders = ['os', 'aws', 'vsphere', 'equinix', 'equinixmetalv2', 'azure']
-    def supportedRegionalProviders = ['os', 'vsphere', 'equinix', 'equinixmetalv2', 'bm', 'azure', 'aws']
-
-    def clusterTypes = ''
-    if (keyword.toString().contains('multiregion')) {
-        common.infoMsg('Multiregion definition configured via gerrit keyword trigger')
-        clusterTypes = keyword[0][0].split('multiregion')[1].replaceAll('[\\[\\]]', '').trim().split(',')
-    } else {
-        common.infoMsg('Multiregion definition configured via environment variable')
-        clusterTypes = keyword.trim().split(',')
-    }
-
-    if (clusterTypes.size() != 2) {
-        error("Incorrect regions definiton, valid scheme: [multiregion ${management}, ${region}], got: ${clusterTypes}")
-    }
-
-    def desiredManagementProvider = clusterTypes[0].trim()
-    def desiredRegionalProvider = clusterTypes[1].trim()
-    if (! supportedManagementProviders.contains(desiredManagementProvider) || ! supportedRegionalProviders.contains(desiredRegionalProvider)) {
-        error("""unsupported management <-> regional bundle, available options:
-              management providers list - ${supportedManagementProviders}
-              regional providers list - ${supportedRegionalProviders}""")
-    }
-
-    return [
-        enabled: true,
-        managementLocation: desiredManagementProvider,
-        regionLocation: desiredRegionalProvider,
-    ]
-}
 
 /**
  * Determine if custom si tests/pipelines refspec forwarded from gerrit change request
@@ -1113,31 +937,14 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
     }
 
     def platforms = []
-    if (component == 'ipam' && triggers.vsphereDemoEnabled) {
-        // Currently only vsphere demo is required for IPAM component
-        platforms.add('vsphere')
-    } else {
-        if (triggers.osDemoEnabled) {
-            platforms.add('openstack')
-        }
-        if (triggers.awsOnDemandDemoEnabled) {
-            platforms.add('aws')
-        }
-        if (triggers.equinixOnDemandDemoEnabled) {
-            platforms.add('equinix')
-        }
-        if (triggers.equinixMetalV2OnDemandDemoEnabled) {
-            platforms.add('equinixmetalv2')
-        }
-        if (triggers.azureOnDemandDemoEnabled) {
-            platforms.add('azure')
-        }
-        if (triggers.vsphereDemoEnabled) {
-            platforms.add('vsphere')
-        }
-        if (triggers.bmCoreDemoEnabled) {
-            platforms.add('bm')
-        }
+    if (triggers.osDemoEnabled) {
+        platforms.add('openstack')
+    }
+    if (triggers.awsOnDemandDemoEnabled) {
+        platforms.add('aws')
+    }
+    if (triggers.bmCoreDemoEnabled) {
+        platforms.add('bm')
     }
 
     def jobs = [:]
@@ -1195,14 +1002,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'RUN_CHILD_HPA', value: triggers.runChildHPAEnabled),
         booleanParam(name: 'RUN_STACKLIGHT_CHILD_HA', value: triggers.runChildStacklightHaEnabled),
         booleanParam(name: 'ALLOW_AWS_ON_DEMAND', value: triggers.awsOnDemandDemoEnabled),
-        booleanParam(name: 'ALLOW_EQUINIX_ON_DEMAND', value: triggers.equinixOnDemandDemoEnabled),
-        booleanParam(name: 'ALLOW_EQUINIXMETALV2_ON_DEMAND', value: triggers.equinixMetalV2OnDemandDemoEnabled),
-        booleanParam(name: 'EQUINIXMETALV2_CHILD_DIFF_METRO', value: triggers.equinixMetalV2ChildDiffMetroEnabled),
-        booleanParam(name: 'EQUINIX_ON_AWS_DEMO', value: triggers.equinixOnAwsDemoEnabled),
-        booleanParam(name: 'ALLOW_AZURE_ON_DEMAND', value: triggers.azureOnDemandDemoEnabled),
-        booleanParam(name: 'AZURE_ON_AWS_DEMO', value: triggers.azureOnAwsDemoEnabled),
         booleanParam(name: 'ALLOW_BM_CORE_ON_DEMAND', value: triggers.bmCoreDemoEnabled),
-        booleanParam(name: 'VSPHERE_DEPLOY_UBUNTU', value: triggers.vsphereUbuntuEnabled),
         booleanParam(name: 'PAUSE_FOR_DEBUG', value: triggers.pauseForDebugEnabled),
         booleanParam(name: 'ENABLE_FIPS', value: triggers.enableFips),
         booleanParam(name: 'ENABLE_MKE_DUBUG', value: triggers.enableMkeDebugEnabled),
@@ -1227,13 +1027,6 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'UPGRADE_CHILD_PLAN_BULK', value: triggers.upgradeChildPlanBulkEnabled),
         booleanParam(name: 'ENABLE_RESTART_CHECKER_FOR_CHILD_UPGRADE', value: triggers.upgradeRestartCheckerEnabled),
     ]
-
-    // customize multiregional demo
-    if (triggers.multiregionalConfiguration.enabled) {
-        parameters.add(string(name: 'MULTIREGION_SETUP',
-                              value: "${triggers.multiregionalConfiguration.managementLocation},${triggers.multiregionalConfiguration.regionLocation}"
-                              ))
-    }
 
     // Determine component team custom context
     if (coreContext != '') {
@@ -1277,110 +1070,28 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
 
 
 /**
- * Function currently supported to be called from aws or vsphere demos. It gets particular demo context
- * and generate proper lockResources data and netMap data for vsphere,equinix related clusters.
+ * Function currently supported to be called from aws demos.
  *
- * @param:        callBackDemo (string) Demo which requested to generate lockResources [aws or vsphere]
+ * @param:        callBackDemo (string) Demo which requested to generate lockResources [aws]
  * @param:        triggers (map) Custom trigger keywords forwarded from gerrit
- * @param:        multiregionalConfiguration (map) Multiregional configuration
- * @return        (map) Return aggregated map with lockResources and netMap
+ * @return        (map) Return aggregated map with lockResources
  */
 
 
 def generateLockResources(callBackDemo, triggers) {
     def common = new com.mirantis.mk.Common()
-    def netMap = [
-        vsphere: [:],
-        equinix: [:],
-    ]
-    // Define vsphere locklabels with initial quantity
-    def lockLabels = [
-        vsphere_networking_core_ci: 0,
-        vsphere_offline_networking_core_ci: 0,
-    ]
-    def deployChild = triggers.deployChildEnabled
-    def testUiVsphere = triggers.runUie2eNewEnabled
-    def vsphereByo = triggers.attachBYOEnabled
-    def multiregionConfig = triggers.multiregionalConfiguration
-    def runMultiregion = multiregionConfig.enabled
 
-    // Generate vsphere netMap and lockLabels based on demo context
+    def deployChild = triggers.deployChildEnabled
+
+    // Generate lockLabels based on demo context
     switch (callBackDemo) {
         case 'aws':
             // Add aws specific lock label with quantity calculated based on single mgmt deploy or mgmt + child
             lockLabels['aws_core_ci_queue'] = triggers.demoWeight
             if (triggers.runBYOMatrixEnabled) { lockLabels['aws_core_ci_queue'] += 6 }
-
-            // Define netMap for Vsphere region
-            if (runMultiregion && multiregionConfig.managementLocation == 'aws') {
-                if (multiregionConfig.regionLocation == 'vsphere') {
-                    if (deployChild) {
-                        addToProviderNetMap(netMap, 'vsphere', 'regional-child')
-                    }
-                    addToProviderNetMap(netMap, 'vsphere', 'region')
-                }
-
-                if (multiregionConfig.regionLocation == 'azure') {
-                    lockLabels['azure_core_ci_queue'] = 1
-                    if (deployChild) {
-                        lockLabels['azure_core_ci_queue'] += 1
-                    }
-                }
-            }
-            if (triggers.azureOnAwsDemoEnabled) {
-                lockLabels['azure_core_ci_queue'] = 1
-            }
-
-            if (triggers.equinixOnAwsDemoEnabled) {
-                lockLabels['equinix_core_ci_queue'] = 1
-            }
             break
-        case 'vsphere':
-            addToProviderNetMap(netMap, 'vsphere', 'mgmt')
-            if (deployChild || testUiVsphere || vsphereByo) {
-                addToProviderNetMap(netMap, 'vsphere', 'child')
-            }
-            if (runMultiregion && multiregionConfig.managementLocation == 'vsphere' &&
-                multiregionConfig.regionLocation == 'vsphere') {
-                if (deployChild) {
-                    addToProviderNetMap(netMap, 'vsphere', 'regional-child')
-                }
-                addToProviderNetMap(netMap, 'vsphere', 'region')
-            }
-            break
-        case 'azure':
-            lockLabels['azure_core_ci_queue'] = triggers.demoWeight
-            if (runMultiregion && multiregionConfig.managementLocation == 'azure') {
-                if (multiregionConfig.regionLocation == 'aws') {
-                    lockLabels['aws_core_ci_queue'] = 1
-                    if (deployChild) {
-                        lockLabels['aws_core_ci_queue'] += 1
-                    }
-                }
-
-                if (multiregionConfig.regionLocation == 'equinix') {
-                    lockLabels['equinix_core_ci_queue'] = 1
-                    if (deployChild) {
-                        lockLabels['equinix_core_ci_queue'] +=1
-                    }
-                }
-            }
         default:
-            error('Supposed to be called from aws, azure or vsphere demos only')
-    }
-
-    // Checking gerrit triggers and manage lock label quantity and network types in case of Offline deployment
-    // Vsphere labels only
-    netMap['vsphere'].each { clusterType, netConfig ->
-        if (triggers.proxyConfig["${clusterType}Offline"] == true                             ||
-            (clusterType == 'regional-child' && triggers.proxyConfig['childOffline'] == true) ||
-            (clusterType == 'region' && triggers.proxyConfig['mgmtOffline'])) {
-
-            netMap['vsphere'][clusterType]['netName'] = 'offline'
-            lockLabels['vsphere_offline_networking_core_ci']++
-        } else {
-            lockLabels['vsphere_networking_core_ci']++
-        }
+            error('Supposed to be called from aws demos only')
     }
 
     // generate lock metadata
@@ -1395,40 +1106,9 @@ def generateLockResources(callBackDemo, triggers) {
         }
     }
 
-    common.infoMsg("""Generated vsphere netMap: ${netMap}
-                    Generated lockResources: ${lockResources}""")
-
     return [
-        netMap: netMap,
         lockResources: lockResources,
     ]
-}
-
-/**
- * Function gets vsphere netMap or empty map and adds new vsphere clusterType with default netName
- * and empty rangeConfig to the this map.
- *
- * @param:        netMap      (string) vsphere, equinix netMap or empty map
- * @param:        provider    (string) provider type
- * @param:        clusterType (string) Vsphere cluster type
- */
-
-def addToProviderNetMap (netMap, provider, clusterType) {
-    switch (provider) {
-        case 'equinix':
-            netMap[provider][clusterType] = [
-                vlanConfig: '',
-              ]
-            break
-        case 'vsphere':
-            netMap[provider][clusterType] = [
-                netName: 'default',
-                rangeConfig: '',
-              ]
-            break
-        default:
-            error('Net map locks supported for Equinix/Vsphere providers only')
-    }
 }
 
 /**
@@ -1566,148 +1246,6 @@ def parseTextForTestSchemas(Map opts) {
 
 
 /**
-* getEquinixMetroWithCapacity returns list of Equinix metros using specified
-* instance type (nodeType), desired count of metros (metroCount) and
-* instances (nodeCount) in a metro using specified matal version.
-* Function downloads metal CLI from the
-* https://artifactory.mcp.mirantis.net:443/artifactory/binary-dev-kaas-local/core/bin/mirror/metal-${version}-linux
-* Empty list is returned in case of no metros with specified capacity was found or any other errors.
-* Non-empty list is shuffled.
-*
-* @param:        metroCount     (int) Desired count of metros
-* @param:        nodeCount      (int) Desired count of instances
-* @param:        nodeType    (string) Instance type
-* @param:        version     (string) Metal version to use
-* @return                  ([]string) List of selected metros
-*
-**/
-def getEquinixMetroWithCapacity(metroCount = 1, nodeCount = 50, nodeType = 'c3.small.x86', version = '0.9.0') {
-    def common = new com.mirantis.mk.Common()
-    def metalUrl = "https://artifactory.mcp.mirantis.net:443/artifactory/binary-dev-kaas-local/core/bin/mirror/metal-${version}-linux"
-    def metal = './metal --config metal.yaml'
-    def metro = []
-    def out = ''
-    def retries = 3 // number of retries
-    def i = 0
-    def delay = 60 // 1 minute sleep
-    def excludeMetro = [] // list of metros to exclude from selection
-    try {
-        if (excludeMetro.size() > 0) {
-            common.infoMsg("Excluded metros: ${excludeMetros}")
-        }
-        sh "curl -o metal -# ${metalUrl} && chmod +x metal"
-        withCredentials([string(credentialsId: env.KAAS_EQUINIX_API_TOKEN, variable: 'KAAS_EQUINIX_API_TOKEN')]) {
-            sh 'echo "project-id: ${KAAS_EQUINIX_PROJECT_ID}\ntoken: ${KAAS_EQUINIX_API_TOKEN}" >metal.yaml'
-        }
-        while (metro.size() < metroCount && i < retries) {
-            common.infoMsg("Selecting ${metroCount} available Equinix metros with free ${nodeCount} ${nodeType} hosts, try ${i+1}/${retries} ...")
-            if (i > 0) { // skip sleep on first step
-                sleep(delay)
-            }
-            out = sh(script: "${metal} capacity get -m -P ${nodeType}|awk '/${nodeType}/ {print \$2}'|paste -s -d,|xargs ${metal} capacity check -P ${nodeType} -q ${nodeCount} -m|grep true|awk '{print \$2}'|paste -s -d,", returnStdout: true).trim()
-            metro = out.tokenize(',')
-            metro -= excludeMetro
-            if (metro.size() < metroCount) {
-                nodeCount -= 10
-            // We need different metros for the [equinixmetalv2-child-diff-metro] case
-            } else if (metro.size() == 2 && metro[0][0, 1] == metro[1][0, 1]) {
-                nodeCount -= 10
-            }
-            i++
-        }
-        if (metro.size() > 0) {
-            m = metro.size() > 1 ? "${metro[0]},${metro[1]}" : "${metro[0]}"
-            sh "${metal} capacity check -P ${nodeType} -m ${m} -q ${nodeCount}"
-        }
-    } catch (Exception e) {
-        common.errorMsg "Exception: '${e}'"
-        return []
-    } finally {
-        sh 'rm metal.yaml'
-    }
-    if (metro.size() > 0) {
-        Collections.shuffle(metro)
-        common.infoMsg("Selected metros: ${metro}")
-    } else {
-        common.warningMsg('No any metros have been selected !!! :(')
-    }
-    return metro
-}
-
-
-/**
-* getEquinixFacilityWithCapacity returns list of Equinix facilities using specified
-* instance type (nodeType), desired count of facilities (facilityCount) and
-* instances (nodeCount) in a facility using specified matal version.
-* Function downloads metal CLI from the
-* https://artifactory.mcp.mirantis.net:443/artifactory/binary-dev-kaas-local/core/bin/mirror/metal-${version}-linux
-* Empty list is returned in case of no facilities with specified capacity was found or any other errors.
-* Non-empty list is shuffled.
-*
-* @param:        facilityCount  (int) Desired count of facilities
-* @param:        nodeCount      (int) Desired count of instances
-* @param:        nodeType    (string) Instance type
-* @param:        version     (string) Metal version to use
-* @return                  ([]string) List of selected facilities
-*
-**/
-@Deprecated
-def getEquinixFacilityWithCapacity(facilityCount = 1, nodeCount = 50, nodeType = 'c3.small.x86', version = '0.9.0') {
-    def common = new com.mirantis.mk.Common()
-    common.warningMsg('You are using deprecated method getEquinixFacilityWithCapacity. Use getEquinixMetroWithCapacity instead')
-    def metalUrl = "https://artifactory.mcp.mirantis.net:443/artifactory/binary-dev-kaas-local/core/bin/mirror/metal-${version}-linux"
-    def metal = './metal --config metal.yaml'
-    def facility = []
-    def out = ''
-    def retries = 3 // number of retries
-    def i = 0
-    def delay = 60 // 1 minute sleep
-    def excludeFacility = [] // list of facilities to exclude from selection
-    try {
-        if (excludeFacility.size() > 0) {
-            common.infoMsg("Excluded facilities: ${excludeFacility}")
-        }
-        sh "curl -o metal -# ${metalUrl} && chmod +x metal"
-        withCredentials([string(credentialsId: env.KAAS_EQUINIX_API_TOKEN, variable: 'KAAS_EQUINIX_API_TOKEN')]) {
-            sh 'echo "project-id: ${KAAS_EQUINIX_PROJECT_ID}\ntoken: ${KAAS_EQUINIX_API_TOKEN}" >metal.yaml'
-        }
-        while (facility.size() < facilityCount && i < retries) {
-            common.infoMsg("Selecting ${facilityCount} available Equinix facilities with free ${nodeCount} ${nodeType} hosts, try ${i+1}/${retries} ...")
-            if (i > 0 ) { // skip sleep on first step
-                sleep(delay)
-            }
-            out = sh(script: "${metal} capacity get -f -P ${nodeType}|awk '/${nodeType}/ {print \$2}'|paste -s -d,|xargs ${metal} capacity check -P ${nodeType} -q ${nodeCount} -f|grep true|awk '{print \$2}'|paste -s -d,", returnStdout: true).trim()
-            facility = out.tokenize(',')
-            facility -= excludeFacility
-            if (facility.size() < facilityCount) {
-                nodeCount -= 10
-            // We need different metros for the [equinixmetalv2-child-diff-metro] case, facility[][0, 1] contains a metro name
-            } else if (facility.size() == 2 && facility[0][0, 1] == facility[1][0, 1]) {
-                nodeCount -= 10
-            }
-            i++
-        }
-        if (facility.size() > 0) {
-            f = facility.size() > 1 ? "${facility[0]},${facility[1]}" : "${facility[0]}"
-            sh "${metal} capacity check -P ${nodeType} -f ${f} -q ${nodeCount}"
-        }
-    } catch (Exception e) {
-        common.errorMsg "Exception: '${e}'"
-        return []
-    } finally {
-        sh 'rm metal.yaml'
-    }
-    if (facility.size() > 0) {
-        Collections.shuffle(facility)
-        common.infoMsg("Selected facilities: ${facility}")
-    } else {
-        common.warningMsg('No any facilities have been selected !!! :(')
-    }
-    return facility
-}
-
-
-/**
  * genCommandLine prepares command line for artifactory-replication
  * command using legacy environment variables
  *
@@ -1811,7 +1349,7 @@ def schedule (label='docker') {
 
 
 /**
- * Get latest tag for test/frontend & equinix-private-infra images
+ * Get latest tag for test/frontend images
  * @param version   (str)    default tag value from main workflow
  * @param isChanged (bool)   is dependent directory files were changed
  * @param imageName (string) image name for information message
