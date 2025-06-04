@@ -59,10 +59,6 @@ def checkDeploymentTestSuite() {
     def mosUpgradeChild = env.UPGRADE_MOS_CHILD_CLUSTER ? env.UPGRADE_MOS_CHILD_CLUSTER.toBoolean() : false
     def customChildRelease = env.KAAS_CHILD_CLUSTER_RELEASE_NAME ? env.KAAS_CHILD_CLUSTER_RELEASE_NAME : ''
     def mosTfDeploy = env.MOS_TF_DEPLOY ? env.MOS_TF_DEPLOY.toBoolean() : false
-    def attachBYO = env.ATTACH_BYO ? env.ATTACH_BYO.toBoolean() : false
-    def upgradeBYO = env.UPGRADE_BYO ? env.UPGRADE_BYO.toBoolean() : false
-    def runBYOMatrix = env.RUN_BYO_MATRIX ? env.RUN_BYO_MATRIX.toBoolean() : false
-    def defaultBYOOs = env.DEFAULT_BYO_OS ? env.DEFAULT_BYO_OS.toString() : 'ubuntu'
     def upgradeMgmt = env.UPGRADE_MGMT_CLUSTER ? env.UPGRADE_MGMT_CLUSTER.toBoolean() : false
     def autoUpgradeMgmt = env.AUTO_UPGRADE_MCC ? env.AUTO_UPGRADE_MCC.toBoolean() : false
     def enableLMALogging = env.ENABLE_LMA_LOGGING ? env.ENABLE_LMA_LOGGING.toBoolean(): false
@@ -87,7 +83,6 @@ def checkDeploymentTestSuite() {
     def pauseForDebug = env.PAUSE_FOR_DEBUG ? env.PAUSE_FOR_DEBUG.toBoolean() : false
     def runChildMachineDeletionPolicyTest = env.RUN_CHILD_MACHINE_DELETION_POLICY_TEST ? env.RUN_CHILD_MACHINE_DELETION_POLICY_TEST.toBoolean() : false
     def runChildCustomCertTest = env.RUN_CHILD_CUSTOM_CERT_TEST ? env.RUN_CHILD_CUSTOM_CERT_TEST.toBoolean() : false
-    def runByoChildCustomCertTest = env.RUN_BYO_CHILD_CUSTOM_CERT_TEST ? env.RUN_BYO_CHILD_CUSTOM_CERT_TEST.toBoolean() : false
     def runMgmtCustomCacheCertTest = env.RUN_MGMT_CUSTOM_CACHE_CERT_TEST ? env.RUN_MGMT_CUSTOM_CACHE_CERT_TEST.toBoolean() : false
     def runMkeCustomCertTest = env.RUN_MKE_CUSTOM_CERT_TEST ? env.RUN_MKE_CUSTOM_CERT_TEST.toBoolean() : false
     def runCustomHostnames = env.RUN_CUSTOM_HOSTNAMES ? env.RUN_CUSTOM_HOSTNAMES.toBoolean() : false
@@ -209,13 +204,6 @@ def checkDeploymentTestSuite() {
         mosUpgradeChild = true
         common.warningMsg('MOSK child upgrade is automatically enabled as mgmt upgrade and MOSK child deploy are enabled')
     }
-    if (commitMsg ==~ /(?s).*\[byo-attach\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*byo-attach.*/) {
-        attachBYO = true
-    }
-    if (commitMsg ==~ /(?s).*\[byo-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*byo-upgrade.*/) {
-        attachBYO = true
-        upgradeBYO = true
-    }
     if (commitMsg ==~ /(?s).*\[ui-test-on-all-providers\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-test-on-all-providers.*/) {
         enableOSDemo = true
         awsOnDemandDemo = true
@@ -223,19 +211,7 @@ def checkDeploymentTestSuite() {
         // Edit after fix PRODX-3961
         enableBMDemo = false
     }
-    def byoDeployMatches = (commitMsg =~ /(\[run-byo-matrix\s*(ubuntu|centos)\])/)
-    if (commitMsg ==~ /(?s).*\[run-byo-matrix\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*run-byo-matrix\.*/ || byoDeployMatches.size() > 0) {
-        runBYOMatrix = true
 
-        if (byoDeployMatches.size() > 0) {
-            defaultBYOOs = byoDeployMatches[0][2]
-            common.warningMsg("Custom BYO OS detected, using ${defaultBYOOs}")
-        }
-
-        common.warningMsg('Forced byo matrix test via run-byo-matrix, all other byo triggers will be skipped')
-        attachBYO = false
-        upgradeBYO = false
-    }
     if (commitMsg ==~ /(?s).*\[lma-logging\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*lma-logging.*/) {
         enableLMALogging = true
     }
@@ -331,7 +307,6 @@ def checkDeploymentTestSuite() {
 
     if (commitMsg ==~ /(?s).*\[aws-demo\].*/                 ||
         env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*aws-demo.*/ ||
-        runBYOMatrix                                         ||
         seedMacOs) {
 
         awsOnDemandDemo = true
@@ -514,12 +489,6 @@ def checkDeploymentTestSuite() {
         auditd = true
     }
 
-    if (commitMsg ==~ /(?s).*\[byo-child-custom-cert-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*byo-child-custom-cert-test\.*/) {
-        runByoChildCustomCertTest = true
-        attachBYO = true
-        common.warningMsg('Byo child cluster deployment will be enabled since custom cert child test suite will be executed')
-    }
-
     // TODO (vnaumov) remove below condition after moving all releases to UCP
     def ucpChildMatches = (commitMsg =~ /(\[child-ucp\s*ucp-.*?\])/)
     if (ucpChildMatches.size() > 0) {
@@ -604,10 +573,6 @@ def checkDeploymentTestSuite() {
         Child conformance network policy testing scheduled: ${runChildConformanceNetworkPolicy}
         Child HPA testing scheduled: ${runChildHPA}
         Child Stacklight HA: ${runChildStacklightHa}
-        Single BYO cluster attachment scheduled: ${attachBYO}
-        Single Attached BYO cluster upgrade test scheduled: ${upgradeBYO}
-        BYO test matrix whole suite scheduled: ${runBYOMatrix}
-        Default BYO OS: ${defaultBYOOs}
         Mgmt cluster release upgrade scheduled: ${upgradeMgmt}
         Mgmt cluster release auto upgrade scheduled: ${autoUpgradeMgmt}
         Mgmt LMA logging enabled: ${enableLMALogging}
@@ -626,7 +591,6 @@ def checkDeploymentTestSuite() {
         Delete child master node test: ${runChildDeleteMasterTest}
         Child machine deletion policy test: ${runChildMachineDeletionPolicyTest}
         Custom cert test for child clusters: ${runChildCustomCertTest}
-        Custom cert test for Byo child clusters: ${runByoChildCustomCertTest}
         Custom cache cert test for mgmt and child clusters: ${runMgmtCustomCacheCertTest}
         MKE custom cert test for mgmt/region: ${runMkeCustomCertTest}
         Custom hostnames for all clisuers: ${runCustomHostnames}
@@ -685,10 +649,6 @@ def checkDeploymentTestSuite() {
         runChildConformanceNetworkPolicyEnabled  : runChildConformanceNetworkPolicy,
         runChildHPAEnabled                       : runChildHPA,
         runChildStacklightHaEnabled              : runChildStacklightHa,
-        attachBYOEnabled                         : attachBYO,
-        upgradeBYOEnabled                        : upgradeBYO,
-        runBYOMatrixEnabled                      : runBYOMatrix,
-        defaultBYOOs                             : defaultBYOOs,
         upgradeMgmtEnabled                       : upgradeMgmt,
         autoUpgradeMgmtEnabled                   : autoUpgradeMgmt,
         enableLMALoggingEnabled                  : enableLMALogging,
@@ -710,7 +670,6 @@ def checkDeploymentTestSuite() {
         runCustomHostnamesEnabled                : runCustomHostnames,
         slLatestEnabled                          : slLatest,
         lcmAnsibleLatestEnabled                  : lcmAnsibleLatest,
-        runByoChildCustomCertTestEnabled         : runByoChildCustomCertTest,
         runChildMachineDeletionPolicyTestEnabled : runChildMachineDeletionPolicyTest,
         runLMATestEnabled                        : runLMATest,
         runMgmtUserControllerTestEnabled         : runMgmtUserControllerTest,
@@ -986,7 +945,6 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'RUN_CUSTOM_HOSTNAMES', value: triggers.runCustomHostnamesEnabled),
         booleanParam(name: 'SL_LATEST', value: triggers.slLatestEnabled),
         booleanParam(name: 'LCM_ANSIBLE_LATEST', value: triggers.lcmAnsibleLatestEnabled),
-        booleanParam(name: 'RUN_BYO_CHILD_CUSTOM_CERT_TEST', value: triggers.runByoChildCustomCertTestEnabled),
         booleanParam(name: 'RUN_CHILD_MACHINE_DELETION_POLICY_TEST', value: triggers.runChildMachineDeletionPolicyTestEnabled),
         booleanParam(name: 'RUN_LMA_TEST', value: triggers.runLMATestEnabled),
         booleanParam(name: 'RUN_MGMT_USER_CONTROLLER_TEST', value: triggers.runMgmtUserControllerTestEnabled),
@@ -994,9 +952,6 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'UPGRADE_CHILD_CLUSTER', value: triggers.upgradeChildEnabled),
         booleanParam(name: 'FULL_UPGRADE_CHILD_CLUSTER', value: triggers.fullUpgradeChildEnabled),
         booleanParam(name: 'RUN_PROXY_CHILD_TEST', value: triggers.runProxyChildTestEnabled),
-        booleanParam(name: 'ATTACH_BYO', value: triggers.attachBYOEnabled),
-        booleanParam(name: 'UPGRADE_BYO', value: triggers.upgradeBYOEnabled),
-        booleanParam(name: 'RUN_BYO_MATRIX', value: triggers.runBYOMatrixEnabled),
         booleanParam(name: 'RUN_CHILD_CFM', value: triggers.runChildConformanceEnabled),
         booleanParam(name: 'RUN_CHILD_CFM_NETPOLICY', value: triggers.runChildConformanceNetworkPolicyEnabled),
         booleanParam(name: 'RUN_CHILD_HPA', value: triggers.runChildHPAEnabled),
@@ -1088,7 +1043,6 @@ def generateLockResources(callBackDemo, triggers) {
         case 'aws':
             // Add aws specific lock label with quantity calculated based on single mgmt deploy or mgmt + child
             lockLabels['aws_core_ci_queue'] = triggers.demoWeight
-            if (triggers.runBYOMatrixEnabled) { lockLabels['aws_core_ci_queue'] += 6 }
             break
         default:
             error('Supposed to be called from aws demos only')
