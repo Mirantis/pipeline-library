@@ -1035,6 +1035,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
 
 def generateLockResources(callBackDemo, triggers) {
     def common = new com.mirantis.mk.Common()
+    def lockLabels = [:]
 
     def deployChild = triggers.deployChildEnabled
 
