@@ -154,7 +154,7 @@ def restCall(base, uri, method = 'GET', data = null, headers = [:]) {
     }
 
     if ( connection.responseCode >= 200 && connection.responseCode < 300 ) {
-        res = connection.inputStream.text
+        def res = connection.inputStream.text
         try {
             return new groovy.json.JsonSlurperClassic().parseText(res)
         } catch (Exception e) {

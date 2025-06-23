@@ -497,6 +497,12 @@ def updateDescription(jobs_data) {
     def child_jobs_description = '<strong>Descriptions from jobs:</strong><br>'
     def table_template_start = "<div><table style='border: solid 1px;'><tr><th>Job:</th><th>Duration:</th><th>Status:</th></tr>"
     def table_template_end = "</table></div>"
+    def tableEntries = ''
+    def _child_jobs_description = ''
+    def trstyle = ''
+    def display_name = ''
+    def duration = ''
+    def status_style = ''
 
     (tableEntries, _child_jobs_description) = getStepDescription(jobs_data)
 
@@ -518,6 +524,7 @@ def runStep(global_variables, step, Boolean propagate = false, artifactoryBaseUr
         def common = new com.mirantis.mk.Common()
         def engine = new groovy.text.GStringTemplateEngine()
         def env_variables = common.getEnvAsMap()
+        def artifacts_msg = ''
 
         String jobDescription = step['description'] ?: ''
         def jobName = step['job']
@@ -620,6 +627,7 @@ def runScript(global_variables, step, artifactoryBaseUrl = '', artifactoryServer
 
     // prepare 'script_env' from merged 'env' and script step parameters
     def script_env = env_variables.clone()
+    def artifacts_msg = ''
     def stepParameters = step['parameters'] ?: [:]
     def script_parameters = generateParameters(stepParameters, global_variables)
     println "${script_parameters}"
@@ -925,6 +933,7 @@ def checkResult(job_result, build_url, step, failed_jobs) {
 
 def runWorkflowStep(global_variables, step, step_id, jobs_data, global_jobs_data, failed_jobs, propagate, artifactoryBaseUrl, artifactoryServer, scriptsLibrary = null, prefixMsg = '', parent_global_variables=null) {
     def common = new com.mirantis.mk.Common()
+    def job_result = ''
 
     def _sep = "\n======================\n"
     if (step.containsKey('job')) {
@@ -943,7 +952,7 @@ def runWorkflowStep(global_variables, step, step_id, jobs_data, global_jobs_data
             if (job_summary['build_description']) {
                 jobs_data[step_id]['child_desc'] = job_summary['build_description']
             }
-            def job_result = job_summary['job_result']
+            job_result = job_summary['job_result']
             def build_url = job_summary['build_url']
             common.printMsg("${_sep}${prefixMsg}Job ${build_url} finished with result: ${job_result} [at ${java.time.LocalDateTime.now()}]${_sep}", "blue")
         }
@@ -957,7 +966,7 @@ def runWorkflowStep(global_variables, step, step_id, jobs_data, global_jobs_data
             // Use build_url just as an unique key for failed_jobs.
             // All characters after '#' are 'comment'
             def build_url = "${env.BUILD_URL}#${step_id}:${step['script']}"
-            def job_result = scriptResult['script_result']
+            job_result = scriptResult['script_result']
             common.printMsg("${_sep}${prefixMsg}Script ${build_url} finished with result: ${job_result} [at ${java.time.LocalDateTime.now()}]${_sep}", "blue")
 
             jobs_data[step_id]['build_url'] = build_url
@@ -981,7 +990,7 @@ def runWorkflowStep(global_variables, step, step_id, jobs_data, global_jobs_data
             // Use build_url just as an unique key for failed_jobs.
             // All characters after '#' are 'comment'
             def build_url = "${env.BUILD_URL}#${step_id}"
-            def job_result = parallelResult['nested_result']
+            job_result = parallelResult['nested_result']
             common.printMsg("${_sep}${prefixMsg}Parallel steps ${build_url} finished with result: ${job_result} [at ${java.time.LocalDateTime.now()}]${_sep}", "blue")
 
             jobs_data[step_id]['build_url'] = build_url
@@ -1005,7 +1014,7 @@ def runWorkflowStep(global_variables, step, step_id, jobs_data, global_jobs_data
             // Use build_url just as an unique key for failed_jobs.
             // All characters after '#' are 'comment'
             def build_url = "${env.BUILD_URL}#${step_id}"
-            def job_result = sequenceResult['nested_result']
+            job_result = sequenceResult['nested_result']
             common.printMsg("${_sep}${prefixMsg}Sequence steps ${build_url} finished with result: ${job_result} [at ${java.time.LocalDateTime.now()}]${_sep}", "blue")
 
             jobs_data[step_id]['build_url'] = build_url
@@ -1283,6 +1292,7 @@ def manageArtifacts(entrypointDirectory, storeArtsInJenkins = false, artifactory
     def mcpArtifactory = new com.mirantis.mcp.MCPArtifactory()
     def artifactoryRepoPath = "si-local/jenkins-job-artifacts/${JOB_NAME}/${BUILD_NUMBER}"
     def tests_log = "${entrypointDirectory}/tests.log"
+    def artConfig = []
 
     if (fileExists(tests_log)) {
         try {
