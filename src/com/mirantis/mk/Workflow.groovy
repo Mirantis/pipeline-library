@@ -433,6 +433,13 @@ def getScriptDescription(jobdata) {
 def getNestedDescription(jobdata) {
     def tableEntries = []
     def trstyle = getTrStyle(jobdata)
+    def nestedTableEntries = []
+    def nested_trstyle = ''
+    def nested_display_name = ''
+    def nested_duration = ''
+    def nested_status_style = ''
+    def _other_data = ''
+
 
     def display_name = "${jobdata['desc']}" ?: "${jobdata['name']}"
     if ((env.WF_SHOW_FULL_WORKFLOW_DESCRIPTION ?: false).toBoolean()) {
@@ -451,7 +458,7 @@ def getNestedDescription(jobdata) {
 
     // Collect nested job descriptions
     for (nested_jobdata in jobdata['nested_steps_data']) {
-        (nestedTableEntries, _) = getStepDescription(nested_jobdata.value)
+        (nestedTableEntries, _other_data) = getStepDescription(nested_jobdata.value)
         for (nestedTableEntry in nestedTableEntries) {
             (nested_trstyle, nested_display_name, nested_duration, nested_status_style) = nestedTableEntry
             tableEntries += [[nested_trstyle, "&emsp;| ${nested_jobdata.key}: ${nested_display_name}", nested_duration, nested_status_style,],]
