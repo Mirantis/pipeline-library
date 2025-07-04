@@ -271,7 +271,6 @@ def runOrGetJob(job_name, job_parameters, global_variables, propagate, String fu
     def jobOverrideID = jobsOverrides.getOrDefault(fullTaskName, '')
     if (fullTaskName in jobsOverrides.keySet()) {
         common.warningMsg("Overriding: ${fullTaskName}/${job_name} <<< ${jobOverrideID}")
-        common.infoMsg("For debug pin use:\n'${fullTaskName}' : ${jobOverrideID}")
         return Jenkins.instance.getItemByFullName(job_name, hudson.model.Job).getBuildByNumber(jobOverrideID.toInteger())
     } else {
         return runJob(job_name, job_parameters, global_variables, propagate)
@@ -525,7 +524,6 @@ def updateDescription(jobs_data) {
     currentBuild.description = table_template_start + table + table_template_end + child_jobs_description
 }
 
-
 def runStep(global_variables, step, Boolean propagate = false, artifactoryBaseUrl = '', artifactoryServer = '', parent_global_variables=null) {
     return {
         def common = new com.mirantis.mk.Common()
@@ -594,6 +592,19 @@ def runStep(global_variables, step, Boolean propagate = false, artifactoryBaseUr
           buildDuration    : buildDuration,
           desc             : desc,
         ]
+        /// START: Print combined, already passed job/id -
+        // required ONLY for manual debugs with CI_JOBS_OVERRIDES logic
+        if (!global_variables['GLOBAL_PINS']) {
+            global_variables['GLOBAL_PINS'] = []
+            parent_global_variables['GLOBAL_PINS'] = []
+        }
+        def _label = desc ?: jobName
+        def _item_str = sprintf('"%s": %s', _label, jobSummary['build_id'])
+        global_variables['GLOBAL_PINS'].add(_item_str)
+        parent_global_variables['GLOBAL_PINS'].add(_item_str)
+        common.infoMsg("Current debug pins:")
+        common.infoMsg(global_variables['GLOBAL_PINS'].toSet().sort().collect { "${it}" }.join(",\n") + ',')
+        /// END
         def _buildDescription = jobResult.getDescription().toString()
         if (_buildDescription) {
             jobSummary['build_description'] = _buildDescription
