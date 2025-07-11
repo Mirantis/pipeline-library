@@ -53,7 +53,7 @@ def checkDeploymentTestSuite() {
     // Available triggers and its sane defaults
     def seedMacOs = env.SEED_MACOS ? env.SEED_MACOS.toBoolean() : false
     def deployChild = env.DEPLOY_CHILD_CLUSTER ? env.DEPLOY_CHILD_CLUSTER.toBoolean() : false
-    def upgradeChild = env.UPGRADE_CHILD_CLUSTER ? env.UPGRADE_CHILD_CLUSTER.toBoolean() : false
+    def upgradeChildDeprecated = env.UPGRADE_CHILD_DEPRECATED_CLUSTER ? env.UPGRADE_CHILD_DEPRECATED_CLUSTER.toBoolean() : false
     def fullUpgradeChild = env.FULL_UPGRADE_CHILD_CLUSTER ? env.FULL_UPGRADE_CHILD_CLUSTER.toBoolean() : false
     def mosDeployChild = env.DEPLOY_MOS_CHILD_CLUSTER ? env.DEPLOY_MOS_CHILD_CLUSTER.toBoolean() : false
     def mosUpgradeChild = env.UPGRADE_MOS_CHILD_CLUSTER ? env.UPGRADE_MOS_CHILD_CLUSTER.toBoolean() : false
@@ -152,38 +152,42 @@ def checkDeploymentTestSuite() {
         seedMacOs = true
     }
     if (commitMsg ==~ /(?s).*\[child-deploy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-deploy.*/ ||
-            upgradeChild || runChildConformance || runProxyChildTest || runChildHPA || runChildConformanceNetworkPolicy) {
+            upgradeChildPlanBulk || runChildConformance || runProxyChildTest || runChildHPA || runChildConformanceNetworkPolicy) {
         deployChild = true
+    }
+    if (commitMsg ==~ /(?s).*\[child-upgrade-deprecated\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-upgrade-deprecated.*/) {
+        deployChild = true
+        upgradeChildDeprecated = true
+        common.warningMsg("Use deprecated upgrade flow")
     }
     if (commitMsg ==~ /(?s).*\[child-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-upgrade.*/) {
         deployChild = true
-        upgradeChild = true
+        common.warningMsg("Starting from version 2.30, we use ClusterUpdatePlan bulk updates by default. If you want to test the deprecated upgrade flow, use the [child-upgrade-deprecated] trigger.")
+        upgradeChildPlanBulk = true
     }
     if (commitMsg ==~ /(?s).*\[child-upgrade-full\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-upgrade-full.*/) {
         deployChild = true
-        upgradeChild = true
+        upgradeChildPlanBulk = true
         common.warningMsg("2-step child updates are not testing (PRODX-33510)")
         //TODO: revert after start testing the two-step upgrade again (PRODX-33510)
         //fullUpgradeChild = true
     }
     if (commitMsg ==~ /(?s).*\[child-upgrade-plan-sequental\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-upgrade-plan-sequental.*/) {
         deployChild = true
-        upgradeChild = true
         upgradeChildPlanSeq = true
     }
     if (commitMsg ==~ /(?s).*\[child-upgrade-plan-bulk\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-upgrade-plan-bulk.*/) {
         deployChild = true
-        upgradeChild = true
         upgradeChildPlanBulk = true
     }
     if (commitMsg ==~ /(?s).*\[check-runtime-restart-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*check-runtime-restart-upgrade.*/) {
         upgradeRestartChecker = true
         deployChild = true
-        upgradeChild = true
+        upgradeChildPlanBulk = true
         common.warningMsg('Runtime restart checker enabled for child upgrade. Child deployment and upgrade will be enforced.')
     }
     if ((upgradeMgmt || autoUpgradeMgmt) && deployChild) {
-        upgradeChild = true
+        upgradeChildPlanBulk = true
         common.warningMsg('child upgrade is automatically enabled as mgmt upgrade and child deploy are enabled')
     }
     def childDeployMatches = (commitMsg =~ /(\[child-deploy\s*(\w|\-)+?\])/)
@@ -497,7 +501,7 @@ def checkDeploymentTestSuite() {
 
         // TODO(vnaumov) delete after ucp upgrades support
         common.errorMsg('Child upgrade test will be skipped, UCP upgrades temporally disabled')
-        upgradeChild = false
+        upgradeChildPlanBulk = false
     }
 
     if (commitMsg ==~ /(?s).*\[aio-cluster\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*aio-cluster.*/) {
@@ -565,7 +569,7 @@ def checkDeploymentTestSuite() {
         Use MacOS node as seed: ${seedMacOs}
         Child cluster deployment scheduled: ${deployChild}
         Custom child cluster release: ${customChildRelease}
-        Child cluster release upgrade scheduled: ${upgradeChild}
+        Child cluster release deprecated uupgrade flow: ${upgradeChildDeprecated}
         Full Child cluster release upgrade scheduled: ${fullUpgradeChild}
         MOS child deploy scheduled: ${mosDeployChild}
         MOS child upgrade scheduled: ${mosUpgradeChild}
@@ -641,7 +645,7 @@ def checkDeploymentTestSuite() {
         useMacOsSeedNode                         : seedMacOs,
         deployChildEnabled                       : deployChild,
         childDeployCustomRelease                 : customChildRelease,
-        upgradeChildEnabled                      : upgradeChild,
+        upgradeChildDeprecatedEnabled            : upgradeChildDeprecated,
         fullUpgradeChildEnabled                  : fullUpgradeChild,
         mosDeployChildEnabled                    : mosDeployChild,
         mosUpgradeChildEnabled                   : mosUpgradeChild,
@@ -950,6 +954,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'RUN_MGMT_USER_CONTROLLER_TEST', value: triggers.runMgmtUserControllerTestEnabled),
         booleanParam(name: 'DEPLOY_CHILD_CLUSTER', value: triggers.deployChildEnabled),
         booleanParam(name: 'UPGRADE_CHILD_CLUSTER', value: triggers.upgradeChildEnabled),
+        booleanParam(name: 'UPGRADE_CHILD_DEPRECATED_CLUSTER', value: triggers.upgradeChildDeprecatedEnabled),
         booleanParam(name: 'FULL_UPGRADE_CHILD_CLUSTER', value: triggers.fullUpgradeChildEnabled),
         booleanParam(name: 'RUN_PROXY_CHILD_TEST', value: triggers.runProxyChildTestEnabled),
         booleanParam(name: 'RUN_CHILD_CFM', value: triggers.runChildConformanceEnabled),
