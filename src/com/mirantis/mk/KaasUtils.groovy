@@ -228,6 +228,10 @@ def checkDeploymentTestSuite() {
         bmDeployType = 'half-virtual'
     }
 
+    if (commitMsg ==~ /(?s).*\[phys-lab\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*phys-lab.*/) {
+        bmDeployType = 'phys'
+    }
+
     if (commitMsg ==~ /(?s).*\[ui-e2e-pw\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-e2e-pw.*/) {
         runUie2eNew = true
     }
