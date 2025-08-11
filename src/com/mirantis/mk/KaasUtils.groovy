@@ -55,8 +55,6 @@ def checkDeploymentTestSuite() {
     def deployChild = env.DEPLOY_CHILD_CLUSTER ? env.DEPLOY_CHILD_CLUSTER.toBoolean() : false
     def upgradeChildDeprecated = env.UPGRADE_CHILD_DEPRECATED_CLUSTER ? env.UPGRADE_CHILD_DEPRECATED_CLUSTER.toBoolean() : false
     def fullUpgradeChild = env.FULL_UPGRADE_CHILD_CLUSTER ? env.FULL_UPGRADE_CHILD_CLUSTER.toBoolean() : false
-    def mosDeployChild = env.DEPLOY_MOS_CHILD_CLUSTER ? env.DEPLOY_MOS_CHILD_CLUSTER.toBoolean() : false
-    def mosUpgradeChild = env.UPGRADE_MOS_CHILD_CLUSTER ? env.UPGRADE_MOS_CHILD_CLUSTER.toBoolean() : false
     def customChildRelease = env.KAAS_CHILD_CLUSTER_RELEASE_NAME ? env.KAAS_CHILD_CLUSTER_RELEASE_NAME : ''
     def mosTfDeploy = env.MOS_TF_DEPLOY ? env.MOS_TF_DEPLOY.toBoolean() : false
     def upgradeMgmt = env.UPGRADE_MGMT_CLUSTER ? env.UPGRADE_MGMT_CLUSTER.toBoolean() : false
@@ -124,6 +122,7 @@ def checkDeploymentTestSuite() {
     def enableArtifactsBuild = true
     def bmDeployType = env.BM_DEPLOY_TYPE ? env.BM_DEPLOY_TYPE.toString() : 'virtual'
     def openstackIMC = env.OPENSTACK_CLOUD_LOCATION ? env.OPENSTACK_CLOUD_LOCATION : 'us'
+    def childDeployType = env.CHILD_DEPLOY_TYPE ? env.CHILD_DEPLOY_TYPE.toString() : 'mke'
     def childOsBootFromVolume = env.OPENSTACK_BOOT_FROM_VOLUME ? env.OPENSTACK_BOOT_FROM_VOLUME.toBoolean() : false
     def bootstrapV2Scenario = env.BOOTSTRAP_V2_ENABLED ? env.BOOTSTRAP_V2_ENABLED.toBoolean() : false
     def enableFips = env.ENABLE_FIPS ? env.ENABLE_FIPS.toBoolean() : false
@@ -198,17 +197,6 @@ def checkDeploymentTestSuite() {
         customChildRelease = childDeployMatches[0][0].split('child-deploy')[1].replaceAll('[\\[\\]]', '').trim()
         common.warningMsg("Forced child deployment using custom release version ${customChildRelease}")
     }
-    if (commitMsg ==~ /(?s).*\[mos-child-deploy\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mos-child-deploy.*/) {
-        mosDeployChild = true
-    }
-    if (commitMsg ==~ /(?s).*\[mos-child-upgrade\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mos-child-upgrade.*/) {
-        mosDeployChild = true
-        mosUpgradeChild = true
-    }
-    if ((upgradeMgmt || autoUpgradeMgmt) && mosDeployChild) {
-        mosUpgradeChild = true
-        common.warningMsg('MOSK child upgrade is automatically enabled as mgmt upgrade and MOSK child deploy are enabled')
-    }
     if (commitMsg ==~ /(?s).*\[ui-test-on-all-providers\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-test-on-all-providers.*/) {
         enableOSDemo = true
         awsOnDemandDemo = true
@@ -222,7 +210,9 @@ def checkDeploymentTestSuite() {
     }
     if (commitMsg ==~ /(?s).*\[deploy-os-on-mos\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*deploy-os-on-mos.*/) {
         deployOsOnMos = true
-        mosDeployChild = true
+        deployChild = true
+        childDeployType = 'mosk'
+        common.warningMsg('Forsed mosk child cluster deployment')
     }
 
     if (commitMsg ==~ /(?s).*\[half-virtual\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*half-virtual.*/) {
@@ -231,6 +221,15 @@ def checkDeploymentTestSuite() {
 
     if (commitMsg ==~ /(?s).*\[phys-lab\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*phys-lab.*/) {
         bmDeployType = 'phys'
+    }
+
+    if (commitMsg ==~ /(?s).*\[mosk-child\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mosk-child.*/) {
+        childDeployType = 'mosk'
+        deployChild = true
+        common.infoMsg('Child cluster deployment use mosk cluster release version')
+    }
+    if (childDeployType == 'mke') {
+        common.infoMsg('Child cluster deployment use mke cluster release version')
     }
 
     if (commitMsg ==~ /(?s).*\[ui-e2e-pw\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-e2e-pw.*/) {
@@ -577,11 +576,10 @@ def checkDeploymentTestSuite() {
         MCC offline deployment configuration: ${proxyConfig}
         Use MacOS node as seed: ${seedMacOs}
         Child cluster deployment scheduled: ${deployChild}
+        Child deploy cluster release type: ${childDeployType}
         Custom child cluster release: ${customChildRelease}
         Child cluster release deprecated uupgrade flow: ${upgradeChildDeprecated}
         Full Child cluster release upgrade scheduled: ${fullUpgradeChild}
-        MOS child deploy scheduled: ${mosDeployChild}
-        MOS child upgrade scheduled: ${mosUpgradeChild}
         Child conformance testing scheduled: ${runChildConformance}
         Child conformance network policy testing scheduled: ${runChildConformanceNetworkPolicy}
         Child HPA testing scheduled: ${runChildHPA}
@@ -657,8 +655,6 @@ def checkDeploymentTestSuite() {
         childDeployCustomRelease                 : customChildRelease,
         upgradeChildDeprecatedEnabled            : upgradeChildDeprecated,
         fullUpgradeChildEnabled                  : fullUpgradeChild,
-        mosDeployChildEnabled                    : mosDeployChild,
-        mosUpgradeChildEnabled                   : mosUpgradeChild,
         runChildConformanceEnabled               : runChildConformance,
         runChildConformanceNetworkPolicyEnabled  : runChildConformanceNetworkPolicy,
         runChildHPAEnabled                       : runChildHPA,
@@ -694,6 +690,7 @@ def checkDeploymentTestSuite() {
         bmCoreDemoEnabled                        : enablebmCoreDemo,
         bmCoreCleanup                            : bmCoreCleanup,
         bmDeployType                             : bmDeployType,
+        childDeployType                          : childDeployType,
         airGapped                                : airGapped,
         airGappedCDN                             : airGappedCDN,
         osDemoEnabled                            : enableOSDemo,
@@ -935,6 +932,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         string(name: 'OPENSTACK_CLOUD_LOCATION', value: triggers.osCloudLocation),
         string(name: 'SLACK_CHANNEL_NOTIFY', value: triggers.customSlackChannelEnabled),
         string(name: 'BM_DEPLOY_TYPE', value: triggers.bmDeployType),
+        string(name: 'CHILD_DEPLOY_TYPE', value: triggers.childDeployType),
         string(name: 'AIRGAP_CDN', value: triggers.airGappedCDN),
         booleanParam(name: 'OFFLINE_MGMT_CLUSTER', value: triggers.proxyConfig['mgmtOffline']),
         booleanParam(name: 'OFFLINE_CHILD_CLUSTER', value: triggers.proxyConfig['childOffline']),
