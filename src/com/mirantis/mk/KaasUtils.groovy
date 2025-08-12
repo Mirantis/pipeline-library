@@ -133,6 +133,7 @@ def checkDeploymentTestSuite() {
     def enableBv2Smoke = true
     def runCacheWarmup = env.CACHE_WARMUP_ENABLED ? env.CACHE_WARMUP_ENABLED.toBoolean() : false
     def cveScan = false
+    def cisBenchmark = env.RUN_NESSUS_SCAN ? env.RUN_NESSUS_SCAN.toBoolean() : false
     // Sync to public CDN is triggered automatically for corresponding scenarios
     // This trigger is used only for on-demand cases
     def publicCISync = false
@@ -352,6 +353,10 @@ def checkDeploymentTestSuite() {
 
     if (commitMsg ==~ /(?s).*\[air-gapped\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*air-gapped\\.*/) {
         airGapped = true
+    }
+
+    if (commitMsg ==~ /(?s).*\[nessus-scan\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*nessus-scan\\.*/) {
+        cisBenchmark = true
     }
 
     if (commitMsg ==~ /(?s).*\[airgap-cdn-(eu|us|public-ci)\].*/) {
@@ -641,6 +646,7 @@ def checkDeploymentTestSuite() {
         Child Upgrade via update plan with sequental steps enabled: ${upgradeChildPlanSeq}
         Child Upgrade via update plan with bulk steps enabled: ${upgradeChildPlanBulk}
         Runtime restart checker for child upgrade enabled: ${upgradeRestartChecker}
+        Start Nessus scan: ${cisBenchmark}
         Triggers: https://gerrit.mcp.mirantis.com/plugins/gitiles/kaas/core/+/refs/heads/master/hack/ci-gerrit-keywords.md""")
     return [
         osCloudLocation                          : openstackIMC,
@@ -719,6 +725,7 @@ def checkDeploymentTestSuite() {
         upgradeChildPlanSeqEnabled               : upgradeChildPlanSeq,
         upgradeChildPlanBulkEnabled              : upgradeChildPlanBulk,
         upgradeRestartCheckerEnabled             : upgradeRestartChecker,
+        cisBenchmark                             : cisBenchmark,
     ]
 }
 
@@ -990,6 +997,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'UPGRADE_CHILD_PLAN_SEQ', value: triggers.upgradeChildPlanSeqEnabled),
         booleanParam(name: 'UPGRADE_CHILD_PLAN_BULK', value: triggers.upgradeChildPlanBulkEnabled),
         booleanParam(name: 'ENABLE_RESTART_CHECKER_FOR_CHILD_UPGRADE', value: triggers.upgradeRestartCheckerEnabled),
+        booleanParam(name: 'RUN_NESSUS_SCAN', value: triggers.cisBenchmark),
     ]
 
     // Determine component team custom context
