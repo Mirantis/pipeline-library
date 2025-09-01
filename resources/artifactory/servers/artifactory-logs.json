@@ -1,0 +1,6 @@
+{
+    "platformUrl": "https://artifactory-logs.infra.mirantis.net",
+    "artifactoryUrl": "https://artifactory-logs.infra.mirantis.net/artifactory",
+    "credentialsId": "artifactory",
+    "connectionRetry": 3
+}

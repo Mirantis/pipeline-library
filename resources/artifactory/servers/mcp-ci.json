@@ -1,0 +1,6 @@
+{
+    "platformUrl": "https://artifactory.mcp.mirantis.net",
+    "artifactoryUrl": "https://artifactory.mcp.mirantis.net/artifactory",
+    "credentialsId": "artifactory",
+    "connectionRetry": 3
+}
