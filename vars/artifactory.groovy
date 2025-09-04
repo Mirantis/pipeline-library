@@ -128,7 +128,7 @@ List createFileListBySpec(Map spec) {
 
         List targetFiles = []
         try {
-            targetFiles = findFiles(glob: specItem.pattern)
+            targetFiles = findFiles(glob: specItem.pattern.replaceFirst("^${env.WORKSPACE}/?", ""))
                 .findAll{ !it.directory }
                 .collect{ it.path }
         } catch (Exception e) {
