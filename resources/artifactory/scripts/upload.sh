@@ -57,6 +57,7 @@ curl \
     --silent \
     --show-error \
     --location \
+    --globoff \
     --dump-header "${HEADERS_FILE}" \
     --output "${STDOUT_FILE}" \
     --user "${ARTIFACTORY_USERNAME}:${ARTIFACTORY_PASSWORD}" \
