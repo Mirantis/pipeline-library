@@ -110,7 +110,7 @@ def verifyGaleraStatus(env, checkTimeSync=false) {
     }
     common.infoMsg("Disk i/o utilization was checked and everything seems to be in order.")
     if (checkTimeSync && !salt.checkClusterTimeSync(env, "I@galera:master or I@galera:slave")) {
-        common.errorMsg("Time in cluster is desynchronized or it couldn't be detemined. You should fix this issue manually before proceeding.")
+        common.errorMsg("Time in cluster is desynchronized or it couldn't be determined. You should fix this issue manually before proceeding.")
         mysqlStatusReport['error'] = 131
         return mysqlStatusReport
     }
@@ -163,7 +163,7 @@ def verifyGaleraStatus(env, checkTimeSync=false) {
         common.infoMsg("No errors found - MySQL status is ${status}.")
         return mysqlStatusReport
     } else if (status == "unknown") {
-        common.warningMsg('MySQL status cannot be detemined')
+        common.warningMsg('MySQL status cannot be determined')
         mysqlStatusReport['error'] = 1
         return mysqlStatusReport
     } else {
@@ -176,7 +176,7 @@ def verifyGaleraStatus(env, checkTimeSync=false) {
 /** Validates and prints result of verifyGaleraStatus function
 @param env      Salt Connection object or pepperEnv
 @param out      Output of the mysql.status Salt function
-@return status  "OK", "ERROR" or "uknown" depending on result of validation
+@return status  "OK", "ERROR" or "unknown" depending on result of validation
 */
 
 def validateAndPrintGaleraStatusReport(env, out, minion, nodeRoleMaster=false) {
