@@ -205,3 +205,34 @@ Map parseJSON(String text) {
     json = null
     return result
 }
+
+
+/**
+ * This method returns Artifactory URL for the given server ID
+ *
+ * @param  serverId   a server ID - server name at resources/../servers
+ * @return            Artifactory URL (String)
+ */
+String getArtifactoryUrlByID(String serverId) {
+    Map artConfig = parseJSON(loadResource("artifactory/servers/${serverId}.json"))
+    return artConfig.artifactoryUrl
+}
+
+
+/**
+ * This method generates an upload spec JSON string
+ *
+ * @param  artifactoryPath   target path in Artifactory repository
+ * @param  artifactsPattern  file pattern for artifacts to upload
+ * @return                   JSON string representation of upload spec
+ */
+String getUploadSpec(String artifactoryPath, String artifactsPattern) {
+    return """{
+        "files": [
+            {
+                "pattern": "${artifactsPattern}",
+                "target": "${artifactoryPath}"
+            }
+        ]
+    }"""
+}
