@@ -14,7 +14,7 @@ import org.jenkins.plugins.lockableresources.LockableResourcesManager as LRM
  * @return list of groups [String]
  */
 def userGroups(username) {
-    res = []
+    def res = []
     def authorities = Jenkins.instance.securityRealm.loadUserByUsername(username).getAuthorities()
     authorities.each {
         res.add(it.toString())
@@ -48,7 +48,7 @@ def userInGroups(username, groups) {
  * @return username String
  */
 def currentUsername() {
-    username = ''
+    def username = ''
     wrap([$class: 'BuildUser']) {
         username = env.BUILD_USER_ID ?: 'jenkins'
     }
@@ -65,7 +65,7 @@ def currentUsername() {
  * @return boolean result
  */
 def currentUserInGroups(groups) {
-    username = currentUsername()
+    def username = currentUsername()
     return userInGroups(username, groups)
 }
 
@@ -75,7 +75,7 @@ def currentUserInGroups(groups) {
  * @return boolean result
  */
 def currentUserInGroup(group) {
-    username = currentUsername()
+    def username = currentUsername()
     return userInGroup(username, group)
 }
 
@@ -250,18 +250,18 @@ def checkDependencyJobs(block = true, allowNotBuilt = false) {
         acceptedStatuses.add('NOT_BUILT')
     }
 
-    depList = []
+    ArrayList depList = []
     if (env.TRIGGER_DEPENDENCY_KEYS){
         common.infoMsg('Job may depends on parent jobs, check if dependency jobs exist...')
-        depKeys = env.TRIGGER_DEPENDENCY_KEYS.toString()
+        String depKeys = env.TRIGGER_DEPENDENCY_KEYS.toString()
         depList = depKeys.split()
         if (depList){
             common.infoMsg("Here is dependency jobs-list: ${depList} , accepted job statuses are: ${acceptedStatuses}")
             for (String item : depList) {
-                prjName = item.replaceAll('[^a-zA-Z0-9]+', '_')
-                triggerResult = 'TRIGGER_' + prjName.toUpperCase() + '_BUILD_RESULT'
-                triggerJobName = 'TRIGGER_' + prjName.toUpperCase() + '_BUILD_NAME'
-                triggerJobBuild = 'TRIGGER_' + prjName.toUpperCase() + '_BUILD_NUMBER'
+                String prjName = item.replaceAll('[^a-zA-Z0-9]+', '_')
+                String triggerResult = 'TRIGGER_' + prjName.toUpperCase() + '_BUILD_RESULT'
+                String triggerJobName = 'TRIGGER_' + prjName.toUpperCase() + '_BUILD_NAME'
+                String triggerJobBuild = 'TRIGGER_' + prjName.toUpperCase() + '_BUILD_NUMBER'
                 if (!acceptedStatuses.contains(env.getProperty(triggerResult))) {
                     msg = "Dependency job ${env.getProperty(triggerJobName)} #${env.getProperty(triggerJobBuild)} is ${env.getProperty(triggerResult)}"
                     common.warningMsg(msg)

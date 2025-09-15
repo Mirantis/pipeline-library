@@ -1299,7 +1299,7 @@ def schedule (label='docker') {
     // generate a map of nodes matching other criteria
     for (node in freeNodes) {
         // sameJobExecutors is the number of executors running the same job as the calling one
-        sameJobExecutors = node.getExecutors() // get all executors
+        Integer sameJobExecutors = node.getExecutors() // get all executors
                 .collect { executor -> executor.getCurrentExecutable() } // get running "threads"
                 .collect { thread -> thread?.displayName } // filter job names from threads
                 .minus(null) // null = empty executors, remove them from the list
@@ -1307,7 +1307,7 @@ def schedule (label='docker') {
                 .size()
 
         // calculate busy executors, we don't want to count "sameJobExecutors" twice
-        totalBusyExecutors = node.countBusy() - sameJobExecutors
+        Integer totalBusyExecutors = node.countBusy() - sameJobExecutors
         // generate the final map which contains nodes matching criteria with their load score
         // builds of the same jobs have x10 score, all others x1
         nodesMap += ["${node.getName()}" : sameJobExecutors * 10 + totalBusyExecutors]
