@@ -64,6 +64,7 @@ def getGitCommit() {
  * @param branch          Branch desired to switch to
  */
 def changeGitBranch(path, branch) {
+    def git_cmd
     dir(path) {
         git_cmd = sh (
             script: "git checkout ${branch}",

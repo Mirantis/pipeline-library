@@ -324,11 +324,12 @@ LinkedHashMap getDependentPatches(LinkedHashMap changeInfo) {
  *                          '--current-patch-set' or '--comments' as a simple string
  */
 def findGerritChange(credentialsId, LinkedHashMap gerritAuth, LinkedHashMap changeParams, String extraFlags = '', String sshOpts = '') {
-    scriptText = """
+    def scriptText = """
                  ssh ${sshOpts} -p ${gerritAuth['PORT']} ${gerritAuth['USER']}@${gerritAuth['HOST']} \
                  gerrit query ${extraFlags} \
                  --format JSON \
                  """
+    def jsonChange
     changeParams.each {
         scriptText += " ${it.key}:${it.value}"
     }

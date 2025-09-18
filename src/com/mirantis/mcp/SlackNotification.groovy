@@ -42,8 +42,10 @@ def jobResultNotification(String buildStatusParam, String channel = "#mk-ci",
 
 
     def common = new com.mirantis.mk.Common()
-    cred = common.getCredentialsById(credentialsId)
-    hook_url_parsed = cred.getSecret().toString()
+    def cred = common.getCredentialsById(credentialsId)
+    def hook_url_parsed = cred.getSecret().toString()
+    String colorCode
+    String colorName
 
     switch(buildStatusParam.toLowerCase()) {
         case "success":
@@ -63,7 +65,7 @@ def jobResultNotification(String buildStatusParam, String channel = "#mk-ci",
             colorName = "grey"
     }
 
-    queryString = 'payload={' +
+    String queryString = 'payload={' +
             "'text':'${buildStatusParam.toUpperCase()}: Job <${buildUrlParam}|${jobNameParam} [${buildNumberParam}]>\\n ${description}', " +
             "'color':'${colorCode}'," +
             "'pretext': '', " +
@@ -71,7 +73,6 @@ def jobResultNotification(String buildStatusParam, String channel = "#mk-ci",
             "'channel': '${channel}', " +
             '}'
     sendPostRequest(hook_url_parsed, queryString)
-
 }
 
 /*
