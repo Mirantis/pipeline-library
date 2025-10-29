@@ -78,6 +78,7 @@ def checkDeploymentTestSuite() {
     def runRgnlDeleteMasterTest = env.RUN_RGNL_DELETE_MASTER_TEST ? env.RUN_RGNL_DELETE_MASTER_TEST.toBoolean() : false
     def runChildDeleteMasterTest = env.RUN_CHILD_DELETE_MASTER_TEST ? env.RUN_CHILD_DELETE_MASTER_TEST.toBoolean() : false
     def runGracefulRebootTest = env.RUN_GRACEFUL_REBOOT_TEST ? env.RUN_GRACEFUL_REBOOT_TEST.toBoolean() : false
+    def runChildDistrUpgradeTest = env.RUN_CHILD_DISTR_UPGRADE_TEST? env.RUN_CHILD_DISTR_UPGRADE_TEST.toBoolean() : false
     def pauseForDebug = env.PAUSE_FOR_DEBUG ? env.PAUSE_FOR_DEBUG.toBoolean() : false
     def runChildMachineDeletionPolicyTest = env.RUN_CHILD_MACHINE_DELETION_POLICY_TEST ? env.RUN_CHILD_MACHINE_DELETION_POLICY_TEST.toBoolean() : false
     def runChildCustomCertTest = env.RUN_CHILD_CUSTOM_CERT_TEST ? env.RUN_CHILD_CUSTOM_CERT_TEST.toBoolean() : false
@@ -288,6 +289,14 @@ def checkDeploymentTestSuite() {
         }
         runChildDeleteMasterTest = true
         common.infoMsg('Child cluster deployment will be enabled since delete child master node test suite will be executed')
+    }
+    if (commitMsg ==~ /(?s).*\[child-distr-upgrade-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-distr-upgrade-test.*/) {
+        upgradeChildPlanBulk = true
+        deployChild = true
+        deployOsOnMos = true
+        childDeployType = 'mosk'
+        runChildDistrUpgradeTest = true
+        common.infoMsg('Child Mosk cluster upgrade with openstack will be enabled since child distribution upgrade test suite will be executed')
     }
     if (commitMsg ==~ /(?s).*\[child-machine-deletion-policy-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-machine-deletion-policy-test.*/) {
         runChildMachineDeletionPolicyTest = true
@@ -600,6 +609,7 @@ def checkDeploymentTestSuite() {
         Delete mgmt master node test: ${runMgmtDeleteMasterTest}
         Delete rgnl master node test: ${runRgnlDeleteMasterTest}
         Delete child master node test: ${runChildDeleteMasterTest}
+        Distribution  child upgrade test: ${runChildDistrUpgradeTest} 
         Child machine deletion policy test: ${runChildMachineDeletionPolicyTest}
         Custom cert test for child clusters: ${runChildCustomCertTest}
         Custom cache cert test for mgmt and child clusters: ${runMgmtCustomCacheCertTest}
@@ -673,6 +683,7 @@ def checkDeploymentTestSuite() {
         runMgmtDeleteMasterTestEnabled           : runMgmtDeleteMasterTest,
         runRgnlDeleteMasterTestEnabled           : runRgnlDeleteMasterTest,
         runChildDeleteMasterTestEnabled          : runChildDeleteMasterTest,
+        runChildDistrUpgradeTestEnabled          : runChildDistrUpgradeTest,
         runChildCustomCertTestEnabled            : runChildCustomCertTest,
         customSlackChannelEnabled                : customSlackChannel,
         runMgmtCustomCacheCertTestEnabled        : runMgmtCustomCacheCertTest,
@@ -952,6 +963,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'RUN_MGMT_DELETE_MASTER_TEST', value: triggers.runMgmtDeleteMasterTestEnabled),
         booleanParam(name: 'RUN_RGNL_DELETE_MASTER_TEST', value: triggers.runRgnlDeleteMasterTestEnabled),
         booleanParam(name: 'RUN_CHILD_DELETE_MASTER_TEST', value: triggers.runChildDeleteMasterTestEnabled),
+        booleanParam(name: 'RUN_CHILD_DISTR_UPGRADE_TEST', value: triggers.runChildDistrUpgradeTestEnabled),
         booleanParam(name: 'RUN_CHILD_CUSTOM_CERT_TEST', value: triggers.runChildCustomCertTestEnabled),
         booleanParam(name: 'RUN_MGMT_CUSTOM_CACHE_CERT_TEST', value: triggers.runMgmtCustomCacheCertTestEnabled),
         booleanParam(name: 'RUN_MKE_CUSTOM_CERT_TEST', value: triggers.runMkeCustomCertTestEnabled),
