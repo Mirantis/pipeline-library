@@ -130,6 +130,7 @@ def createDir (String artifactoryURL, String path, String dir) {
 
 /**
  * Move/copy an artifact or a folder to the specified destination
+ * Uses curl to download/upload/delete files since /api/copy and /api/move are not supported
  *
  * @param artifactoryURL String, an URL to Artifactory
  * @param sourcePath String, a source path to the artifact including repository name
@@ -137,10 +138,207 @@ def createDir (String artifactoryURL, String path, String dir) {
  * @param copy boolean, whether to copy or move the item, default is move
  * @param dryRun boolean, whether to perform dry run on not, default is false
  */
-def moveItem (String artifactoryURL, String sourcePath, String dstPath, boolean copy = false, boolean dryRun = false) {
-    def url = "${artifactoryURL}/api/${copy ? 'copy' : 'move'}/${sourcePath}?to=/${dstPath}&dry=${dryRun ? '1' : '0'}"
-    def http = new com.mirantis.mk.Http()
-    return http.doPost(url, 'artifactory')
+def moveItem (String artifactoryURL, String sourcePath, String dstPath, boolean copy = false, boolean dryRun = false, String credentialsId = 'artifactory') {
+    def respCode = 200
+    def respText = ''
+
+    withCredentials([
+            [$class          : 'UsernamePasswordMultiBinding',
+             credentialsId   : credentialsId,
+             passwordVariable: 'ARTIFACTORY_PASSWORD',
+             usernameVariable: 'ARTIFACTORY_LOGIN']
+    ]) {
+        try {
+            // Check if source is a file or directory
+            def storageUrl = "${artifactoryURL}/api/storage/${sourcePath}"
+            def storageResult = sh(script: """
+                set +e
+                response=\$(curl -s -w "\\n%{http_code}" -X GET -u \${ARTIFACTORY_LOGIN}:\${ARTIFACTORY_PASSWORD} '${storageUrl}' 2>&1)
+                echo "\$response"
+            """, returnStdout: true).trim()
+
+            def storageLines = storageResult.split('\n')
+            def storageCode = storageLines.length > 0 && storageLines[-1] ==~ /^\d{3}$/ ? storageLines[-1].toInteger() : 404
+            def storageBody = storageLines.length > 1 ? storageLines[0..-2].join('\n') : ''
+
+            if (storageCode != 200) {
+                return [storageCode, storageBody ?: "Source path not found: ${sourcePath}"]
+            }
+
+            def storageInfo = new groovy.json.JsonSlurperClassic().parseText(storageBody)
+            def isDirectory = storageInfo.get('children') != null
+
+            if (dryRun) {
+                respText = "DRY RUN: Would ${copy ? 'copy' : 'move'} ${isDirectory ? 'directory' : 'file'} from ${sourcePath} to ${dstPath}"
+                return [200, respText]
+            }
+
+            if (isDirectory) {
+                // Handle directory: recursively copy all files using checksum deploy
+                def filesToCopy = getDirectoryFiles(artifactoryURL, sourcePath, credentialsId)
+                def errors = []
+
+                filesToCopy.each { filePath ->
+                    def relativePath = filePath.replaceFirst("^${sourcePath}/", '')
+                    def copyResult = copyFileByChecksum(artifactoryURL, filePath, "${dstPath}/${relativePath}", credentialsId)
+
+                    if (copyResult[0] != 200) {
+                        errors.add("Failed to copy ${filePath}: HTTP ${copyResult[0]} - ${copyResult[1]}")
+                        respCode = copyResult[0]
+                    }
+                }
+
+                // Delete source directory if move (not copy)
+                if (!copy && respCode == 200) {
+                    def deleteResult = deleteItem(artifactoryURL, sourcePath)
+                    if (deleteResult[0] != 200) {
+                        errors.add("Failed to delete source directory: HTTP ${deleteResult[0]}")
+                        respCode = deleteResult[0]
+                    }
+                }
+
+                respText = errors ? errors.join('; ') : "Successfully ${copy ? 'copied' : 'moved'} directory from ${sourcePath} to ${dstPath}"
+            } else {
+                // Handle single file using checksum deploy
+                def copyResult = copyFileByChecksum(artifactoryURL, sourcePath, dstPath, credentialsId)
+                respCode = copyResult[0]
+                respText = copyResult[1]
+                // Delete source file if move (not copy)
+                if (!copy && respCode == 200) {
+                    def deleteResult = deleteItem(artifactoryURL, sourcePath)
+                    if (deleteResult[0] != 200) {
+                        respCode = deleteResult[0]
+                        respText = "Copied but failed to delete source: ${deleteResult[1]}"
+                    } else {
+                        respText = respText ?: "Successfully ${copy ? 'copied' : 'moved'} file from ${sourcePath} to ${dstPath}"
+                    }
+                } else if (respCode == 200) {
+                    respText = respText ?: "Successfully ${copy ? 'copied' : 'moved'} file from ${sourcePath} to ${dstPath}"
+                }
+            }
+            //If successful, rewrite the return code to the expected one
+            if ( respCode ==~ /^2\d{2}$/ ) {
+                respCode = 200
+            }
+        } catch (Exception e) {
+            respCode = 500
+            respText = "Error during ${copy ? 'copy' : 'move'} operation: ${e.getMessage()}"
+        }
+    }
+
+    return [respCode, respText]
+}
+
+/**
+ * Copy a file using checksum-based deploy API (no file download required)
+ * Uses JFrog REST API: PUT /artifactory/api/checksum/deploy/{repoKey}/{filePath}
+ *
+ * @param artifactoryURL String, an URL to Artifactory
+ * @param sourcePath String, a source path to the artifact including repository name
+ * @param dstPath String, a destination path to the artifact including repository name
+ * @return Array with [responseCode, responseText]
+ */
+def copyFileByChecksum(String artifactoryURL, String sourcePath, String dstPath, String credentialsId = 'artifactory') {
+    def respCode = 200
+    def respText = ''
+
+    withCredentials([
+            [$class          : 'UsernamePasswordMultiBinding',
+             credentialsId   : credentialsId,
+             passwordVariable: 'ARTIFACTORY_PASSWORD',
+             usernameVariable: 'ARTIFACTORY_LOGIN']
+    ]) {
+        // Get checksums from source file
+        def storageUrl = "${artifactoryURL}/api/storage/${sourcePath}"
+        def storageResult = sh(script: """
+            set +e
+            response=\$(curl -s -w "\\n%{http_code}" -X GET -u \${ARTIFACTORY_LOGIN}:\${ARTIFACTORY_PASSWORD} '${storageUrl}' 2>&1)
+            echo "\$response"
+        """, returnStdout: true).trim()
+
+        def storageLines = storageResult.split('\n')
+        def storageCode = storageLines.length > 0 && storageLines[-1] ==~ /^\d{3}$/ ? storageLines[-1].toInteger() : 404
+        def storageBody = storageLines.length > 1 ? storageLines[0..-2].join('\n') : ''
+
+        if (storageCode != 200) {
+            return [storageCode, storageBody ?: "Source file not found: ${sourcePath}"]
+        }
+
+        def storageInfo = new groovy.json.JsonSlurperClassic().parseText(storageBody)
+        def checksums = storageInfo.get('checksums', [:])
+        def md5 = checksums.get('md5', '')
+        def sha1 = checksums.get('sha1', '')
+        def sha256 = checksums.get('sha256', '')
+
+        if (!md5 && !sha1) {
+            return [500, "Source file has no checksums available: ${sourcePath}"]
+        }
+
+        // Use checksum deploy API to copy file without downloading
+        def deployUrl = "${artifactoryURL}/${dstPath}"
+        // Build curl command with headers
+        def curlHeaders = "-H \"X-Checksum-Deploy: true\""
+        if (sha1) {
+            curlHeaders += " -H \"X-Checksum-Sha1: ${sha1}\""
+        }
+        if (sha256) {
+            curlHeaders += " -H \"X-Checksum-Sha256: ${sha256}\""
+        }
+        if (md5) {
+            curlHeaders += " -H \"X-Checksum-Md5: ${md5}\""
+        }
+
+        def deployResult = sh(script: """
+            set +e
+            response=\$(curl -s -w "\\n%{http_code}" -X PUT -u \${ARTIFACTORY_LOGIN}:\${ARTIFACTORY_PASSWORD} ${curlHeaders} '${deployUrl}' 2>&1)
+            echo "\$response"
+        """, returnStdout: true).trim()
+
+        def deployLines = deployResult.split('\n')
+        respCode = deployLines.length > 0 && deployLines[-1] ==~ /^\d{3}$/ ? deployLines[-1].toInteger() : 500
+        respText = deployLines.length > 1 ? deployLines[0..-2].join('\n') : ''
+
+        if (respCode != 200 && !respText) {
+            respText = "Failed to deploy by checksum: HTTP ${respCode}"
+        }
+    }
+
+    return [respCode, respText]
+}
+
+/**
+ * Recursively get all files in a directory
+ *
+ * @param artifactoryURL String, an URL to Artifactory
+ * @param dirPath String, a directory path including repository name
+ * @return List of file paths
+ */
+def getDirectoryFiles(String artifactoryURL, String dirPath, String credentialsId = 'artifactory') {
+    def files = []
+    def storageUrl = "${artifactoryURL}/api/storage/${dirPath}"
+
+    withCredentials([
+            [$class          : 'UsernamePasswordMultiBinding',
+             credentialsId   : credentialsId,
+             passwordVariable: 'ARTIFACTORY_PASSWORD',
+             usernameVariable: 'ARTIFACTORY_LOGIN']
+    ]) {
+        def result = sh(script: "bash -c \"curl -X GET -u \${ARTIFACTORY_LOGIN}:\${ARTIFACTORY_PASSWORD} '${storageUrl}'\"",
+                returnStdout: true).trim()
+
+        def storageInfo = new groovy.json.JsonSlurperClassic().parseText(result)
+        def children = storageInfo.get('children', [])
+
+        children.each { child ->
+            def childPath = "${dirPath}/${child.uri.replaceAll('^/', '')}"
+            if (child.folder) {
+                files.addAll(getDirectoryFiles(artifactoryURL, childPath))
+            } else {
+                files.add(childPath)
+            }
+        }
+    }
+    return files
 }
 
 /**
