@@ -153,7 +153,7 @@ def moveItem (String artifactoryURL, String sourcePath, String dstPath, boolean 
             def storageUrl = "${artifactoryURL}/api/storage/${sourcePath}"
             def storageResult = sh(script: """
                 set +e
-                response=\$(curl -s -w "\\n%{http_code}" -X GET -u \${ARTIFACTORY_LOGIN}:\${ARTIFACTORY_PASSWORD} '${storageUrl}' 2>&1)
+                response=\$(curl -sL -w "\\n%{http_code}" -X GET -u \${ARTIFACTORY_LOGIN}:\${ARTIFACTORY_PASSWORD} '${storageUrl}' 2>&1)
                 echo "\$response"
             """, returnStdout: true).trim()
 
@@ -252,7 +252,7 @@ def copyFileByChecksum(String artifactoryURL, String sourcePath, String dstPath,
         def storageUrl = "${artifactoryURL}/api/storage/${sourcePath}"
         def storageResult = sh(script: """
             set +e
-            response=\$(curl -s -w "\\n%{http_code}" -X GET -u \${ARTIFACTORY_LOGIN}:\${ARTIFACTORY_PASSWORD} '${storageUrl}' 2>&1)
+            response=\$(curl -sL -w "\\n%{http_code}" -X GET -u \${ARTIFACTORY_LOGIN}:\${ARTIFACTORY_PASSWORD} '${storageUrl}' 2>&1)
             echo "\$response"
         """, returnStdout: true).trim()
 
@@ -290,7 +290,7 @@ def copyFileByChecksum(String artifactoryURL, String sourcePath, String dstPath,
 
         def deployResult = sh(script: """
             set +e
-            response=\$(curl -s -w "\\n%{http_code}" -X PUT -u \${ARTIFACTORY_LOGIN}:\${ARTIFACTORY_PASSWORD} ${curlHeaders} '${deployUrl}' 2>&1)
+            response=\$(curl -sL -w "\\n%{http_code}" -X PUT -u \${ARTIFACTORY_LOGIN}:\${ARTIFACTORY_PASSWORD} ${curlHeaders} '${deployUrl}' 2>&1)
             echo "\$response"
         """, returnStdout: true).trim()
 
@@ -323,7 +323,7 @@ def getDirectoryFiles(String artifactoryURL, String dirPath, String credentialsI
              passwordVariable: 'ARTIFACTORY_PASSWORD',
              usernameVariable: 'ARTIFACTORY_LOGIN']
     ]) {
-        def result = sh(script: "bash -c \"curl -X GET -u \${ARTIFACTORY_LOGIN}:\${ARTIFACTORY_PASSWORD} '${storageUrl}'\"",
+        def result = sh(script: "bash -c \"curl -L -X GET -u \${ARTIFACTORY_LOGIN}:\${ARTIFACTORY_PASSWORD} '${storageUrl}'\"",
                 returnStdout: true).trim()
 
         def storageInfo = new groovy.json.JsonSlurperClassic().parseText(result)
