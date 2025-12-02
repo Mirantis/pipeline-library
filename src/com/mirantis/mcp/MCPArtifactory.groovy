@@ -130,6 +130,21 @@ def createDir (String artifactoryURL, String path, String dir) {
 
 /**
  * Move/copy an artifact or a folder to the specified destination
+ *
+ * @param artifactoryURL String, an URL to Artifactory
+ * @param sourcePath String, a source path to the artifact including repository name
+ * @param dstPath String, a destination path to the artifact including repository name
+ * @param copy boolean, whether to copy or move the item, default is move
+ * @param dryRun boolean, whether to perform dry run on not, default is false
+ */
+def moveItem (String artifactoryURL, String sourcePath, String dstPath, boolean copy = false, boolean dryRun = false) {
+    def url = "${artifactoryURL}/api/${copy ? 'copy' : 'move'}/${sourcePath}?to=/${dstPath}&dry=${dryRun ? '1' : '0'}"
+    def http = new com.mirantis.mk.Http()
+    return http.doPost(url, 'artifactory')
+}
+
+/**
+ * Move/copy an artifact or a folder to the specified destination
  * Uses curl to download/upload/delete files since /api/copy and /api/move are not supported
  *
  * @param artifactoryURL String, an URL to Artifactory
@@ -138,7 +153,7 @@ def createDir (String artifactoryURL, String path, String dir) {
  * @param copy boolean, whether to copy or move the item, default is move
  * @param dryRun boolean, whether to perform dry run on not, default is false
  */
-def moveItem (String artifactoryURL, String sourcePath, String dstPath, boolean copy = false, boolean dryRun = false, String credentialsId = 'artifactory') {
+def moveItemNew (String artifactoryURL, String sourcePath, String dstPath, boolean copy = false, boolean dryRun = false, String credentialsId = 'artifactory') {
     def respCode = 200
     def respText = ''
 
