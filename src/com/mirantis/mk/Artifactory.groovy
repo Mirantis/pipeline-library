@@ -473,11 +473,12 @@ def deleteArtifactoryChartRepo(art, repoName){
  * @param chartPattern  Chart pattern for publishing
  */
 def publishArtifactoryHelmChart(art, repoName, chartPattern){
+    def prefix = art.getUrl().endsWith('/artifactory') ? '' : 'artifactory/'
     def uploadSpec = """{
                 "files": [
                    {
                        "pattern": "${chartPattern}",
-                       "target": "artifactory/${repoName}/"
+                       "target": "${prefix}${repoName}/"
                     }
                 ]
             }"""
