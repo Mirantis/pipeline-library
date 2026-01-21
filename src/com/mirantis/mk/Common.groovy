@@ -488,7 +488,7 @@ def cutOrDie(cmd, index) {
 
 /**
  * Check variable contains keyword
- * @param variable keywork is searched (contains) here
+ * @param variable keyword is searched (contains) here
  * @param keyword string to look for
  * @return True if variable contains keyword (case insensitive), False if do not contains or any of input isn't a string
  */
@@ -844,7 +844,7 @@ def comparePillars(compRoot, b_url, grepOpts) {
 /**
  * Simple function, to get basename from string.
  * line - path-string
- * remove_ext - string, optionl. Drop file extenstion.
+ * remove_ext - string, optionl. Drop file extension.
  **/
 def GetBaseName(line, remove_ext) {
     filename = line.toString().split('/').last()
