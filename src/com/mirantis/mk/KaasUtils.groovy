@@ -284,7 +284,7 @@ def checkDeploymentTestSuite() {
         runRgnlDeleteMasterTest = true
     }
     if (commitMsg ==~ /(?s).*\[child-delete-master-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-delete-master-test.*/) {
-        if (!mosDeployChild) {
+        if (childDeployType != 'mosk') {
             deployChild = true
         }
         runChildDeleteMasterTest = true
@@ -534,7 +534,7 @@ def checkDeploymentTestSuite() {
         runCacheWarmup = true
     }
 
-    if (runCacheWarmup && (!deployChild && !mosDeployChild)) {
+    if (runCacheWarmup && (!deployChild && childDeployType != 'mosk')) {
         runCacheWarmup = false
         common.errorMsg('Child cluster deployment is not enabled, skipping Cache Warmup')
     }
