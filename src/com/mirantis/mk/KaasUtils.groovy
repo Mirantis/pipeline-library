@@ -557,6 +557,10 @@ def checkDeploymentTestSuite() {
         cdnConfig['mgmt']['openstack'] = cdnRegion
     }
 
+    if (commitMsg ==~ /(?s).*\[us-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*us-demo.*/) {
+        openstackIMC = 'us'
+    }
+
     // calculate weight of current demo run to manage lockable resources
     def demoWeight = deployChild ? 2 : 1 // management = 1, child += 1
     if (runUie2eNew) {
