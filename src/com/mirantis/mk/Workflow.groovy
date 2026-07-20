@@ -120,7 +120,7 @@ def getJobDefaultParameters(jobName) {
  * @param global_variables  Map that keeps the artifact URLs and used 'env' objects:
  *                          {'PARAM1_NAME': <param1 value>, 'PARAM2_NAME': 'http://.../artifacts/param2_value', ...}
  */
-def generateParameters(job_parameters, global_variables) {
+def generateParameters(job_parameters, global_variables, jenkinsCredentialsId = 'jenkins', artifactoryCredentialsId = 'artifactory') {
     def parameters = []
     def common = new com.mirantis.mk.Common()
     def mcpcommon = new com.mirantis.mcp.Common()
@@ -128,8 +128,13 @@ def generateParameters(job_parameters, global_variables) {
     def engine = new groovy.text.GStringTemplateEngine()
     def template
     def yamls_from_urls = [:]
-    def base = [:]
-    base["url"] = ''
+    def base = ['url': '']
+    def jenkinsCreds = common.getPasswordCredentials(jenkinsCredentialsId)
+    def jenkinsHeaders = ['Authorization': "Basic " +
+            "${jenkinsCreds.username}:${jenkinsCreds.password}".bytes.encodeBase64().toString()]
+    def artfactoryCreds = common.getPasswordCredentials(artifactoryCredentialsId)
+    def artifactoryHeaders = ['Authorization': "Basic " +
+            "${artfactoryCreds.username}:${artfactoryCreds.password}".bytes.encodeBase64().toString()]
     def variable_content
     def env_variables = common.getEnvAsMap()
 
@@ -147,7 +152,8 @@ def generateParameters(job_parameters, global_variables) {
                 global_variables[param.value.get_variable_from_url] = env[param.value.get_variable_from_url] ?: ''
             }
             if (global_variables[param.value.get_variable_from_url]) {
-                variable_content = http.restGet(base, global_variables[param.value.get_variable_from_url])
+                def headers = global_variables[param.value.get_variable_from_url].contains('artifactory') ? artifactoryHeaders : jenkinsHeaders
+                variable_content = http.restGet(base, global_variables[param.value.get_variable_from_url], null, headers)
                 // http.restGet() attempts to read the response as a JSON, and may return an object instead of a string
                 variable_content = "${variable_content}".trim()
                 parameters.add([$class: "${param.value.type}", name: "${param.key}", value: variable_content])
@@ -169,7 +175,8 @@ def generateParameters(job_parameters, global_variables) {
                 if (yaml_url) {
                     if (!yamls_from_urls[yaml_url]) {
                         _msg += "\nReading YAML from ${yaml_url} for ${param.key}"
-                        def yaml_content = http.restGet(base, yaml_url)
+                        def headers = yaml_url.contains('artifactory') ? artifactoryHeaders : jenkinsHeaders
+                        def yaml_content = http.restGet(base, yaml_url, null, headers)
                         yamls_from_urls[yaml_url] = readYaml text: yaml_content
                     }
                     _msg += "\nGetting key ${yaml_key} from YAML ${yaml_url} for ${param.key}"
@@ -292,7 +299,9 @@ def runOrGetJob(job_name, job_parameters, global_variables, propagate, String fu
  * @param artifactory_server  Artifactory server ID defined in Jenkins config
  *
  */
-def storeArtifacts(build_url, step_artifacts, global_variables, job_name, build_num, artifactory_url = '', artifactory_server = '', artifacts_msg='local artifacts') {
+def storeArtifacts(build_url, step_artifacts, global_variables, job_name, build_num,
+                   artifactory_url = '', artifactory_server = '', artifacts_msg='local artifacts',
+                   jenkinsCredentialsId = 'jenkins', artifactoryCredentialsId = 'artifactory') {
     def common = new com.mirantis.mk.Common()
     def http = new com.mirantis.mk.Http()
     def artifactory = new com.mirantis.mcp.MCPArtifactory()
@@ -304,15 +313,21 @@ def storeArtifacts(build_url, step_artifacts, global_variables, job_name, build_
 
     def baseJenkins = [:]
     def baseArtifactory = [:]
+    def creds = common.getPasswordCredentials(jenkinsCredentialsId)
+    def jenkinsHeaders = ['Authorization': "Basic " +
+        "${creds.username}:${creds.password}".bytes.encodeBase64().toString()]
     build_url = build_url.replaceAll(~/\/+$/, "")
     baseArtifactory["url"] = artifactory_url + "/${job_name}/${build_num}"
     baseJenkins["url"] = build_url
-    def job_config = http.restGet(baseJenkins, "/api/json/")
+    def job_config = http.restGet(baseJenkins, "/api/json/", null, jenkinsHeaders)
     def job_artifacts = job_config['artifacts']
     common.infoMsg("Attempt to store ${artifacts_msg} for: ${job_name}/${build_num}")
     for (artifact in step_artifacts) {
         try {
-            def artifactoryResp = http.restGet(baseArtifactory, "/${artifact.value}")
+            creds = common.getPasswordCredentials(artifactoryCredentialsId)
+            def artifactoryHeaders = ['Authorization': "Basic " +
+                "${creds.username}:${creds.password}".bytes.encodeBase64().toString()]
+            def artifactoryResp = http.restGet(baseArtifactory, "/${artifact.value}", null, artifactoryHeaders)
             global_variables[artifact.key] = artifactoryResp.downloadUri
             common.infoMsg("Artifact URL ${artifactoryResp.downloadUri} stored to ${artifact.key}")
             continue
