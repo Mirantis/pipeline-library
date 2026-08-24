@@ -615,6 +615,31 @@ def getGerritChangeInfoByRefspec(Map gerritAuth, String repoName, String refSpec
 }
 
 /**
+ * Get gerrit repository tag with gerrit API.
+ *
+ * @param repoName The name of the repository.
+ * @param credentialsId jenkins credentials id.
+ * @param tagName Name of the tag e.g 1.3.3.
+ * @return Map representing a tag.
+ */
+def getRepoTag(String repoName, String credentialsId, String tagName) {
+    def common = new com.mirantis.mk.Common()
+    def response
+    def normalizedRepoName = java.net.URLEncoder.encode(repoName, 'UTF-8')
+    def tagApiUrl = "https://gerrit.mcp.mirantis.com/a/projects/${normalizedRepoName}/tags/${tagName}"
+    withCredentials([usernamePassword(credentialsId: credentialsId,
+                     usernameVariable: 'GERRIT_USERNAME',
+                     passwordVariable: 'GERRIT_PASSWORD')]) {
+        common.retry(15, 10) {
+            response = sh(script: 'curl -u $GERRIT_USERNAME:$GERRIT_PASSWORD ' + tagApiUrl, returnStdout: true).trim()
+        }
+    }
+    def jsonResponse = response.split('\n').last()
+    def jsonTag = readJSON text: jsonResponse
+    return jsonTag
+}
+
+/**
  * Get gerrit repository tags with gerrit API.
  *
  * @param repoName The name of the repository.
