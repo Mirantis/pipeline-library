@@ -1370,7 +1370,11 @@ def getImageTag(version, isChanged, imageName) {
  */
 def getOpenstackbranchVersion(mosChildPreviouseComplexRelease, mosChildLatestComplexRelease, upgradeFlag) {
     def common = new com.mirantis.mk.Common()
+    def git = new com.mirantis.mk.Git()
     def regex = Pattern.compile('([a-z]+)-([0-9]+-[0-9]+-[0-9]+)-([a-z]*)-?([0-9]+-[0-9]+-?[0-9]*)')
+
+    def releaseRepoUrl = 'ssh://mcp-ci-gerrit@gerrit.mcp.mirantis.net:29418/mcp/release-openstack-k8s'
+    def credentialsId = 'mcp-ci-gerrit'
 
     def mosVersionBranch = upgradeFlag ? mosChildPreviouseComplexRelease : mosChildLatestComplexRelease
     def matcherComplexVersion = regex.matcher((mosVersionBranch).toString())
@@ -1379,6 +1383,16 @@ def getOpenstackbranchVersion(mosChildPreviouseComplexRelease, mosChildLatestCom
     if (matcherComplexVersion.find()) {
         def matcherComplexVersionParts = matcherComplexVersion.group(2).split('-')
         releaseOpenstackK8sBranch = String.format('%s.%s.%s', matcherComplexVersionParts[0], matcherComplexVersionParts[1], '0')
+
+        if (releaseRepoUrl && !git.branchExists(releaseRepoUrl, releaseOpenstackK8sBranch, credentialsId)) {
+            if (upgradeFlag) {
+                error("Branch '${releaseOpenstackK8sBranch}' derived from '${mosVersionBranch}' is missing in " +
+                      "${releaseRepoUrl}; refusing to fall back to master for the MOSK upgrade scenario")
+            }
+            common.warningMsg("Branch '${releaseOpenstackK8sBranch}' derived from '${mosVersionBranch}' does not " +
+                              "exist in ${releaseRepoUrl} yet, falling back to 'master'")
+            releaseOpenstackK8sBranch = 'master'
+        }
     }
     common.infoMsg("Use: OPENSTACK_DEPLOY_RELEASE_DIR ${releaseOpenstackK8sBranch}")
     return releaseOpenstackK8sBranch

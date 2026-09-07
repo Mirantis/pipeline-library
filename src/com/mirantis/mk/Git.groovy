@@ -320,6 +320,35 @@ def getBranchesForGitRepo(repoUrl, branchMatcher = ''){
 }
 
 /**
+ * Check whether a single branch exists in a remote git repository.
+ *
+ * @param repoUrl        URL of git repository
+ * @param branch         branch name to look for, without the refs/heads/ prefix
+ * @param credentialsId  SSH credentials to reach the remote ('' for anonymous)
+ * @param retries        attempts to make on a transport failure
+ * @param delay          delay between the attempts, seconds
+ * @return               true when the branch exists, false when the remote has no such branch
+ */
+def branchExists(repoUrl, branch, credentialsId = '', retries = 5, delay = 10) {
+    def common = new com.mirantis.mk.Common()
+    def lsRemote = "git ls-remote --exit-code --heads ${repoUrl} refs/heads/${branch}"
+    def exitCode = -1
+    common.retry(retries, delay) {
+        if (credentialsId) {
+            sshagent([credentialsId]) {
+                exitCode = sh(script: lsRemote, returnStatus: true)
+            }
+        } else {
+            exitCode = sh(script: lsRemote, returnStatus: true)
+        }
+        if (exitCode != 0 && exitCode != 2) {
+            error("Unable to list refs of ${repoUrl}: git ls-remote exit code ${exitCode}")
+        }
+    }
+    return exitCode == 0
+}
+
+/**
  * Method for preparing a tag to be SemVer 2 compatible, and can handle next cases:
  * - length of tag splitted by dots is more than 3
  * - first part of splitted tag starts not from digit
