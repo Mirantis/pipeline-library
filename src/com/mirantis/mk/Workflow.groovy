@@ -338,8 +338,9 @@ def storeArtifacts(build_url, step_artifacts, global_variables, job_name, build_
 
         def job_artifact = job_artifacts.findAll { item -> artifact.value == item['fileName'] || artifact.value == item['relativePath'] }
         if (job_artifact.size() == 1) {
-            // Store artifact URL
-            def artifact_url = "${build_url}/artifact/${job_artifact[0]['relativePath']}"
+            // Store artifact URL as a plain String: a GString here is dumped by SnakeYAML
+            // in printVariables() as "!!org.codehaus.groovy.runtime.GStringImpl" (PRODX-42735)
+            def artifact_url = "${build_url}/artifact/${job_artifact[0]['relativePath']}".toString()
             global_variables[artifact.key] = artifact_url
             common.infoMsg("Artifact URL ${artifact_url} stored to ${artifact.key}")
         } else if (job_artifact.size() > 1) {
