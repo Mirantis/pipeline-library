@@ -62,6 +62,7 @@ def checkDeploymentTestSuite() {
     def enableLMALogging = env.ENABLE_LMA_LOGGING ? env.ENABLE_LMA_LOGGING.toBoolean(): false
     def deployOsOnMos = env.DEPLOY_OS_ON_MOS? env.DEPLOY_OS_ON_MOS.toBoolean() : false
     def runUie2eNew = env.RUN_UI_E2E_NEW ? env.RUN_UI_E2E_NEW.toBoolean() : false
+    def runUie2eSupportDump = env.RUN_UI_E2E_SUPPORT_DUMP ? env.RUN_UI_E2E_SUPPORT_DUMP.toBoolean() : false
     def runMgmtConformance = env.RUN_MGMT_CFM ? env.RUN_MGMT_CFM.toBoolean() : false
     def runMgmtConformanceNetworkPolicy = env.RUN_MGMT_CFM_NETWORK_POLICY ? env.RUN_MGMT_CFM_NETWORK_POLICY.toBoolean() : false
     def runLMATest = env.RUN_LMA_TEST ? env.RUN_LMA_TEST.toBoolean() : false
@@ -235,6 +236,10 @@ def checkDeploymentTestSuite() {
 
     if (commitMsg ==~ /(?s).*\[ui-e2e-pw\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-e2e-pw.*/) {
         runUie2eNew = true
+    }
+    if (commitMsg ==~ /(?s).*\[ui-e2e-support-dump\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-e2e-support-dump.*/) {
+        runUie2eNew = true
+        runUie2eSupportDump = true
     }
     if (commitMsg ==~ /(?s).*\[mgmt-cfm\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-cfm.*/) {
         runMgmtConformance = true
@@ -606,6 +611,7 @@ def checkDeploymentTestSuite() {
         LMA testing scheduled: ${runLMATest}
         Mgmt user controller testing scheduled: ${runMgmtUserControllerTest}
         Mgmt UI e2e playwrite testing scheduled: ${runUie2eNew}
+        UI e2e SupportDump playwrite testing scheduled: ${runUie2eSupportDump}
         Maintenance test: ${runMaintenanceTest}
         Container Registry test: ${runContainerregistryTest}
         Child proxy test: ${runProxyChildTest}
@@ -678,6 +684,7 @@ def checkDeploymentTestSuite() {
         enableLMALoggingEnabled                  : enableLMALogging,
         deployOsOnMosEnabled                     : deployOsOnMos,
         runUie2eNewEnabled                       : runUie2eNew,
+        runUie2eSupportDumpEnabled               : runUie2eSupportDump,
         runMgmtConformanceEnabled                : runMgmtConformance,
         runMgmtConformanceNetworkPolicyEnabled   : runMgmtConformanceNetworkPolicy,
         runMaintenanceTestEnabled                : runMaintenanceTest,
@@ -959,6 +966,7 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'DEPLOY_MOS_CHILD_CLUSTER', value: triggers.mosDeployChildEnabled),
         booleanParam(name: 'DEPLOY_OS_ON_MOS', value: triggers.deployOsOnMosEnabled),
         booleanParam(name: 'RUN_UI_E2E_NEW', value: triggers.runUie2eNewEnabled),
+        booleanParam(name: 'RUN_UI_E2E_SUPPORT_DUMP', value: triggers.runUie2eSupportDumpEnabled),
         booleanParam(name: 'RUN_MGMT_CFM', value: triggers.runMgmtConformanceEnabled),
         booleanParam(name: 'RUN_MGMT_CFM_NETWORK_POLICY', value: triggers.runMgmtConformanceNetworkPolicyEnabled),
         booleanParam(name: 'RUN_MAINTENANCE_TEST', value: triggers.runMaintenanceTestEnabled),
