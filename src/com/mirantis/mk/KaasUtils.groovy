@@ -206,6 +206,13 @@ def checkDeploymentTestSuite() {
         // Edit after fix PRODX-3961
         enableBMDemo = false
     }
+    if (commitMsg ==~ /(?s).*\[ui-e2e-full\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*ui-e2e-full.*/) {
+        enableOSDemo = true
+        enablebmCoreDemo = true
+        enableBMDemo = false
+        runUie2eNew = true
+        common.warningMsg('UI e2e tests will be executed on OS and BM Core providers, the usual BM demo will be disabled')
+    }
 
     if (commitMsg ==~ /(?s).*\[lma-logging\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*lma-logging.*/) {
         enableLMALogging = true
