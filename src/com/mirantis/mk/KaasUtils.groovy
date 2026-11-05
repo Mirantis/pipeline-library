@@ -94,6 +94,11 @@ def checkDeploymentTestSuite() {
     def customSlackChannel = env.SLACK_CHANNEL_NOTIFY ? env.SLACK_CHANNEL_NOTIFY : ''
     def runNTPUpdateTest = env.RUN_NTP_UPDATE_TEST ? env.RUN_NTP_UPDATE_TEST.toBoolean() : false
     def runHocTest = env.RUN_HOC_TEST ? env.RUN_HOC_TEST.toBoolean() : false
+    def runMgmtDay2Test = env.RUN_MGMT_DAY2_TEST ? env.RUN_MGMT_DAY2_TEST.toBoolean() : false
+    def runChildDay2Test = env.RUN_CHILD_DAY2_TEST ? env.RUN_CHILD_DAY2_TEST.toBoolean() : false
+    def runMgmtDay2CpushieldTest = env.RUN_MGMT_DAY2_CPUSHIELD_TEST ? env.RUN_MGMT_DAY2_CPUSHIELD_TEST.toBoolean() : false
+    def runChildDay2CpushieldTest = env.RUN_CHILD_DAY2_CPUSHIELD_TEST ? env.RUN_CHILD_DAY2_CPUSHIELD_TEST.toBoolean() : false
+    def runDay2DevHocm = env.RUN_DAY2_DEV_HOCM ? env.RUN_DAY2_DEV_HOCM.toBoolean() : false
     def runMCCMariaBackupRestoreTest = env.RUN_MCC_MARIA_BACKUP_RESTORE_TEST ? env.RUN_MCC_MARIA_BACKUP_RESTORE_TEST.toBoolean() : false
     def runRuntimeMigrateExtendedTestMgmt = env.RUN_MGMT_RUNTIME_MIGRATE_EXTENDED_TEST ? env.RUN_MGMT_RUNTIME_MIGRATE_EXTENDED_TEST.toBoolean() : false
     def runRuntimeMigrateQuickTestMgmt = env.RUN_MGMT_RUNTIME_MIGRATE_QUICK_TEST ? env.RUN_MGMT_RUNTIME_MIGRATE_QUICK_TEST.toBoolean() : false
@@ -467,6 +472,33 @@ def checkDeploymentTestSuite() {
         common.warningMsg('Enable to create a test HOC object before any LCM-related test, verify its status and delete it after LCM test')
     }
 
+    if (commitMsg ==~ /(?s).*\[mgmt-day2-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-day2-test.*/) {
+        runMgmtDay2Test = true
+        common.warningMsg('Day2 operations (HostOSConfiguration) tests will be executed against mgmt cluster')
+    }
+
+    if (commitMsg ==~ /(?s).*\[child-day2-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-day2-test.*/) {
+        runChildDay2Test = true
+        deployChild = true
+        common.infoMsg('Child cluster deployment will be enabled since day2 operations test suite will be executed against child cluster')
+    }
+
+    if (commitMsg ==~ /(?s).*\[mgmt-day2-cpushield-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mgmt-day2-cpushield-test.*/) {
+        runMgmtDay2CpushieldTest = true
+        common.warningMsg('Day2 cpushield module test (create HOC, reboot labeled machines, check CPU isolation) will be executed against mgmt cluster')
+    }
+
+    if (commitMsg ==~ /(?s).*\[child-day2-cpushield-test\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*child-day2-cpushield-test.*/) {
+        runChildDay2CpushieldTest = true
+        deployChild = true
+        common.infoMsg('Child cluster deployment will be enabled since day2 cpushield module test will be executed against child cluster')
+    }
+
+    if (commitMsg ==~ /(?s).*\[day2-dev-hocm\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*day2-dev-hocm.*/) {
+        runDay2DevHocm = true
+        common.warningMsg('Day2 dev modules index will be added on mgmt cluster, day2 tests will use not yet released module versions')
+    }
+
     if (commitMsg ==~ /(?s).*\[mcc-maria-backup-restore\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*mcc-maria-backup-restore\.*/) {
         runMCCMariaBackupRestoreTest = true
         common.warningMsg('MCC Maria Backup/Restore test will be executed as part of mgmt test suite')
@@ -654,6 +686,11 @@ def checkDeploymentTestSuite() {
         Keycloak+LDAP integration enabled: ${coreKeycloakLdap}
         NTP update job scheduled: ${runNTPUpdateTest}
         Enable HOC tests: ${runHocTest}
+        Mgmt day2 operations tests: ${runMgmtDay2Test}
+        Child day2 operations tests: ${runChildDay2Test}
+        Mgmt day2 cpushield test: ${runMgmtDay2CpushieldTest}
+        Child day2 cpushield test: ${runChildDay2CpushieldTest}
+        Day2 dev modules index: ${runDay2DevHocm}
         MCC MariaDB Backup/Restore test enabled: ${runMCCMariaBackupRestoreTest}
         Sync to public-ci CDN enabled: ${publicCISync}
         Mgmt runtime migration (extended) enabled: ${runRuntimeMigrateExtendedTestMgmt}
@@ -733,6 +770,11 @@ def checkDeploymentTestSuite() {
         internalNTPServersEnabled                : configureInternalNTP,
         runNTPUpdateTestEnabled                  : runNTPUpdateTest,
         runHocTestEnabled                        : runHocTest,
+        runMgmtDay2TestEnabled                   : runMgmtDay2Test,
+        runChildDay2TestEnabled                  : runChildDay2Test,
+        runMgmtDay2CpushieldTestEnabled          : runMgmtDay2CpushieldTest,
+        runChildDay2CpushieldTestEnabled         : runChildDay2CpushieldTest,
+        runDay2DevHocmEnabled                    : runDay2DevHocm,
         runMCCMariaBackupRestoreTestEnabled      : runMCCMariaBackupRestoreTest,
         publicCISyncEnabled                      : publicCISync,
         runtimeMigrateExtendedMgmtEnabled        : runRuntimeMigrateExtendedTestMgmt,
@@ -1008,6 +1050,11 @@ def triggerPatchedComponentDemo(component, patchSpec = '', configurationFile = '
         booleanParam(name: 'CORE_KAAS_NTP_ENABLED', value: triggers.internalNTPServersEnabled),
         booleanParam(name: 'RUN_NTP_UPDATE_TEST', value: triggers.runNTPUpdateTestEnabled),
         booleanParam(name: 'RUN_HOC_TEST', value: triggers.runHocTestEnabled),
+        booleanParam(name: 'RUN_MGMT_DAY2_TEST', value: triggers.runMgmtDay2TestEnabled),
+        booleanParam(name: 'RUN_CHILD_DAY2_TEST', value: triggers.runChildDay2TestEnabled),
+        booleanParam(name: 'RUN_MGMT_DAY2_CPUSHIELD_TEST', value: triggers.runMgmtDay2CpushieldTestEnabled),
+        booleanParam(name: 'RUN_CHILD_DAY2_CPUSHIELD_TEST', value: triggers.runChildDay2CpushieldTestEnabled),
+        booleanParam(name: 'RUN_DAY2_DEV_HOCM', value: triggers.runDay2DevHocmEnabled),
         booleanParam(name: 'RUN_MCC_MARIA_BACKUP_RESTORE_TEST', value: triggers.runMCCMariaBackupRestoreTestEnabled),
         booleanParam(name: 'RUN_MGMT_RUNTIME_MIGRATE_EXTENDED_TEST', value: triggers.runtimeMigrateExtendedMgmtEnabled),
         booleanParam(name: 'RUN_MGMT_RUNTIME_MIGRATE_QUICK_TEST', value: triggers.runtimeMigrateQuickMgmtEnabled),
