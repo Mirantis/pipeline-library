@@ -379,21 +379,6 @@ def checkDeploymentTestSuite() {
         cisBenchmark = true
     }
 
-    if (commitMsg ==~ /(?s).*\[airgap-cdn-(eu|us|public-ci)\].*/) {
-        def parsedStr = commitMsg =~ /\[airgap-cdn-(eu|us|public-ci)\]/
-        switch (parsedStr[0][1]) {
-            case 'eu':
-                airGappedCDN = 'internal-eu'
-                break
-            case 'us':
-                airGappedCDN = 'internal-ci'
-                break
-            case 'public-ci':
-                airGappedCDN = 'public-ci'
-                break
-        }
-    }
-
     if (commitMsg ==~ /(?s).*\[disable-bv2-smoke\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*disable-bv2-smoke\.*/) {
         enableBv2Smoke = false
         common.errorMsg('Bootstrap v2 smoke checks will be aborted, WF -1 will be set')
@@ -590,12 +575,6 @@ def checkDeploymentTestSuite() {
         openstackIMC = 'eu'
     }
 
-    if (openstackIMC == 'eu') {
-        // use internal-eu because on internal-ci with eu cloud image pull takes much time
-        def cdnRegion = 'internal-eu'
-        cdnConfig['mgmt']['openstack'] = cdnRegion
-    }
-
     if (commitMsg ==~ /(?s).*\[us-demo\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*us-demo.*/) {
         openstackIMC = 'us'
     }
@@ -621,6 +600,20 @@ def checkDeploymentTestSuite() {
     if (commitMsg ==~ /(?s).*\[enable-mke-debug\].*/ || env.GERRIT_EVENT_COMMENT_TEXT ==~ /(?s).*enable-mke-debug\.*/) {
         enableMkeDebug = true
     }
+
+    if (airGapped && enablebmCoreDemo) {
+        openstackIMC = 'eu'
+        enableOSDemo = false
+        common.warningMsg('Our CI supported only one provider in per-commit run in airgap case. OS demo will be disabled.')
+    }
+
+    if (openstackIMC == 'eu') {
+        // use internal-eu because on internal-ci with eu cloud image pull takes much time
+        def cdnRegion = 'internal-eu'
+        cdnConfig['mgmt']['openstack'] = cdnRegion
+    }
+
+    airGappedCDN = openstackIMC == 'eu' ? 'internal-eu' : 'internal-ci'
 
     common.infoMsg("""
         OpenStack Cloud location: ${openstackIMC}
