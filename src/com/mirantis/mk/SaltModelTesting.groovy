@@ -8,7 +8,7 @@ package com.mirantis.mk
  *   distribRevision - (optional) Revision of packages to use (default proposed).
  *   runCommands - (optional) Dict with closure structure of body required tests. For example:
  *     [ '001_Test': { sh("./run-some-test") }, '002_Test': { sh("./run-another-test") } ]
- *     Before execution runCommands will be sorted by key names. Alpabetical order is preferred.
+ *     Before execution runCommands will be sorted by key names. Alphabetical order is preferred.
  *   runFinally - (optional) Dict with closure structure of body required commands, which should be
  *     executed in any case of test results. Same format as for runCommands
  *   updateRepo - (optional) Whether to run common repo update step.

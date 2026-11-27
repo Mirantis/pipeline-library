@@ -85,7 +85,7 @@ def uriByProperties(String artifactoryURL, LinkedHashMap properties, Boolean onl
  *
  * @param artifactUrl String, an URL to artifact in Artifactory repo
  * @param properties LinkedHashMap, a Hash of properties (key-value) which
- *        should be assigned for choosen artifact
+ *        should be assigned for chosen artifact
  * @param recursive Boolean, if artifact_url is a directory, whether to set
  *        properties recursively or not
  */
